@@ -4,6 +4,7 @@ import YAML from 'yaml';
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import {loadConfig} from '../../core/config/load-config.js';
+import {resolveProjectContext} from '../../core/config/project-context.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {detectRepoPaths, type RepoPaths} from '../../core/config/repo-paths.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
@@ -103,11 +104,26 @@ export async function runDoctor(
   const runProcessFn = dependencies?.runProcess ?? runProcess;
 
   const capabilities = await detectCapabilitiesFn(cwd);
-  const repoPaths = detectRepoPathsFn(cwd);
-  const config = options?.config ?? loadConfigFn({cwd, env});
-  const dockerEnv = repoPaths.dockerEnvFile ? readEnvFileFn(repoPaths.dockerEnvFile) : {};
-  const profile = repoPaths.liferayProfileFile ? readProfileFileFn(repoPaths.liferayProfileFile) : {};
-  const worktree = repoPaths.repoRoot ? await isWorktreeFn(cwd) : false;
+  const project = resolveProjectContext({
+    cwd,
+    env,
+    dependencies: {
+      detectRepoPaths: detectRepoPathsFn,
+      readEnvFile: readEnvFileFn,
+      readProfileFile: readProfileFileFn,
+    },
+  });
+  const repoPaths = {
+    repoRoot: project.repo.root,
+    dockerDir: project.repo.dockerDir,
+    liferayDir: project.repo.liferayDir,
+    dockerEnvFile: project.files.dockerEnv,
+    liferayProfileFile: project.files.liferayProfile,
+  };
+  const config = options?.config ?? project.config;
+  const dockerEnv = project.values.dockerEnv;
+  const profile = project.values.profile;
+  const worktree = project.repo.root ? await isWorktreeFn(cwd) : false;
 
   const tools = {
     git: await detectTool(runProcessFn, capabilities.hasGit, 'git', ['--version']),
@@ -247,15 +263,15 @@ export async function runDoctor(
     capabilities,
     tools,
     environment: {
-      cwd,
-      repoRoot: repoPaths.repoRoot,
-      inRepo: repoPaths.repoRoot !== null,
+      cwd: project.cwd,
+      repoRoot: project.repo.root,
+      inRepo: project.repo.inRepo,
       isWorktree: worktree,
-      dockerDir: repoPaths.dockerDir,
-      liferayDir: repoPaths.liferayDir,
+      dockerDir: project.repo.dockerDir,
+      liferayDir: project.repo.liferayDir,
       files: {
-        dockerEnv: repoPaths.dockerEnvFile,
-        liferayProfile: repoPaths.liferayProfileFile,
+        dockerEnv: project.files.dockerEnv,
+        liferayProfile: project.files.liferayProfile,
       },
     },
     config: {

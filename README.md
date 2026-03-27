@@ -132,22 +132,42 @@ npm run typecheck
 npm run check
 ```
 
-## Namespaces
+## Modelo de comandos
 
-- `project`: scaffold e integración en proyectos
-- `env`: ciclo de vida Docker local
-- `worktree`: worktrees y runtimes aislados
-- `db`: backups LCP, import local y doclib
-- `deploy`: build y deploy local
-- `osgi`: runtime diagnostics y Gogo Shell
-- `reindex`: observación y tuning temporal
-- `ai`: assets y skills AI
-- `liferay`: discovery y operaciones Liferay
-- `doctor`: prerequisites y config efectiva
+`ldev` separa la CLI por intención, no por cantidad de comandos:
+
+- `Core commands`: `doctor`, `setup`, `start`, `stop`, `status`, `logs`, `shell`
+- `Project commands`: `project`, `env`, `db`, `deploy`
+- `Advanced runtime commands`: `worktree`, `liferay`, `osgi`, `reindex`
+- `Internal commands`: `ai`
+
+La idea es que el flujo diario viva en top-level y que los namespaces se usen sólo cuando necesitas una tarea explícita de proyecto, runtime avanzado o scripting contra Liferay.
+
+## Agent Contract v1
+
+`ldev` expone un contrato estable para skills y agentes. La superficie mínima soportada en v1 es:
+
+- `ldev doctor --json`
+- `ldev context --json`
+- `ldev capabilities --json`
+- `ldev status --json`
+- `ldev setup`
+- `ldev start`
+- `ldev stop`
+- `ldev logs --json` o `ldev logs --no-follow`
+- `ldev shell`
+- `ldev liferay ... --json`
+
+Reglas del contrato:
+
+- Los comandos observables deben soportar `--json`.
+- `--json` y `--ndjson` son alias directos de `--format json` y `--format ndjson`.
+- Los errores en modo JSON salen por `stderr` con `{ ok: false, error: { code, message, details? } }`.
+- `context` es la entrada canónica para descubrir repo, paths, URL, worktree y config Liferay resuelta.
+- `capabilities` expone qué áreas del CLI están realmente disponibles en el contexto actual.
 
 ## Notas
 
 - La configuración efectiva mantiene `.liferay-cli.yml` como archivo de proyecto.
 - El módulo OAuth2 local sigue usando la app técnica `liferay-cli` por compatibilidad con el runtime actual.
 - La referencia operativa de migraciones de resources está en [RESOURCE_MIGRATIONS.md](/home/mordonez/projects/ldev/RESOURCE_MIGRATIONS.md).
-- La siguiente fase debe reducir los assets heredados y mover `project init/add` hacia generación explícita de los ficheros mínimos del entorno. Queda anotado en [ROADMAP.md](/home/mordonez/projects/ldev/ROADMAP.md).

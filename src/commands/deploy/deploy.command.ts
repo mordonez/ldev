@@ -14,6 +14,13 @@ export function createDeployCommand(): Command {
   command
     .description('Build and deployment artifact tooling')
     .addHelpText('after', `
+Use this namespace when you want explicit control over build outputs.
+If your goal is just "make local changes available in the running env",
+prefer the simplest command that matches the scope:
+  deploy prepare       Build artifacts without touching runtime state
+  deploy module <x>    Rebuild one deployable unit
+  deploy all           Rebuild everything for the current repo
+
 Safe defaults:
   prepare       Build local deploy artifacts without touching Docker runtime
   cache-update  Refresh ENV_DATA_ROOT/liferay-deploy-cache from current artifacts

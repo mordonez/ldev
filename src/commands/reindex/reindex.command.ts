@@ -11,6 +11,8 @@ export function createReindexCommand(): Command {
   command
     .description('Reindex observation and temporary Elasticsearch tuning')
     .addHelpText('after', `
+Use this namespace only when you are actively diagnosing or accelerating a reindex.
+
 Observational commands:
   status, watch, tasks
 
@@ -21,13 +23,15 @@ Temporary mutating commands:
   addOutputFormatOption(
     command
       .command('status')
-      .description('Ver progreso del reindex en Elasticsearch'),
+      .helpGroup('Observation:')
+      .description('Show reindex progress in Elasticsearch'),
   ).action(createFormattedAction(async (context) => runReindexStatus(context.config), {text: formatReindexStatus}));
 
   addOutputFormatOption(
     command
       .command('watch')
-      .description('Monitorizar reindex en tiempo real')
+      .helpGroup('Observation:')
+      .description('Watch reindex progress in real time')
       .option('--interval <seconds>', 'Seconds between checks', '5')
       .option('--iterations <count>', 'Number of checks', '60'),
   ).action(createFormattedAction(async (context, options: {interval?: string; iterations?: string}) => runReindexWatch(context.config, {
@@ -38,19 +42,22 @@ Temporary mutating commands:
   addOutputFormatOption(
     command
       .command('speedup-on')
-      .description('Activar modo rapido de reindex (refresh_interval=-1)'),
+      .helpGroup('Temporary tuning:')
+      .description('Enable fast reindex mode (refresh_interval=-1)'),
   ).action(createFormattedAction(async (context) => runReindexSpeedup(context.config, {enabled: true}), {text: formatReindexSpeedup}));
 
   addOutputFormatOption(
     command
       .command('speedup-off')
-      .description('Desactivar modo rapido de reindex (refresh_interval=1s)'),
+      .helpGroup('Temporary tuning:')
+      .description('Disable fast reindex mode (refresh_interval=1s)'),
   ).action(createFormattedAction(async (context) => runReindexSpeedup(context.config, {enabled: false}), {text: formatReindexSpeedup}));
 
   addOutputFormatOption(
     command
       .command('tasks')
-      .description('Mostrar tareas de reindex activas en Liferay'),
+      .helpGroup('Observation:')
+      .description('List active Liferay reindex tasks'),
   ).action(createFormattedAction(async (context) => runReindexTasks(context.config), {text: formatReindexTasks}));
 
   return command;

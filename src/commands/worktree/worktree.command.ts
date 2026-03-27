@@ -14,10 +14,13 @@ export function createWorktreeCommand(): Command {
   command
     .description('Isolated git worktree and runtime tooling')
     .addHelpText('after', `
+Use this namespace only when you need isolated branches with separate local runtime state.
+If you are working in the main repo, you usually do not need these commands.
+
 Typical flow:
   worktree setup --name issue-123 --with-env
   cd .worktrees/issue-123
-  env start
+  ldev start
 
 Destructive commands:
   clean           Remove runtime data and the git worktree; requires --force
@@ -27,6 +30,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('setup')
+      .helpGroup('Daily worktree flow:')
       .description('Create or reuse a git worktree and optionally prepare its local env')
       .requiredOption('--name <name>', 'Worktree name')
       .option('--base <ref>', 'Base ref for a new worktree branch')
@@ -42,6 +46,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('start')
+      .helpGroup('Daily worktree flow:')
       .description('Prepare and start the local env of an existing worktree')
       .argument('[name]', 'Worktree name; optional when running inside the worktree')
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
@@ -55,6 +60,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('env')
+      .helpGroup('Daily worktree flow:')
       .description('Prepare or inspect the local env wiring of a worktree')
       .option('--name <name>', 'Worktree name; optional when running inside the worktree'),
   ).action(createFormattedAction(async (context, options) => runWorktreeEnv({
@@ -66,6 +72,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('clean')
+      .helpGroup('Maintenance commands:')
       .description('Destructive: remove a worktree and its local runtime data')
       .argument('[name]', 'Worktree name; optional when running inside the worktree')
       .option('--force', 'Actually perform the cleanup')
@@ -81,6 +88,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('gc')
+      .helpGroup('Maintenance commands:')
       .description('Preview or, with --apply, remove stale worktrees conservatively')
       .option('--days <days>', 'Age threshold in days', '7')
       .option('--apply', 'Actually remove the candidate worktrees'),
@@ -94,6 +102,7 @@ Destructive commands:
   addOutputFormatOption(
     command
       .command('btrfs-refresh-base')
+      .helpGroup('Maintenance commands:')
       .description('Linux-only: refresh BTRFS_BASE from the current main env data root'),
   ).action(createFormattedAction(async (context) => runWorktreeBtrfsRefreshBase({
         cwd: context.cwd,

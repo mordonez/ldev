@@ -10,6 +10,7 @@ export function createProjectCommand(): Command {
   const initCommand = addOutputFormatOption(
     command
       .command('init')
+      .helpGroup('Recommended commands:')
       .description('Create a new project scaffold linked to local tooling')
       .requiredOption('--name <name>', 'Project name')
       .requiredOption('--dir <dir>', 'Target directory'),
@@ -17,12 +18,14 @@ export function createProjectCommand(): Command {
   const addCommand = addOutputFormatOption(
     command
       .command('add')
+      .helpGroup('Recommended commands:')
       .description('Link local tooling into an existing repository')
       .requiredOption('--target <target>', 'Project root'),
   );
   const addCommunityCommand = addOutputFormatOption(
     command
       .command('add-community')
+      .helpGroup('Optional bootstrap commands:')
       .description('Link local tooling plus Community scaffold into an existing repository')
       .requiredOption('--target <target>', 'Project root'),
   );
@@ -30,9 +33,12 @@ export function createProjectCommand(): Command {
   command
     .description('Project scaffold and tooling integration')
     .addHelpText('after', `
+Use this namespace when bootstrapping a repo, not during normal daily development.
+
 Preferred commands:
   init           Create a new project scaffold ready to run with ldev
   add            Add missing ldev files into an existing repository
+  add-community  Only when the repo still needs the Docker/Liferay scaffold
 `);
 
   initCommand.action(createFormattedAction(async (context, options) => {

@@ -54,6 +54,9 @@ export function createLiferayCommand(): Command {
   command
     .description('Liferay API CLI for inspection, export and controlled resource imports')
     .addHelpText('after', `
+Use this namespace for explicit portal inspection and resource operations.
+If you only need local runtime control, stay on the top-level commands.
+
 Main groups:
   check        OAuth2 verification and basic API reachability
   auth         OAuth2 token retrieval for scripting
@@ -63,6 +66,7 @@ Main groups:
 `);
 
   const auth = new Command('auth').description('OAuth2 token retrieval for scripting');
+  auth.helpGroup('Connectivity and auth:');
 
   addOutputFormatOption(
     auth
@@ -85,6 +89,7 @@ Main groups:
   addOutputFormatOption(
     command
       .command('check')
+      .helpGroup('Connectivity and auth:')
       .description('Check OAuth2 auth and basic Liferay API reachability'),
   ).action(createFormattedAction(
     async (context) => runLiferayHealth(context.config),
@@ -92,8 +97,11 @@ Main groups:
   ));
 
   const inventory = new Command('inventory')
+    .helpGroup('Discovery:')
     .description('Discovery commands for sites, pages and web content metadata')
     .addHelpText('after', `
+Use these commands to discover IDs, URLs and keys before running export or import workflows.
+
 Commands:
   sites       List accessible sites
   pages       List site pages
@@ -179,6 +187,7 @@ Commands:
   command.addCommand(inventory);
 
   const pageLayout = new Command('page-layout').description('Content page export and diff tools');
+  pageLayout.helpGroup('Page workflows:');
 
   addOutputFormatOption(
     pageLayout
@@ -238,8 +247,11 @@ Commands:
   command.addCommand(pageLayout);
 
   const resource = new Command('resource')
+    .helpGroup('Resource workflows:')
     .description('Read, export and import structured Liferay resources')
     .addHelpText('after', `
+Use this namespace when you need stable file-based workflows for structures, templates, ADTs or fragments.
+
 Read:
   structure, template, adts, adt-types, fragments, resolve-adt
 

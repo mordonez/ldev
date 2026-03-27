@@ -39,6 +39,14 @@ export function normalizeCliError(error: unknown): CliError {
 export function resolveOutputFormatFromArgv(argv: string[]): OutputFormat {
   for (let index = argv.length - 1; index >= 0; index -= 1) {
     const current = argv[index];
+    if (current === '--json') {
+      return 'json';
+    }
+
+    if (current === '--ndjson') {
+      return 'ndjson';
+    }
+
     if (current === '--format') {
       const parsed = outputFormatSchema.safeParse(argv[index + 1]);
       if (parsed.success) {

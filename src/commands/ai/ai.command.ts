@@ -24,6 +24,9 @@ export function createAiCommand(): Command {
   command
     .description('Vendor AI assets and skills management')
     .addHelpText('after', `
+This namespace is mainly for vendor-managed project bootstrap and updates.
+Most users and most agents should not need it during normal project operation.
+
 Safe defaults:
   update         Refresh vendor-managed skills listed in the manifest
 

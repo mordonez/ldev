@@ -6,7 +6,10 @@ import type {OutputFormat} from '../core/output/formats.js';
 const OUTPUT_FORMAT_OPTION_DESCRIPTION = 'Output format: text, json, ndjson';
 
 export function addOutputFormatOption(command: Command, defaultFormat: OutputFormat = 'text'): Command {
-  return command.option('--format <format>', OUTPUT_FORMAT_OPTION_DESCRIPTION, defaultFormat);
+  return command
+    .option('--format <format>', OUTPUT_FORMAT_OPTION_DESCRIPTION, defaultFormat)
+    .option('--json', 'Alias of --format json')
+    .option('--ndjson', 'Alias of --format ndjson');
 }
 
 export function renderCommandResult<TResult>(
