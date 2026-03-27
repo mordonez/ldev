@@ -114,7 +114,13 @@ export async function seedBuildDockerConfigs(context: EnvContext): Promise<boole
     return false;
   }
 
-  await fs.emptyDir(targetDir);
+  const hasExplicitDockerenv = await fs.pathExists(path.join(context.liferayDir, 'configs', 'dockerenv'));
+  if (!hasExplicitDockerenv) {
+    await fs.emptyDir(targetDir);
+  }
+  else {
+    await fs.ensureDir(targetDir);
+  }
 
   for (const sourceDir of sourceDirs) {
     await fs.copy(sourceDir, targetDir, {overwrite: true});

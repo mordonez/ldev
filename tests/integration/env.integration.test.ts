@@ -202,6 +202,42 @@ describe('env integration', () => {
     );
   }, 15000);
 
+  test('env start preserves generated configs and overlays configs/dockerenv when dockerenv exists', async () => {
+    const repoRoot = await createEnvRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+
+    await fs.ensureDir(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs'));
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config'),
+      'restrictedVariables=["httpUtilUnsafe"]\n',
+    );
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.local.properties'),
+      'default.landing.page.path=/web/guest\n',
+    );
+
+    const startResult = await runProcess(
+      'npx',
+      ['tsx', CLI_ENTRY, 'env', 'start', '--format', 'json', '--timeout', '5'],
+      {cwd: repoRoot, env: processEnv},
+    );
+
+    expect(startResult.exitCode).toBe(0);
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config'),
+        'utf8',
+      ),
+    ).toBe('restrictedVariables=["httpUtilUnsafe"]\n');
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.local.properties'),
+        'utf8',
+      ),
+    ).toBe('default.landing.page.path=/web/guest\n');
+  }, 15000);
+
   test('env restore rehydrates a worktree from BTRFS_BASE and preserves local deploy cache', async () => {
     const repoRoot = createTempDir('dev-cli-env-restore-main-');
     const worktreeRoot = path.join(repoRoot, '.worktrees', 'issue-1');
