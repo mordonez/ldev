@@ -16,7 +16,7 @@ describe('output format aliases integration', () => {
   }, 20000);
 
   test('--ndjson is equivalent to --format ndjson', async () => {
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'capabilities', '--ndjson'], {cwd: CLI_CWD});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'context', '--ndjson'], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
     const lines = result.stdout.trim().split('\n');

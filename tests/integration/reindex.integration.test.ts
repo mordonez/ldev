@@ -31,7 +31,7 @@ describe('reindex integration', () => {
     const server = await createEsServer();
     const repoRoot = await createReindexRepoFixture(getServerPort(server));
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'reindex', 'status', '--format', 'json'], {cwd: repoRoot});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'status', '--format', 'json'], {cwd: repoRoot});
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -43,8 +43,8 @@ describe('reindex integration', () => {
     const server = await createEsServer();
     const repoRoot = await createReindexRepoFixture(getServerPort(server));
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'reindex', 'speedup-on'], {cwd: repoRoot})).exitCode).toBe(0);
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'reindex', 'speedup-off'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-on'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-off'], {cwd: repoRoot})).exitCode).toBe(0);
 
     expect(serverState.requests).toEqual(expect.arrayContaining([
       'PUT /_all/_settings {"index":{"refresh_interval":"-1"}}',
@@ -59,7 +59,7 @@ describe('reindex integration', () => {
     const fakeBinDir = await createReindexTasksDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'reindex', 'tasks', '--format', 'json'], {cwd: repoRoot, env});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'tasks', '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);

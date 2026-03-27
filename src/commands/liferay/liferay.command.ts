@@ -1,6 +1,7 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
+import {createReindexCommand} from '../reindex/reindex.command.js';
 import {formatLiferayAuthToken, runLiferayAuthToken} from '../../features/liferay/liferay-auth.js';
 import {formatLiferayHealth, runLiferayHealth} from '../../features/liferay/liferay-health.js';
 import {formatLiferayInventoryPage, runLiferayInventoryPage} from '../../features/liferay/liferay-inventory-page.js';
@@ -63,6 +64,7 @@ Main groups:
   inventory    Sites, pages, structures and templates
   page-layout  Export and diff of content pages
   resource     Resource export, import and controlled migrations
+  reindex      Reindex observation and temporary tuning
 `);
 
   const auth = new Command('auth').description('OAuth2 token retrieval for scripting');
@@ -185,6 +187,7 @@ Commands:
   ));
 
   command.addCommand(inventory);
+  command.addCommand(createReindexCommand().helpGroup('Portal diagnostics:'));
 
   const pageLayout = new Command('page-layout').description('Content page export and diff tools');
   pageLayout.helpGroup('Page workflows:');

@@ -12,12 +12,13 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('ldev');
     expect(result.stdout).toContain('Quick start');
     expect(result.stdout).toContain('Core commands:');
-    expect(result.stdout).toContain('Project commands:');
-    expect(result.stdout).toContain('Internal commands:');
+    expect(result.stdout).toContain('Workspace commands:');
+    expect(result.stdout).toContain('Runtime commands:');
+    expect(result.stdout).toContain('Liferay commands:');
     expect(result.stdout).toContain('db');
   }, 15000);
 
-  test.each(['project', 'db', 'deploy', 'env', 'worktree', 'osgi', 'reindex', 'ai', 'liferay', 'doctor', 'context', 'capabilities'])('%s --help works', async (namespace) => {
+  test.each(['project', 'db', 'deploy', 'env', 'worktree', 'osgi', 'liferay', 'doctor', 'context'])('%s --help works', async (namespace) => {
     const result = await runProcess('npx', ['tsx', CLI_ENTRY, namespace, '--help'], {cwd: CLI_CWD});
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain(namespace);
@@ -62,9 +63,11 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('Connectivity and auth:');
     expect(result.stdout).toContain('Discovery:');
     expect(result.stdout).toContain('Resource workflows:');
+    expect(result.stdout).toContain('Portal diagnostics:');
     expect(result.stdout).toContain('check');
     expect(result.stdout).toContain('auth');
     expect(result.stdout).toContain('inventory');
+    expect(result.stdout).toContain('reindex');
     expect(result.stdout).toContain('page-layout');
     expect(result.stdout).toContain('resource');
     expect(result.stdout).not.toContain('audit');

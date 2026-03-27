@@ -8,7 +8,7 @@ const CLI_DIR = process.cwd();
 describe('error json integration', () => {
   test('commands emit stable json errors when requested', async () => {
     const invalidCwd = createTempDir('dev-cli-error-json-');
-    const result = await runProcess('npx', ['tsx', `${CLI_DIR}/src/index.ts`, 'env', 'info', '--format', 'json'], {
+    const result = await runProcess('npx', ['tsx', `${CLI_DIR}/src/index.ts`, 'env', 'status', '--format', 'json'], {
       cwd: invalidCwd,
     });
 

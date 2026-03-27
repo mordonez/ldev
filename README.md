@@ -43,14 +43,14 @@ ldev start --activation-key-file /ruta/activation-key-*.xml
 
 `ldev` copiará la key a `liferay/configs/dockerenv/osgi/modules/`, sustituirá otras keys locales y no la versionará.
 
-Atajos top-level:
+Formas namespaced equivalentes:
 
-- `ldev setup` -> `ldev env setup`
-- `ldev start` -> `ldev env start`
-- `ldev stop` -> `ldev env stop`
-- `ldev status` -> `ldev env status`
-- `ldev logs` -> `ldev env logs`
-- `ldev shell` -> `ldev env shell`
+- `ldev env setup`
+- `ldev env start`
+- `ldev env stop`
+- `ldev env status`
+- `ldev env logs`
+- `ldev env shell`
 
 ## Proyectos Nuevos
 
@@ -137,19 +137,18 @@ npm run check
 `ldev` separa la CLI por intención, no por cantidad de comandos:
 
 - `Core commands`: `doctor`, `setup`, `start`, `stop`, `status`, `logs`, `shell`
-- `Project commands`: `project`, `env`, `db`, `deploy`
-- `Advanced runtime commands`: `worktree`, `liferay`, `osgi`, `reindex`
-- `Internal commands`: `ai`
+- `Workspace commands`: `project`, `worktree`
+- `Runtime commands`: `env`, `db`, `deploy`, `osgi`
+- `Liferay commands`: `liferay`
 
-La idea es que el flujo diario viva en top-level y que los namespaces se usen sólo cuando necesitas una tarea explícita de proyecto, runtime avanzado o scripting contra Liferay.
+La idea es que el flujo diario viva en top-level y que los namespaces se usen sólo cuando necesitas una tarea explícita de workspace, runtime o scripting contra Liferay.
 
-## Agent Contract v1
+## Automation Contract v1
 
-`ldev` expone un contrato estable para skills y agentes. La superficie mínima soportada en v1 es:
+`ldev` expone un contrato estable para automatización. La superficie mínima soportada en v1 es:
 
 - `ldev doctor --json`
 - `ldev context --json`
-- `ldev capabilities --json`
 - `ldev status --json`
 - `ldev setup`
 - `ldev start`
@@ -163,8 +162,11 @@ Reglas del contrato:
 - Los comandos observables deben soportar `--json`.
 - `--json` y `--ndjson` son alias directos de `--format json` y `--format ndjson`.
 - Los errores en modo JSON salen por `stderr` con `{ ok: false, error: { code, message, details? } }`.
+- En v1, `ok` siempre está presente en la salida JSON.
+- En v1, el bloque `error` siempre usa la forma `{ code, message, details? }`.
+- En v1, el contrato JSON es additive-only: se pueden añadir claves nuevas, pero no quitar ni renombrar claves existentes sin subir la versión del contrato.
 - `context` es la entrada canónica para descubrir repo, paths, URL, worktree y config Liferay resuelta.
-- `capabilities` expone qué áreas del CLI están realmente disponibles en el contexto actual.
+- `context` incluye también qué áreas del CLI están realmente disponibles en el contexto actual.
 
 ## Notas
 

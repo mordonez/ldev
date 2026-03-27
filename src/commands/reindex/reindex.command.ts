@@ -9,7 +9,7 @@ import {formatReindexWatch, runReindexWatch} from '../../features/reindex/reinde
 export function createReindexCommand(): Command {
   const command = new Command('reindex');
   command
-    .description('Reindex observation and temporary Elasticsearch tuning')
+    .description('Inspect or temporarily tune portal reindex execution')
     .addHelpText('after', `
 Use this namespace only when you are actively diagnosing or accelerating a reindex.
 

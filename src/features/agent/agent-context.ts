@@ -4,6 +4,7 @@ import {resolveProjectContext} from '../../core/config/project-context.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {getCurrentBranchName, getGitCommonDir, isWorktree} from '../../core/platform/git.js';
+import {runAgentCapabilities, type AgentCapabilitiesReport} from './agent-capabilities.js';
 
 export type AgentContextReport = {
   ok: true;
@@ -46,6 +47,7 @@ export type AgentContextReport = {
     timeoutSeconds: number;
   };
   platform: PlatformCapabilities;
+  commands: AgentCapabilitiesReport['commands'];
 };
 
 export async function runAgentContext(
@@ -73,6 +75,7 @@ export async function runAgentContext(
     inRepo ? getGitCommonDirFn(cwd) : Promise.resolve(null),
     inRepo ? isWorktreeFn(cwd) : Promise.resolve(false),
   ]);
+  const capabilities = await runAgentCapabilities(cwd, {config, env: process.env});
 
   return {
     ok: true,
@@ -115,6 +118,7 @@ export async function runAgentContext(
       timeoutSeconds: config.liferay.timeoutSeconds,
     },
     platform,
+    commands: capabilities.commands,
   };
 }
 

@@ -22,7 +22,6 @@ export type AgentCapabilitiesReport = {
   commands: {
     doctor: AgentCapabilityStatus;
     context: AgentCapabilityStatus;
-    capabilities: AgentCapabilityStatus;
     setup: AgentCapabilityStatus;
     start: AgentCapabilityStatus;
     stop: AgentCapabilityStatus;
@@ -74,7 +73,6 @@ export async function runAgentCapabilities(
     commands: {
       doctor: capabilityStatus(),
       context: capabilityStatus(),
-      capabilities: capabilityStatus(),
       setup: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
       start: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
       stop: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),

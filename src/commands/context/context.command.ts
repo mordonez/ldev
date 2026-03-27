@@ -12,6 +12,7 @@ Use this command first when you need to discover:
   repo root, worktree and key paths
   local portal URL and compose project name
   resolved Liferay auth and resource paths
+  which command areas are ready right now
 
 Preferred format for automation:
   context --json

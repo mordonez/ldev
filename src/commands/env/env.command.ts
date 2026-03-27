@@ -2,7 +2,6 @@ import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {formatEnvClean, runEnvClean} from '../../features/env/env-clean.js';
-import {formatEnvInfo, runEnvInfo} from '../../features/env/env-info.js';
 import {formatEnvInit, runEnvInit} from '../../features/env/env-init.js';
 import {formatEnvIsHealthy, runEnvIsHealthy} from '../../features/env/env-is-healthy.js';
 import {formatEnvRecreate, runEnvRecreate} from '../../features/env/env-recreate.js';
@@ -24,21 +23,16 @@ export function createEnvCommand(): Command {
   command
     .description('Lifecycle of the local Docker environment')
     .addHelpText('after', `
-Use this namespace when you need explicit control over the local runtime.
-For the normal daily flow, prefer the top-level aliases:
+Use this namespace when you need the namespaced form of the local runtime commands.
+It also exposes recovery, initialization and diagnostics commands that are not available at the top level.
+
+For the normal daily flow, prefer the top-level interface:
   ldev setup
   ldev start
   ldev stop
   ldev status
   ldev logs
   ldev shell
-
-Command groups:
-  init / setup         Prepare repo-local Docker state and cache
-  start / stop         Operate the current runtime explicitly
-  restart / recreate   Recover a running service without leaving env
-  status / info        Inspect runtime state for humans or scripts
-  clean / restore      Destructive or recovery actions; read help first
 `);
 
   addOutputFormatOption(
@@ -125,13 +119,6 @@ Command groups:
   }));
 
   command.addCommand(createEnvStatusCommand({helpGroup: 'Diagnostics and scripting:'}));
-
-  addOutputFormatOption(
-    command
-      .command('info')
-      .helpGroup('Diagnostics and scripting:')
-      .description('Show a concise local environment summary'),
-  ).action(createFormattedAction(async (context) => runEnvInfo(context.config), {text: formatEnvInfo}));
 
   return command;
 }

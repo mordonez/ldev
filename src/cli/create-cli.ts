@@ -15,26 +15,18 @@ Quick start:
 
 Happy path:
   Use the top-level commands for daily local development.
-  Drop into namespaces only when you need project bootstrap, Liferay inspection or advanced runtime work.
+  Drop into namespaces only when you need explicit workspace, runtime or Liferay operations.
 
-Top-level aliases:
-  ${ROOT_HELP_SECTIONS.aliases.join('\n  ')}
-
-Command model:
-  Core commands      Daily lifecycle for one local Liferay environment
-  Project commands   Bootstrap, sync and build tasks tied to the current repo
-  Advanced runtime   Diagnostics, worktrees and explicit Liferay API operations
-  Internal commands  Vendor-maintained tooling not needed in the normal flow
-
-Agent contract v1:
-  ${ROOT_HELP_SECTIONS.agentContract.join('\n  ')}
+For scripting and automation:
+  ${ROOT_HELP_SECTIONS.automationContract.join('\n  ')}
 
 Examples:
   ${ROOT_HELP_SECTIONS.examples.join('\n  ')}
 `);
 
   for (const entry of ROOT_COMMANDS) {
-    program.addCommand(entry.factory().helpGroup(entry.group));
+    const command = entry.factory().helpGroup(entry.group);
+    program.addCommand(command, entry.hidden ? {hidden: true} : undefined);
   }
 
   return program;
