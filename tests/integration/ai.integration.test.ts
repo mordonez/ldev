@@ -62,6 +62,29 @@ describe('ai integration', () => {
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('local agents\n');
   }, 15000);
 
+  test('update installs newly curated vendor skills and removes retired vendor-managed skills', async () => {
+    const targetDir = createTempDir('dev-cli-ai-update-curated-');
+
+    await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'));
+    await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill', 'SKILL.md'), '# retired\n');
+    await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'custom-project-skill'));
+    await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'), '# custom\n');
+    await fs.ensureDir(path.join(targetDir, '.agents'));
+    await fs.writeFile(
+      path.join(targetDir, '.agents', '.vendor-skills'),
+      '# old vendor surface\nretired-vendor-skill\ndeploying-liferay\n',
+    );
+
+    const updateResult = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'update', '--target', targetDir], {
+      cwd: CLI_CWD,
+    });
+
+    expect(updateResult.exitCode).toBe(0);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'))).toBe(false);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'developing-liferay', 'SKILL.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
+  }, 15000);
+
   test('install without force keeps AGENTS.md and install with force overwrites it', async () => {
     const targetDir = createTempDir('dev-cli-ai-force-');
     const firstInstall = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir], {

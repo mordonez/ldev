@@ -90,6 +90,31 @@ Si el proyecto necesita también scaffold Docker/Liferay:
 ldev project add-community --target .
 ```
 
+## AI Bootstrap En Proyectos
+
+Instalar la base reutilizable de agentes y skills gestionada por `ldev`:
+
+```bash
+ldev ai install --target .
+```
+
+Eso instala:
+
+- `AGENTS.md` estándar
+- skills reutilizables en `.agents/skills/`
+- manifiesto vendor-managed para futuras actualizaciones
+
+Si además quieres portar el overlay legacy del proyecto original como base para
+customización local, aplícalo encima de la instalación estándar:
+
+```bash
+bash tools/ai/legacy/install.sh .
+```
+
+Usa ese overlay sólo para contexto y workflows específicos de un proyecto. La
+superficie reusable y soportada por producto sigue siendo la que instala
+`ldev ai install`.
+
 ## Desarrollo Local De `ldev`
 
 Para modificar `ldev` en local y probarlo al instante en proyectos Liferay sin publicar versiones en npm:
@@ -153,13 +178,13 @@ La idea es que el flujo diario viva en top-level y que los namespaces se usen s�
 - `ldev setup`
 - `ldev start`
 - `ldev stop`
-- `ldev logs --json` o `ldev logs --no-follow`
+- `ldev logs --no-follow`
 - `ldev shell`
 - `ldev liferay ... --json`
 
 Reglas del contrato:
 
-- Los comandos observables deben soportar `--json`.
+- Los comandos que declaran salida estructurada deben soportar `--json`.
 - `--json` y `--ndjson` son alias directos de `--format json` y `--format ndjson`.
 - Los errores en modo JSON salen por `stderr` con `{ ok: false, error: { code, message, details? } }`.
 - En v1, `ok` siempre está presente en la salida JSON.

@@ -83,15 +83,20 @@ async function applyAiInstall(options: {
 
   const vendorSkills = await listVendorSkills(options.assets);
   const manifestSkills = options.skillsOnly ? await readManifestSkills(manifestPath) : [];
-  const skillsToUpdate =
+  const retiredVendorSkills =
     options.skillsOnly && manifestSkills.length > 0
-      ? manifestSkills.filter((skillName) => vendorSkills.includes(skillName))
-      : vendorSkills;
+      ? manifestSkills.filter((skillName) => !vendorSkills.includes(skillName))
+      : [];
+  const skillsToUpdate = vendorSkills;
 
   for (const skillName of skillsToUpdate) {
     await fs.copy(path.join(options.assets.skillsSourceDir, skillName), path.join(skillsDestinationDir, skillName), {
       overwrite: true,
     });
+  }
+
+  for (const skillName of retiredVendorSkills) {
+    await fs.remove(path.join(skillsDestinationDir, skillName));
   }
 
   const preservedLocalSkills = options.skillsOnly

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Developing Liferay"
+  short_description: "Implement changes in modules, themes and Liferay resources"
+  default_prompt: "Usa $developing-liferay para implementar este cambio en código, tema o resources usando el contrato actual de ldev."

@@ -177,7 +177,8 @@ function getNextSteps(targetDir: string): string[] {
     `cd ${targetDir}`,
     'Instala ldev globalmente con npm i -g ldev o usa npm link desde tu checkout local de ldev.',
     'ldev setup',
-    'ldev db sync --project <id> --environment prd --force o ldev db import --file ruta/backup.gz',
+    'Si necesitas datos locales, usa ldev db import --file ruta/backup.gz.',
+    'Reserva ldev db sync --project <id> --environment <env> --force para un paso explícito y consciente, no como onboarding por defecto.',
     'ldev start',
     'ldev osgi liferaycli-creds',
   ];
