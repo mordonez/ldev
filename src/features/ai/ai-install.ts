@@ -20,7 +20,6 @@ export type AiCommandResult = {
   preservedLocalSkills: string[];
   manifestPath: string;
   agents: 'installed' | 'overwritten' | 'kept' | 'skipped';
-  claude: 'created' | 'kept' | 'skipped';
   nextSteps: string[];
 };
 
@@ -55,7 +54,6 @@ export function formatAiResult(result: AiCommandResult): string {
   } else {
     lines.push(`Skills instaladas: ${result.updatedSkills.length}`);
     lines.push(`AGENTS.md: ${result.agents}`);
-    lines.push(`CLAUDE.md: ${result.claude}`);
   }
 
   if (result.nextSteps.length > 0) {
@@ -103,11 +101,8 @@ async function applyAiInstall(options: {
   await writeVendorManifest(manifestPath, vendorSkills, options.now);
 
   let agents: AiCommandResult['agents'] = 'skipped';
-  let claude: AiCommandResult['claude'] = 'skipped';
-
   if (!options.skillsOnly) {
     agents = await installAgentsFile(options.targetDir, options.assets, options.force);
-    claude = await installClaudeTemplate(options.targetDir, options.assets, options.printer);
   }
 
   return {
@@ -119,8 +114,7 @@ async function applyAiInstall(options: {
     preservedLocalSkills,
     manifestPath,
     agents,
-    claude,
-    nextSteps: buildNextSteps(options.targetDir, options.skillsOnly, claude),
+    nextSteps: buildNextSteps(options.targetDir, options.skillsOnly),
   };
 }
 
@@ -141,32 +135,14 @@ async function installAgentsFile(targetDir: string, assets: AiAssets, force: boo
   return exists ? 'overwritten' : 'installed';
 }
 
-async function installClaudeTemplate(
-  targetDir: string,
-  assets: AiAssets,
-  printer: Printer,
-): Promise<AiCommandResult['claude']> {
-  const destination = path.join(targetDir, 'CLAUDE.md');
-  if (await fs.pathExists(destination)) {
-    printer.info('CLAUDE.md ya existe; se conserva.');
-    return 'kept';
-  }
-
-  await fs.copy(assets.claudeTemplatePath, destination);
-  return 'created';
-}
-
-function buildNextSteps(targetDir: string, skillsOnly: boolean, claude: AiCommandResult['claude']): string[] {
+function buildNextSteps(targetDir: string, skillsOnly: boolean): string[] {
   if (skillsOnly) {
     return ['Ejecuta git diff .agents/skills/ para revisar cambios del vendor.'];
   }
 
   const steps: string[] = [];
-  if (claude === 'created') {
-    steps.push('Edita CLAUDE.md y completa las secciones [TODO] del proyecto.');
-  }
-
-  steps.push('Revisa .agents/skills/ y añade skills propias del proyecto si hacen falta.');
+  steps.push('Revisa AGENTS.md y ajusta cualquier documento local de contexto que el proyecto necesite.');
+  steps.push('Revisa .agents/skills/ y añade skills propias del proyecto con un prefijo del proyecto si hacen falta.');
   steps.push(`Desde ${targetDir}, ejecuta ldev start cuando el entorno esté listo.`);
   return steps;
 }

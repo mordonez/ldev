@@ -9,10 +9,8 @@ import {createTempDir} from '../../src/testing/temp-repo.js';
 const CLI_CWD = process.cwd();
 const CLI_ENTRY = 'src/index.ts';
 const AI_ROOT = path.resolve(CLI_CWD, 'tools', 'ai');
-const SKILLS_ROOT = path.join(AI_ROOT, 'skills');
-
 describe('ai integration', () => {
-  test('install creates vendor skills, manifest, AGENTS.md and CLAUDE.md', async () => {
+  test('install creates vendor skills, manifest and the standard AGENTS.md', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-');
 
     const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir], {
@@ -22,31 +20,29 @@ describe('ai integration', () => {
     expect(result.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(false);
 
     const installedSkills = (await fs.readdir(path.join(targetDir, '.agents', 'skills'))).sort();
-    const vendorSkills = (
-      await fs.readdir(SKILLS_ROOT, {withFileTypes: true})
-    )
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name)
+    const vendorSkills = (await fs.readFile(path.join(AI_ROOT, 'install', 'vendor-skills.txt'), 'utf8'))
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'))
       .sort();
 
     expect(installedSkills).toEqual(vendorSkills);
+    expect(installedSkills).not.toContain('issue-engineering');
+    expect(installedSkills).not.toContain('automating-browser-tests');
 
     const manifest = await fs.readFile(path.join(targetDir, '.agents', '.vendor-skills'), 'utf8');
     expect(manifest).toContain('# Skills instaladas desde ldev');
     expect(manifest).toContain('# NO editar manualmente');
     expect(manifest).toContain(vendorSkills[0]);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe(
-      await fs.readFile(path.join(AI_ROOT, 'AGENTS.md'), 'utf8'),
-    );
-    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).toBe(
-      await fs.readFile(path.join(AI_ROOT, 'CLAUDE.md.template'), 'utf8'),
+      await fs.readFile(path.join(AI_ROOT, 'install', 'AGENTS.md'), 'utf8'),
     );
   }, 15000);
 
-  test('update preserves local skills and existing AGENTS.md and CLAUDE.md', async () => {
+  test('update preserves local skills and an existing AGENTS.md', async () => {
     const targetDir = createTempDir('dev-cli-ai-update-');
     const installResult = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir], {
       cwd: CLI_CWD,
@@ -56,7 +52,6 @@ describe('ai integration', () => {
     await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'custom-project-skill'));
     await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'), '# custom\n');
     await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'local agents\n');
-    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'local claude\n');
 
     const updateResult = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'update', '--target', targetDir], {
       cwd: CLI_CWD,
@@ -65,7 +60,6 @@ describe('ai integration', () => {
     expect(updateResult.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('local agents\n');
-    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).toBe('local claude\n');
   }, 15000);
 
   test('install without force keeps AGENTS.md and install with force overwrites it', async () => {
@@ -90,7 +84,28 @@ describe('ai integration', () => {
     );
     expect(forceResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe(
-      await fs.readFile(path.join(AI_ROOT, 'AGENTS.md'), 'utf8'),
+      await fs.readFile(path.join(AI_ROOT, 'install', 'AGENTS.md'), 'utf8'),
     );
   }, 15000);
+
+  test('legacy overlay installs cleanly on top of the standard package', async () => {
+    const targetDir = createTempDir('dev-cli-ai-legacy-');
+
+    const result = await runProcess('bash', ['tools/ai/legacy/install.sh', targetDir], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'agents', 'validate-all.sh'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'issue-engineering', 'SKILL.md'))).toBe(true);
+
+    const validation = await runProcess('bash', ['agents/validate-all.sh'], {
+      cwd: targetDir,
+    });
+
+    expect(validation.exitCode).toBe(0);
+  }, 20000);
 });

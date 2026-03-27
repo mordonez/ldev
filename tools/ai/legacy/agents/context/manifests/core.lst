@@ -1,0 +1,16 @@
+AGENTS.md
+CLAUDE.md
+agents/README.md
+agents/agents.md
+agents/architecture.md
+agents/context/README.md
+agents/context/authority-map.md
+.agents/skills/issue-engineering/SKILL.md
+.agents/skills/resolving-issues/SKILL.md
+.agents/skills/preparing-github-issues/SKILL.md
+.agents/skills/managing-worktree-env/SKILL.md
+.agents/skills/liferay-expert/SKILL.md
+.agents/skills/developing-liferay/SKILL.md
+.agents/skills/deploying-liferay/SKILL.md
+.agents/skills/troubleshooting-liferay/SKILL.md
+.agents/skills/automating-browser-tests/SKILL.md

@@ -1,152 +1,85 @@
 ---
 name: deploying-liferay
-description: "Especialista en despliegue y verificación de componentes Liferay DXP. Usar cuando el cambio ya está hecho y el foco es compilar, hacer hot-deploy o confirmar que un bundle está Active. El punto de entrada recomendado para tareas técnicas Liferay es /liferay-expert."
+description: "Use when the code or resource change already exists and the task is to build, deploy and verify it in a local ldev runtime."
 ---
 
-# Despliegue de Módulos Liferay (Operaciones de Despliegue)
+# Deploying Liferay
 
-> Para tareas técnicas Liferay, el entrypoint recomendado es `/liferay-expert`. Esta skill es la especialista de dominio para compilar, desplegar y verificar el estado del runtime.
+Use this skill when implementation is already done and the focus is runtime
+verification.
 
-Esta skill se centra en la "Ejecución" y "Validación" de las tareas de despliegue de Liferay. Asegura que el portal refleje correctamente los cambios del código fuente.
+## Required bootstrap
 
-## 🔄 El Ciclo de Vida del Despliegue (Obligatorio)
+1. `ldev context --json`
+2. `ldev status --json`
+3. If the env is not running: `ldev start`
 
-### 1. Investigación y Análisis
-- **Identificar el Objetivo**: Localiza el módulo, tema o juego de fragmentos específico.
-- **Consultar Requisitos**: Revisa `build.gradle` o `package.json` para las dependencias.
+## Smallest deploy first
 
-### 2. Estrategia y Planificación
-- **Determinar la Ruta de Despliegue**: Elige el despliegue más pequeño posible (`deploy:module`, `deploy:theme` o validación puramente observacional con `task liferay -- ...`).
+Choose the smallest command that matches the change.
 
-### 3. Ejecución (Compilación y Despliegue)
-- **Compilar Componente**: Usa los comandos `task deploy:...`.
-- **Monitorizar la Compilación**: Revisa la salida estándar para "BUILD SUCCESSFUL" o "Import Successful".
-
-### 4. Validación y Verificación
-- **Verificación OSGi**: Usa `task osgi:diag -- <bundle>` para asegurar que esté en estado `Active`.
-- **Vigilancia de Logs**: Ejecuta `task env:logs SINCE=2m` para capturar excepciones de despliegue.
-
----
-
-## Build y despliegue local
+### One module
 
 ```bash
-task deploy:prepare
-task env:start
-task deploy:module -- <module-name>
-task deploy:theme
-task liferay -- resource fragments --site /<site>
-task osgi:status -- <com.example.bundle.name>
-task osgi:diag -- <com.example.bundle.name>
-task env:logs SINCE=2m
+ldev deploy module <module-name>
+ldev osgi status <bundle-symbolic-name> --json
+ldev logs --since 2m --service liferay --no-follow
 ```
 
-Para ver todas las opciones y subcomandos disponibles:
-```bash
-task help
-task liferay -- --help
-task liferay -- resource --help
-```
-
-## Flujo mínimo de despliegue
-
-1. Identificar tipo de cambio (`module`, `theme`, `fragments`, `config`).
-2. Ejecutar el despliegue más pequeño posible (`deploy:module`, `deploy:theme` o solo discovery/read-only si no hay deploy automatizado soportado).
-3. Verificar el estado OSGi (`osgi:status` y `osgi:diag` si no está `ACTIVE`).
-4. Verificar el runtime en el portal y revisar logs recientes (`task env:logs SINCE=2m`).
-
-## Despliegues por tipo
-
-### Compilación completa del proyecto
+### Theme
 
 ```bash
-task deploy:prepare
-task env:start
+ldev deploy theme
+ldev logs --since 2m --service liferay --no-follow
 ```
 
-Usar para el primer arranque o cuando hay cambios amplios.
-
-### Módulo OSGi (hot-deploy)
+### Full local artifact refresh
 
 ```bash
-task deploy:module -- <module-name>
+ldev deploy prepare
+ldev deploy all
 ```
 
-`deploy:module` detecta:
-- Módulos simples: compila y despliega.
-- Service Builder (módulos con `service.xml`): ejecuta `buildService`, despliega API+Service y restaura `service.properties` sin dejar cambios persistentes en el worktree.
-- Tema vía módulo: `MODULE=<tema>`.
+Use this only when the change cannot be proved with a smaller deploy.
 
-### Tema (cambios CSS/FTL/JS)
+## Resource deployment
+
+For file-based portal resources, validate before mutating:
 
 ```bash
-task deploy:theme
+ldev liferay resource import-structures --site /<site> --check-only
+ldev liferay resource import-templates --site /<site> --check-only
+ldev liferay resource import-adts --site /<site> --check-only
+ldev liferay resource import-fragments --site /<site> --check-only
 ```
 
-### Fragmentos del sitio
+If the preview is correct, re-run the specific import without `--check-only`.
 
-`dev-cli` no sincroniza fragmentos en esta fase. Úsalo para discovery:
+For Journal migrations, prefer the dedicated pipeline:
 
 ```bash
-task liferay -- resource fragments --site /<site>
-task liferay -- inventory page --url <pageUrl>
-task env:logs SINCE=2m
+ldev liferay resource migration-pipeline --migration-file <file> --check-only
+ldev liferay resource migration-pipeline --migration-file <file>
 ```
 
-La mutación/importación debe hacerse por el workflow explícito del proyecto o por UI, no inventando comandos `sync-*`.
+## Runtime verification
 
-## Verificación post-despliegue (obligatoria)
+Use OSGi diagnostics after any module deploy:
 
 ```bash
-task osgi:status -- <com.example.bundle.name>
-task osgi:diag -- <com.example.bundle.name>
-task env:logs SINCE=2m
+ldev osgi status <bundle-symbolic-name> --json
+ldev osgi diag <bundle-symbolic-name> --json
 ```
 
-Validar también el comportamiento en runtime (`http://localhost:8080` o host/puerto del worktree).
-
-## Diagnóstico OSGi con Gogo
-
-No interactivo (preferido para agentes):
-```bash
-task osgi:gogo -- "lb | grep -i <module-name>"
-task osgi:gogo -- "diag <bundle-id>"
-task osgi:gogo -- "refresh"
-```
-
-Interactivo:
-```bash
-task osgi:gogo
-```
-
-## Recursos Liferay soportados por la CLI
-
-La superficie estable actual de `task liferay -- resource` es read-only:
+Use logs after any deploy or import:
 
 ```bash
-task liferay -- inventory structures --site /<site>
-task liferay -- inventory templates --site /<site>
-task liferay -- resource structure --key <STRUCTURE_KEY> --site /<site>
-task liferay -- resource template --id <TEMPLATE_ID> --site /<site>
-task liferay -- resource resolve-adt --display-style ddmTemplate_<ID> --site /<site>
-task liferay -- resource fragments --site /<site>
+ldev logs --since 2m --service liferay --no-follow
 ```
 
-No asumir que existen `sync-*`, `delete-*`, `export-and-sync` o pipelines de migración en el `dev-cli` estable.
+## Guardrails
 
-## Worktrees y errores frecuentes
-
-Si el despliegue falla solo en el worktree, cargar:
-- [references/worktree-pitfalls.md](references/worktree-pitfalls.md)
-
-Casos cubiertos en la referencia:
-- `Exporting an empty package` por el `.gitignore`.
-- `-Xmx4g: command not found` por `LIFERAY_JVM_OPTS` sin comillas.
-- Recursos CSS/JS apuntando al puerto equivocado por `web.server.http.port`.
-
-## Reglas de seguridad
-
-- No usar despliegues más amplios de lo necesario.
-- No asumir `ACTIVE` sin verificar con `task osgi:status`.
-- No asumir mutaciones automáticas de resources desde la CLI actual; si el proyecto requiere un flujo mutante, debe estar explicitado fuera de `dev-cli`.
-- Revisar siempre los logs de errores tras cada despliegue.
+- Do not use a wider deploy than necessary.
+- Do not assume success from build output alone; verify runtime state.
+- Prefer `--json` on verification commands when the result will be consumed by an agent.
+- If the env is unhealthy, stop here and switch to `troubleshooting-liferay`.

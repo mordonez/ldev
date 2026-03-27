@@ -9,7 +9,7 @@ export function createAiCommand(): Command {
   const installCommand = addOutputFormatOption(
     command
       .command('install')
-      .description('Install vendor AI assets into a project')
+      .description('Install the standard reusable AI assets into a project')
       .requiredOption('--target <target>', 'Project root')
       .option('--force', 'Overwrite AGENTS.md if it already exists')
       .option('--skills-only', 'Only update vendor skills from the manifest'),
@@ -22,10 +22,10 @@ export function createAiCommand(): Command {
   );
 
   command
-    .description('Vendor AI assets and skills management')
+    .description('Standard reusable AI assets and skills for ldev projects')
     .addHelpText('after', `
-This namespace is mainly for vendor-managed project bootstrap and updates.
-Most users and most agents should not need it during normal project operation.
+This namespace bootstraps only the reusable vendor-managed AI surface.
+Project-specific context, prompts and workflows should stay in the project repo.
 
 Safe defaults:
   update         Refresh vendor-managed skills listed in the manifest

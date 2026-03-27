@@ -6,26 +6,33 @@ import fs from 'fs-extra';
 export type AiAssets = {
   repoRoot: string;
   aiRoot: string;
+  installDir: string;
+  vendorSkillsManifestPath: string;
   skillsSourceDir: string;
   agentsTemplatePath: string;
-  claudeTemplatePath: string;
 };
 
 export function resolveAiAssets(repoRoot = getDefaultRepoRoot()): AiAssets {
   const aiRoot = path.join(repoRoot, 'tools', 'ai');
+  const installDir = path.join(aiRoot, 'install');
 
   return {
     repoRoot,
     aiRoot,
+    installDir,
+    vendorSkillsManifestPath: path.join(installDir, 'vendor-skills.txt'),
     skillsSourceDir: path.join(aiRoot, 'skills'),
-    agentsTemplatePath: path.join(aiRoot, 'AGENTS.md'),
-    claudeTemplatePath: path.join(aiRoot, 'CLAUDE.md.template'),
+    agentsTemplatePath: path.join(installDir, 'AGENTS.md'),
   };
 }
 
 export async function listVendorSkills(assets: AiAssets): Promise<string[]> {
-  const entries = await fs.readdir(assets.skillsSourceDir, {withFileTypes: true});
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  const content = await fs.readFile(assets.vendorSkillsManifestPath, 'utf8');
+  return content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+    .sort();
 }
 
 export async function readManifestSkills(manifestPath: string): Promise<string[]> {

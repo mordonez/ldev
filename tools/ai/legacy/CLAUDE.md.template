@@ -1,0 +1,84 @@
+# CLAUDE.md — Project Knowledge
+
+> This file is project-owned knowledge for agents working in one repository.
+> Keep it stable, factual and specific to the project.
+
+## Stack
+
+| Component | Version / detail |
+|---|---|
+| Liferay DXP | [TODO] |
+| Java | [TODO] |
+| Gradle | [TODO] |
+| Node.js | [TODO] |
+| PostgreSQL | [TODO] |
+| Elasticsearch | [TODO] |
+| Theme | [TODO] |
+| CI/CD | [TODO] |
+
+## Local runtime
+
+Use `ldev` as the official local entrypoint:
+
+```bash
+ldev doctor
+ldev setup
+ldev start
+ldev status
+ldev logs --since 5m --no-follow
+ldev stop
+```
+
+Useful namespaces:
+
+```bash
+ldev deploy --help
+ldev osgi --help
+ldev liferay --help
+ldev worktree --help
+```
+
+## Project layout
+
+Document only the paths that matter in this repository.
+
+- Liferay workspace root: `[TODO]`
+- Modules path: `[TODO]`
+- Theme path: `[TODO]`
+- Fragments path: `[TODO]`
+- Journal resources path: `[TODO]`
+- Config path: `[TODO]`
+
+## Project conventions
+
+### Package naming
+
+- Base package: `[TODO]`
+- Bundle naming: `[TODO]`
+
+### Structured content
+
+- Structure naming: `[TODO]`
+- Template naming: `[TODO]`
+- Fragment naming: `[TODO]`
+
+### GitHub and delivery
+
+- Branch convention: `[TODO]`
+- PR convention: `[TODO]`
+- Review expectations: `[TODO]`
+
+## Project-specific runbooks
+
+List only what is truly specific to this project and cannot live in reusable
+vendor skills:
+
+- [TODO] site-building workflow
+- [TODO] fragment import workflow
+- [TODO] CI/deploy caveats
+- [TODO] credentials or environment caveats
+
+## Maintenance rule
+
+If a rule becomes reusable across multiple projects, move it out of this file
+and into a reusable `ldev` AI asset.
