@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resolving Issues"
+  short_description: "Resolver issues con pipeline automatizado"
+  default_prompt: "Usa $resolving-issues para resolver la issue #NUM de extremo a extremo y crear el PR."

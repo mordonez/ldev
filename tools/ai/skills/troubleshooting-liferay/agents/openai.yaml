@@ -1,0 +1,4 @@
+interface:
+  display_name: "Troubleshooting Liferay"
+  short_description: "Diagnosticar incidencias de Liferay DXP"
+  default_prompt: "Usa $troubleshooting-liferay para diagnosticar esta incidencia de Liferay y proponer la ruta de solucion minima."

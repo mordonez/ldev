@@ -1,0 +1,13 @@
+liferay:
+  oauth2:
+    # Dejar vacío. ldev usa docker/.env y el módulo liferay-cli-bootstrap
+    # para descubrir la URL local y escribir las credenciales OAuth2.
+    clientId: ""
+    clientSecret: ""
+    timeoutSeconds: 30
+paths:
+  theme: custom-theme        # Cambiar por el nombre de tu tema (carpeta en liferay/themes/)
+  structures: liferay/resources/journal/structures
+  templates: liferay/resources/journal/templates
+  fragments: liferay/fragments
+  adts: liferay/resources/templates/application_display

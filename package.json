@@ -1,0 +1,71 @@
+{
+  "name": "ldev",
+  "version": "0.1.0",
+  "description": "Official Liferay local development CLI",
+  "type": "module",
+  "bin": {
+    "ldev": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "docker",
+    "liferay",
+    "modules",
+    "scaffold",
+    "tools/ai",
+    "RESOURCE_MIGRATIONS.md",
+    "ROADMAP.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "prepare": "npm run build",
+    "link:global": "npm link",
+    "check": "npm run typecheck && npm test && npm run build",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:smoke": "vitest run tests/smoke",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mordonez/ldev.git"
+  },
+  "homepage": "https://github.com/mordonez/ldev",
+  "bugs": {
+    "url": "https://github.com/mordonez/ldev/issues"
+  },
+  "keywords": [
+    "liferay",
+    "dxp",
+    "docker",
+    "cli",
+    "developer-experience"
+  ],
+  "dependencies": {
+    "commander": "^14.0.0",
+    "execa": "^9.6.0",
+    "fs-extra": "^11.3.0",
+    "jszip": "^3.10.1",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^24.5.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,53 @@
+import os from 'node:os';
+
+import {isDockerAvailable, isDockerComposeAvailable} from './docker.js';
+import {getRepoRoot} from './git.js';
+import {runProcess} from './process.js';
+
+export type PlatformOs = 'linux' | 'macos' | 'windows';
+
+export type PlatformCapabilities = {
+  os: PlatformOs;
+  hasGit: boolean;
+  hasDocker: boolean;
+  hasDockerCompose: boolean;
+  hasJava: boolean;
+  hasNode: boolean;
+  hasLcp: boolean;
+  supportsWorktrees: boolean;
+  supportsBtrfsSnapshots: boolean;
+};
+
+export async function detectCapabilities(cwd: string): Promise<PlatformCapabilities> {
+  const detectedOs = detectOs();
+  const hasGit = (await runProcess('git', ['--version'])).ok;
+  const hasDocker = await isDockerAvailable();
+  const hasDockerCompose = await isDockerComposeAvailable();
+  const hasJava = (await runProcess('java', ['-version'])).ok;
+  const hasNode = true;
+  const hasLcp = (await runProcess('lcp', ['version'])).ok;
+  const repoRoot = await getRepoRoot(cwd);
+
+  return {
+    os: detectedOs,
+    hasGit,
+    hasDocker,
+    hasDockerCompose,
+    hasJava,
+    hasNode,
+    hasLcp,
+    supportsWorktrees: Boolean(repoRoot && hasGit),
+    supportsBtrfsSnapshots: detectedOs === 'linux',
+  };
+}
+
+function detectOs(): PlatformOs {
+  switch (os.platform()) {
+    case 'darwin':
+      return 'macos';
+    case 'win32':
+      return 'windows';
+    default:
+      return 'linux';
+  }
+}

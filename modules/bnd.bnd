@@ -1,0 +1,4 @@
+Bundle-Name: liferay-cli-bootstrap
+Bundle-SymbolicName: dev.mordonez.liferay.cli.bootstrap
+Bundle-Version: 1.0.0
+Export-Package: dev.mordonez.liferay.cli.bootstrap.configuration

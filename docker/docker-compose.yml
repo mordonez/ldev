@@ -1,0 +1,115 @@
+services:
+  liferay:
+    image: ${LIFERAY_IMAGE:-liferay/dxp:2025.q1.0-lts}
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-liferay
+    restart: unless-stopped
+    stop_grace_period: 120s
+    environment:
+      LIFERAY_JPDA_ENABLED: "true"
+      BIND_IP: ${BIND_IP:-}
+      LIFERAY_HTTP_PORT: ${LIFERAY_HTTP_PORT:-8080}
+      LIFERAY_SESSION_COOKIE_NAME: ${LIFERAY_SESSION_COOKIE_NAME:-}
+      LIFERAY_JVM_OPTS: ${LIFERAY_JVM_OPTS:--Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.net.preferIPv4Stack=true}
+      LIFERAY_CONTAINER_STATUS_ENABLED: "true"
+      LIFERAY_THREAD_DUMPS_DIRECTORY: "/opt/liferay/dumps/thread_dumps"
+      LIFERAY_CLI_OAUTH2_ENABLED: ${LIFERAY_CLI_OAUTH2_ENABLED:-true}
+      LIFERAY_CLI_OAUTH2_COMPANY_WEB_ID: ${LIFERAY_CLI_OAUTH2_COMPANY_WEB_ID:-liferay.local}
+      LIFERAY_CLI_OAUTH2_ADMIN_EMAIL: ${LIFERAY_CLI_OAUTH2_ADMIN_EMAIL:-admin@liferay.local}
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_DRIVER_UPPERCASEC_LASS_UPPERCASEN_AME: org.postgresql.Driver
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-liferay}"
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_USERNAME: "${POSTGRES_USER:-liferay}"
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_PASSWORD: "${POSTGRES_PASSWORD:-liferay}"
+      LIFERAY_WEB_PERIOD_SERVER_PERIOD_HTTP_PERIOD_PORT: "${LIFERAY_HTTP_PORT:-8080}"
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${LIFERAY_HTTP_PORT:-8080}:8080"
+      - "${BIND_IP:-127.0.0.1}:${LIFERAY_DEBUG_PORT:-8000}:8000"
+      - "${BIND_IP:-127.0.0.1}:${GOGO_PORT:-11311}:11311"
+    volumes:
+      - ./liferay-scripts:/usr/local/liferay/scripts
+      - ../liferay/build/docker/configs/dockerenv:/mnt/liferay/files
+      - ../liferay/build/docker/deploy:/mnt/liferay/deploy
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-deploy-cache:/mnt/liferay/deploy-cache
+      - ./patching:/mnt/liferay/patching
+      - ./dumps:/opt/liferay/dumps
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-data:/opt/liferay/data
+      - doclib:/opt/liferay/data/document_library
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-osgi-state:/opt/liferay/osgi/state
+    depends_on:
+      postgres:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 20 -o /dev/null http://localhost:8080/c/portal/login || exit 1"]
+      interval: 15s
+      timeout: 25s
+      retries: 40
+      start_period: 120s
+    networks:
+      - liferay-network
+
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+      dockerfile: Dockerfile
+    image: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch:7.17.26
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms1g -Xmx1g}"
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${ES_HTTP_PORT:-9200}:9200"
+    volumes:
+      - ${ENV_DATA_ROOT:-./data/default}/elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - liferay-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cat/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-liferay}
+      POSTGRES_USER: ${POSTGRES_USER:-liferay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-liferay}
+    # Dev-optimized: prioritize speed over durability (data is disposable)
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c work_mem=64MB
+      -c maintenance_work_mem=256MB
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+      -c max_wal_size=2GB
+      -c checkpoint_completion_target=0.9
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ${ENV_DATA_ROOT:-./data/default}/postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - liferay-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liferay} -d ${POSTGRES_DB:-liferay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  liferay-network:
+    name: ${COMPOSE_PROJECT_NAME:-liferay}-network
+    driver: bridge
+
+volumes:
+  doclib:
+    name: ${DOCLIB_VOLUME_NAME:-liferay-doclib}
+    external: true

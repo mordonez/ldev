@@ -1,0 +1,4 @@
+interface:
+  display_name: "Migrating journal structures"
+  short_description: "Migrar estructuras/plantillas Journal con fieldsets y contenido"
+  default_prompt: "Usa $migrating-journal-structures para ejecutar cambios de estructura + migración + validación + cleanup sin pérdida de datos."

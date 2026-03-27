@@ -1,0 +1,4 @@
+interface:
+  display_name: "Managing Worktree Env"
+  short_description: "Crea, verifica y limpia entornos Docker aislados por worktree."
+  default_prompt: "Aplica el skill managing-worktree-env para preparar o sanear el entorno aislado antes de resolver una issue."

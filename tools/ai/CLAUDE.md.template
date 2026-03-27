@@ -1,0 +1,184 @@
+# CLAUDE.md — Contexto del Proyecto
+
+> Este documento es el punto de entrada único de know-how para agentes que trabajan en este proyecto.
+> Léelo completamente antes de tocar cualquier fichero.
+
+> Nota de interoperabilidad: aunque se llama `CLAUDE.md`, este documento aplica
+> a **cualquier agente** (Codex, Claude Code y otros). El punto de entrada
+> neutral está en `AGENTS.md`.
+
+---
+
+## Stack Técnico
+
+| Componente | Versión / Detalle |
+|---|---|
+| **Liferay DXP** | [TODO: ej. 2025.Q1.17-LTS — imagen `liferay/dxp:2025.q1.17-lts`] |
+| **Java** | 21 (sourceCompatibility = 21, targetCompatibility = 21) |
+| **Gradle** | 8.5 (Liferay Workspace) |
+| **PostgreSQL** | 15-alpine (contenedor Docker) |
+| **Elasticsearch** | Sidecar embebido (puerto 9201 interno) |
+| **Tema** | [TODO: nombre del tema, ej. Liferay Theme v7.4 basado en `styled`, FTL] |
+| **Node.js** | Para build de tema (gulp 4, liferay-theme-tasks 11) |
+| **Liferay Cloud** | [TODO: proyecto y entorno, ej. `mi-proyecto`, entorno `prd`] |
+| **CI/CD** | [TODO: ej. Jenkins + Liferay Cloud, GitHub Actions] |
+| **Idiomas** | [TODO: ej. `en_US`, `es_ES`, `ca_ES`] |
+
+---
+
+## Estructura del Proyecto
+
+```
+<nombre-proyecto>/
+├── CLAUDE.md                       ← Este fichero
+├── docker/                         ← Entorno local Docker
+│   ├── docker-compose.yml          ← Servicios: liferay + postgres
+│   ├── .env / .env.example         ← Variables de entorno locales
+│   └── sql/
+│       └── adapt-local-db.sql      ← Adaptaciones de BD para entorno local
+├── liferay/                        ← Workspace Liferay (Gradle)
+│   ├── build.gradle                ← Java 21
+│   ├── gradle.properties           ← liferay.workspace.product=...
+│   ├── configs/
+│   │   ├── common/                 ← Configuraciones comunes
+│   │   │   └── osgi/configs/       ← Configuraciones OSGi (.config)
+│   │   ├── dockerenv/              ← Portal en Docker local
+│   │   ├── dev/                    ← Entorno dev de Liferay Cloud
+│   │   └── prd/                    ← Entorno producción
+│   ├── modules/                    ← Módulos OSGi custom
+│   ├── themes/
+│   │   └── <tu-tema>/              ← Tema principal (gulp, SCSS/FTL)
+│   ├── fragments/                  ← Fragment sets versionados
+│   └── resources/
+│       ├── journal/structures/     ← Estructuras de contenido web (JSON)
+│       └── journal/templates/      ← Plantillas FreeMarker (.ftl)
+└── ci/                             ← Scripts CI/CD
+```
+
+---
+
+## Skills para Desarrollo
+
+| Necesidad | Skill a Activar |
+|---|---|
+| **Liferay Architect (CSS, DDM, Java)** | `/developing-liferay` |
+| **Resolución de Incidencias** | `/issue-engineering` |
+| **Operaciones / Deployment** | `/deploying-liferay` |
+| **Testing Visual** | `/automating-browser-tests` |
+
+---
+
+## Cómo Arrancar el Entorno Local
+
+### Prerequisitos
+- Docker Desktop + Docker Compose
+- Java 21 (Azul Zulu o Eclipse Temurin recomendado)
+- Node.js (para builds de tema)
+
+### Arranque normal
+```bash
+task env:start
+```
+
+Liferay disponible en: **http://localhost:8080**
+
+### Parar / BD / PostgreSQL
+```bash
+task env:stop
+cd docker && docker compose exec postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB>
+```
+
+---
+
+## Módulos OSGi Custom
+
+[TODO: Listar los módulos custom del proyecto]
+
+Todos usan el prefijo de paquete `[TODO: ej. com.example.*]`.
+
+| Módulo (carpeta) | Bundle-SymbolicName | Descripción |
+|---|---|---|
+| [TODO] | [TODO] | [TODO] |
+
+---
+
+## Convenciones de Idioma y Comunicación
+
+### Idioma para documentación operativa interna
+
+[TODO: definir idioma del equipo]
+
+- **Explicaciones, reglas y prosa operativa**: en [TODO: idioma del equipo]
+- **Comandos, paths, flags, identificadores técnicos**: en inglés, sin traducir
+
+### Idioma para contenido GitHub
+
+[TODO: definir política de idioma para PR, issues y commits]
+
+Los mensajes de commit siguen el prefijo convencional en inglés (`fix:`, `feat:`, `docs:`, `chore:`) pero el resto en [TODO: idioma del equipo]:
+```
+fix(scope): descripción del cambio (#NUM)
+```
+
+---
+
+## Convenciones de Código
+
+### Paquetes Java
+- Prefijo: `[TODO: ej. com.example.*]` para módulos propios
+- Servicios OSGi: anotación `@Component(service = ...)` con Declarative Services
+- Logging: `LogFactoryUtil.getLog(Clase.class)` con variable `_log` (convención Liferay)
+- Referencias OSGi: `@Reference` en campos privados
+
+### Estructuras de contenido web
+- Ficheros `.json` en `liferay/resources/journal/structures/`
+- Naming: [TODO: ej. `STR_NOMBRE.json`]
+
+### Plantillas FreeMarker
+- Ficheros `.ftl` en `liferay/resources/journal/templates/`
+- Naming: [TODO: ej. `TPL_NOMBRE_VISTA.ftl`]
+
+---
+
+## Entornos y Variables de Entorno
+
+### Puertos expuestos (entorno local)
+| Puerto | Servicio |
+|---|---|
+| `8080` | Liferay HTTP |
+| `8000` | JPDA Debug (Java remote debug) |
+| `11311` | Gogo Shell (telnet) |
+| `5432` | PostgreSQL |
+
+### Credenciales locales
+- URL: http://localhost:8080
+- Admin: [TODO: ej. `admin@liferay.local` / `test`]
+
+---
+
+## Scripts y tooling
+
+```bash
+task help
+task env:start
+task env:stop
+task deploy:module -- <module-name>
+task deploy:theme
+task env:logs SINCE=5m
+```
+
+---
+
+## Integraciones Externas
+
+[TODO: listar integraciones externas del proyecto]
+
+| Integración | Módulo(s) | Detalle |
+|---|---|---|
+| [TODO] | [TODO] | [TODO] |
+
+---
+
+## Notas de Deuda Técnica
+
+[TODO: documentar deuda técnica específica del proyecto]

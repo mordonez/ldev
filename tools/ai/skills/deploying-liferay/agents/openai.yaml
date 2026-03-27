@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploying Liferay"
+  short_description: "Desplegar y verificar componentes Liferay"
+  default_prompt: "Usa $deploying-liferay para desplegar este cambio en local y validar estado OSGi y logs."

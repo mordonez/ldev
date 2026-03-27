@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playwright CLI"
+  short_description: "Automatizar navegador con Playwright CLI"
+  default_prompt: "Usa $playwright-cli para automatizar esta prueba en navegador y devolver evidencia reproducible."

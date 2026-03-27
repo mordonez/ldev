@@ -1,0 +1,4 @@
+interface:
+  display_name: "Preparing GitHub Issues"
+  short_description: "Mejorar issues pobres con inventario técnico de URLs"
+  default_prompt: "Usa $preparing-github-issues para enriquecer esta issue de GitHub con inventario técnico de las URLs afectadas y, por defecto, crear una issue de prueba para comparar."
