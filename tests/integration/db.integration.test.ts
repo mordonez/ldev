@@ -27,11 +27,10 @@ describe('db integration', () => {
     await fs.utimes(older, oldDate, oldDate);
     await fs.utimes(newer, newDate, newDate);
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'db', 'import', '--format', 'json'],
-      {cwd: repoRoot, env},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'db', 'import', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -41,11 +40,13 @@ describe('db integration', () => {
     expect(parsed.postImportFiles[1]).toContain('020-second.sql');
 
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      'compose up -d postgres',
-      'compose exec -T postgres psql -U liferay -d liferay -c SELECT 1',
-      'compose exec -T postgres psql -U liferay -d liferay',
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'compose up -d postgres',
+        'compose exec -T postgres psql -U liferay -d liferay -c SELECT 1',
+        'compose exec -T postgres psql -U liferay -d liferay',
+      ]),
+    );
   }, 20000);
 
   test('db import fails when postgres-data is not empty', async () => {
@@ -60,11 +61,10 @@ describe('db integration', () => {
     await fs.ensureDir(pgData);
     await fs.writeFile(path.join(pgData, 'PG_VERSION'), '15\n');
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'db', 'import', '--file', backupFile],
-      {cwd: repoRoot, env},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'db', 'import', '--file', backupFile], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain('ya tiene datos');
@@ -124,10 +124,7 @@ describe('db integration', () => {
       expect(parsed.backupFile).toBe(backupFile);
 
       const calls = await readFakeDockerCalls(fakeBinDir);
-      expect(calls).toEqual(expect.arrayContaining([
-        expect.stringContaining('run --rm -v'),
-        'compose up -d postgres',
-      ]));
+      expect(calls).toEqual(expect.arrayContaining([expect.stringContaining('run --rm -v'), 'compose up -d postgres']));
     } finally {
       await fs.chmod(pgData, 0o755);
     }
@@ -178,11 +175,10 @@ describe('db integration', () => {
     const fakeLcpDir = await createFakeLcpBin();
     const env = {...process.env, PATH: `${fakeLcpDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'db', 'files-download', '--format', 'json'],
-      {cwd: repoRoot, env},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'db', 'files-download', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -227,10 +223,12 @@ describe('db integration', () => {
     expect(parsed.mode).toBe('local');
     expect(parsed.path).toBe(localDoclib);
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      'volume rm demo-doclib',
-      `volume create --driver local --opt type=none --opt device=${localDoclib} --opt o=bind demo-doclib`,
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'volume rm demo-doclib',
+        `volume create --driver local --opt type=none --opt device=${localDoclib} --opt o=bind demo-doclib`,
+      ]),
+    );
   }, 20000);
 
   test('db files-download supports doclib-only downloads', async () => {
@@ -238,11 +236,10 @@ describe('db integration', () => {
     const fakeLcpDir = await createFakeLcpBin();
     const env = {...process.env, PATH: `${fakeLcpDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'db', 'files-download', '--format', 'json'],
-      {cwd: repoRoot, env},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'db', 'files-download', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);

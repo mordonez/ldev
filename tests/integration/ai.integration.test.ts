@@ -8,7 +8,7 @@ import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CLI_CWD = process.cwd();
 const CLI_ENTRY = 'src/index.ts';
-const AI_ROOT = path.resolve(CLI_CWD, 'tools', 'ai');
+const AI_ROOT = path.resolve(CLI_CWD, 'templates', 'ai');
 describe('ai integration', () => {
   test('install creates vendor skills, manifest and the standard AGENTS.md', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-');
@@ -58,7 +58,9 @@ describe('ai integration', () => {
     });
 
     expect(updateResult.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
+      true,
+    );
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('local agents\n');
   }, 15000);
 
@@ -82,7 +84,9 @@ describe('ai integration', () => {
     expect(updateResult.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'developing-liferay', 'SKILL.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
+      true,
+    );
   }, 15000);
 
   test('install without force keeps AGENTS.md and install with force overwrites it', async () => {
@@ -100,11 +104,9 @@ describe('ai integration', () => {
     expect(keepResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom agents\n');
 
-    const forceResult = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir, '--force'],
-      {cwd: CLI_CWD},
-    );
+    const forceResult = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir, '--force'], {
+      cwd: CLI_CWD,
+    });
     expect(forceResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe(
       await fs.readFile(path.join(AI_ROOT, 'install', 'AGENTS.md'), 'utf8'),
@@ -114,7 +116,7 @@ describe('ai integration', () => {
   test('legacy overlay installs cleanly on top of the standard package', async () => {
     const targetDir = createTempDir('dev-cli-ai-legacy-');
 
-    const result = await runProcess('bash', ['tools/ai/legacy/install.sh', targetDir], {
+    const result = await runProcess('bash', ['templates/ai/legacy/install.sh', targetDir], {
       cwd: CLI_CWD,
     });
 

@@ -1,33 +1,33 @@
 # `ldev`
 
-CLI oficial para desarrollo local de proyectos Liferay DXP.
+Official CLI for Liferay DXP local development.
 
-`ldev` está pensada para:
+`ldev` is designed for:
 
-- instalación simple
-- arranque rápido
-- comandos cortos y predecibles
-- defaults razonables
-- uso directo desde proyectos nuevos y existentes
+- Simple installation
+- Fast startup
+- Short, predictable commands
+- Sensible defaults
+- Direct use with new and existing projects
 
-## Instalación
+## Installation
 
-Instalación global:
+Global installation:
 
 ```bash
 npm i -g ldev
 ldev --help
 ```
 
-Uso sin instalación global:
+Usage without global installation:
 
 ```bash
 npx ldev --help
 ```
 
-## Primer uso
+## First Use
 
-Flujo mínimo en un proyecto ya preparado:
+Minimal flow in an already prepared project:
 
 ```bash
 ldev doctor
@@ -35,15 +35,15 @@ ldev setup
 ldev start
 ```
 
-Si el proyecto usa DXP con licencia local:
+If the project uses DXP with a local license:
 
 ```bash
-ldev start --activation-key-file /ruta/activation-key-*.xml
+ldev start --activation-key-file /path/to/activation-key-*.xml
 ```
 
-`ldev` copiará la key a `liferay/configs/dockerenv/osgi/modules/`, sustituirá otras keys locales y no la versionará.
+`ldev` will copy the key to `liferay/configs/dockerenv/osgi/modules/`, replace any other local keys, and keep it out of version control.
 
-Formas namespaced equivalentes:
+Equivalent namespaced forms:
 
 - `ldev env setup`
 - `ldev env start`
@@ -52,72 +52,69 @@ Formas namespaced equivalentes:
 - `ldev env logs`
 - `ldev env shell`
 
-## Proyectos Nuevos
+## New Projects
 
-Crear un proyecto nuevo:
+Create a new project:
 
 ```bash
-ldev project init --name mi-proyecto --dir ~/projects/mi-proyecto
-cd ~/projects/mi-proyecto
+ldev project init --name my-project --dir ~/projects/my-project
+cd ~/projects/my-project
 ldev doctor
 ldev setup
 ldev start
 ```
 
-`project init` genera el scaffold del proyecto listo para operar con `ldev`. No depende de un symlink a un repo vendor.
+`project init` generates the project scaffold ready to operate with `ldev`. It does not depend on a symlink to a vendor repo.
 
-En hosts con IP fija de acceso local, puedes crear el proyecto con `BIND_IP` en el entorno para que `docker/.env` nazca ya configurado:
+On hosts with a fixed local-access IP, you can create the project with `BIND_IP` in the environment so that `docker/.env` is generated with the correct configuration:
 
 ```bash
-BIND_IP=100.115.222.80 ldev project init --name mi-proyecto --dir ~/projects/mi-proyecto
+BIND_IP=100.115.222.80 ldev project init --name my-project --dir ~/projects/my-project
 ```
 
-## Proyectos Existentes
+## Existing Projects
 
-Añadir `ldev` a un repo existente:
+Add `ldev` to an existing repo:
 
 ```bash
-cd ~/projects/mi-proyecto
+cd ~/projects/my-project
 ldev project add --target .
 ldev doctor
 ldev setup
 ldev start
 ```
 
-Si el proyecto necesita también scaffold Docker/Liferay:
+If the project also needs Docker/Liferay scaffolding:
 
 ```bash
 ldev project add-community --target .
 ```
 
-## AI Bootstrap En Proyectos
+## AI Bootstrap in Projects
 
-Instalar la base reutilizable de agentes y skills gestionada por `ldev`:
+Install the reusable agent and skills base managed by `ldev`:
 
 ```bash
 ldev ai install --target .
 ```
 
-Eso instala:
+This installs:
 
-- `AGENTS.md` estándar
-- skills reutilizables en `.agents/skills/`
-- manifiesto vendor-managed para futuras actualizaciones
+- Standard `AGENTS.md`
+- Reusable skills in `.agents/skills/`
+- Vendor-managed manifest for future updates
 
-Si además quieres portar el overlay legacy del proyecto original como base para
-customización local, aplícalo encima de la instalación estándar:
+If you also want to port the legacy overlay from the original project as a base for local customization, apply it on top of the standard installation:
 
 ```bash
-bash tools/ai/legacy/install.sh .
+bash templates/ai/legacy/install.sh .
 ```
 
-Usa ese overlay sólo para contexto y workflows específicos de un proyecto. La
-superficie reusable y soportada por producto sigue siendo la que instala
-`ldev ai install`.
+Use that overlay only for project-specific context and workflows. The reusable, product-supported surface remains what `ldev ai install` provides.
 
-## Desarrollo Local De `ldev`
+## Local Development of `ldev`
 
-Para modificar `ldev` en local y probarlo al instante en proyectos Liferay sin publicar versiones en npm:
+To modify `ldev` locally and test it instantly in Liferay projects without publishing to npm:
 
 ```bash
 git clone git@github.com:mordonez/ldev.git
@@ -127,27 +124,27 @@ npm link
 npm run build:watch
 ```
 
-Con eso, cualquier proyecto Liferay de tu máquina puede usar el binario global enlazado:
+With that, any Liferay project on your machine can use the linked global binary:
 
 ```bash
-cd ~/projects/mi-proyecto
+cd ~/projects/my-project
 ldev start
 ldev doctor
 ldev liferay inventory sites
 ```
 
-Cada cambio recompilado en `ldev` queda disponible al momento. No hace falta publicar, versionar ni reinstalar el paquete.
+Every recompiled change in `ldev` is available immediately. No need to publish, version, or reinstall the package.
 
-## Empaquetado npm
+## npm Packaging
 
-El paquete queda preparado para:
+The package is set up for:
 
 - `npm i -g ldev`
 - `npx ldev ...`
-- binario `ldev`
-- publicación limpia desde `dist/` y assets necesarios de scaffold
+- `ldev` binary
+- Clean publishing from `dist/` and required scaffold assets
 
-Scripts principales:
+Main scripts:
 
 ```bash
 npm run build
@@ -157,44 +154,25 @@ npm run typecheck
 npm run check
 ```
 
-## Modelo de comandos
+## Command Model
 
-`ldev` separa la CLI por intención, no por cantidad de comandos:
+`ldev` organizes the CLI by intent, not by number of commands:
 
 - `Core commands`: `doctor`, `setup`, `start`, `stop`, `status`, `logs`, `shell`
 - `Workspace commands`: `project`, `worktree`
 - `Runtime commands`: `env`, `db`, `deploy`, `osgi`
 - `Liferay commands`: `liferay`
 
-La idea es que el flujo diario viva en top-level y que los namespaces se usen sólo cuando necesitas una tarea explícita de workspace, runtime o scripting contra Liferay.
+The idea is that the daily workflow lives at the top level and namespaces are used only when you need an explicit workspace, runtime, or Liferay scripting task.
 
-## Automation Contract v1
+## Automation Contract
 
-`ldev` expone un contrato estable para automatización. La superficie mínima soportada en v1 es:
+`ldev` exposes a stable JSON contract for CI pipelines and scripting. Commands that support structured output accept `--json` and `--ndjson` flags.
 
-- `ldev doctor --json`
-- `ldev context --json`
-- `ldev status --json`
-- `ldev setup`
-- `ldev start`
-- `ldev stop`
-- `ldev logs --no-follow`
-- `ldev shell`
-- `ldev liferay ... --json`
+See [AUTOMATION.md](AUTOMATION.md) for the full contract specification, error format, and usage examples.
 
-Reglas del contrato:
+## Notes
 
-- Los comandos que declaran salida estructurada deben soportar `--json`.
-- `--json` y `--ndjson` son alias directos de `--format json` y `--format ndjson`.
-- Los errores en modo JSON salen por `stderr` con `{ ok: false, error: { code, message, details? } }`.
-- En v1, `ok` siempre está presente en la salida JSON.
-- En v1, el bloque `error` siempre usa la forma `{ code, message, details? }`.
-- En v1, el contrato JSON es additive-only: se pueden añadir claves nuevas, pero no quitar ni renombrar claves existentes sin subir la versión del contrato.
-- `context` es la entrada canónica para descubrir repo, paths, URL, worktree y config Liferay resuelta.
-- `context` incluye también qué áreas del CLI están realmente disponibles en el contexto actual.
-
-## Notas
-
-- La configuración efectiva mantiene `.liferay-cli.yml` como archivo de proyecto.
-- El módulo OAuth2 local sigue usando la app técnica `liferay-cli` por compatibilidad con el runtime actual.
-- La referencia operativa de migraciones de resources está en [RESOURCE_MIGRATIONS.md](/home/mordonez/projects/ldev/RESOURCE_MIGRATIONS.md).
+- The effective configuration uses `.liferay-cli.yml` as the project file.
+- The local OAuth2 module still uses the `liferay-cli` technical app for compatibility with the current runtime.
+- The operational reference for resource migrations is in [RESOURCE_MIGRATIONS.md](RESOURCE_MIGRATIONS.md).

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:integration
+
+  smoke:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:smoke
+      - name: Binary smoke test
+        run: |
+          node dist/index.js --help
+          node dist/index.js doctor --json || true
+      - name: Installed binary smoke test
+        run: |
+          npm pack
+          npm install -g ldev-*.tgz
+          ldev --help
+          ldev --version
+
+  package:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm pack --dry-run
+      - name: Check package size
+        run: |
+          npm pack
+          SIZE=$(stat -c%s ldev-*.tgz)
+          echo "Package size: $SIZE bytes"
+          if [ "$SIZE" -gt 5242880 ]; then
+            echo "::error::Package exceeds 5MB limit"
+            exit 1
+          fi

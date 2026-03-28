@@ -4,7 +4,12 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {loadConfig} from '../../src/core/config/load-config.js';
-import {ensureEnvDataLayout, resolveDataRoot, resolveEnvContext, seedBuildDockerConfigs} from '../../src/features/env/env-files.js';
+import {
+  ensureEnvDataLayout,
+  resolveDataRoot,
+  resolveEnvContext,
+  seedBuildDockerConfigs,
+} from '../../src/features/env/env-files.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 describe('env-files', () => {
@@ -60,7 +65,9 @@ describe('env-files', () => {
 
     const deployDir = path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy');
     const mode = fs.statSync(deployDir).mode & 0o777;
-    expect(fs.existsSync(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'))).toBe(true);
+    expect(
+      fs.existsSync(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties')),
+    ).toBe(true);
     expect(mode).toBe(0o775);
   });
 });

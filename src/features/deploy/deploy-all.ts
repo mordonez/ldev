@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {
   ensureGradleWrapper,
@@ -22,10 +22,7 @@ export type DeployAllResult = {
   cacheDir: string;
 };
 
-export async function runDeployAll(
-  config: AppConfig,
-  options?: {printer?: Printer},
-): Promise<DeployAllResult> {
+export async function runDeployAll(config: AppConfig, options?: {printer?: Printer}): Promise<DeployAllResult> {
   const context = resolveDeployContext(config);
   await ensureGradleWrapper(context);
 

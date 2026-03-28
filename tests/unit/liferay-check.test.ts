@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatLiferayHealth, runLiferayHealth} from '../../src/features/liferay/liferay-health.js';
 
 const CONFIG = {

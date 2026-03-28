@@ -2,11 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceMigrationInit,
   runLiferayResourceMigrationInit,
-} from '../../src/features/liferay/liferay-resource-migration-init.js';
+} from '../../src/features/liferay/resource/liferay-resource-migration-init.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {
@@ -32,9 +32,7 @@ async function createRepoFixture() {
         name: 'content',
         fieldType: 'fieldset',
         customProperties: {fieldReference: 'content', ddmStructureKey: 'FIELDSET-NEW'},
-        nestedDataDefinitionFields: [
-          {name: 'newHeadline', customProperties: {fieldReference: 'newHeadline'}},
-        ],
+        nestedDataDefinitionFields: [{name: 'newHeadline', customProperties: {fieldReference: 'newHeadline'}}],
       },
     ],
   });
@@ -85,28 +83,35 @@ describe('liferay resource migration-init', () => {
           return new Response('[{"companyId":1,"webId":"liferay.com"}]', {status: 200});
         }
         if (url.includes('/by-data-definition-key/BASIC')) {
-          return new Response(JSON.stringify({
-            id: 301,
-            dataDefinitionKey: 'BASIC',
-            name: 'Basic',
-            dataDefinitionFields: [
-              {name: 'oldHeadline', customProperties: {fieldReference: 'oldHeadline'}},
-            ],
-          }), {status: 200});
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              name: 'Basic',
+              dataDefinitionFields: [{name: 'oldHeadline', customProperties: {fieldReference: 'oldHeadline'}}],
+            }),
+            {status: 200},
+          );
         }
         throw new Error(`Unexpected URL ${url}`);
       },
     });
 
-    const result = await runLiferayResourceMigrationInit(config, {
-      site: '/global',
-      key: 'BASIC',
-    }, {apiClient, tokenClient: TOKEN_CLIENT});
+    const result = await runLiferayResourceMigrationInit(
+      config,
+      {
+        site: '/global',
+        key: 'BASIC',
+      },
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
 
     expect(result.structureFile).toBe(structureFile);
     expect(result.removedFieldReferences).toEqual(['oldHeadline']);
     expect(result.candidateTargetFieldReferences).toEqual(['content[].newHeadline']);
-    expect(result.outputPath).toBe(path.join(config.repoRoot, 'liferay', 'resources', 'journal', 'migrations', 'global', 'BASIC.migration.json'));
+    expect(result.outputPath).toBe(
+      path.join(config.repoRoot, 'liferay', 'resources', 'journal', 'migrations', 'global', 'BASIC.migration.json'),
+    );
     expect(formatLiferayResourceMigrationInit(result)).toContain('removedFieldReferences=oldHeadline');
 
     const descriptor = await fs.readJson(result.outputPath);

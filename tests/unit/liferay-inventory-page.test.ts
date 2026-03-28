@@ -1,11 +1,11 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayInventoryPage,
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
-} from '../../src/features/liferay/liferay-inventory-page.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-page.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -49,9 +49,7 @@ describe('liferay inventory page', () => {
       route: 'regularPage',
     });
 
-    expect(
-      resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/w/news-article'}),
-    ).toMatchObject({
+    expect(resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/w/news-article'})).toMatchObject({
       siteSlug: 'guest',
       friendlyUrl: '/w/news-article',
       route: 'displayPage',
@@ -80,70 +78,82 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
-          return new Response(JSON.stringify({
-            pageDefinition: {
-              pageElement: {
-                type: 'Root',
-                pageElements: [
-                  {
-                    type: 'Fragment',
-                    definition: {
-                      fragment: {key: 'banner'},
-                    },
-                  },
-                  {
-                    type: 'Widget',
-                    definition: {
-                      widgetInstance: {
-                        widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+          return new Response(
+            JSON.stringify({
+              pageDefinition: {
+                pageElement: {
+                  type: 'Root',
+                  pageElements: [
+                    {
+                      type: 'Fragment',
+                      definition: {
+                        fragment: {key: 'banner'},
                       },
                     },
-                  },
-                ],
+                    {
+                      type: 'Widget',
+                      definition: {
+                        widgetInstance: {
+                          widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+                        },
+                      },
+                    },
+                  ],
+                },
               },
-            },
-          }), {status: 200});
+            }),
+            {status: 200},
+          );
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response(JSON.stringify([
-            {
-              portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
-              editableValues: JSON.stringify({
-                journal_content: {
-                  portletPreferencesMap: {
-                    articleId: ['ART-001'],
-                    groupId: ['20121'],
-                    ddmTemplateKey: ['TPL-1'],
+          return new Response(
+            JSON.stringify([
+              {
+                portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
+                editableValues: JSON.stringify({
+                  journal_content: {
+                    portletPreferencesMap: {
+                      articleId: ['ART-001'],
+                      groupId: ['20121'],
+                      ddmTemplateKey: ['TPL-1'],
+                    },
                   },
-                },
-              }),
-            },
-          ]), {status: 200});
+                }),
+              },
+            ]),
+            {status: 200},
+          );
         }
 
         if (url.includes('/journal.journalarticle/get-latest-article')) {
-          return new Response(JSON.stringify({
-            id: 41001,
-            articleId: 'ART-001',
-            titleCurrentValue: 'Home article',
-            ddmStructureKey: 'BASIC',
-          }), {status: 200});
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              articleId: 'ART-001',
+              titleCurrentValue: 'Home article',
+              ddmStructureKey: 'BASIC',
+            }),
+            {status: 200},
+          );
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response(JSON.stringify({
-            id: 41001,
-            contentStructureId: 301,
-            contentFields: [
-              {
-                label: 'Headline',
-                name: 'headline',
-                dataType: 'string',
-                contentFieldValue: {data: 'Hello'},
-              },
-            ],
-          }), {status: 200});
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              contentStructureId: 301,
+              contentFields: [
+                {
+                  label: 'Headline',
+                  name: 'headline',
+                  dataType: 'string',
+                  contentFieldValue: {data: 'Hello'},
+                },
+              ],
+            }),
+            {status: 200},
+          );
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
@@ -232,18 +242,21 @@ describe('liferay inventory page', () => {
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response(JSON.stringify({
-            id: 41001,
-            contentStructureId: 301,
-            contentFields: [
-              {
-                label: 'Headline',
-                name: 'headline',
-                dataType: 'string',
-                contentFieldValue: {data: 'News title'},
-              },
-            ],
-          }), {status: 200});
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              contentStructureId: 301,
+              contentFields: [
+                {
+                  label: 'Headline',
+                  name: 'headline',
+                  dataType: 'string',
+                  contentFieldValue: {data: 'News title'},
+                },
+              ],
+            }),
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);

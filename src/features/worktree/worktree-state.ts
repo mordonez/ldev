@@ -32,10 +32,7 @@ export async function resolveBtrfsConfig(
     return disabledBtrfsConfig();
   }
 
-  const rootDir = resolveConfiguredPath(
-    mainEnvContext.dockerDir,
-    mainValues.BTRFS_ROOT,
-  );
+  const rootDir = resolveConfiguredPath(mainEnvContext.dockerDir, mainValues.BTRFS_ROOT);
   const useSnapshots = mainValues.USE_BTRFS_SNAPSHOTS?.trim() || null;
 
   if (!rootDir || !useSnapshots || useSnapshots === 'false') {
@@ -78,9 +75,8 @@ export async function cloneInitialWorktreeState(options: {
   btrfs: BtrfsConfig;
   processEnv?: NodeJS.ProcessEnv;
 }): Promise<boolean> {
-  const sourceDataRoot = options.btrfs.enabled && options.btrfs.baseDir
-    ? options.btrfs.baseDir
-    : options.mainEnvContext.dataRoot;
+  const sourceDataRoot =
+    options.btrfs.enabled && options.btrfs.baseDir ? options.btrfs.baseDir : options.mainEnvContext.dataRoot;
 
   if (!(await fs.pathExists(sourceDataRoot))) {
     return false;
@@ -160,7 +156,7 @@ async function cloneDataSubdir(
 
   await fs.ensureDir(path.dirname(targetDir));
 
-  if (btrfs.enabled && await tryCloneBtrfsSnapshot(sourceDir, targetDir)) {
+  if (btrfs.enabled && (await tryCloneBtrfsSnapshot(sourceDir, targetDir))) {
     return;
   }
 
@@ -214,7 +210,18 @@ async function copyDirContents(sourceDir: string, targetDir: string, processEnv?
   }
 
   const result = await runDocker(
-    ['run', '--rm', '-v', `${sourceDir}:/source:ro`, '-v', `${targetDir}:/target`, 'alpine', 'sh', '-lc', 'cp -a /source/. /target/'],
+    [
+      'run',
+      '--rm',
+      '-v',
+      `${sourceDir}:/source:ro`,
+      '-v',
+      `${targetDir}:/target`,
+      'alpine',
+      'sh',
+      '-lc',
+      'cp -a /source/. /target/',
+    ],
     {env: processEnv, reject: false},
   );
 

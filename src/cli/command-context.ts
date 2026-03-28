@@ -1,8 +1,8 @@
-import {loadConfig, type AppConfig} from '../core/config/load-config.js';
+import {type AppConfig} from '../core/config/load-config.js';
 import {resolveProjectContext, type ProjectContext} from '../core/config/project-context.js';
 import {resolveOutputFormatFromArgv} from './errors.js';
 import {outputFormatSchema, type OutputFormat} from '../core/output/formats.js';
-import {createPrinter, type Printer} from '../core/output/print.js';
+import {createPrinter, type Printer} from '../core/output/printer.js';
 
 export type CommandContext = {
   cwd: string;

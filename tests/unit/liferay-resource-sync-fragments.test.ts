@@ -2,11 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceSyncFragments,
   runLiferayResourceSyncFragments,
-} from '../../src/features/liferay/liferay-resource-sync-fragments.js';
+} from '../../src/features/liferay/resource/liferay-resource-sync-fragments.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {
@@ -72,15 +72,19 @@ async function writeFragmentProject(
   await fs.writeFile(path.join(fragmentDir, 'configuration.json'), '{}');
   await fs.writeFile(
     path.join(fragmentDir, 'fragment.json'),
-    JSON.stringify({
-      configurationPath: 'configuration.json',
-      jsPath: 'index.js',
-      htmlPath: 'index.html',
-      cssPath: 'index.css',
-      icon: 'square',
-      name: options?.fragmentName ?? 'Hero Banner',
-      type: 'section',
-    }, null, 2),
+    JSON.stringify(
+      {
+        configurationPath: 'configuration.json',
+        jsPath: 'index.js',
+        htmlPath: 'index.html',
+        cssPath: 'index.css',
+        icon: 'square',
+        name: options?.fragmentName ?? 'Hero Banner',
+        type: 'section',
+      },
+      null,
+      2,
+    ),
   );
 }
 
@@ -101,7 +105,10 @@ describe('liferay resource fragments-sync', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/c/portal/fragment/import_fragment_entries')) {
-          return new Response('{"fragmentEntriesImportResult":[{"fragmentEntryKey":"hero-banner"}],"pageTemplatesImportResult":[]}', {status: 200});
+          return new Response(
+            '{"fragmentEntriesImportResult":[{"fragmentEntryKey":"hero-banner"}],"pageTemplatesImportResult":[]}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -143,13 +150,17 @@ describe('liferay resource fragments-sync', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
-          return new Response('[{"fragmentCollectionId":501,"fragmentCollectionKey":"marketing","name":"Marketing"}]', {status: 200});
+          return new Response('[{"fragmentCollectionId":501,"fragmentCollectionKey":"marketing","name":"Marketing"}]', {
+            status: 200,
+          });
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/update-fragment-collection')) {
           return new Response('{"fragmentCollectionId":501}', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
-          return new Response('[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner"}]', {status: 200});
+          return new Response('[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner"}]', {
+            status: 200,
+          });
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/update-fragment-entry')) {
           const form = new URLSearchParams(String(init?.body ?? ''));
@@ -188,7 +199,11 @@ describe('liferay resource fragments-sync', () => {
     const {config, repoRoot} = await createRepoFixture();
     const projectDir = path.join(repoRoot, 'custom-fragments');
     await writeFragmentProject(projectDir, {collection: 'ub-base', collectionName: 'UB Base'});
-    await writeFragmentProject(projectDir, {collection: 'ub-base', fragmentSlug: 'other-fragment', fragmentName: 'Other Fragment'});
+    await writeFragmentProject(projectDir, {
+      collection: 'ub-base',
+      fragmentSlug: 'other-fragment',
+      fragmentName: 'Other Fragment',
+    });
 
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input, init) => {

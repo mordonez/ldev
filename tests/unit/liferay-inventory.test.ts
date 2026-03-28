@@ -1,9 +1,15 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
-import {formatLiferayInventoryStructures, runLiferayInventoryStructures} from '../../src/features/liferay/liferay-inventory-structures.js';
-import {formatLiferayInventoryTemplates, runLiferayInventoryTemplates} from '../../src/features/liferay/liferay-inventory-templates.js';
-import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/liferay-inventory-shared.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {
+  formatLiferayInventoryStructures,
+  runLiferayInventoryStructures,
+} from '../../src/features/liferay/inventory/liferay-inventory-structures.js';
+import {
+  formatLiferayInventoryTemplates,
+  runLiferayInventoryTemplates,
+} from '../../src/features/liferay/inventory/liferay-inventory-templates.js';
+import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -125,7 +131,15 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([{id: '40801', name: 'News Template', contentStructureId: 302}]);
+    expect(result).toEqual([
+      {
+        id: '40801',
+        name: 'News Template',
+        contentStructureId: 302,
+        externalReferenceCode: '40801',
+        templateScript: undefined,
+      },
+    ]);
     expect(formatLiferayInventoryTemplates(result)).toContain('key=40801 structureId=302 name=News Template');
   });
 

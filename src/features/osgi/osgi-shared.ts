@@ -20,13 +20,21 @@ export function resolveOsgiContext(config: AppConfig) {
   };
 }
 
-export async function runGogoCommand(config: AppConfig, command: string, processEnv?: NodeJS.ProcessEnv): Promise<string> {
+export async function runGogoCommand(
+  config: AppConfig,
+  command: string,
+  processEnv?: NodeJS.ProcessEnv,
+): Promise<string> {
   const context = resolveOsgiContext(config);
-  const child = spawn('docker', ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311 2>/dev/null'], {
-    cwd: context.dockerDir,
-    env: processEnv,
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  const child = spawn(
+    'docker',
+    ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311 2>/dev/null'],
+    {
+      cwd: context.dockerDir,
+      env: processEnv,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
 
   let stdout = '';
   let stderr = '';

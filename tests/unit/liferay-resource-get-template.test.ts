@@ -1,10 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceTemplate,
   runLiferayResourceGetTemplate,
-} from '../../src/features/liferay/liferay-resource-get-template.js';
+} from '../../src/features/liferay/resource/liferay-resource-get-template.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -44,7 +44,11 @@ describe('liferay resource get-template', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -66,11 +70,19 @@ describe('liferay resource get-template', () => {
     ).resolves.toMatchObject({templateId: '40801'});
 
     await expect(
-      runLiferayResourceGetTemplate(CONFIG, {site: '/global', id: 'NEWS_TEMPLATE'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceGetTemplate(
+        CONFIG,
+        {site: '/global', id: 'NEWS_TEMPLATE'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).resolves.toMatchObject({templateKey: 'NEWS_TEMPLATE'});
 
     await expect(
-      runLiferayResourceGetTemplate(CONFIG, {site: '/global', id: 'erc-news-template'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceGetTemplate(
+        CONFIG,
+        {site: '/global', id: 'erc-news-template'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).resolves.toMatchObject({externalReferenceCode: 'erc-news-template'});
 
     const result = await runLiferayResourceGetTemplate(
@@ -94,7 +106,11 @@ describe('liferay resource get-template', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -103,11 +119,18 @@ describe('liferay resource get-template', () => {
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
           return new Response('[]', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=&classNameId=1001&resourceClassNameId=1002&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=&classNameId=1001&resourceClassNameId=1002&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":"50001","templateKey":"GLOBAL_TEMPLATE","externalReferenceCode":"erc-global-template","nameCurrentValue":"Global Template","classPK":301,"script":"<#-- global -->"}]',
             {status: 200},
           );
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates')) {
+          return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);

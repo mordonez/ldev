@@ -2,19 +2,19 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
-import {runLiferayResourceExportStructure} from '../../src/features/liferay/liferay-resource-export-structure.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {runLiferayResourceExportStructure} from '../../src/features/liferay/resource/liferay-resource-export-structure.js';
 import {
   formatLiferayResourceExportStructures,
   runLiferayResourceExportStructures,
-} from '../../src/features/liferay/liferay-resource-export-structures.js';
-import {runLiferayResourceExportTemplate} from '../../src/features/liferay/liferay-resource-export-template.js';
-import {runLiferayResourceExportAdts} from '../../src/features/liferay/liferay-resource-export-adts.js';
-import {runLiferayResourceExportFragments} from '../../src/features/liferay/liferay-resource-export-fragments.js';
+} from '../../src/features/liferay/resource/liferay-resource-export-structures.js';
+import {runLiferayResourceExportTemplate} from '../../src/features/liferay/resource/liferay-resource-export-template.js';
+import {runLiferayResourceExportAdts} from '../../src/features/liferay/resource/liferay-resource-export-adts.js';
+import {runLiferayResourceExportFragments} from '../../src/features/liferay/resource/liferay-resource-export-fragments.js';
 import {
   formatLiferayResourceExportTemplates,
   runLiferayResourceExportTemplates,
-} from '../../src/features/liferay/liferay-resource-export-templates.js';
+} from '../../src/features/liferay/resource/liferay-resource-export-templates.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {
@@ -234,7 +234,15 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const expectedPath = path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json');
+    const expectedPath = path.join(
+      dir,
+      'liferay',
+      'resources',
+      'journal',
+      'structures',
+      'global',
+      'BASIC-WEB-CONTENT.json',
+    );
     expect(result.outputPath).toBe(path.resolve(expectedPath));
     const written = await fs.readJson(expectedPath);
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
@@ -252,7 +260,11 @@ describe('liferay resource export', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -292,7 +304,11 @@ describe('liferay resource export', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -331,7 +347,11 @@ describe('liferay resource export', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -391,7 +411,11 @@ describe('liferay resource export', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -473,14 +497,22 @@ describe('liferay resource export', () => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
-        if (url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
-          return new Response('{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}', {status: 200});
+          return new Response(
+            '{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -493,7 +525,9 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'));
+    const written = await fs.readJson(
+      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+    );
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
     expect(result.processed).toBe(1);
     expect(formatLiferayResourceExportStructures(result)).toContain('EXPORTED site=/global count=1');
@@ -527,27 +561,33 @@ describe('liferay resource export', () => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
-        if (url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
-          return new Response('{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","defaultDataLayout":{"pages":[{"title":"Link","description":"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy"}]}}', {status: 200});
+          return new Response(
+            '{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","defaultDataLayout":{"pages":[{"title":"Link","description":"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy"}]}}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
       },
     });
 
-    await runLiferayResourceExportStructures(
-      config,
-      {site: '/global'},
-      {apiClient, tokenClient: TOKEN_CLIENT},
-    );
+    await runLiferayResourceExportStructures(config, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT});
 
-    const written = await fs.readJson(path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'));
+    const written = await fs.readJson(
+      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+    );
     expect(written.defaultDataLayout.pages[0].description).toBe('/web/guest/home?p_l_back_url=%2Fgroup%2Fguest');
   });
 
@@ -583,7 +623,10 @@ describe('liferay resource export', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<#-- ftl -->"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<#-- ftl -->"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -596,7 +639,10 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readFile(path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'), 'utf8');
+    const written = await fs.readFile(
+      path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'),
+      'utf8',
+    );
     expect(written).toBe('<#-- ftl -->');
     expect(result.exported).toBe(1);
     expect(formatLiferayResourceExportTemplates(result)).toContain('EXPORTED site=/global exported=1 failed=0');
@@ -634,20 +680,22 @@ describe('liferay resource export', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<a href=\\"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy\\">link</a>"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<a href=\\"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy\\">link</a>"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
       },
     });
 
-    await runLiferayResourceExportTemplates(
-      config,
-      {site: '/global'},
-      {apiClient, tokenClient: TOKEN_CLIENT},
-    );
+    await runLiferayResourceExportTemplates(config, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT});
 
-    const written = await fs.readFile(path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'), 'utf8');
+    const written = await fs.readFile(
+      path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'),
+      'utf8',
+    );
     expect(written).toBe('<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');
   });
 
@@ -683,7 +731,9 @@ describe('liferay resource export', () => {
           return new Response('1', {status: 200});
         }
         if (url.includes('/api/jsonws/group/search?companyId=10157')) {
-          return new Response('[{"groupId":20122,"friendlyURL":"/guest","nameCurrentValue":"Guest","site":true}]', {status: 200});
+          return new Response('[{"groupId":20122,"friendlyURL":"/guest","nameCurrentValue":"Guest","site":true}]', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -691,10 +741,17 @@ describe('liferay resource export', () => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20122,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
-        if (url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":301,"dataDefinitionKey":"GLOBAL_STRUCTURE","name":{"en_US":"Global Structure"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"GLOBAL_STRUCTURE","name":{"en_US":"Global Structure"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
-        if (url.includes('/o/data-engine/v2.0/sites/20122/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20122/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
           return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
@@ -704,7 +761,9 @@ describe('liferay resource export', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/by-data-definition-key/GLOBAL_STRUCTURE')) {
-          return new Response('{"id":301,"dataDefinitionKey":"GLOBAL_STRUCTURE","name":{"en_US":"Global Structure"}}', {status: 200});
+          return new Response('{"id":301,"dataDefinitionKey":"GLOBAL_STRUCTURE","name":{"en_US":"Global Structure"}}', {
+            status: 200,
+          });
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -717,7 +776,9 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'GLOBAL_STRUCTURE.json'));
+    const written = await fs.readJson(
+      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'GLOBAL_STRUCTURE.json'),
+    );
     expect(written.dataDefinitionKey).toBe('GLOBAL_STRUCTURE');
     expect(result.scannedSites).toBe(2);
     expect(result.processed).toBe(1);
@@ -760,22 +821,45 @@ describe('liferay resource export', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=')) {
           return new Response('{"classNameId":3999}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
-          return new Response('[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]', {status: 200});
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response('[]', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3999&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3999&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response('[]', {status: 200});
         }
 
@@ -783,16 +867,26 @@ describe('liferay resource export', () => {
       },
     });
 
-    const result = await runLiferayResourceExportAdts(
-      config,
-      {allSites: true},
-      {apiClient, tokenClient: TOKEN_CLIENT},
-    );
+    const result = await runLiferayResourceExportAdts(config, {allSites: true}, {apiClient, tokenClient: TOKEN_CLIENT});
 
     expect(result.mode).toBe('all-sites');
     expect(result.scannedSites).toBe(1);
     expect(result.exported).toBe(1);
-    expect(await fs.readFile(path.join(dir, 'liferay', 'resources', 'templates', 'application_display', 'global', 'search_result_summary', 'SEARCH_RESULTS.ftl'), 'utf8')).toBe('<#-- ftl -->');
+    expect(
+      await fs.readFile(
+        path.join(
+          dir,
+          'liferay',
+          'resources',
+          'templates',
+          'application_display',
+          'global',
+          'search_result_summary',
+          'SEARCH_RESULTS.ftl',
+        ),
+        'utf8',
+      ),
+    ).toBe('<#-- ftl -->');
   });
 
   test('export-fragments --all-sites includes /global', async () => {
@@ -833,10 +927,16 @@ describe('liferay resource export', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
-          return new Response('[{"fragmentCollectionId":501,"name":"Marketing","fragmentCollectionKey":"marketing","description":"Marketing fragments"}]', {status: 200});
+          return new Response(
+            '[{"fragmentCollectionId":501,"name":"Marketing","fragmentCollectionKey":"marketing","description":"Marketing fragments"}]',
+            {status: 200},
+          );
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
-          return new Response('[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner","icon":"square","type":1}]', {status: 200});
+          return new Response(
+            '[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner","icon":"square","type":1}]',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -852,7 +952,23 @@ describe('liferay resource export', () => {
     expect(result.mode).toBe('all-sites');
     expect(result.scannedSites).toBe(1);
     expect(result.fragmentCount).toBe(1);
-    expect(await fs.readFile(path.join(dir, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'fragments', 'hero-banner', 'index.html'), 'utf8')).toBe('');
+    expect(
+      await fs.readFile(
+        path.join(
+          dir,
+          'liferay',
+          'fragments',
+          'sites',
+          'global',
+          'src',
+          'marketing',
+          'fragments',
+          'hero-banner',
+          'index.html',
+        ),
+        'utf8',
+      ),
+    ).toBe('');
   });
 
   test('export-templates uses the same enumeration source as inventory templates', async () => {
@@ -887,7 +1003,10 @@ describe('liferay resource export', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"33954","name":"NUEVA","contentStructureId":31801,"externalReferenceCode":"NUEVA_KEY","templateScript":"hola"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"33954","name":"NUEVA","contentStructureId":31801,"externalReferenceCode":"NUEVA_KEY","templateScript":"hola"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -901,6 +1020,11 @@ describe('liferay resource export', () => {
     );
 
     expect(result.exported).toBe(1);
-    expect(await fs.readFile(path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NUEVA_KEY.ftl'), 'utf8')).toBe('hola');
+    expect(
+      await fs.readFile(
+        path.join(dir, 'liferay', 'resources', 'journal', 'templates', 'global', 'NUEVA_KEY.ftl'),
+        'utf8',
+      ),
+    ).toBe('hola');
   });
 });

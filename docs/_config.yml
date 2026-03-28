@@ -1,0 +1,9 @@
+title: ldev
+description: Official CLI for Liferay DXP local development
+remote_theme: pages-themes/minimal@v0.2.0
+plugins:
+  - jekyll-remote-theme
+
+exclude:
+  - node_modules
+  - vendor

@@ -2,11 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   runLiferayPageLayoutExport,
   writeLiferayPageLayoutExport,
-} from '../../src/features/liferay/liferay-page-layout-export.js';
+} from '../../src/features/liferay/page-layout/liferay-page-layout-export.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {

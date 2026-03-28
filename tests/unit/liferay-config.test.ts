@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {resolveLiferayConfig} from '../../src/core/liferay/config.js';
+import {resolveLiferayConfig} from '../../src/core/http/config.js';
 
 describe('liferay config', () => {
   test('falls back to docker bind ip and port', () => {

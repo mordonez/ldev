@@ -20,6 +20,7 @@ describe('worktree guardrails', () => {
     expect((await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot})).exitCode).toBe(0);
     expect((await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot})).exitCode).toBe(0);
     expect((await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect((await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot})).exitCode).toBe(0);
     expect((await runProcess('git', ['add', '-A'], {cwd: repoRoot})).exitCode).toBe(0);
     expect((await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot})).exitCode).toBe(0);
     expect((await runProcess('git', ['checkout', '-b', 'fix/issue-123'], {cwd: repoRoot})).exitCode).toBe(0);
@@ -29,7 +30,9 @@ describe('worktree guardrails', () => {
     );
 
     expect((await runProcess('git', ['switch', 'main'], {cwd: repoRoot})).exitCode).toBe(0);
-    await expect(assertPrimaryCheckoutGuardrail(resolveWorktreeContext(repoRoot), 'probar algo')).resolves.toBeUndefined();
+    await expect(
+      assertPrimaryCheckoutGuardrail(resolveWorktreeContext(repoRoot), 'probar algo'),
+    ).resolves.toBeUndefined();
 
     const worktreeRoot = path.join(repoRoot, '.worktrees', 'issue-123');
     await fs.ensureDir(worktreeRoot);

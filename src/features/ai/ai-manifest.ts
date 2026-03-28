@@ -13,7 +13,7 @@ export type AiAssets = {
 };
 
 export function resolveAiAssets(repoRoot = getDefaultRepoRoot()): AiAssets {
-  const aiRoot = path.join(repoRoot, 'tools', 'ai');
+  const aiRoot = path.join(repoRoot, 'templates', 'ai');
   const installDir = path.join(aiRoot, 'install');
 
   return {
@@ -68,10 +68,7 @@ function findPackageRoot(fromFile: string): string {
   let current = path.dirname(fromFile);
 
   while (true) {
-    if (
-      fs.existsSync(path.join(current, 'package.json'))
-      && fs.existsSync(path.join(current, 'tools', 'ai'))
-    ) {
+    if (fs.existsSync(path.join(current, 'package.json')) && fs.existsSync(path.join(current, 'templates', 'ai'))) {
       return current;
     }
 

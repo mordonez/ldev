@@ -2,11 +2,12 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import type {AppConfig} from '../../src/core/config/schema.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceSyncStructure,
   runLiferayResourceSyncStructure,
-} from '../../src/features/liferay/liferay-resource-sync-structure.js';
+} from '../../src/features/liferay/resource/liferay-resource-sync-structure.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {
@@ -17,7 +18,12 @@ const TOKEN_CLIENT = {
   }),
 };
 
-async function createRepoFixture(): Promise<{repoRoot: string; config: any; structureFile: string; migrationPlanFile: string}> {
+async function createRepoFixture(): Promise<{
+  repoRoot: string;
+  config: AppConfig;
+  structureFile: string;
+  migrationPlanFile: string;
+}> {
   const repoRoot = createTempDir('dev-cli-resource-sync-structure-');
   await fs.ensureDir(path.join(repoRoot, 'docker'));
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
@@ -28,9 +34,7 @@ async function createRepoFixture(): Promise<{repoRoot: string; config: any; stru
   const structureFile = path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC.json');
   await fs.writeJson(structureFile, {
     dataDefinitionKey: 'BASIC',
-    dataDefinitionFields: [
-      {name: 'newField', customProperties: {fieldReference: 'newField'}},
-    ],
+    dataDefinitionFields: [{name: 'newField', customProperties: {fieldReference: 'newField'}}],
   });
 
   const migrationPlanFile = path.join(repoRoot, 'liferay', 'resources', 'journal', 'migrations.json');
@@ -82,9 +86,7 @@ describe('liferay resource structure-sync', () => {
             JSON.stringify({
               id: 301,
               dataDefinitionKey: 'BASIC',
-              dataDefinitionFields: [
-                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
-              ],
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
             }),
             {status: 200},
           );
@@ -94,11 +96,7 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(
-        config,
-        {site: '/global', key: 'BASIC'},
-        {apiClient, tokenClient: TOKEN_CLIENT},
-      ),
+      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('Define --migration-plan o usa --allow-breaking-change');
   });
 
@@ -118,9 +116,7 @@ describe('liferay resource structure-sync', () => {
             JSON.stringify({
               id: 301,
               dataDefinitionKey: 'BASIC',
-              dataDefinitionFields: [
-                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
-              ],
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
             }),
             {status: 200},
           );
@@ -129,7 +125,10 @@ describe('liferay resource structure-sync', () => {
           return new Response('{"id":301}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/content-structures/301/structured-contents')) {
-          return new Response('{"items":[{"id":700,"key":"ARTICLE-001","contentStructureId":"301","structuredContentFolderId":0}],"lastPage":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":700,"key":"ARTICLE-001","contentStructureId":"301","structuredContentFolderId":0}],"lastPage":1}',
+            {status: 200},
+          );
         }
         if (url.includes('/o/headless-delivery/v1.0/structured-contents/700?')) {
           return new Response(
@@ -137,9 +136,7 @@ describe('liferay resource structure-sync', () => {
               id: 700,
               key: 'ARTICLE-001',
               contentStructureId: '301',
-              contentFields: [
-                {name: 'oldField', contentFieldValue: {data: 'legacy value'}},
-              ],
+              contentFields: [{name: 'oldField', contentFieldValue: {data: 'legacy value'}}],
             }),
             {status: 200},
           );
@@ -180,15 +177,23 @@ describe('liferay resource structure-sync', () => {
       articleKeys: ['ARTICLE-001'],
     });
     expect(formatLiferayResourceSyncStructure(result)).toContain('migration scanned=1 migrated=1');
-    expect(calls).toEqual(expect.arrayContaining([
-      expect.stringContaining('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301'),
-      expect.stringContaining('PUT http://localhost:8080/o/headless-delivery/v1.0/structured-contents/700'),
-    ]));
-    const transitionIndex = calls.findIndex((call) => call.includes('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301'));
-    const migrationIndex = calls.findIndex((call) => call.includes('PUT http://localhost:8080/o/headless-delivery/v1.0/structured-contents/700'));
-    const finalStructureIndex = calls.reduce((lastIndex, call, index) => (
-      call.includes('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301') ? index : lastIndex
-    ), -1);
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301'),
+        expect.stringContaining('PUT http://localhost:8080/o/headless-delivery/v1.0/structured-contents/700'),
+      ]),
+    );
+    const transitionIndex = calls.findIndex((call) =>
+      call.includes('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301'),
+    );
+    const migrationIndex = calls.findIndex((call) =>
+      call.includes('PUT http://localhost:8080/o/headless-delivery/v1.0/structured-contents/700'),
+    );
+    const finalStructureIndex = calls.reduce(
+      (lastIndex, call, index) =>
+        call.includes('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301') ? index : lastIndex,
+      -1,
+    );
     expect(transitionIndex).toBeGreaterThanOrEqual(0);
     expect(migrationIndex).toBeGreaterThan(transitionIndex);
     expect(finalStructureIndex).toBeGreaterThanOrEqual(0);
@@ -213,9 +218,7 @@ describe('liferay resource structure-sync', () => {
             JSON.stringify({
               id: 301,
               dataDefinitionKey: 'BASIC',
-              dataDefinitionFields: [
-                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
-              ],
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
             }),
             {status: 200},
           );
@@ -224,7 +227,10 @@ describe('liferay resource structure-sync', () => {
           return new Response('{"id":301}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/content-structures/301/structured-contents')) {
-          return new Response('{"items":[{"id":700,"key":"ARTICLE-001","contentStructureId":"301","structuredContentFolderId":0}],"lastPage":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":700,"key":"ARTICLE-001","contentStructureId":"301","structuredContentFolderId":0}],"lastPage":1}',
+            {status: 200},
+          );
         }
         if (url.includes('/o/headless-delivery/v1.0/structured-contents/700?')) {
           return new Response(
@@ -232,9 +238,7 @@ describe('liferay resource structure-sync', () => {
               id: 700,
               key: 'ARTICLE-001',
               contentStructureId: '301',
-              contentFields: [
-                {name: 'oldField', contentFieldValue: {data: 'legacy value'}},
-              ],
+              contentFields: [{name: 'oldField', contentFieldValue: {data: 'legacy value'}}],
             }),
             {status: 200},
           );

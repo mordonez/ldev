@@ -38,19 +38,20 @@ export async function ensureActivationKeyPrepared(
 
   const fileName = path.basename(sourceFile);
   if (!ACTIVATION_KEY_PATTERN.test(fileName)) {
-    throw new CliError(
-      `La activation key debe llamarse activation-key-*.xml. Recibido: ${fileName}`,
-      {code: 'ENV_ACTIVATION_KEY_INVALID_NAME'},
-    );
+    throw new CliError(`La activation key debe llamarse activation-key-*.xml. Recibido: ${fileName}`, {
+      code: 'ENV_ACTIVATION_KEY_INVALID_NAME',
+    });
   }
 
   const modulesDir = path.join(config.liferayDir, 'configs', 'dockerenv', 'osgi', 'modules');
   await fs.ensureDir(modulesDir);
 
   const existingEntries = await fs.readdir(modulesDir, {withFileTypes: true});
-  await Promise.all(existingEntries
-    .filter((entry) => entry.isFile() && ACTIVATION_KEY_PATTERN.test(entry.name) && entry.name !== fileName)
-    .map((entry) => fs.remove(path.join(modulesDir, entry.name))));
+  await Promise.all(
+    existingEntries
+      .filter((entry) => entry.isFile() && ACTIVATION_KEY_PATTERN.test(entry.name) && entry.name !== fileName)
+      .map((entry) => fs.remove(path.join(modulesDir, entry.name))),
+  );
 
   const destinationFile = path.join(modulesDir, fileName);
   const sameFile = path.normalize(sourceFile) === path.normalize(destinationFile);

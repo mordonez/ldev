@@ -1,4 +1,4 @@
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {formatAiResult, runAiInstall, type AiCommandResult} from './ai-install.js';
 

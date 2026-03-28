@@ -35,7 +35,9 @@ describe('worktree integration', () => {
     expect(result.ok).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'issue-560', '.git'))).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'issue-560', 'docker', '.env'))).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'issue-560', 'docker', 'data', 'envs', 'issue-560'))).toBe(true);
+    expect(
+      await fs.pathExists(path.join(repoRoot, '.worktrees', 'issue-560', 'docker', 'data', 'envs', 'issue-560')),
+    ).toBe(true);
   });
 
   test('worktree env derives isolated compose settings from the main env', async () => {
@@ -55,7 +57,21 @@ describe('worktree integration', () => {
     const envFile = await fs.readFile(path.join(repoRoot, '.worktrees', 'issue-561', 'docker', '.env'), 'utf8');
     expect(envFile).toContain('COMPOSE_PROJECT_NAME=demo-issue-561');
     expect(envFile).toContain('DOCLIB_VOLUME_NAME=demo-doclib');
-    expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'issue-561', 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'))).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(
+          repoRoot,
+          '.worktrees',
+          'issue-561',
+          'liferay',
+          'build',
+          'docker',
+          'configs',
+          'dockerenv',
+          'portal-ext.properties',
+        ),
+      ),
+    ).toBe(true);
   });
 
   test('worktree env clones the main env state on first preparation', async () => {
@@ -133,7 +149,14 @@ describe('worktree integration', () => {
     const btrfsEnvs = path.join(btrfsRoot, 'envs');
     const mainDataRoot = path.join(repoRoot, 'docker', 'data', 'default');
 
-    for (const subdir of ['postgres-data', 'liferay-data', 'liferay-osgi-state', 'liferay-deploy-cache', 'elasticsearch-data', 'liferay-doclib']) {
+    for (const subdir of [
+      'postgres-data',
+      'liferay-data',
+      'liferay-osgi-state',
+      'liferay-deploy-cache',
+      'elasticsearch-data',
+      'liferay-doclib',
+    ]) {
       await fs.ensureDir(path.join(mainDataRoot, subdir));
       await fs.ensureDir(path.join(btrfsBase, subdir));
     }
@@ -203,9 +226,11 @@ describe('worktree integration', () => {
     expect(envFile).toContain('COMPOSE_PROJECT_NAME=demo-issue-563');
     expect(envFile).toContain('DOCLIB_VOLUME_NAME=demo-doclib');
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
+      ]),
+    );
   }, 20000);
 });
 
@@ -224,11 +249,15 @@ async function createWorktreeRepoFixture(): Promise<string> {
   );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'), 'virtual.hosts.valid.hosts=*\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
+    'virtual.hosts.valid.hosts=*\n',
+  );
 
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot});
+  await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot});
   await runProcess('git', ['add', '-A'], {cwd: repoRoot});
   await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot});
 

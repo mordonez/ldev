@@ -15,7 +15,12 @@ export async function runOsgiThreadDump(
 ): Promise<OsgiThreadDumpResult> {
   const count = options?.count ?? 6;
   const intervalSeconds = options?.intervalSeconds ?? 3;
-  await runLiferayScript(config, 'generate_thread_dump.sh', ['-d', '/opt/liferay/dumps', '-n', String(count), '-s', String(intervalSeconds)], process.env);
+  await runLiferayScript(
+    config,
+    'generate_thread_dump.sh',
+    ['-d', '/opt/liferay/dumps', '-n', String(count), '-s', String(intervalSeconds)],
+    process.env,
+  );
 
   return {
     ok: true,

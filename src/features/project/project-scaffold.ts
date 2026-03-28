@@ -12,12 +12,13 @@ export type ProjectAssets = {
 };
 
 export function resolveProjectAssets(repoRoot = getDefaultRepoRoot()): ProjectAssets {
+  const templatesDir = path.join(repoRoot, 'templates');
   return {
     repoRoot,
-    scaffoldDir: path.join(repoRoot, 'scaffold'),
-    dockerDir: path.join(repoRoot, 'docker'),
-    liferayDir: path.join(repoRoot, 'liferay'),
-    modulesDir: path.join(repoRoot, 'modules'),
+    scaffoldDir: templatesDir,
+    dockerDir: path.join(templatesDir, 'docker'),
+    liferayDir: path.join(templatesDir, 'liferay'),
+    modulesDir: path.join(templatesDir, 'modules'),
   };
 }
 
@@ -25,9 +26,14 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
   const copied: string[] = [];
 
   copied.push(
-    ...(await copyMissingFile(path.join(assets.scaffoldDir, '.liferay-cli.yml'), path.join(targetDir, '.liferay-cli.yml'))),
+    ...(await copyMissingFile(
+      path.join(assets.scaffoldDir, '.liferay-cli.yml'),
+      path.join(targetDir, '.liferay-cli.yml'),
+    )),
   );
-  copied.push(...(await copyMissingFile(path.join(assets.scaffoldDir, '.gitignore'), path.join(targetDir, '.gitignore'))));
+  copied.push(
+    ...(await copyMissingFile(path.join(assets.scaffoldDir, '.gitignore'), path.join(targetDir, '.gitignore'))),
+  );
 
   return copied;
 }
@@ -124,12 +130,7 @@ function findPackageRoot(fromFile: string): string {
   let current = path.dirname(fromFile);
 
   while (true) {
-    if (
-      fs.existsSync(path.join(current, 'package.json'))
-      && fs.existsSync(path.join(current, 'docker'))
-      && fs.existsSync(path.join(current, 'liferay'))
-      && fs.existsSync(path.join(current, 'modules'))
-    ) {
+    if (fs.existsSync(path.join(current, 'package.json')) && fs.existsSync(path.join(current, 'templates'))) {
       return current;
     }
 

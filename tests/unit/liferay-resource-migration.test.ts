@@ -2,13 +2,13 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceMigrationRun,
   formatLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-} from '../../src/features/liferay/liferay-resource-migration.js';
+} from '../../src/features/liferay/resource/liferay-resource-migration.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {
@@ -29,16 +29,15 @@ async function createRepoFixture() {
   const structureFile = path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC.json');
   await fs.writeJson(structureFile, {
     dataDefinitionKey: 'BASIC',
-    dataDefinitionFields: [
-      {name: 'newField', customProperties: {fieldReference: 'newField'}},
-    ],
+    dataDefinitionFields: [{name: 'newField', customProperties: {fieldReference: 'newField'}}],
   });
-  await fs.writeJson(path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'FIELDSET-NEW.json'), {
-    dataDefinitionKey: 'FIELDSET-NEW',
-    dataDefinitionFields: [
-      {name: 'childField', customProperties: {fieldReference: 'childField'}},
-    ],
-  });
+  await fs.writeJson(
+    path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'FIELDSET-NEW.json'),
+    {
+      dataDefinitionKey: 'FIELDSET-NEW',
+      dataDefinitionFields: [{name: 'childField', customProperties: {fieldReference: 'childField'}}],
+    },
+  );
 
   const migrationFile = path.join(repoRoot, 'liferay', 'resources', 'journal', 'migration-descriptor.json');
   await fs.writeJson(migrationFile, {
@@ -50,8 +49,8 @@ async function createRepoFixture() {
   });
 
   return {
-      migrationFile,
-      config: {
+    migrationFile,
+    config: {
       cwd: repoRoot,
       repoRoot,
       dockerDir: path.join(repoRoot, 'docker'),
@@ -92,9 +91,7 @@ describe('liferay resource migration-run', () => {
             JSON.stringify({
               id: 301,
               dataDefinitionKey: 'BASIC',
-              dataDefinitionFields: [
-                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
-              ],
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
             }),
             {status: 200},
           );
@@ -160,9 +157,7 @@ describe('liferay resource migration-run', () => {
             JSON.stringify({
               id: 301,
               dataDefinitionKey: 'BASIC',
-              dataDefinitionFields: [
-                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
-              ],
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
             }),
             {status: 200},
           );
@@ -183,9 +178,7 @@ describe('liferay resource migration-run', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result.dependentStructureResults).toEqual([
-      {key: 'FIELDSET-NEW', status: 'created', id: '999'},
-    ]);
+    expect(result.dependentStructureResults).toEqual([{key: 'FIELDSET-NEW', status: 'created', id: '999'}]);
     expect(result.cleanupRun).toBe(true);
     expect(formatLiferayResourceMigrationPipeline(result)).toContain('cleanupRun=true');
   });

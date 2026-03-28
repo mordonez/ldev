@@ -2,7 +2,11 @@ import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
 
-import {resolvePortSet, resolveWorktreeContext, resolveWorktreeTarget} from '../../src/features/worktree/worktree-paths.js';
+import {
+  resolvePortSet,
+  resolveWorktreeContext,
+  resolveWorktreeTarget,
+} from '../../src/features/worktree/worktree-paths.js';
 
 describe('worktree paths', () => {
   test('detects main checkout and nested worktree paths', () => {

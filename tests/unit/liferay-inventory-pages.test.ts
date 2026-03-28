@@ -1,10 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayInventoryPages,
   runLiferayInventoryPages,
-} from '../../src/features/liferay/liferay-inventory-pages.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-pages.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -64,11 +64,7 @@ describe('liferay inventory pages', () => {
       },
     });
 
-    const result = await runLiferayInventoryPages(
-      CONFIG,
-      {site: '/guest'},
-      {apiClient, tokenClient: TOKEN_CLIENT},
-    );
+    const result = await runLiferayInventoryPages(CONFIG, {site: '/guest'}, {apiClient, tokenClient: TOKEN_CLIENT});
 
     expect(result).toMatchObject({
       inventoryType: 'pages',

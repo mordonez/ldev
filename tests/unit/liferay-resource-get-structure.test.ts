@@ -1,10 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
-} from '../../src/features/liferay/liferay-resource-get-structure.js';
+} from '../../src/features/liferay/resource/liferay-resource-get-structure.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

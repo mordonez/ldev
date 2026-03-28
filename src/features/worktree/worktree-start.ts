@@ -4,7 +4,7 @@ import {CliError} from '../../cli/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {runEnvSetup} from '../env/env-setup.js';
 import {runEnvStart} from '../env/env-start.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';

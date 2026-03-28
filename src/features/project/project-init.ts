@@ -11,7 +11,7 @@ import {
   initializeGitRepository,
   isGitRepository,
 } from '../../core/platform/git.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {
   copyProjectScaffoldFiles,
   ensureBootstrapModule,
@@ -128,7 +128,9 @@ async function applyProjectTooling(options: {
   gitInitialized: boolean;
 }): Promise<ProjectCommandResult> {
   const dockerCreated = options.includeDocker ? await ensureDockerScaffold(options.targetDir, options.assets) : false;
-  const liferayCreated = options.includeLiferay ? await ensureLiferayScaffold(options.targetDir, options.assets) : false;
+  const liferayCreated = options.includeLiferay
+    ? await ensureLiferayScaffold(options.targetDir, options.assets)
+    : false;
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
   const bootstrapModuleCreated = await ensureBootstrapModule(options.targetDir, options.assets);
   await configureGeneratedProjectFiles(options.targetDir, options.projectName);
@@ -218,12 +220,15 @@ function toProjectSlug(value: string): string {
   return normalized === '' ? 'liferay' : normalized;
 }
 
-async function collectTouchedPaths(targetDir: string, changes: {
-  dockerCreated: boolean;
-  liferayCreated: boolean;
-  bootstrapModuleCreated: boolean;
-  scaffoldFilesCopied: string[];
-}): Promise<string[]> {
+async function collectTouchedPaths(
+  targetDir: string,
+  changes: {
+    dockerCreated: boolean;
+    liferayCreated: boolean;
+    bootstrapModuleCreated: boolean;
+    scaffoldFilesCopied: string[];
+  },
+): Promise<string[]> {
   const touchedPaths = [...changes.scaffoldFilesCopied];
 
   if (changes.dockerCreated) {

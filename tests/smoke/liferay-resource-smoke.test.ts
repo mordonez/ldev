@@ -27,7 +27,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -51,10 +53,9 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'structure', '--site', '/global', '--key', 'BASIC-WEB-CONTENT'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'structure', '--site', '/global', '--key', 'BASIC-WEB-CONTENT'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
@@ -72,7 +73,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -80,7 +83,11 @@ describe('liferay resource smoke', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -102,10 +109,9 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'template', '--site', '/global', '--id', 'NEWS_TEMPLATE'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'template', '--site', '/global', '--id', 'NEWS_TEMPLATE'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
@@ -125,7 +131,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -150,7 +158,17 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['liferay', 'resource', 'export-structure', '--site', '/global', '--key', 'BASIC-WEB-CONTENT', '--output', outputPath],
+        [
+          'liferay',
+          'resource',
+          'export-structure',
+          '--site',
+          '/global',
+          '--key',
+          'BASIC-WEB-CONTENT',
+          '--output',
+          outputPath,
+        ],
         {from: 'user'},
       );
     } finally {
@@ -172,7 +190,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -180,7 +200,11 @@ describe('liferay resource smoke', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -203,7 +227,17 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['liferay', 'resource', 'export-template', '--site', '/global', '--id', 'NEWS_TEMPLATE', '--output', outputPath],
+        [
+          'liferay',
+          'resource',
+          'export-template',
+          '--site',
+          '/global',
+          '--id',
+          'NEWS_TEMPLATE',
+          '--output',
+          outputPath,
+        ],
         {from: 'user'},
       );
     } finally {
@@ -225,7 +259,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -233,7 +269,11 @@ describe('liferay resource smoke', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
           return new Response('{"classNameId":1001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
@@ -256,7 +296,17 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['liferay', 'resource', 'export-template', '--site', '/global', '--id', 'NEWS_TEMPLATE', '--output', outputPath],
+        [
+          'liferay',
+          'resource',
+          'export-template',
+          '--site',
+          '/global',
+          '--id',
+          'NEWS_TEMPLATE',
+          '--output',
+          outputPath,
+        ],
         {from: 'user'},
       );
     } finally {
@@ -275,19 +325,29 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
-        if (url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
-          return new Response('{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}', {status: 200});
+          return new Response(
+            '{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -299,17 +359,21 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'export-structures', '--site', '/global', '--format', 'json'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'export-structures', '--site', '/global', '--format', 'json'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
 
     const parsed = JSON.parse(output.stdout());
     expect(parsed.processed).toBe(1);
-    const written = JSON.parse(await fs.readFile(path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'), 'utf8'));
+    const written = JSON.parse(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+        'utf8',
+      ),
+    );
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
     expect(output.stderr()).toBe('');
   });
@@ -321,7 +385,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -330,7 +396,10 @@ describe('liferay resource smoke', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<#-- ftl -->"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<#-- ftl -->"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -342,17 +411,19 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'export-templates', '--site', '/global', '--format', 'json'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'export-templates', '--site', '/global', '--format', 'json'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
 
     const parsed = JSON.parse(output.stdout());
     expect(parsed.exported).toBe(1);
-    const written = await fs.readFile(path.join(repoRoot, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'), 'utf8');
+    const written = await fs.readFile(
+      path.join(repoRoot, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'),
+      'utf8',
+    );
     expect(written).toBe('<#-- ftl -->');
     expect(output.stderr()).toBe('');
   });
@@ -364,7 +435,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -373,7 +446,10 @@ describe('liferay resource smoke', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<a href=\\"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy\\">link</a>"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<a href=\\"http://localhost:8080/web/guest/home?p_l_back_url=%2Fgroup%2Fguest&p_p_auth=1QcBPYiy\\">link</a>"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -385,15 +461,17 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'export-templates', '--site', '/global', '--format', 'json'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'export-templates', '--site', '/global', '--format', 'json'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
 
-    const written = await fs.readFile(path.join(repoRoot, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'), 'utf8');
+    const written = await fs.readFile(
+      path.join(repoRoot, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'),
+      'utf8',
+    );
     expect(written).toBe('<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');
     expect(output.stderr()).toBe('');
   });
@@ -405,7 +483,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -413,13 +493,25 @@ describe('liferay resource smoke', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001}]',
             {status: 200},
@@ -456,7 +548,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -464,13 +558,25 @@ describe('liferay resource smoke', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":"19690804","templateKey":"UB_ADT_ACTIVIDADES_SEARCH","externalReferenceCode":"erc-adt","nameCurrentValue":"UB ADT Actividades Search"}]',
             {status: 200},
@@ -493,7 +599,19 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['liferay', 'resource', 'resolve-adt', '--display-style', 'ddmTemplate_19690804', '--site', '/global', '--widget-type', 'search-results', '--format', 'json'],
+        [
+          'liferay',
+          'resource',
+          'resolve-adt',
+          '--display-style',
+          'ddmTemplate_19690804',
+          '--site',
+          '/global',
+          '--widget-type',
+          'search-results',
+          '--format',
+          'json',
+        ],
         {from: 'user'},
       );
     } finally {
@@ -514,7 +632,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -544,10 +664,9 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'fragments', '--site', '/global', '--format', 'json'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'fragments', '--site', '/global', '--format', 'json'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
@@ -559,10 +678,26 @@ describe('liferay resource smoke', () => {
   });
 
   test('dev-cli liferay resource import-fragments works with fake fetch', async () => {
-    const fragmentDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'fragments', 'hero-banner');
+    const fragmentDir = path.join(
+      repoRoot,
+      'liferay',
+      'fragments',
+      'sites',
+      'global',
+      'src',
+      'marketing',
+      'fragments',
+      'hero-banner',
+    );
     await fs.ensureDir(fragmentDir);
-    await fs.writeFile(path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'collection.json'), '{"name":"Marketing"}');
-    await fs.writeFile(path.join(fragmentDir, 'fragment.json'), '{"name":"Hero Banner","icon":"square","type":"section"}');
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'collection.json'),
+      '{"name":"Marketing"}',
+    );
+    await fs.writeFile(
+      path.join(fragmentDir, 'fragment.json'),
+      '{"name":"Hero Banner","icon":"square","type":"section"}',
+    );
     await fs.writeFile(path.join(fragmentDir, 'index.html'), '<div>banner</div>');
     await fs.writeFile(path.join(fragmentDir, 'index.css'), '.banner{}');
     await fs.writeFile(path.join(fragmentDir, 'index.js'), 'console.log("banner");');
@@ -574,7 +709,9 @@ describe('liferay resource smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -606,10 +743,9 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'resource', 'import-fragments', '--site', '/global', '--format', 'json'],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'resource', 'import-fragments', '--site', '/global', '--format', 'json'], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }

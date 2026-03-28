@@ -20,9 +20,9 @@ import {
 export function createEnvCommand(): Command {
   const command = new Command('env');
 
-  command
-    .description('Lifecycle of the local Docker environment')
-    .addHelpText('after', `
+  command.description('Lifecycle of the local Docker environment').addHelpText(
+    'after',
+    `
 Use this namespace when you need the namespaced form of the local runtime commands.
 It also exposes recovery, initialization and diagnostics commands that are not available at the top level.
 
@@ -33,7 +33,8 @@ For the normal daily flow, prefer the top-level interface:
   ldev status
   ldev logs
   ldev shell
-`);
+`,
+  );
 
   addOutputFormatOption(
     command
@@ -51,9 +52,15 @@ For the normal daily flow, prefer the top-level interface:
       .command('restore')
       .helpGroup('Recovery and maintenance:')
       .description('Replace the current runtime data from main or from BTRFS_BASE'),
-  ).action(createFormattedAction(async (context) => runEnvRestore(context.config, {
-        printer: context.printer,
-      }), {text: formatEnvRestore}));
+  ).action(
+    createFormattedAction(
+      async (context) =>
+        runEnvRestore(context.config, {
+          printer: context.printer,
+        }),
+      {text: formatEnvRestore},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -61,10 +68,16 @@ For the normal daily flow, prefer the top-level interface:
       .helpGroup('Recovery and maintenance:')
       .description('Destructive: remove local docker resources and bind-mounted runtime data')
       .option('--force', 'Actually perform the cleanup'),
-  ).action(createFormattedAction(async (context, options) => runEnvClean(context.config, {
-        force: Boolean(options.force),
-        printer: context.printer,
-      }), {text: formatEnvClean}));
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runEnvClean(context.config, {
+          force: Boolean(options.force),
+          printer: context.printer,
+        }),
+      {text: formatEnvClean},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -73,11 +86,17 @@ For the normal daily flow, prefer the top-level interface:
       .description('Restart the liferay service and optionally wait for health')
       .option('--no-wait', 'Do not wait for liferay health/running state')
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
-  ).action(createFormattedAction(async (context, options) => runEnvRestart(context.config, {
-        wait: options.wait,
-        timeoutSeconds: Number.parseInt(options.timeout, 10),
-        printer: context.printer,
-      }), {text: formatEnvRestart}));
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runEnvRestart(context.config, {
+          wait: options.wait,
+          timeoutSeconds: Number.parseInt(options.timeout, 10),
+          printer: context.printer,
+        }),
+      {text: formatEnvRestart},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -86,11 +105,17 @@ For the normal daily flow, prefer the top-level interface:
       .description('Recreate the liferay service and optionally wait for health')
       .option('--no-wait', 'Do not wait for liferay health/running state')
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
-  ).action(createFormattedAction(async (context, options) => runEnvRecreate(context.config, {
-        wait: options.wait,
-        timeoutSeconds: Number.parseInt(options.timeout, 10),
-        printer: context.printer,
-      }), {text: formatEnvRecreate}));
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runEnvRecreate(context.config, {
+          wait: options.wait,
+          timeoutSeconds: Number.parseInt(options.timeout, 10),
+          printer: context.printer,
+        }),
+      {text: formatEnvRecreate},
+    ),
+  );
 
   command.addCommand(createEnvLogsCommand({helpGroup: 'Daily lifecycle:'}));
   command.addCommand(createEnvShellCommand({helpGroup: 'Daily lifecycle:'}));
@@ -102,21 +127,29 @@ For the normal daily flow, prefer the top-level interface:
       .description('Wait until Liferay is healthy/running')
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '600')
       .option('--poll <seconds>', 'Polling interval in seconds', '10'),
-  ).action(createFormattedAction(async (context, options) => runEnvWait(context.config, {
-        timeoutSeconds: Number.parseInt(options.timeout, 10),
-        pollIntervalSeconds: Number.parseInt(options.poll, 10),
-        printer: context.printer,
-      }), {text: formatEnvWait}));
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runEnvWait(context.config, {
+          timeoutSeconds: Number.parseInt(options.timeout, 10),
+          pollIntervalSeconds: Number.parseInt(options.poll, 10),
+          printer: context.printer,
+        }),
+      {text: formatEnvWait},
+    ),
+  );
 
   addOutputFormatOption(
     command
       .command('is-healthy')
       .helpGroup('Diagnostics and scripting:')
       .description('Return a scriptable health result for the current environment'),
-  ).action(createFormattedAction(async (context) => runEnvIsHealthy(context.config), {
-    text: formatEnvIsHealthy,
-    exitCode: (result) => result.healthy ? 0 : 1,
-  }));
+  ).action(
+    createFormattedAction(async (context) => runEnvIsHealthy(context.config), {
+      text: formatEnvIsHealthy,
+      exitCode: (result) => (result.healthy ? 0 : 1),
+    }),
+  );
 
   command.addCommand(createEnvStatusCommand({helpGroup: 'Diagnostics and scripting:'}));
 

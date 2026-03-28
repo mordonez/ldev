@@ -20,13 +20,23 @@ describe('env advanced integration', () => {
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
     expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'stop'], {cwd: repoRoot, env})).exitCode).toBe(0);
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'restart', '--no-wait'], {cwd: repoRoot, env})).exitCode).toBe(0);
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'recreate', '--no-wait'], {cwd: repoRoot, env})).exitCode).toBe(0);
     expect(
-      (await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'logs', '--service', 'liferay', '--since', '5m', '--no-follow'], {
-        cwd: repoRoot,
-        env,
-      })).exitCode,
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'restart', '--no-wait'], {cwd: repoRoot, env})).exitCode,
+    ).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'recreate', '--no-wait'], {cwd: repoRoot, env})).exitCode,
+    ).toBe(0);
+    expect(
+      (
+        await runProcess(
+          'npx',
+          ['tsx', CLI_ENTRY, 'env', 'logs', '--service', 'liferay', '--since', '5m', '--no-follow'],
+          {
+            cwd: repoRoot,
+            env,
+          },
+        )
+      ).exitCode,
     ).toBe(0);
 
     const calls = await readFakeDockerCalls(fakeBinDir);
@@ -77,7 +87,10 @@ async function createEnvRepoFixture(): Promise<string> {
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
   await fs.writeFile(path.join(repoRoot, 'docker', '.env.example'), 'COMPOSE_PROJECT_NAME=demo\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=demo\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env'),
+    'COMPOSE_PROJECT_NAME=demo\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
+  );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   return repoRoot;
 }

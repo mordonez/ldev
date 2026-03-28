@@ -27,7 +27,9 @@ export async function collectEnvStatus(
 ): Promise<EnvStatusReport> {
   const processOptions: RunProcessOptions | undefined = options?.processEnv ? {env: options.processEnv} : undefined;
   const services = await listComposeServices(context, processOptions);
-  const detailedServices = await Promise.all(services.map((service) => inspectComposeService(context, service, processOptions)));
+  const detailedServices = await Promise.all(
+    services.map((service) => inspectComposeService(context, service, processOptions)),
+  );
   const portalReachable = await isPortalReachable(context.portalUrl);
   const liferay = detailedServices.find((service) => service.service === 'liferay') ?? null;
 
@@ -54,7 +56,11 @@ export async function waitForServiceHealthy(
   const deadline = Date.now() + timeoutSeconds * 1000;
 
   while (Date.now() < deadline) {
-    const current = await inspectComposeService(context, service, options?.processEnv ? {env: options.processEnv} : undefined);
+    const current = await inspectComposeService(
+      context,
+      service,
+      options?.processEnv ? {env: options.processEnv} : undefined,
+    );
     if (isHealthyEnough(current)) {
       return current;
     }
@@ -68,7 +74,11 @@ export async function waitForServiceHealthy(
     await sleep(pollIntervalSeconds * 1000);
   }
 
-  const last = await inspectComposeService(context, service, options?.processEnv ? {env: options.processEnv} : undefined);
+  const last = await inspectComposeService(
+    context,
+    service,
+    options?.processEnv ? {env: options.processEnv} : undefined,
+  );
   throw new Error(
     `Timeout esperando ${service} healthy/running (state=${last.state ?? 'unknown'}, health=${last.health ?? 'n/a'}).`,
   );
@@ -112,7 +122,11 @@ async function inspectComposeService(
   }
 
   const state = await inspectContainerField(containerId, '{{.State.Status}}', processOptions);
-  const health = await inspectContainerField(containerId, '{{if .State.Health}}{{.State.Health.Status}}{{end}}', processOptions);
+  const health = await inspectContainerField(
+    containerId,
+    '{{if .State.Health}}{{.State.Health.Status}}{{end}}',
+    processOptions,
+  );
 
   return {
     service,

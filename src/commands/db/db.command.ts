@@ -11,9 +11,9 @@ import {formatDbSync, runDbSync} from '../../features/db/db-sync.js';
 export function createDbCommand(): Command {
   const command = new Command('db');
 
-  command
-    .description('Database backups, local import and Document Library tooling')
-    .addHelpText('after', `
+  command.description('Database backups, local import and Document Library tooling').addHelpText(
+    'after',
+    `
 Use this namespace for state transfer between LCP and the local runtime.
 
 Command groups:
@@ -22,7 +22,8 @@ Command groups:
 
 Destructive behavior:
   import --force / sync --force   Replace the current local postgres-data before importing
-`);
+`,
+  );
 
   addOutputFormatOption(
     command
@@ -32,12 +33,18 @@ Destructive behavior:
       .option('--file <file>', 'Backup file; autodetects the newest .gz/.sql/.dump under docker/backups if omitted')
       .option('--force', 'Replace the current local postgres-data before importing')
       .option('--skip-post-import', 'Skip docker/sql/post-import.d/*.sql after the import'),
-  ).action(createFormattedAction(async (context, options: {file?: string; skipPostImport?: boolean; force?: boolean}) => runDbImport(context.config, {
-        file: options.file,
-        force: Boolean(options.force),
-        skipPostImport: Boolean(options.skipPostImport),
-        printer: context.printer,
-      }), {text: formatDbImport}));
+  ).action(
+    createFormattedAction(
+      async (context, options: {file?: string; skipPostImport?: boolean; force?: boolean}) =>
+        runDbImport(context.config, {
+          file: options.file,
+          force: Boolean(options.force),
+          skipPostImport: Boolean(options.skipPostImport),
+          printer: context.printer,
+        }),
+      {text: formatDbImport},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -47,15 +54,18 @@ Destructive behavior:
       .option('--environment <environment>', 'LCP environment')
       .option('--backup-id <backupId>', 'Specific backup id')
       .option('--project <project>', 'LCP project'),
-  ).action(createFormattedAction(async (
-        context,
-        options: {environment?: string; backupId?: string; project?: string},
-      ) => runDbDownload(context.config, {
-        environment: options.environment,
-        backupId: options.backupId,
-        project: options.project,
-        printer: context.printer,
-      }), {text: formatDbDownload}));
+  ).action(
+    createFormattedAction(
+      async (context, options: {environment?: string; backupId?: string; project?: string}) =>
+        runDbDownload(context.config, {
+          environment: options.environment,
+          backupId: options.backupId,
+          project: options.project,
+          printer: context.printer,
+        }),
+      {text: formatDbDownload},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -67,17 +77,23 @@ Destructive behavior:
       .option('--project <project>', 'LCP project')
       .option('--doclib-dest <dir>', 'Directory where doclib should be downloaded')
       .option('--background', 'Run the doclib download in background'),
-  ).action(createFormattedAction(async (
+  ).action(
+    createFormattedAction(
+      async (
         context,
         options: {environment?: string; backupId?: string; project?: string; doclibDest?: string; background?: boolean},
-      ) => runDbFilesDownload(context.config, {
-        environment: options.environment,
-        backupId: options.backupId,
-        project: options.project,
-        doclibDest: options.doclibDest,
-        background: Boolean(options.background),
-        printer: context.printer,
-      }), {text: formatDbFilesDownload}));
+      ) =>
+        runDbFilesDownload(context.config, {
+          environment: options.environment,
+          backupId: options.backupId,
+          project: options.project,
+          doclibDest: options.doclibDest,
+          background: Boolean(options.background),
+          printer: context.printer,
+        }),
+      {text: formatDbFilesDownload},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -85,10 +101,16 @@ Destructive behavior:
       .helpGroup('Document Library workflows:')
       .description('Mount or recreate the Docker volume for Document Library')
       .option('--path <path>', 'Local doclib path'),
-  ).action(createFormattedAction(async (context, options: {path?: string}) => runDbFilesMount(context.config, {
-        path: options.path,
-        printer: context.printer,
-      }), {text: formatDbFilesMount}));
+  ).action(
+    createFormattedAction(
+      async (context, options: {path?: string}) =>
+        runDbFilesMount(context.config, {
+          path: options.path,
+          printer: context.printer,
+        }),
+      {text: formatDbFilesMount},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -96,9 +118,15 @@ Destructive behavior:
       .helpGroup('Document Library workflows:')
       .description('Detect a document_library directory and store it in docker/.env')
       .option('--base-dir <dir>', 'Directory where the search should start'),
-  ).action(createFormattedAction(async (context, options: {baseDir?: string}) => runDbFilesDetect(context.config, {
-        baseDir: options.baseDir,
-      }), {text: formatDbFilesDetect}));
+  ).action(
+    createFormattedAction(
+      async (context, options: {baseDir?: string}) =>
+        runDbFilesDetect(context.config, {
+          baseDir: options.baseDir,
+        }),
+      {text: formatDbFilesDetect},
+    ),
+  );
 
   addOutputFormatOption(
     command
@@ -110,17 +138,23 @@ Destructive behavior:
       .option('--project <project>', 'LCP project')
       .option('--force', 'Replace the current local postgres-data before importing')
       .option('--skip-post-import', 'Skip docker/sql/post-import.d/*.sql after the import'),
-  ).action(createFormattedAction(async (
+  ).action(
+    createFormattedAction(
+      async (
         context,
         options: {environment?: string; backupId?: string; project?: string; skipPostImport?: boolean; force?: boolean},
-      ) => runDbSync(context.config, {
-        environment: options.environment,
-        backupId: options.backupId,
-        project: options.project,
-        force: Boolean(options.force),
-        skipPostImport: Boolean(options.skipPostImport),
-        printer: context.printer,
-      }), {text: formatDbSync}));
+      ) =>
+        runDbSync(context.config, {
+          environment: options.environment,
+          backupId: options.backupId,
+          project: options.project,
+          force: Boolean(options.force),
+          skipPostImport: Boolean(options.skipPostImport),
+          printer: context.printer,
+        }),
+      {text: formatDbSync},
+    ),
+  );
 
   return command;
 }

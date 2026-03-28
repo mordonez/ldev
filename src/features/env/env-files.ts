@@ -68,9 +68,7 @@ export async function ensureEnvFile(context: EnvContext): Promise<{created: bool
   const currentContent = await fs.readFile(context.dockerEnvFile, 'utf8');
   const exampleValues = readEnvFile(context.dockerEnvExampleFile);
   const currentValues = readEnvFile(context.dockerEnvFile);
-  const missingEntries = Object.fromEntries(
-    Object.entries(exampleValues).filter(([key]) => !(key in currentValues)),
-  );
+  const missingEntries = Object.fromEntries(Object.entries(exampleValues).filter(([key]) => !(key in currentValues)));
 
   if (Object.keys(missingEntries).length === 0) {
     return {created: false, mergedKeys: []};
@@ -117,8 +115,7 @@ export async function seedBuildDockerConfigs(context: EnvContext): Promise<boole
   const hasExplicitDockerenv = await fs.pathExists(path.join(context.liferayDir, 'configs', 'dockerenv'));
   if (!hasExplicitDockerenv) {
     await fs.emptyDir(targetDir);
-  }
-  else {
+  } else {
     await fs.ensureDir(targetDir);
   }
 
@@ -142,14 +139,19 @@ export async function ensureDoclibVolume(
   const mainComposeProject = mainValues.COMPOSE_PROJECT_NAME || 'liferay';
   const mainDoclibVolume = mainValues.DOCLIB_VOLUME_NAME || `${mainComposeProject}-doclib`;
   const volumeName = context.envValues.DOCLIB_VOLUME_NAME || mainDoclibVolume;
-  const devicePath = await resolveDesiredDoclibPath(context, worktreeContext.isWorktree ? mainDockerDir : context.dockerDir);
+  const devicePath = await resolveDesiredDoclibPath(
+    context,
+    worktreeContext.isWorktree ? mainDockerDir : context.dockerDir,
+  );
 
   await fs.ensureDir(devicePath);
 
-  const existingType = (await runDocker(
-    ['volume', 'inspect', volumeName, '--format', '{{index .Options "type"}}'],
-    {env: options?.processEnv, reject: false},
-  )).stdout.trim();
+  const existingType = (
+    await runDocker(['volume', 'inspect', volumeName, '--format', '{{index .Options "type"}}'], {
+      env: options?.processEnv,
+      reject: false,
+    })
+  ).stdout.trim();
 
   if (existingType === 'cifs') {
     return {
@@ -159,10 +161,12 @@ export async function ensureDoclibVolume(
     };
   }
 
-  const existingDevice = (await runDocker(
-    ['volume', 'inspect', volumeName, '--format', '{{index .Options "device"}}'],
-    {env: options?.processEnv, reject: false},
-  )).stdout.trim();
+  const existingDevice = (
+    await runDocker(['volume', 'inspect', volumeName, '--format', '{{index .Options "device"}}'], {
+      env: options?.processEnv,
+      reject: false,
+    })
+  ).stdout.trim();
 
   if (existingDevice === devicePath) {
     return {
@@ -191,9 +195,12 @@ export async function ensureDoclibVolume(
   );
 
   if (!createResult.ok) {
-    throw new CliError(createResult.stderr.trim() || createResult.stdout.trim() || `No se pudo crear el volumen ${volumeName}`, {
-      code: 'ENV_DOCLIB_VOLUME_ERROR',
-    });
+    throw new CliError(
+      createResult.stderr.trim() || createResult.stdout.trim() || `No se pudo crear el volumen ${volumeName}`,
+      {
+        code: 'ENV_DOCLIB_VOLUME_ERROR',
+      },
+    );
   }
 
   return {

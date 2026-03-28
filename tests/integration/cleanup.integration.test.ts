@@ -67,15 +67,24 @@ describe('cleanup integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-701'], {cwd: repoRoot, env})).exitCode).toBe(0);
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-702'], {cwd: repoRoot, env})).exitCode).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-701'], {cwd: repoRoot, env}))
+        .exitCode,
+    ).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-702'], {cwd: repoRoot, env}))
+        .exitCode,
+    ).toBe(0);
 
     const wt701 = path.join(repoRoot, '.worktrees', 'issue-701');
     const wt702 = path.join(repoRoot, '.worktrees', 'issue-702');
     const staleDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
     await fs.utimes(wt702, staleDate, staleDate);
 
-    const missingForce = await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'clean', 'issue-701'], {cwd: repoRoot, env});
+    const missingForce = await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'clean', 'issue-701'], {
+      cwd: repoRoot,
+      env,
+    });
     expect(missingForce.exitCode).toBe(1);
 
     const cleanResult = await runProcess(
@@ -86,11 +95,10 @@ describe('cleanup integration', () => {
     expect(cleanResult.exitCode).toBe(0);
     expect(await fs.pathExists(wt701)).toBe(false);
 
-    const gcPreview = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'worktree', 'gc', '--days', '7', '--format', 'json'],
-      {cwd: repoRoot, env},
-    );
+    const gcPreview = await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'gc', '--days', '7', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
     expect(gcPreview.exitCode).toBe(0);
     expect(JSON.parse(gcPreview.stdout).candidates).toContain('issue-702');
   }, 30000);
@@ -101,7 +109,10 @@ describe('cleanup integration', () => {
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
     const externalRoot = createTempDir('dev-cli-clean-wt-external-');
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-703'], {cwd: repoRoot, env})).exitCode).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-703'], {cwd: repoRoot, env}))
+        .exitCode,
+    ).toBe(0);
 
     const envFile = path.join(repoRoot, '.worktrees', 'issue-703', 'docker', '.env');
     const original = await fs.readFile(envFile, 'utf8');
@@ -141,7 +152,10 @@ describe('cleanup integration', () => {
       `BTRFS_ROOT=${btrfsRoot}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${btrfsEnvs}\nUSE_BTRFS_SNAPSHOTS=auto\n`,
     );
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-704'], {cwd: repoRoot, env})).exitCode).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-704'], {cwd: repoRoot, env}))
+        .exitCode,
+    ).toBe(0);
 
     const envFile = path.join(repoRoot, '.worktrees', 'issue-704', 'docker', '.env');
     const original = await fs.readFile(envFile, 'utf8');
@@ -180,7 +194,10 @@ describe('cleanup integration', () => {
       `BTRFS_ROOT=${btrfsRoot}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${btrfsEnvs}\nUSE_BTRFS_SNAPSHOTS=auto\n`,
     );
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-705'], {cwd: repoRoot, env})).exitCode).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'worktree', 'setup', '--name', 'issue-705'], {cwd: repoRoot, env}))
+        .exitCode,
+    ).toBe(0);
 
     const worktreeDir = path.join(repoRoot, '.worktrees', 'issue-705');
     const envFile = path.join(worktreeDir, 'docker', '.env');
@@ -210,7 +227,10 @@ async function createRepoWithEnv(): Promise<string> {
   await fs.ensureDir(path.join(repoRoot, 'docker'));
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env'),
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n',
+  );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   return repoRoot;
 }
@@ -220,14 +240,21 @@ async function createWorktreeRepoFixture(): Promise<string> {
   await fs.ensureDir(path.join(repoRoot, 'docker'));
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env.example'), 'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env.example'),
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\n',
+  );
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env'),
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\n',
+  );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));
 
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot});
+  await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot});
   await runProcess('git', ['add', '-A'], {cwd: repoRoot});
   await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot});
   return repoRoot;

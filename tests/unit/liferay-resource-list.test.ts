@@ -1,11 +1,14 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
-import {formatLiferayResourceAdts, runLiferayResourceListAdts} from '../../src/features/liferay/liferay-resource-list-adts.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {
+  formatLiferayResourceAdts,
+  runLiferayResourceListAdts,
+} from '../../src/features/liferay/resource/liferay-resource-list-adts.js';
 import {
   formatLiferayResourceFragments,
   runLiferayResourceListFragments,
-} from '../../src/features/liferay/liferay-resource-list-fragments.js';
+} from '../../src/features/liferay/resource/liferay-resource-list-fragments.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -44,13 +47,25 @@ describe('liferay resource list', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]',
             {status: 200},
@@ -59,7 +74,11 @@ describe('liferay resource list', () => {
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.asset.kernel.model.AssetEntry')) {
           return new Response('{"classNameId":3002}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response('[]', {status: 200});
         }
 
@@ -78,6 +97,7 @@ describe('liferay resource list', () => {
         adtName: 'Search Results',
         displayName: 'Search Results',
         widgetType: 'search-result-summary',
+        className: 'com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
         templateId: 40801,
         templateKey: 'SEARCH_RESULTS',
         classNameId: 3001,
@@ -114,7 +134,11 @@ describe('liferay resource list', () => {
       },
     });
 
-    const result = await runLiferayResourceListFragments(CONFIG, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT});
+    const result = await runLiferayResourceListFragments(
+      CONFIG,
+      {site: '/global'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
 
     expect(result).toEqual([
       {

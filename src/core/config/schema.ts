@@ -16,13 +16,15 @@ export const appConfigSchema = z.object({
     scopeAliases: z.string(),
     timeoutSeconds: z.number().int().positive(),
   }),
-  paths: z.object({
-    structures: z.string(),
-    templates: z.string(),
-    adts: z.string(),
-    fragments: z.string(),
-    migrations: z.string().optional(),
-  }).optional(),
+  paths: z
+    .object({
+      structures: z.string(),
+      templates: z.string(),
+      adts: z.string(),
+      fragments: z.string(),
+      migrations: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;

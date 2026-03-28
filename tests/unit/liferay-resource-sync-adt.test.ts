@@ -2,11 +2,11 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceSyncAdt,
   runLiferayResourceSyncAdt,
-} from '../../src/features/liferay/liferay-resource-sync-adt.js';
+} from '../../src/features/liferay/resource/liferay-resource-sync-adt.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {
@@ -20,7 +20,9 @@ const TOKEN_CLIENT = {
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-sync-adt-');
   await fs.ensureDir(path.join(repoRoot, 'docker'));
-  await fs.ensureDir(path.join(repoRoot, 'liferay', 'resources', 'templates', 'application_display', 'global', 'search_result_summary'));
+  await fs.ensureDir(
+    path.join(repoRoot, 'liferay', 'resources', 'templates', 'application_display', 'global', 'search_result_summary'),
+  );
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
   await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'LIFERAY_CLI_URL=http://localhost:8080\n');
 
@@ -72,15 +74,23 @@ describe('liferay resource adt-sync', () => {
         const url = String(input);
 
         if (url.includes('/by-friendly-url-path/global')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {status: 200});
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":20097}', {status: 200});
         }
-        if (url.includes('/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes('/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')
+        ) {
           return new Response('{"classNameId":777}', {status: 200});
         }
-        if (url.includes('/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":888}', {status: 200});
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates')) {

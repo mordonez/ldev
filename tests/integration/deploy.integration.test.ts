@@ -13,28 +13,24 @@ describe('deploy integration', () => {
   test('deploy all executes dockerDeploy and writes the prepare marker', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'deploy', 'all', '--format', 'json'],
-      {cwd: repoRoot},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'deploy', 'all', '--format', 'json'], {cwd: repoRoot});
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.seededDockerenv).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'demo.jar'))).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar'))).toBe(true);
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
+    ).toBe(true);
   }, 20000);
 
   test('deploy prepare writes build marker and seeds dockerenv without buildService when unnecessary', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'deploy', 'prepare', '--format', 'json'],
-      {cwd: repoRoot},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'deploy', 'prepare', '--format', 'json'], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -42,12 +38,20 @@ describe('deploy integration', () => {
     expect(parsed.dockerDeployExecuted).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'demo.jar'))).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar'))).toBe(true);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'), 'utf8'))
-      .toContain('virtual.hosts.valid.hosts=*');
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
+    ).toBe(true);
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'),
+        'utf8',
+      ),
+    ).toContain('virtual.hosts.valid.hosts=*');
 
     const expectedCommit = await resolveHead(repoRoot);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', '.prepare-commit'), 'utf8')).toBe(`${expectedCommit}\n`);
+    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', '.prepare-commit'), 'utf8')).toBe(
+      `${expectedCommit}\n`,
+    );
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
     expect(gradleCalls).toContain('--console=plain dockerDeploy -Pliferay.workspace.environment=dockerenv -q');
     expect(gradleCalls).not.toContain('buildService');
@@ -56,11 +60,9 @@ describe('deploy integration', () => {
   test('deploy prepare runs buildService for fresh service-builder repos and restores tracked service.properties', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: true});
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'deploy', 'prepare', '--format', 'json'],
-      {cwd: repoRoot},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'deploy', 'prepare', '--format', 'json'], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -69,25 +71,29 @@ describe('deploy integration', () => {
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
     expect(gradleCalls).toContain('--console=plain buildService -q');
     expect(gradleCalls).toContain('--console=plain dockerDeploy -Pliferay.workspace.environment=dockerenv -q');
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe('release.info.version=1\n');
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar'))).toBe(true);
+    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe(
+      'release.info.version=1\n',
+    );
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
+    ).toBe(true);
   }, 20000);
 
   test('deploy module syncs module artifacts to build/docker/deploy and deploy cache', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'deploy', 'module', 'foo', '--format', 'json'],
-      {cwd: repoRoot},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'deploy', 'module', 'foo', '--format', 'json'], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.artifactsCopiedToBuild).toBe(1);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'foo.jar'))).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'foo.jar'))).toBe(true);
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'foo.jar')),
+    ).toBe(true);
   }, 20000);
 
   test('deploy theme syncs theme artifacts to build/docker/deploy and deploy cache', async () => {
@@ -103,22 +109,24 @@ describe('deploy integration', () => {
     const parsed = JSON.parse(result.stdout);
     expect(parsed.theme).toBe('ub-theme');
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'ub-theme.war'))).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'ub-theme.war'))).toBe(true);
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'ub-theme.war')),
+    ).toBe(true);
   }, 20000);
 
   test('deploy service runs buildService and restores tracked service.properties', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: true});
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'deploy', 'service', '--format', 'json'],
-      {cwd: repoRoot},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'deploy', 'service', '--format', 'json'], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.restoredTrackedFiles).toBe(true);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe('release.info.version=1\n');
+    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe(
+      'release.info.version=1\n',
+    );
   }, 20000);
 
   test('deploy cache-update refreshes cache artifacts and supports --clean', async () => {
@@ -157,9 +165,15 @@ async function createDeployRepoFixture(options: {withServiceXml: boolean}): Prom
   await fs.ensureDir(path.join(liferayDir, 'modules', 'foo'));
   await fs.ensureDir(path.join(liferayDir, 'themes', 'ub-theme'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env'),
+    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\n',
+  );
   await fs.writeFile(path.join(liferayDir, 'build.gradle'), 'plugins {}\n');
-  await fs.writeFile(path.join(liferayDir, 'configs', 'dockerenv', 'portal-ext.properties'), 'virtual.hosts.valid.hosts=*\n');
+  await fs.writeFile(
+    path.join(liferayDir, 'configs', 'dockerenv', 'portal-ext.properties'),
+    'virtual.hosts.valid.hosts=*\n',
+  );
   await fs.writeFile(path.join(liferayDir, 'modules', 'foo', 'service.properties'), 'release.info.version=1\n');
   if (options.withServiceXml) {
     await fs.writeFile(path.join(liferayDir, 'modules', 'foo', 'service.xml'), '<service-builder />\n');
@@ -196,6 +210,7 @@ exit 0
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot});
+  await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot});
   await runProcess('git', ['add', '-A'], {cwd: repoRoot});
   await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot});
 

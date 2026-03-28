@@ -42,7 +42,9 @@ describe('liferay page-layout diff smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
@@ -72,10 +74,9 @@ describe('liferay page-layout diff smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(
-        ['liferay', 'page-layout', 'diff', '--url', '/web/guest/home', '--file', filePath],
-        {from: 'user'},
-      );
+      await cli.parseAsync(['liferay', 'page-layout', 'diff', '--url', '/web/guest/home', '--file', filePath], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }
@@ -94,7 +95,9 @@ describe('liferay page-layout diff smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
@@ -102,19 +105,30 @@ describe('liferay page-layout diff smoke', () => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20122,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
-        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('groupId=20121') && url.includes('parentLayoutId=0')) {
+        if (
+          url.includes('/api/jsonws/layout/get-layouts?') &&
+          url.includes('groupId=20121') &&
+          url.includes('parentLayoutId=0')
+        ) {
           return new Response(
             '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
             {status: 200},
           );
         }
-        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('groupId=20122') && url.includes('parentLayoutId=0')) {
+        if (
+          url.includes('/api/jsonws/layout/get-layouts?') &&
+          url.includes('groupId=20122') &&
+          url.includes('parentLayoutId=0')
+        ) {
           return new Response(
             '[{"layoutId":21,"plid":2021,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
             {status: 200},
           );
         }
-        if (url.includes('/api/jsonws/layout/get-layouts?') && (url.includes('parentLayoutId=11') || url.includes('parentLayoutId=21'))) {
+        if (
+          url.includes('/api/jsonws/layout/get-layouts?') &&
+          (url.includes('parentLayoutId=11') || url.includes('parentLayoutId=21'))
+        ) {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/sites/20121/site-pages/home?fields=')) {

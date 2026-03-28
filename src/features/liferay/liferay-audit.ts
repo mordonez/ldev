@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/liferay/auth.js';
-import {createLiferayApiClient, type LiferayApiClient} from '../../core/liferay/client.js';
-import {fetchPagedItems, resolveSite} from './liferay-inventory-shared.js';
+import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
+import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
+import {fetchPagedItems, resolveSite} from './inventory/liferay-inventory-shared.js';
 import {performLiferayHealthCheck} from './liferay-health.js';
 
 export type LiferayAuditResult = {
@@ -39,18 +39,14 @@ export async function runLiferayAudit(
   const health = await performLiferayHealthCheck(config, token.accessToken, apiClient);
   const site = await resolveSite(config, siteInput, {apiClient, tokenClient});
   const [structures, templates] = await Promise.all([
-    fetchPagedItems(
-      config,
-      `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`,
-      pageSize,
-      {apiClient, tokenClient},
-    ),
-    fetchPagedItems(
-      config,
-      `/o/headless-delivery/v1.0/sites/${site.id}/content-templates`,
-      pageSize,
-      {apiClient, tokenClient},
-    ),
+    fetchPagedItems(config, `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`, pageSize, {
+      apiClient,
+      tokenClient,
+    }),
+    fetchPagedItems(config, `/o/headless-delivery/v1.0/sites/${site.id}/content-templates`, pageSize, {
+      apiClient,
+      tokenClient,
+    }),
   ]);
 
   return {

@@ -46,7 +46,9 @@ describe('liferay auth smoke', () => {
       vi.fn(async (input: string | URL | Request) => {
         const url = String(input);
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
@@ -72,7 +74,10 @@ describe('liferay auth smoke', () => {
   test('dev-cli liferay auth token --raw works with fake fetch', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200})),
+      vi.fn(
+        async () =>
+          new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200}),
+      ),
     );
 
     const originalCwd = process.cwd();

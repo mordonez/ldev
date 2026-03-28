@@ -35,9 +35,10 @@ export async function runReindexWatch(
 export function formatReindexWatch(result: ReindexWatchResult): string {
   return result.snapshots
     .map((snapshot, index) => {
-      const body = snapshot.rows.length === 0
-        ? `Sin indices journal/liferay visibles en ${snapshot.esUrl}`
-        : snapshot.rows.map((row) => `${row.health} ${row.status} ${row.index} ${row.docsCount}`).join('\n');
+      const body =
+        snapshot.rows.length === 0
+          ? `Sin indices journal/liferay visibles en ${snapshot.esUrl}`
+          : snapshot.rows.map((row) => `${row.health} ${row.status} ${row.index} ${row.docsCount}`).join('\n');
       return `[${index + 1}/${result.iterations}] ${body}`;
     })
     .join('\n');

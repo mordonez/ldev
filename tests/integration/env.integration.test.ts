@@ -32,11 +32,10 @@ describe('env integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'env', 'status', '--format', 'json'],
-      {cwd: repoRoot, env},
-    );
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'env', 'status', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -44,7 +43,10 @@ describe('env integration', () => {
     expect(parsed.liferay.state).toBe('running');
     expect(parsed.liferay.health).toBe('healthy');
     expect(parsed.services).toEqual(
-      expect.arrayContaining([expect.objectContaining({service: 'liferay'}), expect.objectContaining({service: 'postgres'})]),
+      expect.arrayContaining([
+        expect.objectContaining({service: 'liferay'}),
+        expect.objectContaining({service: 'postgres'}),
+      ]),
     );
   }, 20000);
 
@@ -68,12 +70,18 @@ describe('env integration', () => {
     const parsed = JSON.parse(startResult.stdout);
     expect(parsed.portalUrl).toBe('http://localhost:8080');
     expect(parsed.waitedForHealth).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'))).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'),
+      ),
+    ).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib'))).toBe(true);
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
+      ]),
+    );
   }, 15000);
 
   test('env start respects DOCLIB_PATH and does not remount doclib to the default bind path', async () => {
@@ -85,7 +93,9 @@ describe('env integration', () => {
     await fs.ensureDir(customDoclibPath);
     await fs.writeFile(
       path.join(repoRoot, 'docker', '.env'),
-      'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nDOCLIB_PATH=' + customDoclibPath + '\nENV_DATA_ROOT=./data/default\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
+      'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nDOCLIB_PATH=' +
+        customDoclibPath +
+        '\nENV_DATA_ROOT=./data/default\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
     );
 
     const startResult = await runProcess(
@@ -96,12 +106,16 @@ describe('env integration', () => {
 
     expect(startResult.exitCode).toBe(0);
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      `volume create --driver local --opt type=none --opt device=${customDoclibPath} --opt o=bind demo-doclib`,
-    ]));
-    expect(calls).not.toEqual(expect.arrayContaining([
-      `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        `volume create --driver local --opt type=none --opt device=${customDoclibPath} --opt o=bind demo-doclib`,
+      ]),
+    );
+    expect(calls).not.toEqual(
+      expect.arrayContaining([
+        `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
+      ]),
+    );
   }, 15000);
 
   test('env setup warms deploy cache on first run when workspace artifacts are not cached yet', async () => {
@@ -116,8 +130,12 @@ describe('env integration', () => {
 
     expect(setupResult.ok).toBe(true);
     expect(setupResult.warmedDeployCache).toBe(true);
-    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar'))).toBe(true);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8')).toContain('dockerDeploy -Pliferay.workspace.environment=dockerenv');
+    expect(
+      await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
+    ).toBe(true);
+    expect(await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8')).toContain(
+      'dockerDeploy -Pliferay.workspace.environment=dockerenv',
+    );
   });
 
   test('env start restores build/docker/deploy artifacts from deploy cache when build deploy is empty', async () => {
@@ -140,7 +158,9 @@ describe('env integration', () => {
 
     expect(startResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(buildDeployDir, 'cached-module.jar'), 'utf8')).toBe('cached\n');
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', '.prepare-commit'), 'utf8')).toBe('abc123\n');
+    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', '.prepare-commit'), 'utf8')).toBe(
+      'abc123\n',
+    );
   }, 15000);
 
   test('env start can copy a local activation key into the project before boot', async () => {
@@ -157,7 +177,18 @@ describe('env integration', () => {
 
     const startResult = await runProcess(
       'npx',
-      ['tsx', CLI_ENTRY, 'env', 'start', '--activation-key-file', activationKeySource, '--format', 'json', '--timeout', '5'],
+      [
+        'tsx',
+        CLI_ENTRY,
+        'env',
+        'start',
+        '--activation-key-file',
+        activationKeySource,
+        '--format',
+        'json',
+        '--timeout',
+        '5',
+      ],
       {cwd: repoRoot, env: processEnv},
     );
 
@@ -176,10 +207,22 @@ describe('env integration', () => {
     await fs.remove(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));
     await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'common', 'osgi', 'configs'));
     await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'local', 'osgi', 'modules'));
-    await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'common', 'portal-ext.properties'), 'include-and-override=portal-developer.properties\n');
-    await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'common', 'osgi', 'configs', 'common.config'), 'common=true\n');
-    await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'local', 'portal-setup-wizard.properties'), 'setup.wizard.enabled=false\n');
-    await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'local', 'osgi', 'modules', 'activation-key-sample.xml'), '<xml>license</xml>\n');
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'configs', 'common', 'portal-ext.properties'),
+      'include-and-override=portal-developer.properties\n',
+    );
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'configs', 'common', 'osgi', 'configs', 'common.config'),
+      'common=true\n',
+    );
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'configs', 'local', 'portal-setup-wizard.properties'),
+      'setup.wizard.enabled=false\n',
+    );
+    await fs.writeFile(
+      path.join(repoRoot, 'liferay', 'configs', 'local', 'osgi', 'modules', 'activation-key-sample.xml'),
+      '<xml>license</xml>\n',
+    );
 
     const startResult = await runProcess(
       'npx',
@@ -188,18 +231,40 @@ describe('env integration', () => {
     );
 
     expect(startResult.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'), 'utf8')).toBe(
-      'include-and-override=portal-developer.properties\n',
-    );
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-setup-wizard.properties'), 'utf8')).toBe(
-      'setup.wizard.enabled=false\n',
-    );
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'common.config'), 'utf8')).toBe(
-      'common=true\n',
-    );
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'modules', 'activation-key-sample.xml'), 'utf8')).toBe(
-      '<xml>license</xml>\n',
-    );
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties'),
+        'utf8',
+      ),
+    ).toBe('include-and-override=portal-developer.properties\n');
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-setup-wizard.properties'),
+        'utf8',
+      ),
+    ).toBe('setup.wizard.enabled=false\n');
+    expect(
+      await fs.readFile(
+        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'common.config'),
+        'utf8',
+      ),
+    ).toBe('common=true\n');
+    expect(
+      await fs.readFile(
+        path.join(
+          repoRoot,
+          'liferay',
+          'build',
+          'docker',
+          'configs',
+          'dockerenv',
+          'osgi',
+          'modules',
+          'activation-key-sample.xml',
+        ),
+        'utf8',
+      ),
+    ).toBe('<xml>license</xml>\n');
   }, 15000);
 
   test('env start preserves generated configs and overlays configs/dockerenv when dockerenv exists', async () => {
@@ -209,7 +274,17 @@ describe('env integration', () => {
 
     await fs.ensureDir(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs'));
     await fs.writeFile(
-      path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config'),
+      path.join(
+        repoRoot,
+        'liferay',
+        'build',
+        'docker',
+        'configs',
+        'dockerenv',
+        'osgi',
+        'configs',
+        'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config',
+      ),
       'restrictedVariables=["httpUtilUnsafe"]\n',
     );
     await fs.writeFile(
@@ -226,7 +301,17 @@ describe('env integration', () => {
     expect(startResult.exitCode).toBe(0);
     expect(
       await fs.readFile(
-        path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', 'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config'),
+        path.join(
+          repoRoot,
+          'liferay',
+          'build',
+          'docker',
+          'configs',
+          'dockerenv',
+          'osgi',
+          'configs',
+          'com.liferay.portal.template.freemarker.configuration.FreeMarkerEngineConfiguration.config',
+        ),
         'utf8',
       ),
     ).toBe('restrictedVariables=["httpUtilUnsafe"]\n');
@@ -286,11 +371,20 @@ async function createEnvRepoFixture(): Promise<string> {
   await fs.ensureDir(path.join(repoRoot, 'docker'));
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env.example'), 'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env.example'),
+    'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n',
+  );
+  await fs.writeFile(
+    path.join(repoRoot, 'docker', '.env'),
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
+  );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'), 'virtual.hosts.valid.hosts=*\n');
+  await fs.writeFile(
+    path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
+    'virtual.hosts.valid.hosts=*\n',
+  );
   return repoRoot;
 }
 
@@ -318,6 +412,7 @@ exit 0
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot});
+  await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot});
   await runProcess('git', ['add', '-A'], {cwd: repoRoot});
   await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot});
 
