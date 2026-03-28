@@ -12,7 +12,8 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-sync-adt.js', () =
   runLiferayResourceSyncAdt: syncAdtMock,
 }));
 
-const {runLiferayResourceImportAdts} = await import('../../src/features/liferay/resource/liferay-resource-import-adts.js');
+const {runLiferayResourceImportAdts} =
+  await import('../../src/features/liferay/resource/liferay-resource-import-adts.js');
 
 const CONFIG = {
   cwd: '/tmp/repo',

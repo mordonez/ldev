@@ -1,9 +1,18 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
-import {formatLiferayInventoryPage, runLiferayInventoryPage} from '../../features/liferay/inventory/liferay-inventory-page.js';
-import {formatLiferayInventoryPages, runLiferayInventoryPages} from '../../features/liferay/inventory/liferay-inventory-pages.js';
-import {formatLiferayInventorySites, runLiferayInventorySites} from '../../features/liferay/inventory/liferay-inventory-sites.js';
+import {
+  formatLiferayInventoryPage,
+  runLiferayInventoryPage,
+} from '../../features/liferay/inventory/liferay-inventory-page.js';
+import {
+  formatLiferayInventoryPages,
+  runLiferayInventoryPages,
+} from '../../features/liferay/inventory/liferay-inventory-pages.js';
+import {
+  formatLiferayInventorySites,
+  runLiferayInventorySites,
+} from '../../features/liferay/inventory/liferay-inventory-sites.js';
 import {
   formatLiferayInventoryStructures,
   runLiferayInventoryStructures,

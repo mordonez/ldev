@@ -130,10 +130,7 @@ function findPackageRoot(fromFile: string): string {
   let current = path.dirname(fromFile);
 
   while (true) {
-    if (
-      fs.existsSync(path.join(current, 'package.json')) &&
-      fs.existsSync(path.join(current, 'templates'))
-    ) {
+    if (fs.existsSync(path.join(current, 'package.json')) && fs.existsSync(path.join(current, 'templates'))) {
       return current;
     }
 

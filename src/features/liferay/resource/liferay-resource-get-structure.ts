@@ -3,7 +3,12 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
-import {authedGet, expectJsonSuccess, fetchAccessToken, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
+import {
+  authedGet,
+  expectJsonSuccess,
+  fetchAccessToken,
+  normalizeLocalizedName,
+} from '../inventory/liferay-inventory-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {

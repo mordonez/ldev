@@ -10,7 +10,12 @@ import {
   resolveSite,
   type ResolvedSite,
 } from './liferay-inventory-shared.js';
-import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent, type Layout} from '../page-layout/liferay-layout-shared.js';
+import {
+  buildLayoutDetails,
+  buildPageUrl,
+  fetchLayoutsByParent,
+  type Layout,
+} from '../page-layout/liferay-layout-shared.js';
 
 type InventoryPageDependencies = {
   apiClient?: LiferayApiClient;
