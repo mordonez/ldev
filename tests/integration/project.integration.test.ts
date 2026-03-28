@@ -147,50 +147,49 @@ async function createProjectRepoFixture(): Promise<string> {
   );
   await fs.writeFile(path.join(repoRoot, 'templates', '.gitignore'), 'node_modules/\n');
 
-  await fs.ensureDir(path.join(repoRoot, 'docker'));
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env.example'), 'COMPOSE_PROJECT_NAME=test\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=ignored\n');
-  await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
-  await fs.ensureDir(path.join(repoRoot, 'docker', 'elasticsearch'));
-  await fs.writeFile(path.join(repoRoot, 'docker', 'elasticsearch', 'Dockerfile'), 'FROM elasticsearch:7.17.26\n');
-  await fs.ensureDir(path.join(repoRoot, 'docker', 'liferay-scripts', 'pre-startup'));
+  const tpl = path.join(repoRoot, 'templates');
+
+  await fs.ensureDir(path.join(tpl, 'docker'));
+  await fs.writeFile(path.join(tpl, 'docker', '.env.example'), 'COMPOSE_PROJECT_NAME=test\n');
+  await fs.writeFile(path.join(tpl, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=ignored\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.yml'), 'services:\n');
+  await fs.ensureDir(path.join(tpl, 'docker', 'elasticsearch'));
+  await fs.writeFile(path.join(tpl, 'docker', 'elasticsearch', 'Dockerfile'), 'FROM elasticsearch:7.17.26\n');
+  await fs.ensureDir(path.join(tpl, 'docker', 'liferay-scripts', 'pre-startup'));
   await fs.writeFile(
-    path.join(repoRoot, 'docker', 'liferay-scripts', 'pre-startup', 'configure-session-cookie.sh'),
+    path.join(tpl, 'docker', 'liferay-scripts', 'pre-startup', 'configure-session-cookie.sh'),
     '#!/bin/bash\n',
   );
   await fs.writeFile(
-    path.join(repoRoot, 'docker', 'liferay-scripts', 'pre-startup', 'install-activation-key.sh'),
+    path.join(tpl, 'docker', 'liferay-scripts', 'pre-startup', 'install-activation-key.sh'),
     '#!/bin/bash\n',
   );
 
-  await fs.ensureDir(path.join(repoRoot, 'liferay', 'modules'));
-  await fs.writeFile(path.join(repoRoot, 'liferay', '.gitignore'), '**/build\n');
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
+  await fs.ensureDir(path.join(tpl, 'liferay', 'modules'));
+  await fs.writeFile(path.join(tpl, 'liferay', '.gitignore'), '**/build\n');
+  await fs.writeFile(path.join(tpl, 'liferay', 'build.gradle'), 'plugins {}\n');
+  await fs.writeFile(path.join(tpl, 'liferay', 'gradle.properties'), 'liferay.workspace.product=dxp-2025.q1.0-lts\n');
+  await fs.writeFile(path.join(tpl, 'liferay', 'settings.gradle'), 'rootProject.name = "sample"\n');
+  await fs.writeFile(path.join(tpl, 'liferay', 'gradlew'), '#!/bin/sh\n');
+  await fs.writeFile(path.join(tpl, 'liferay', 'gradlew.bat'), '@echo off\r\n');
+  await fs.ensureDir(path.join(tpl, 'liferay', 'gradle', 'wrapper'));
+  await fs.writeFile(path.join(tpl, 'liferay', 'gradle', 'wrapper', 'gradle-wrapper.jar'), 'jar');
   await fs.writeFile(
-    path.join(repoRoot, 'liferay', 'gradle.properties'),
-    'liferay.workspace.product=dxp-2025.q1.0-lts\n',
-  );
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'settings.gradle'), 'rootProject.name = "sample"\n');
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'gradlew'), '#!/bin/sh\n');
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'gradlew.bat'), '@echo off\r\n');
-  await fs.ensureDir(path.join(repoRoot, 'liferay', 'gradle', 'wrapper'));
-  await fs.writeFile(path.join(repoRoot, 'liferay', 'gradle', 'wrapper', 'gradle-wrapper.jar'), 'jar');
-  await fs.writeFile(
-    path.join(repoRoot, 'liferay', 'gradle', 'wrapper', 'gradle-wrapper.properties'),
+    path.join(tpl, 'liferay', 'gradle', 'wrapper', 'gradle-wrapper.properties'),
     'distributionUrl=https://example.invalid/gradle.zip\n',
   );
-  await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'osgi', 'configs'));
+  await fs.ensureDir(path.join(tpl, 'liferay', 'configs', 'dockerenv', 'osgi', 'configs'));
   await fs.writeFile(
-    path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
+    path.join(tpl, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
     'include-and-override=portal-developer.properties\n',
   );
   await fs.writeFile(
-    path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-setup-wizard.properties'),
+    path.join(tpl, 'liferay', 'configs', 'dockerenv', 'portal-setup-wizard.properties'),
     'setup.wizard.enabled=false\n',
   );
   await fs.writeFile(
     path.join(
-      repoRoot,
+      tpl,
       'liferay',
       'configs',
       'dockerenv',
@@ -201,12 +200,12 @@ async function createProjectRepoFixture(): Promise<string> {
     'operationMode="REMOTE"\n',
   );
 
-  await fs.ensureDir(path.join(repoRoot, 'modules'));
-  await fs.writeFile(path.join(repoRoot, 'modules', 'README.md'), '# bootstrap\n');
-  await fs.writeFile(path.join(repoRoot, 'modules', 'bnd.bnd'), 'Bundle-Name: test\n');
-  await fs.writeFile(path.join(repoRoot, 'modules', 'build.gradle'), 'dependencies {}\n');
-  await fs.ensureDir(path.join(repoRoot, 'modules', 'src', 'main', 'java'));
-  await fs.writeFile(path.join(repoRoot, 'modules', 'src', 'main', 'java', 'Test.java'), 'class Test {}\n');
+  await fs.ensureDir(path.join(tpl, 'modules'));
+  await fs.writeFile(path.join(tpl, 'modules', 'README.md'), '# bootstrap\n');
+  await fs.writeFile(path.join(tpl, 'modules', 'bnd.bnd'), 'Bundle-Name: test\n');
+  await fs.writeFile(path.join(tpl, 'modules', 'build.gradle'), 'dependencies {}\n');
+  await fs.ensureDir(path.join(tpl, 'modules', 'src', 'main', 'java'));
+  await fs.writeFile(path.join(tpl, 'modules', 'src', 'main', 'java', 'Test.java'), 'class Test {}\n');
 
   return repoRoot;
 }
