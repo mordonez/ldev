@@ -2,6 +2,10 @@
 import {normalizeCliError, resolveOutputFormatFromArgv, toCliErrorPayload} from './cli/errors.js';
 import {createCli} from './cli/create-cli.js';
 
+export type {LdevPlugin} from './cli/plugin.js';
+export {createCli} from './cli/create-cli.js';
+export {BUILTIN_PLUGINS} from './cli/builtin-plugins.js';
+
 async function main(): Promise<void> {
   const cli = createCli();
   await cli.parseAsync(process.argv);

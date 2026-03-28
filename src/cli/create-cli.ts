@@ -1,8 +1,10 @@
 import {Command} from 'commander';
 
-import {ROOT_COMMANDS, ROOT_HELP_SECTIONS} from './command-registry.js';
+import type {LdevPlugin} from './plugin.js';
+import {BUILTIN_PLUGINS} from './builtin-plugins.js';
+import {ROOT_HELP_SECTIONS} from './command-registry.js';
 
-export function createCli(): Command {
+export function createCli(plugins: LdevPlugin[] = BUILTIN_PLUGINS): Command {
   const program = new Command();
 
   program
@@ -27,9 +29,8 @@ Examples:
 `,
     );
 
-  for (const entry of ROOT_COMMANDS) {
-    const command = entry.factory().helpGroup(entry.group);
-    program.addCommand(command, entry.hidden ? {hidden: true} : undefined);
+  for (const plugin of plugins) {
+    plugin.register(program);
   }
 
   return program;
