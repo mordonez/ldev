@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {runProcess} from '../../core/platform/process.js';
 import {resolveEnvContext} from '../env/env-files.js';
 
@@ -110,10 +110,9 @@ export async function shouldRunBuildService(modulesDir: string): Promise<boolean
   return !(await hasMatchingFile(modulesDir, (entryPath) => {
     const normalized = entryPath.split(path.sep);
     const size = normalized.length;
-    return size >= 3
-      && normalized[size - 3] === 'build'
-      && normalized[size - 2] === 'libs'
-      && entryPath.endsWith('.jar');
+    return (
+      size >= 3 && normalized[size - 3] === 'build' && normalized[size - 2] === 'libs' && entryPath.endsWith('.jar')
+    );
   }));
 }
 

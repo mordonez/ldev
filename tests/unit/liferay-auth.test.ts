@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest';
 
-import {createOAuthTokenClient} from '../../src/core/liferay/auth.js';
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createOAuthTokenClient} from '../../src/core/http/auth.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatLiferayAuthToken} from '../../src/features/liferay/liferay-auth.js';
 
 const SETTINGS = {

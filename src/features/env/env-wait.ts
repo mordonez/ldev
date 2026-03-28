@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 
 import {collectEnvStatus, waitForServiceHealthy, type EnvStatusReport} from './env-health.js';
 import {resolveEnvContext} from './env-files.js';

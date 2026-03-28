@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {
   collectModuleArtifacts,
@@ -70,7 +70,10 @@ export function formatDeployModule(result: DeployModuleResult): string {
   ].join('\n');
 }
 
-async function runGradleTasksForModule(context: ReturnType<typeof resolveDeployContext>, module: string): Promise<void> {
+async function runGradleTasksForModule(
+  context: ReturnType<typeof resolveDeployContext>,
+  module: string,
+): Promise<void> {
   const themeDir = path.join(context.liferayDir, 'themes', module);
   if (await fs.pathExists(themeDir)) {
     await runGradleTask(context, [`:themes:${module}:dockerDeploy`, '-q']);
@@ -79,9 +82,15 @@ async function runGradleTasksForModule(context: ReturnType<typeof resolveDeployC
 
   const apiDir = path.join(context.liferayDir, 'modules', module, `${module}-api`);
   const serviceDir = path.join(context.liferayDir, 'modules', module, `${module}-service`);
-  if (await fs.pathExists(apiDir) && await fs.pathExists(serviceDir)) {
-    await runGradleTask(context, [`:modules:${module}:${module}-api:dockerDeploy`, '-Pliferay.workspace.environment=dockerenv']);
-    await runGradleTask(context, [`:modules:${module}:${module}-service:dockerDeploy`, '-Pliferay.workspace.environment=dockerenv']);
+  if ((await fs.pathExists(apiDir)) && (await fs.pathExists(serviceDir))) {
+    await runGradleTask(context, [
+      `:modules:${module}:${module}-api:dockerDeploy`,
+      '-Pliferay.workspace.environment=dockerenv',
+    ]);
+    await runGradleTask(context, [
+      `:modules:${module}:${module}-service:dockerDeploy`,
+      '-Pliferay.workspace.environment=dockerenv',
+    ]);
     return;
   }
 

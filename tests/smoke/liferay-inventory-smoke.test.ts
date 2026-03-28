@@ -1,6 +1,3 @@
-import fs from 'fs-extra';
-import path from 'node:path';
-
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
@@ -27,7 +24,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.endsWith('/api/jsonws/company/get-companies')) {
@@ -39,7 +38,9 @@ describe('liferay inventory smoke', () => {
         }
 
         if (url.includes('/api/jsonws/group/search')) {
-          return new Response('[{"groupId":101,"friendlyURL":"/guest","nameCurrentValue":"Guest","site":true}]', {status: 200});
+          return new Response('[{"groupId":101,"friendlyURL":"/guest","nameCurrentValue":"Guest","site":true}]', {
+            status: 200,
+          });
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -70,7 +71,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/guest')) {
@@ -125,7 +128,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/global')) {
@@ -133,7 +138,10 @@ describe('liferay inventory smoke', () => {
         }
 
         if (url.includes('/data-definitions/by-content-type/journal?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":301,"dataDefinitionKey":"BASIC","name":{"en_US":"Basic"}}],"lastPage":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC","name":{"en_US":"Basic"}}],"lastPage":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -162,7 +170,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/o/headless-admin-user/v1.0/sites/20121')) {
@@ -170,7 +180,10 @@ describe('liferay inventory smoke', () => {
         }
 
         if (url.includes('/sites/20121/content-templates?page=1&pageSize=200')) {
-          return new Response('{"items":[{"id":"40801","name":"News Template","contentStructureId":301}],"lastPage":1}', {status: 200});
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301}],"lastPage":1}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -199,7 +212,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/guest')) {
@@ -218,47 +233,59 @@ describe('liferay inventory smoke', () => {
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
-          return new Response(JSON.stringify({
-            pageDefinition: {
-              pageElement: {
-                type: 'Root',
-                pageElements: [
-                  {
-                    type: 'Widget',
-                    definition: {
-                      widgetInstance: {
-                        widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+          return new Response(
+            JSON.stringify({
+              pageDefinition: {
+                pageElement: {
+                  type: 'Root',
+                  pageElements: [
+                    {
+                      type: 'Widget',
+                      definition: {
+                        widgetInstance: {
+                          widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+                        },
                       },
                     },
-                  },
-                ],
+                  ],
+                },
               },
-            },
-          }), {status: 200});
+            }),
+            {status: 200},
+          );
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response(JSON.stringify([
-            {
-              portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
-              editableValues: JSON.stringify({
-                journal_content: {
-                  portletPreferencesMap: {
-                    articleId: ['ART-001'],
-                    groupId: ['20121'],
+          return new Response(
+            JSON.stringify([
+              {
+                portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
+                editableValues: JSON.stringify({
+                  journal_content: {
+                    portletPreferencesMap: {
+                      articleId: ['ART-001'],
+                      groupId: ['20121'],
+                    },
                   },
-                },
-              }),
-            },
-          ]), {status: 200});
+                }),
+              },
+            ]),
+            {status: 200},
+          );
         }
 
         if (url.includes('/journal.journalarticle/get-latest-article')) {
-          return new Response('{"id":41001,"articleId":"ART-001","titleCurrentValue":"Home article","ddmStructureKey":"BASIC"}', {status: 200});
+          return new Response(
+            '{"id":41001,"articleId":"ART-001","titleCurrentValue":"Home article","ddmStructureKey":"BASIC"}',
+            {status: 200},
+          );
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response('{"id":41001,"contentStructureId":301,"contentFields":[{"label":"Headline","name":"headline","dataType":"string","contentFieldValue":{"data":"Hello"}}]}', {status: 200});
+          return new Response(
+            '{"id":41001,"contentStructureId":301,"contentFields":[{"label":"Headline","name":"headline","dataType":"string","contentFieldValue":{"data":"Hello"}}]}',
+            {status: 200},
+          );
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
@@ -292,7 +319,9 @@ describe('liferay inventory smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/guest')) {
@@ -307,7 +336,10 @@ describe('liferay inventory smoke', () => {
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response('{"id":41001,"contentStructureId":301,"contentFields":[{"label":"Headline","name":"headline","dataType":"string","contentFieldValue":{"data":"News title"}}]}', {status: 200});
+          return new Response(
+            '{"id":41001,"contentStructureId":301,"contentFields":[{"label":"Headline","name":"headline","dataType":"string","contentFieldValue":{"data":"News title"}}]}',
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);

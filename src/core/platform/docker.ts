@@ -15,7 +15,11 @@ export async function runDocker(args: string[], options?: RunProcessOptions): Pr
   return runProcess('docker', args, options);
 }
 
-export async function runDockerCompose(cwd: string, args: string[], options?: RunProcessOptions): Promise<RunProcessResult> {
+export async function runDockerCompose(
+  cwd: string,
+  args: string[],
+  options?: RunProcessOptions,
+): Promise<RunProcessResult> {
   return runProcess('docker', ['compose', ...args], {
     ...options,
     cwd,

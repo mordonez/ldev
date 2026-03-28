@@ -6,7 +6,7 @@ import {runLiferayInventoryTemplates} from './liferay-inventory-templates.js';
 import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js';
 import {fetchStructureByKey} from './liferay-resource-sync-structure-shared.js';
 import {resolveTemplateFile, resolveSiteToken} from './liferay-resource-paths.js';
-import {fetchStructureTemplateClassIds, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
+import {fetchStructureTemplateClassIds, resolveResourceSite} from './liferay-resource-shared.js';
 import {
   authedGetJson,
   authedPostForm,
@@ -61,14 +61,15 @@ export async function runLiferayResourceSyncTemplate(
 
   const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
   const directDdmTemplate =
-    await tryGetDdmTemplateByKey(config, site.id, classNameId, options.key, dependencies) ??
+    (await tryGetDdmTemplateByKey(config, site.id, classNameId, options.key, dependencies)) ??
     (inventoryExisting
       ? await tryGetDdmTemplateByKey(config, site.id, classNameId, inventoryExisting.id, dependencies)
       : null);
 
-  const existing = directDdmTemplate && (structureIdFilter === '' || String(directDdmTemplate.classPK ?? '') === structureIdFilter)
-    ? directDdmTemplate
-    : null;
+  const existing =
+    directDdmTemplate && (structureIdFilter === '' || String(directDdmTemplate.classPK ?? '') === structureIdFilter)
+      ? directDdmTemplate
+      : null;
 
   if (!existing && !inventoryExisting) {
     if (!options.createMissing) {
@@ -93,19 +94,24 @@ export async function runLiferayResourceSyncTemplate(
       });
     }
 
-    const created = await authedPostForm<Record<string, unknown>>(config, '/api/jsonws/ddm.ddmtemplate/add-template', {
-      externalReferenceCode: options.key,
-      groupId: String(site.id),
-      classNameId: String(classNameId),
-      classPK: structureIdFilter,
-      resourceClassNameId: String(resourceClassNameId),
-      nameMap: localizedMap(options.key),
-      descriptionMap: localizedMap(''),
-      type: 'display',
-      mode: '',
-      language: 'ftl',
-      script,
-    }, dependencies);
+    const created = await authedPostForm<Record<string, unknown>>(
+      config,
+      '/api/jsonws/ddm.ddmtemplate/add-template',
+      {
+        externalReferenceCode: options.key,
+        groupId: String(site.id),
+        classNameId: String(classNameId),
+        classPK: structureIdFilter,
+        resourceClassNameId: String(resourceClassNameId),
+        nameMap: localizedMap(options.key),
+        descriptionMap: localizedMap(''),
+        type: 'display',
+        mode: '',
+        language: 'ftl',
+        script,
+      },
+      dependencies,
+    );
     const success = await expectJsonSuccess(created, 'template-create');
     const id = String(success.data?.templateKey ?? success.data?.templateId ?? '');
 
@@ -127,23 +133,32 @@ export async function runLiferayResourceSyncTemplate(
       const templateId = ensureString(existing.templateId, 'templateId');
       const classPk = String(existing.classPK ?? '0');
       await expectJsonSuccess(
-        await authedPostForm(config, '/api/jsonws/ddm.ddmtemplate/update-template', {
-          templateId,
-          classPK: classPk,
-          nameMap: localizedMap(options.key),
-          descriptionMap: localizedMap(''),
-          type: 'display',
-          mode: '',
-          language: 'ftl',
-          script,
-          cacheable: 'false',
-        }, dependencies),
+        await authedPostForm(
+          config,
+          '/api/jsonws/ddm.ddmtemplate/update-template',
+          {
+            templateId,
+            classPK: classPk,
+            nameMap: localizedMap(options.key),
+            descriptionMap: localizedMap(''),
+            type: 'display',
+            mode: '',
+            language: 'ftl',
+            script,
+            cacheable: 'false',
+          },
+          dependencies,
+        ),
         'template-update',
       );
     }
   }
 
-  const runtime = await runLiferayResourceGetTemplate(config, {site: site.friendlyUrlPath, id: existingKey || options.key}, dependencies);
+  const runtime = await runLiferayResourceGetTemplate(
+    config,
+    {site: site.friendlyUrlPath, id: existingKey || options.key},
+    dependencies,
+  );
   if (runtime.templateScript !== '' && sha256(runtime.templateScript) !== localSha) {
     throw new CliError(`Hash mismatch template '${options.key}'`, {code: 'LIFERAY_RESOURCE_ERROR'});
   }
@@ -167,7 +182,8 @@ export function formatLiferayResourceSyncTemplate(result: LiferayResourceSyncTem
   ].join('\n');
 }
 
-function matchesTemplate(item: Record<string, unknown>, identifier: string): boolean {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _matchesTemplate(item: Record<string, unknown>, identifier: string): boolean {
   return [
     String(item.templateId ?? ''),
     String(item.templateKey ?? ''),
@@ -199,7 +215,10 @@ async function tryGetDdmTemplateByKey(
   }
 }
 
-async function expectJsonSuccess<T>(response: {ok: boolean; status: number; data: T | null}, label: string): Promise<{ok: boolean; status: number; data: T | null}> {
+async function expectJsonSuccess<T>(
+  response: {ok: boolean; status: number; data: T | null},
+  label: string,
+): Promise<{ok: boolean; status: number; data: T | null}> {
   if (response.ok) {
     return response;
   }

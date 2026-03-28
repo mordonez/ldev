@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   collectPageLayoutDiffs,
   formatLiferayPageLayoutDiff,
@@ -121,10 +121,7 @@ describe('liferay page-layout diff', () => {
         return new Response('[]', {status: 200});
       }
       if (url.includes('/site-pages/home?fields=')) {
-        return new Response(
-          '{"id":5001,"pageDefinition":{"widgets":[{"id":"w2"}]}}',
-          {status: 200},
-        );
+        return new Response('{"id":5001,"pageDefinition":{"widgets":[{"id":"w2"}]}}', {status: 200});
       }
       if (url.endsWith('/site-pages/home/experiences')) {
         return new Response('{"items":[]}', {status: 200});
@@ -170,7 +167,10 @@ describe('liferay page-layout diff', () => {
           {status: 200},
         );
       }
-      if (url.includes('/api/jsonws/layout/get-layouts?') && (url.includes('parentLayoutId=11') || url.includes('parentLayoutId=21'))) {
+      if (
+        url.includes('/api/jsonws/layout/get-layouts?') &&
+        (url.includes('parentLayoutId=11') || url.includes('parentLayoutId=21'))
+      ) {
         return new Response('[]', {status: 200});
       }
       if (url.includes('/sites/20121/site-pages/home?fields=')) {

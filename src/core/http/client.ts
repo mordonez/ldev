@@ -49,13 +49,19 @@ export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAtte
 
   return {
     async get<T>(baseUrl: string, path: string, requestOptions?: HttpRequestOptions) {
-      return sendWithRetry<T>(fetchImpl, maxAttempts, `${baseUrl}${path}`, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          ...requestOptions?.headers,
+      return sendWithRetry<T>(
+        fetchImpl,
+        maxAttempts,
+        `${baseUrl}${path}`,
+        {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            ...requestOptions?.headers,
+          },
         },
-      }, requestOptions?.timeoutSeconds ?? 30);
+        requestOptions?.timeoutSeconds ?? 30,
+      );
     },
     async postForm<T>(
       baseUrl: string,
@@ -81,12 +87,7 @@ export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAtte
         requestOptions?.timeoutSeconds ?? 30,
       );
     },
-    async postJson<T>(
-      baseUrl: string,
-      path: string,
-      payload: unknown,
-      requestOptions?: HttpRequestOptions,
-    ) {
+    async postJson<T>(baseUrl: string, path: string, payload: unknown, requestOptions?: HttpRequestOptions) {
       return sendWithRetry<T>(
         fetchImpl,
         maxAttempts,
@@ -103,12 +104,7 @@ export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAtte
         requestOptions?.timeoutSeconds ?? 30,
       );
     },
-    async postMultipart<T>(
-      baseUrl: string,
-      path: string,
-      form: FormData,
-      requestOptions?: HttpRequestOptions,
-    ) {
+    async postMultipart<T>(baseUrl: string, path: string, form: FormData, requestOptions?: HttpRequestOptions) {
       return sendWithRetry<T>(
         fetchImpl,
         maxAttempts,
@@ -124,12 +120,7 @@ export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAtte
         requestOptions?.timeoutSeconds ?? 30,
       );
     },
-    async putJson<T>(
-      baseUrl: string,
-      path: string,
-      payload: unknown,
-      requestOptions?: HttpRequestOptions,
-    ) {
+    async putJson<T>(baseUrl: string, path: string, payload: unknown, requestOptions?: HttpRequestOptions) {
       return sendWithRetry<T>(
         fetchImpl,
         maxAttempts,

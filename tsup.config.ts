@@ -8,7 +8,7 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   splitting: false,
-  dts: false,
+  dts: true,
   shims: false,
   outDir: 'dist',
 });

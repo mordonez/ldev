@@ -10,10 +10,7 @@ export type DbFilesDetectResult = {
   detectedPath: string;
 };
 
-export async function runDbFilesDetect(
-  config: AppConfig,
-  options?: {baseDir?: string},
-): Promise<DbFilesDetectResult> {
+export async function runDbFilesDetect(config: AppConfig, options?: {baseDir?: string}): Promise<DbFilesDetectResult> {
   if (!config.files.dockerEnv) {
     throw new CliError('db files-detect requiere un docker/.env resoluble.', {
       code: 'DB_REPO_NOT_FOUND',

@@ -16,7 +16,11 @@ describe('osgi integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'status', 'com.test.bundle', '--format', 'json'], {cwd: repoRoot, env});
+    const result = await runProcess(
+      'npx',
+      ['tsx', CLI_ENTRY, 'osgi', 'status', 'com.test.bundle', '--format', 'json'],
+      {cwd: repoRoot, env},
+    );
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -28,7 +32,10 @@ describe('osgi integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'diag', 'com.test.bundle', '--format', 'json'], {cwd: repoRoot, env});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'diag', 'com.test.bundle', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -41,14 +48,23 @@ describe('osgi integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'thread-dump', '--count', '3', '--interval', '2'], {cwd: repoRoot, env})).exitCode).toBe(0);
+    expect(
+      (
+        await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'thread-dump', '--count', '3', '--interval', '2'], {
+          cwd: repoRoot,
+          env,
+        })
+      ).exitCode,
+    ).toBe(0);
     expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'heap-dump'], {cwd: repoRoot, env})).exitCode).toBe(0);
 
     const calls = await readFakeDockerCalls(fakeBinDir);
-    expect(calls).toEqual(expect.arrayContaining([
-      'compose exec liferay generate_thread_dump.sh -d /opt/liferay/dumps -n 3 -s 2',
-      'compose exec liferay generate_heap_dump.sh -d /opt/liferay/dumps',
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        'compose exec liferay generate_thread_dump.sh -d /opt/liferay/dumps -n 3 -s 2',
+        'compose exec liferay generate_heap_dump.sh -d /opt/liferay/dumps',
+      ]),
+    );
   }, 20000);
 
   test('osgi liferaycli-creds returns OAuth credentials from postgres', async () => {
@@ -56,7 +72,10 @@ describe('osgi integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'liferaycli-creds', '--format', 'json'], {cwd: repoRoot, env});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'osgi', 'liferaycli-creds', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);

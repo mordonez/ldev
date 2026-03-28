@@ -29,7 +29,9 @@ describe('worktree guardrails', () => {
     );
 
     expect((await runProcess('git', ['switch', 'main'], {cwd: repoRoot})).exitCode).toBe(0);
-    await expect(assertPrimaryCheckoutGuardrail(resolveWorktreeContext(repoRoot), 'probar algo')).resolves.toBeUndefined();
+    await expect(
+      assertPrimaryCheckoutGuardrail(resolveWorktreeContext(repoRoot), 'probar algo'),
+    ).resolves.toBeUndefined();
 
     const worktreeRoot = path.join(repoRoot, '.worktrees', 'issue-123');
     await fs.ensureDir(worktreeRoot);

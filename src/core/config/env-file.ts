@@ -28,9 +28,12 @@ export function readEnvFile(filePath: string): Record<string, string> {
 }
 
 export function upsertEnvFileValues(currentContent: string, values: Record<string, string>): string {
-  const lines = currentContent === '' ? [] : currentContent.split(/\r?\n/).filter((line, index, array) => {
-    return !(index === array.length - 1 && line === '');
-  });
+  const lines =
+    currentContent === ''
+      ? []
+      : currentContent.split(/\r?\n/).filter((line, index, array) => {
+          return !(index === array.length - 1 && line === '');
+        });
   const nextLines = lines.filter((line) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#') || !trimmed.includes('=')) {

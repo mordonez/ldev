@@ -48,16 +48,17 @@ export async function runAgentCapabilities(
     doctorReport?: DoctorReport;
   },
 ): Promise<AgentCapabilitiesReport> {
-  const doctorReport = options?.doctorReport ?? await runDoctor(cwd, {
-    config: options?.config,
-    env: options?.env,
-  });
+  const doctorReport =
+    options?.doctorReport ??
+    (await runDoctor(cwd, {
+      config: options?.config,
+      env: options?.env,
+    }));
 
   const repoReady = doctorReport.environment.inRepo;
   const liferayUrlConfigured = doctorReport.config.liferay.url.trim() !== '';
   const liferayOauth2Configured =
-    doctorReport.config.liferay.oauth2ClientIdConfigured &&
-    doctorReport.config.liferay.oauth2ClientSecretConfigured;
+    doctorReport.config.liferay.oauth2ClientIdConfigured && doctorReport.config.liferay.oauth2ClientSecretConfigured;
 
   return {
     ok: true,
@@ -73,20 +74,55 @@ export async function runAgentCapabilities(
     commands: {
       doctor: capabilityStatus(),
       context: capabilityStatus(),
-      setup: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      start: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      stop: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      status: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      logs: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      shell: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
+      setup: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      start: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      stop: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      status: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      logs: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      shell: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
       project: capabilityStatus(),
       env: capabilityStatus(repoRequirement(repoReady)),
       deploy: capabilityStatus(repoRequirement(repoReady)),
       db: capabilityStatus(repoRequirement(repoReady)),
-      worktree: capabilityStatus(repoRequirement(repoReady), capabilityRequirement(doctorReport.capabilities.supportsWorktrees, 'git-worktrees')),
+      worktree: capabilityStatus(
+        repoRequirement(repoReady),
+        capabilityRequirement(doctorReport.capabilities.supportsWorktrees, 'git-worktrees'),
+      ),
       liferay: capabilityStatus(repoRequirement(repoReady), capabilityRequirement(liferayUrlConfigured, 'liferay-url')),
-      osgi: capabilityStatus(repoRequirement(repoReady), dockerToolReady(doctorReport.tools.docker), dockerComposeToolReady(doctorReport.tools.dockerCompose)),
-      reindex: capabilityStatus(repoRequirement(repoReady), capabilityRequirement(liferayUrlConfigured, 'liferay-url'), capabilityRequirement(liferayOauth2Configured, 'liferay-oauth2')),
+      osgi: capabilityStatus(
+        repoRequirement(repoReady),
+        dockerToolReady(doctorReport.tools.docker),
+        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+      ),
+      reindex: capabilityStatus(
+        repoRequirement(repoReady),
+        capabilityRequirement(liferayUrlConfigured, 'liferay-url'),
+        capabilityRequirement(liferayOauth2Configured, 'liferay-oauth2'),
+      ),
       ai: capabilityStatus(),
     },
   };
@@ -105,9 +141,7 @@ export function formatAgentCapabilities(report: AgentCapabilitiesReport): string
 
 function capabilityStatus(...requirements: AgentRequirement[]): AgentCapabilityStatus {
   const requires = requirements.map((requirement) => requirement.name);
-  const missing = requirements
-    .filter((requirement) => !requirement.available)
-    .map((requirement) => requirement.name);
+  const missing = requirements.filter((requirement) => !requirement.available).map((requirement) => requirement.name);
 
   return {
     supported: missing.length === 0,

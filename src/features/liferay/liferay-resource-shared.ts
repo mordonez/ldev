@@ -1,9 +1,15 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import {createLiferayApiClient} from '../../core/liferay/client.js';
-import {authedGet, expectJsonSuccess, fetchAccessToken, resolveSite, type ResolvedSite} from './liferay-inventory-shared.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayApiClient} from '../../core/http/client.js';
+import {
+  authedGet,
+  expectJsonSuccess,
+  fetchAccessToken,
+  resolveSite,
+  type ResolvedSite,
+} from './liferay-inventory-shared.js';
 
 const DDM_STRUCTURE_CLASS_NAME = 'com.liferay.dynamic.data.mapping.model.DDMStructure';
 const JOURNAL_ARTICLE_CLASS_NAME = 'com.liferay.journal.model.JournalArticle';
@@ -101,15 +107,7 @@ export async function listDdmTemplates(
     return siteTemplates;
   }
 
-  return fetchDdmTemplates(
-    config,
-    apiClient,
-    accessToken,
-    site.companyId,
-    null,
-    classNameId,
-    resourceClassNameId,
-  );
+  return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, null, classNameId, resourceClassNameId);
 }
 
 export async function listDdmTemplatesByClassName(
@@ -123,15 +121,7 @@ export async function listDdmTemplatesByClassName(
   const accessToken = await fetchAccessToken(config, dependencies);
   const classNameId = await fetchClassNameId(config, apiClient, accessToken, className);
 
-  return fetchDdmTemplates(
-    config,
-    apiClient,
-    accessToken,
-    site.companyId,
-    site.id,
-    classNameId,
-    resourceClassNameId,
-  );
+  return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, site.id, classNameId, resourceClassNameId);
 }
 
 export async function listFragmentCollections(

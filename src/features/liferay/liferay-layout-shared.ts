@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {authedGet, expectJsonSuccess} from './liferay-inventory-shared.js';
 
 export type Layout = {
@@ -39,7 +39,9 @@ export function buildLayoutDetails(typeSettings: string): {layoutTemplateId?: st
   const values = parseTypeSettings(typeSettings);
   return {
     ...(values['layout-template-id'] ? {layoutTemplateId: values['layout-template-id']} : {}),
-    ...(firstNonBlank(values.url, values.embeddedLayoutURL) ? {targetUrl: firstNonBlank(values.url, values.embeddedLayoutURL)} : {}),
+    ...(firstNonBlank(values.url, values.embeddedLayoutURL)
+      ? {targetUrl: firstNonBlank(values.url, values.embeddedLayoutURL)}
+      : {}),
   };
 }
 

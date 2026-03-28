@@ -6,7 +6,7 @@ import path from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
 
 import {runProcess} from '../../src/core/platform/process.js';
-import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CLI_CWD = process.cwd();
@@ -15,15 +15,20 @@ const CLI_ENTRY = path.join(CLI_CWD, 'src', 'index.ts');
 const servers: http.Server[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    });
-  })));
+  await Promise.all(
+    servers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve();
+          });
+        }),
+    ),
+  );
 });
 
 describe('reindex integration', () => {
@@ -31,7 +36,9 @@ describe('reindex integration', () => {
     const server = await createEsServer();
     const repoRoot = await createReindexRepoFixture(getServerPort(server));
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'status', '--format', 'json'], {cwd: repoRoot});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'status', '--format', 'json'], {
+      cwd: repoRoot,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -43,14 +50,20 @@ describe('reindex integration', () => {
     const server = await createEsServer();
     const repoRoot = await createReindexRepoFixture(getServerPort(server));
 
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-on'], {cwd: repoRoot})).exitCode).toBe(0);
-    expect((await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-off'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-on'], {cwd: repoRoot})).exitCode,
+    ).toBe(0);
+    expect(
+      (await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'speedup-off'], {cwd: repoRoot})).exitCode,
+    ).toBe(0);
 
-    expect(serverState.requests).toEqual(expect.arrayContaining([
-      'PUT /_all/_settings {"index":{"refresh_interval":"-1"}}',
-      'PUT /_all/_settings {"index":{"refresh_interval":"1s"}}',
-      'POST /_refresh ',
-    ]));
+    expect(serverState.requests).toEqual(
+      expect.arrayContaining([
+        'PUT /_all/_settings {"index":{"refresh_interval":"-1"}}',
+        'PUT /_all/_settings {"index":{"refresh_interval":"1s"}}',
+        'POST /_refresh ',
+      ]),
+    );
   }, 20000);
 
   test('reindex tasks queries backgroundtask from postgres', async () => {
@@ -59,7 +72,10 @@ describe('reindex integration', () => {
     const fakeBinDir = await createReindexTasksDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
 
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'tasks', '--format', 'json'], {cwd: repoRoot, env});
+    const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'liferay', 'reindex', 'tasks', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
 
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
@@ -85,11 +101,13 @@ async function createEsServer(): Promise<http.Server> {
 
     if (request.method === 'GET' && request.url?.startsWith('/_cat/indices')) {
       response.setHeader('content-type', 'application/json');
-      response.end(JSON.stringify([
-        {health: 'green', status: 'open', index: 'liferay-20097', 'docs.count': '100'},
-        {health: 'yellow', status: 'open', index: 'journal-article', 'docs.count': '25'},
-        {health: 'green', status: 'open', index: 'other-index', 'docs.count': '9'},
-      ]));
+      response.end(
+        JSON.stringify([
+          {health: 'green', status: 'open', index: 'liferay-20097', 'docs.count': '100'},
+          {health: 'yellow', status: 'open', index: 'journal-article', 'docs.count': '25'},
+          {health: 'green', status: 'open', index: 'other-index', 'docs.count': '9'},
+        ]),
+      );
       return;
     }
 

@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {listDeployArtifacts, resolveDeployCacheDir} from '../deploy/deploy-shared.js';
 import {runDeployAll} from '../deploy/deploy-all.js';
@@ -88,14 +88,12 @@ async function warmDeployCacheIfNeeded(config: AppConfig, printer?: Printer): Pr
       await withProgress(printer, 'Preparando artefactos iniciales para el deploy cache', async () => {
         await runDeployAll(config, {printer: undefined});
       });
-    }
-    else {
+    } else {
       await runDeployAll(config);
     }
 
     return true;
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof CliError && error.code === 'DEPLOY_GRADLEW_NOT_FOUND') {
       return false;
     }

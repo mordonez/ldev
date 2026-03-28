@@ -112,79 +112,115 @@ export async function runLiferayResourceMigrationPipeline(
   const dependentStructureResults: Array<{key: string; status: string; id: string}> = [];
 
   for (const dependentKey of descriptor.dependentStructures) {
-    const checked = await runLiferayResourceSyncStructure(config, {
-      site: '/global',
-      key: dependentKey,
-      checkOnly: true,
-      createMissing: true,
-    }, dependencies);
-    if (checked.status === 'checked_missing' && !options.checkOnly) {
-      const created = await runLiferayResourceSyncStructure(config, {
+    const checked = await runLiferayResourceSyncStructure(
+      config,
+      {
         site: '/global',
         key: dependentKey,
+        checkOnly: true,
         createMissing: true,
-      }, dependencies);
+      },
+      dependencies,
+    );
+    if (checked.status === 'checked_missing' && !options.checkOnly) {
+      const created = await runLiferayResourceSyncStructure(
+        config,
+        {
+          site: '/global',
+          key: dependentKey,
+          createMissing: true,
+        },
+        dependencies,
+      );
       dependentStructureResults.push({key: dependentKey, status: created.status, id: created.id});
       continue;
     }
     dependentStructureResults.push({key: dependentKey, status: checked.status, id: checked.id});
   }
 
-  const structure = await runLiferayResourceMigrationRun(config, {
-    migrationFile: options.migrationFile,
-    stage: 'introduce',
-    checkOnly: options.checkOnly,
-    migrationDryRun: options.migrationDryRun,
-  }, dependencies);
+  const structure = await runLiferayResourceMigrationRun(
+    config,
+    {
+      migrationFile: options.migrationFile,
+      stage: 'introduce',
+      checkOnly: options.checkOnly,
+      migrationDryRun: options.migrationDryRun,
+    },
+    dependencies,
+  );
 
   const pipelineTemplates = await resolvePipelineTemplates(config, descriptor, dependencies);
   const templateResults: Array<{name: string; status: string; id: string}> = [];
   for (const templateName of pipelineTemplates) {
-    const result = await runLiferayResourceSyncTemplate(config, {
-      site: descriptor.site,
-      key: templateName,
-      checkOnly: Boolean(options.checkOnly),
-      createMissing: Boolean(options.createMissingTemplates),
-    }, dependencies);
+    const result = await runLiferayResourceSyncTemplate(
+      config,
+      {
+        site: descriptor.site,
+        key: templateName,
+        checkOnly: Boolean(options.checkOnly),
+        createMissing: Boolean(options.createMissingTemplates),
+      },
+      dependencies,
+    );
     templateResults.push({name: templateName, status: result.status, id: result.id});
   }
 
   if (options.runCleanup) {
-    await runCleanupStage(config, descriptor, structure.migratedArticleKeys, {
-      checkOnly: options.checkOnly,
-      migrationDryRun: options.migrationDryRun,
-    }, dependencies);
+    await runCleanupStage(
+      config,
+      descriptor,
+      structure.migratedArticleKeys,
+      {
+        checkOnly: options.checkOnly,
+        migrationDryRun: options.migrationDryRun,
+      },
+      dependencies,
+    );
   }
 
   if (!options.skipValidation) {
     if (options.runCleanup) {
-      await runCleanupStage(config, descriptor, structure.migratedArticleKeys, {
-        checkOnly: true,
-        migrationDryRun: true,
-      }, dependencies);
+      await runCleanupStage(
+        config,
+        descriptor,
+        structure.migratedArticleKeys,
+        {
+          checkOnly: true,
+          migrationDryRun: true,
+        },
+        dependencies,
+      );
     } else {
       const validationPlanFile = await writeTempPlanFile(descriptor.introduce.planNode);
       try {
-        await runLiferayResourceSyncStructure(config, {
-          site: descriptor.site,
-          key: descriptor.structureKey,
-          file: await resolveMigrationStructureFile(config, descriptor, descriptor.introduce),
-          checkOnly: true,
-          migrationPlan: validationPlanFile,
-          migrationPhase: 'post',
-          cleanupMigration: false,
-        }, dependencies);
+        await runLiferayResourceSyncStructure(
+          config,
+          {
+            site: descriptor.site,
+            key: descriptor.structureKey,
+            file: await resolveMigrationStructureFile(config, descriptor, descriptor.introduce),
+            checkOnly: true,
+            migrationPlan: validationPlanFile,
+            migrationPhase: 'post',
+            cleanupMigration: false,
+          },
+          dependencies,
+        );
       } finally {
         await fs.remove(validationPlanFile);
       }
     }
 
     for (const templateName of pipelineTemplates) {
-      await runLiferayResourceSyncTemplate(config, {
-        site: descriptor.site,
-        key: templateName,
-        checkOnly: true,
-      }, dependencies);
+      await runLiferayResourceSyncTemplate(
+        config,
+        {
+          site: descriptor.site,
+          key: templateName,
+          checkOnly: true,
+        },
+        dependencies,
+      );
     }
   }
 
@@ -285,11 +321,13 @@ function normalizeMappingsArray(value: unknown): Array<Record<string, unknown>> 
     if (source === '' || target === '') {
       return [];
     }
-    return [{
-      source,
-      target,
-      cleanupSource: Boolean((row as Record<string, unknown>).cleanupSource),
-    }];
+    return [
+      {
+        source,
+        target,
+        cleanupSource: Boolean((row as Record<string, unknown>).cleanupSource),
+      },
+    ];
   });
 }
 
@@ -342,16 +380,20 @@ async function runCleanupStage(
   });
 
   try {
-    await runLiferayResourceSyncStructure(config, {
-      site: descriptor.site,
-      key: descriptor.structureKey,
-      file: cleanupStructureFile,
-      checkOnly: Boolean(options.checkOnly),
-      migrationPlan: cleanupPlanFile,
-      migrationPhase: 'pre',
-      migrationDryRun: Boolean(options.checkOnly) || Boolean(options.migrationDryRun),
-      cleanupMigration: true,
-    }, dependencies);
+    await runLiferayResourceSyncStructure(
+      config,
+      {
+        site: descriptor.site,
+        key: descriptor.structureKey,
+        file: cleanupStructureFile,
+        checkOnly: Boolean(options.checkOnly),
+        migrationPlan: cleanupPlanFile,
+        migrationPhase: 'pre',
+        migrationDryRun: Boolean(options.checkOnly) || Boolean(options.migrationDryRun),
+        cleanupMigration: true,
+      },
+      dependencies,
+    );
   } finally {
     await fs.remove(cleanupPlanFile);
     await fs.remove(cleanupStructureFile);
@@ -381,7 +423,7 @@ async function writeDerivedCleanupStructureFile(
   const absoluteStructureFile = path.isAbsolute(structureFile)
     ? structureFile
     : path.resolve(config.repoRoot ?? config.cwd, structureFile);
-  const payload = await fs.readJson(absoluteStructureFile) as Record<string, unknown>;
+  const payload = (await fs.readJson(absoluteStructureFile)) as Record<string, unknown>;
   payload.dataDefinitionFields = removeFieldsRecursive(payload.dataDefinitionFields, new Set(cleanupSources));
   const target = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'dev-cli-migration-cleanup-')), 'structure.json');
   await fs.writeJson(target, payload, {spaces: 2});
@@ -399,7 +441,9 @@ function removeFieldsRecursive(fields: unknown, cleanupSources: Set<string>): Ar
       continue;
     }
     const record = structuredClone(field) as Record<string, unknown>;
-    const reference = String((record.customProperties as Record<string, unknown> | undefined)?.fieldReference ?? record.name ?? '').trim();
+    const reference = String(
+      (record.customProperties as Record<string, unknown> | undefined)?.fieldReference ?? record.name ?? '',
+    ).trim();
     if (reference !== '' && cleanupSources.has(reference)) {
       continue;
     }
@@ -420,13 +464,21 @@ async function resolvePipelineTemplates(
     return [];
   }
 
-  const structure = await runLiferayResourceGetStructure(config, {
-    site: descriptor.site,
-    key: descriptor.structureKey,
-  }, dependencies);
-  const templates = await runLiferayInventoryTemplates(config, {
-    site: descriptor.site,
-  }, dependencies);
+  const structure = await runLiferayResourceGetStructure(
+    config,
+    {
+      site: descriptor.site,
+      key: descriptor.structureKey,
+    },
+    dependencies,
+  );
+  const templates = await runLiferayInventoryTemplates(
+    config,
+    {
+      site: descriptor.site,
+    },
+    dependencies,
+  );
 
   return templates
     .filter((item) => Number(item.contentStructureId) === structure.id)

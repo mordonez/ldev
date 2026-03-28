@@ -1,6 +1,6 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {
   currentArtifactCommit,
@@ -34,9 +34,9 @@ export async function runDeployCacheUpdate(
     });
   }
 
-  const cache = await runDeployStep(options?.printer, 'Actualizando caché de deploy', async () => (
-    syncArtifactsToDeployCache(config, context, artifacts, {clean: options?.clean})
-  ));
+  const cache = await runDeployStep(options?.printer, 'Actualizando caché de deploy', async () =>
+    syncArtifactsToDeployCache(config, context, artifacts, {clean: options?.clean}),
+  );
 
   return {
     ok: true,

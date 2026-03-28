@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import {createOAuthTokenClient, type OAuthTokenClient, type TokenResponse} from '../../core/liferay/auth.js';
-import {createLiferayApiClient, type LiferayApiClient} from '../../core/liferay/client.js';
+import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
+import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
 import {authedGet} from './liferay-inventory-shared.js';
 
 const DEFAULT_HEALTH_PATH = '/o/headless-admin-user/v1.0/sites/by-friendly-url-path/global';
@@ -46,12 +46,7 @@ export async function performLiferayHealthCheck(
   apiClient?: LiferayApiClient,
 ): Promise<{status: number; checkedPath: string}> {
   const client = apiClient ?? createLiferayApiClient();
-  const response = await authedGet(
-    config,
-    client,
-    accessToken,
-    DEFAULT_HEALTH_PATH,
-  );
+  const response = await authedGet(config, client, accessToken, DEFAULT_HEALTH_PATH);
 
   if (!response.ok) {
     throw new CliError(`health check failed with status=${response.status}.`, {

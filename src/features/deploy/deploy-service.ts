@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {
   ensureGradleWrapper,
@@ -15,10 +15,7 @@ export type DeployServiceResult = {
   restoredTrackedFiles: boolean;
 };
 
-export async function runDeployService(
-  config: AppConfig,
-  options?: {printer?: Printer},
-): Promise<DeployServiceResult> {
+export async function runDeployService(config: AppConfig, options?: {printer?: Printer}): Promise<DeployServiceResult> {
   const context = resolveDeployContext(config);
   await ensureGradleWrapper(context);
 

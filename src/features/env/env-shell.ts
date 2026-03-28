@@ -8,7 +8,10 @@ export type EnvShellResult = {
   ok: true;
 };
 
-export async function runEnvShell(config: AppConfig, options?: {processEnv?: NodeJS.ProcessEnv}): Promise<EnvShellResult> {
+export async function runEnvShell(
+  config: AppConfig,
+  options?: {processEnv?: NodeJS.ProcessEnv},
+): Promise<EnvShellResult> {
   const context = resolveEnvContext(config);
   const child = spawn('docker', ['compose', 'exec', 'liferay', 'bash'], {
     cwd: context.dockerDir,

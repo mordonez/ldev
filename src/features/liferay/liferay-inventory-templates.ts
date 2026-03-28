@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {fetchPagedItems, resolveSite} from './liferay-inventory-shared.js';
 
 export type LiferayInventoryTemplate = {
@@ -46,9 +46,7 @@ export function formatLiferayInventoryTemplates(rows: LiferayInventoryTemplate[]
     return 'Sin datos de templates';
   }
 
-  const lines = rows.map(
-    (row) => `- key=${row.id} structureId=${row.contentStructureId} name=${row.name}`,
-  );
+  const lines = rows.map((row) => `- key=${row.id} structureId=${row.contentStructureId} name=${row.name}`);
   lines.push(`total=${rows.length}`);
   return lines.join('\n');
 }

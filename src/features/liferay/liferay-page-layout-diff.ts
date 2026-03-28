@@ -3,12 +3,9 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import {
-  runLiferayPageLayoutExport,
-  type LiferayPageLayoutExport,
-} from './liferay-page-layout-export.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import {runLiferayPageLayoutExport, type LiferayPageLayoutExport} from './liferay-page-layout-export.js';
 
 const DIFF_KIND = 'liferay-page-layout-diff';
 const EXPORT_KIND = 'liferay-page-layout-export';
@@ -45,11 +42,7 @@ export async function runLiferayPageLayoutDiff(
 ): Promise<LiferayPageLayoutDiff> {
   validateDiffOptions(options);
 
-  const left = await runLiferayPageLayoutExport(
-    config,
-    {url: options.url},
-    dependencies,
-  );
+  const left = await runLiferayPageLayoutExport(config, {url: options.url}, dependencies);
 
   const right = options.referenceUrl
     ? await runLiferayPageLayoutExport(config, {url: options.referenceUrl}, dependencies)
@@ -110,12 +103,7 @@ export function collectPageLayoutDiffs(
   right: LiferayPageLayoutExport,
 ): LiferayPageLayoutDiffEntry[] {
   const diffs: LiferayPageLayoutDiffEntry[] = [];
-  collectStructuralDiffs(
-    left.headlessSitePage?.pageDefinition,
-    right.headlessSitePage?.pageDefinition,
-    '$',
-    diffs,
-  );
+  collectStructuralDiffs(left.headlessSitePage?.pageDefinition, right.headlessSitePage?.pageDefinition, '$', diffs);
   return diffs;
 }
 
@@ -220,11 +208,7 @@ function summarizeValue(value: unknown): string {
   if (typeof value === 'string') {
     return JSON.stringify(value);
   }
-  if (
-    typeof value === 'number' ||
-    typeof value === 'boolean' ||
-    typeof value === 'bigint'
-  ) {
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
     return String(value);
   }
 

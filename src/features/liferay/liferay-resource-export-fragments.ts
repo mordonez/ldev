@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
 import {resolveFragmentsBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
@@ -36,12 +36,16 @@ export async function runLiferayResourceExportFragments(
     let fragmentCount = 0;
 
     for (const site of sites) {
-      const result = await runLiferayResourceExportFragments(config, {
-        site: site.siteFriendlyUrl,
-        dir: options.dir,
-        collection: options.collection,
-        fragment: options.fragment,
-      }, dependencies);
+      const result = await runLiferayResourceExportFragments(
+        config,
+        {
+          site: site.siteFriendlyUrl,
+          dir: options.dir,
+          collection: options.collection,
+          fragment: options.fragment,
+        },
+        dependencies,
+      );
       siteResults.push(result);
       collectionCount += result.collectionCount;
       fragmentCount += result.fragmentCount;
@@ -53,7 +57,9 @@ export async function runLiferayResourceExportFragments(
       siteToken: 'all-sites',
       collectionCount,
       fragmentCount,
-      outputDir: path.resolve(options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveFragmentsBaseDir(config)),
+      outputDir: path.resolve(
+        options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveFragmentsBaseDir(config),
+      ),
       scannedSites: siteResults.length,
       siteResults,
     };
@@ -87,7 +93,9 @@ export async function runLiferayResourceExportFragments(
       }
     }
 
-    const collectionKey = String(collection.fragmentCollectionKey ?? '').trim() || sanitizeFileToken(String(collection.name ?? 'collection'));
+    const collectionKey =
+      String(collection.fragmentCollectionKey ?? '').trim() ||
+      sanitizeFileToken(String(collection.name ?? 'collection'));
     const collectionDir = path.join(srcDir, collectionKey);
     await fs.ensureDir(path.join(collectionDir, 'fragments'));
     await writeJson(path.join(collectionDir, 'collection.json'), {
@@ -106,7 +114,8 @@ export async function runLiferayResourceExportFragments(
         }
       }
 
-      const fragmentKey = String(fragment.fragmentEntryKey ?? '').trim() || sanitizeFileToken(String(fragment.name ?? 'fragment'));
+      const fragmentKey =
+        String(fragment.fragmentEntryKey ?? '').trim() || sanitizeFileToken(String(fragment.name ?? 'fragment'));
       const fragmentDir = path.join(collectionDir, 'fragments', fragmentKey);
       await fs.ensureDir(fragmentDir);
       await fs.writeFile(path.join(fragmentDir, 'index.html'), String(fragment.html ?? ''));
@@ -119,7 +128,9 @@ export async function runLiferayResourceExportFragments(
           const parsedConfiguration = JSON.parse(rawConfiguration) as Record<string, unknown>;
           await writeJson(path.join(fragmentDir, 'configuration.json'), {
             ...parsedConfiguration,
-            fieldSets: Array.isArray(parsedConfiguration.fieldSets) ? parsedConfiguration.fieldSets : defaultFragmentConfiguration().fieldSets,
+            fieldSets: Array.isArray(parsedConfiguration.fieldSets)
+              ? parsedConfiguration.fieldSets
+              : defaultFragmentConfiguration().fieldSets,
           });
         } catch {
           await writeJson(path.join(fragmentDir, 'configuration.json'), defaultFragmentConfiguration());
@@ -172,7 +183,10 @@ async function writeJson(filePath: string, payload: unknown): Promise<void> {
 }
 
 function sanitizeFileToken(value: string): string {
-  const normalized = value.trim().replaceAll(/[^A-Za-z0-9_.-]+/g, '_').replaceAll(/_+/g, '_');
+  const normalized = value
+    .trim()
+    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
+    .replaceAll(/_+/g, '_');
   return normalized === '' ? 'unnamed' : normalized;
 }
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {resolveEnvContext, resolveDataRoot} from '../env/env-files.js';
 
@@ -74,7 +74,10 @@ export async function runDbFilesMount(
     };
   }
 
-  const defaultDoclibDir = path.join(resolveDataRoot(envContext.dockerDir, envContext.envValues.ENV_DATA_ROOT), 'liferay-doclib');
+  const defaultDoclibDir = path.join(
+    resolveDataRoot(envContext.dockerDir, envContext.envValues.ENV_DATA_ROOT),
+    'liferay-doclib',
+  );
   await fs.ensureDir(defaultDoclibDir);
   await ensureDefaultBindVolume(volume, defaultDoclibDir);
 
@@ -105,12 +108,16 @@ async function ensureDoclibVolumeName(envFile: string, envValues: Record<string,
 }
 
 async function ensureDefaultBindVolume(volume: string, doclibDir: string): Promise<void> {
-  const existingType = (await runDocker(['volume', 'inspect', volume, '--format', '{{index .Options "type"}}'], {reject: false})).stdout.trim();
+  const existingType = (
+    await runDocker(['volume', 'inspect', volume, '--format', '{{index .Options "type"}}'], {reject: false})
+  ).stdout.trim();
   if (existingType === 'cifs') {
     return;
   }
 
-  const existingDevice = (await runDocker(['volume', 'inspect', volume, '--format', '{{index .Options "device"}}'], {reject: false})).stdout.trim();
+  const existingDevice = (
+    await runDocker(['volume', 'inspect', volume, '--format', '{{index .Options "device"}}'], {reject: false})
+  ).stdout.trim();
   const resolved = path.resolve(doclibDir);
   if (existingDevice === resolved) {
     return;
@@ -122,7 +129,19 @@ async function ensureDefaultBindVolume(volume: string, doclibDir: string): Promi
 
 async function createLocalBindVolume(volume: string, localPath: string): Promise<void> {
   const result = await runDocker(
-    ['volume', 'create', '--driver', 'local', '--opt', 'type=none', '--opt', `device=${localPath}`, '--opt', 'o=bind', volume],
+    [
+      'volume',
+      'create',
+      '--driver',
+      'local',
+      '--opt',
+      'type=none',
+      '--opt',
+      `device=${localPath}`,
+      '--opt',
+      'o=bind',
+      volume,
+    ],
     {reject: false},
   );
   if (!result.ok) {
@@ -132,13 +151,16 @@ async function createLocalBindVolume(volume: string, localPath: string): Promise
   }
 }
 
-async function createNasVolume(volume: string, options: {
-  nasIp: string;
-  nasShare: string;
-  nasUser: string;
-  nasPass: string;
-  nasPort: string;
-}): Promise<void> {
+async function createNasVolume(
+  volume: string,
+  options: {
+    nasIp: string;
+    nasShare: string;
+    nasUser: string;
+    nasPass: string;
+    nasPort: string;
+  },
+): Promise<void> {
   const result = await runDocker(
     [
       'volume',

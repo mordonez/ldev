@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {
   listVendorSkills,
   readManifestSkills,
@@ -125,10 +125,17 @@ async function applyAiInstall(options: {
 
 async function collectLocalSkills(skillsDestinationDir: string): Promise<string[]> {
   const entries = await fs.readdir(skillsDestinationDir, {withFileTypes: true});
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
 }
 
-async function installAgentsFile(targetDir: string, assets: AiAssets, force: boolean): Promise<AiCommandResult['agents']> {
+async function installAgentsFile(
+  targetDir: string,
+  assets: AiAssets,
+  force: boolean,
+): Promise<AiCommandResult['agents']> {
   const destination = path.join(targetDir, 'AGENTS.md');
   const exists = await fs.pathExists(destination);
 

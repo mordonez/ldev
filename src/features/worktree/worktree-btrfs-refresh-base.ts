@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {resolveEnvContext} from '../env/env-files.js';
 import {resolveWorktreeContext} from './worktree-paths.js';
 import {refreshBtrfsBaseFromMain, resolveBtrfsConfig} from './worktree-state.js';
@@ -32,11 +32,12 @@ export async function runWorktreeBtrfsRefreshBase(options: {
   const mainValues = mainEnvContext.envValues;
   const btrfs = await resolveBtrfsConfig(mainEnvContext, mainValues);
 
-  const refresh = async () => refreshBtrfsBaseFromMain({
-    mainEnvContext,
-    btrfs,
-    processEnv: options.processEnv,
-  });
+  const refresh = async () =>
+    refreshBtrfsBaseFromMain({
+      mainEnvContext,
+      btrfs,
+      processEnv: options.processEnv,
+    });
 
   const refreshedSubdirs = options.printer
     ? await withProgress(options.printer, 'Actualizando BTRFS_BASE desde el entorno principal', refresh)

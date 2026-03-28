@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../cli/errors.js';
 import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runProcess} from '../../core/platform/process.js';
@@ -115,7 +115,18 @@ async function restoreDataSubdir(sourceDir: string, targetDir: string, processEn
   }
 
   const result = await runDocker(
-    ['run', '--rm', '-v', `${sourceDir}:/source:ro`, '-v', `${targetDir}:/target`, 'alpine', 'sh', '-lc', 'cp -a /source/. /target/'],
+    [
+      'run',
+      '--rm',
+      '-v',
+      `${sourceDir}:/source:ro`,
+      '-v',
+      `${targetDir}:/target`,
+      'alpine',
+      'sh',
+      '-lc',
+      'cp -a /source/. /target/',
+    ],
     {env: processEnv, reject: false},
   );
   if (!result.ok) {

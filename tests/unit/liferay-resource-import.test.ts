@@ -3,7 +3,7 @@ import path from 'node:path';
 import {describe, expect, test, vi} from 'vitest';
 
 import {runLiferayResourceExportAdts} from '../../src/features/liferay/liferay-resource-export-adts.js';
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const syncAdtMock = vi.fn();
@@ -72,22 +72,45 @@ describe('liferay resource import', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=')) {
           return new Response('{"classNameId":3999}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
-          return new Response('[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]', {status: 200});
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response('[]', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3999&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3999&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response('[]', {status: 200});
         }
 
@@ -102,7 +125,12 @@ describe('liferay resource import', () => {
     );
 
     expect(result.outputDir).toBe(path.join(dir, '.tmp', 'adts-export', 'global'));
-    expect(await fs.readFile(path.join(dir, '.tmp', 'adts-export', 'global', 'search_result_summary', 'SEARCH_RESULTS.ftl'), 'utf8')).toBe('<#-- ftl -->');
+    expect(
+      await fs.readFile(
+        path.join(dir, '.tmp', 'adts-export', 'global', 'search_result_summary', 'SEARCH_RESULTS.ftl'),
+        'utf8',
+      ),
+    ).toBe('<#-- ftl -->');
   });
 
   test('import-adts accepts a direct single-site directory without an intermediate site token folder', async () => {
@@ -142,10 +170,11 @@ describe('liferay resource import', () => {
       siteFriendlyUrl: '/global',
     }));
 
-    const result = await runLiferayResourceImportAdts(
-      config,
-      {site: '/global', dir: '.tmp/adts-direct', widgetType: 'search-result-summary'},
-    );
+    const result = await runLiferayResourceImportAdts(config, {
+      site: '/global',
+      dir: '.tmp/adts-direct',
+      widgetType: 'search-result-summary',
+    });
 
     expect(result.processed).toBe(1);
     expect(result.failed).toBe(0);

@@ -30,41 +30,57 @@ export function createProjectCommand(): Command {
       .requiredOption('--target <target>', 'Project root'),
   );
 
-  command
-    .description('Project scaffold and tooling integration')
-    .addHelpText('after', `
+  command.description('Project scaffold and tooling integration').addHelpText(
+    'after',
+    `
 Use this namespace when bootstrapping a repo, not during normal daily development.
 
 Preferred commands:
   init           Create a new project scaffold ready to run with ldev
   add            Add missing ldev files into an existing repository
   add-community  Only when the repo still needs the Docker/Liferay scaffold
-`);
+`,
+  );
 
-  initCommand.action(createFormattedAction(async (context, options) => {
-      const result = await runProjectInit({
-        name: options.name,
-        targetDir: options.dir,
-        printer: context.printer,
-      });
-      return result;
-    }, {text: formatProjectResult}));
+  initCommand.action(
+    createFormattedAction(
+      async (context, options) => {
+        const result = await runProjectInit({
+          name: options.name,
+          targetDir: options.dir,
+          printer: context.printer,
+        });
+        return result;
+      },
+      {text: formatProjectResult},
+    ),
+  );
 
-  addCommand.action(createFormattedAction(async (context, options) => {
-      const result = await runProjectAdd({
-        targetDir: options.target,
-        printer: context.printer,
-      });
-      return result;
-    }, {text: formatProjectResult}));
+  addCommand.action(
+    createFormattedAction(
+      async (context, options) => {
+        const result = await runProjectAdd({
+          targetDir: options.target,
+          printer: context.printer,
+        });
+        return result;
+      },
+      {text: formatProjectResult},
+    ),
+  );
 
-  addCommunityCommand.action(createFormattedAction(async (context, options) => {
-      const result = await runProjectAddCommunity({
-        targetDir: options.target,
-        printer: context.printer,
-      });
-      return result;
-    }, {text: formatProjectResult}));
+  addCommunityCommand.action(
+    createFormattedAction(
+      async (context, options) => {
+        const result = await runProjectAddCommunity({
+          targetDir: options.target,
+          printer: context.printer,
+        });
+        return result;
+      },
+      {text: formatProjectResult},
+    ),
+  );
 
   return command;
 }

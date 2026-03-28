@@ -3,7 +3,11 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import {ADT_CLASS_BY_WIDGET_TYPE, normalizeAdtWidgetType, runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
+import {
+  ADT_CLASS_BY_WIDGET_TYPE,
+  normalizeAdtWidgetType,
+  runLiferayResourceListAdts,
+} from './liferay-resource-list-adts.js';
 import {resolveAdtFile, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue, resolveResourceSite} from './liferay-resource-shared.js';
 import {
@@ -49,11 +53,13 @@ export async function runLiferayResourceSyncAdt(
   const script = await fs.readFile(adtFile, 'utf8');
   const localSha = sha256(script);
   const site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
-  const existing = (await runLiferayResourceListAdts(
-    config,
-    {site: site.friendlyUrlPath, widgetType: resolvedWidget, className: resolvedClassName, includeScript: true},
-    dependencies,
-  )).find((item) => [item.templateKey, item.adtName, item.displayName].includes(name));
+  const existing = (
+    await runLiferayResourceListAdts(
+      config,
+      {site: site.friendlyUrlPath, widgetType: resolvedWidget, className: resolvedClassName, includeScript: true},
+      dependencies,
+    )
+  ).find((item) => [item.templateKey, item.adtName, item.displayName].includes(name));
 
   const classNameId = await fetchClassNameIdForValue(config, resolvedClassName, dependencies);
   const resourceClassNameId = await fetchAdtResourceClassNameId(config, dependencies);
@@ -78,19 +84,24 @@ export async function runLiferayResourceSyncAdt(
     }
 
     const created = await expectJsonSuccess(
-      await authedPostForm<Record<string, unknown>>(config, '/api/jsonws/ddm.ddmtemplate/add-template', {
-        externalReferenceCode: name,
-        groupId: String(site.id),
-        classNameId: String(classNameId),
-        classPK: '0',
-        resourceClassNameId: String(resourceClassNameId),
-        nameMap: localizedMap(name),
-        descriptionMap: localizedMap(''),
-        type: 'display',
-        mode: '',
-        language: 'ftl',
-        script,
-      }, dependencies),
+      await authedPostForm<Record<string, unknown>>(
+        config,
+        '/api/jsonws/ddm.ddmtemplate/add-template',
+        {
+          externalReferenceCode: name,
+          groupId: String(site.id),
+          classNameId: String(classNameId),
+          classPK: '0',
+          resourceClassNameId: String(resourceClassNameId),
+          nameMap: localizedMap(name),
+          descriptionMap: localizedMap(''),
+          type: 'display',
+          mode: '',
+          language: 'ftl',
+          script,
+        },
+        dependencies,
+      ),
       'adt-create',
     );
 
@@ -114,26 +125,33 @@ export async function runLiferayResourceSyncAdt(
       dependencies,
     );
     await expectJsonSuccess(
-      await authedPostForm(config, '/api/jsonws/ddm.ddmtemplate/update-template', {
-        templateId: String(existing.templateId),
-        classPK: String(ddmTemplate.classPK ?? '0'),
-        nameMap: localizedMap(name),
-        descriptionMap: localizedMap(''),
-        type: 'display',
-        mode: '',
-        language: 'ftl',
-        script,
-        cacheable: 'false',
-      }, dependencies),
+      await authedPostForm(
+        config,
+        '/api/jsonws/ddm.ddmtemplate/update-template',
+        {
+          templateId: String(existing.templateId),
+          classPK: String(ddmTemplate.classPK ?? '0'),
+          nameMap: localizedMap(name),
+          descriptionMap: localizedMap(''),
+          type: 'display',
+          mode: '',
+          language: 'ftl',
+          script,
+          cacheable: 'false',
+        },
+        dependencies,
+      ),
       'adt-update',
     );
   }
 
-  const runtime = (await runLiferayResourceListAdts(
-    config,
-    {site: site.friendlyUrlPath, widgetType: resolvedWidget, className: resolvedClassName, includeScript: true},
-    dependencies,
-  )).find((item) => String(item.templateId) === String(existing.templateId));
+  const runtime = (
+    await runLiferayResourceListAdts(
+      config,
+      {site: site.friendlyUrlPath, widgetType: resolvedWidget, className: resolvedClassName, includeScript: true},
+      dependencies,
+    )
+  ).find((item) => String(item.templateId) === String(existing.templateId));
   if (runtime?.script && sha256(runtime.script) !== localSha) {
     throw new CliError(`Hash mismatch ADT '${name}'`, {code: 'LIFERAY_RESOURCE_ERROR'});
   }
@@ -177,7 +195,10 @@ function inferAdtName(file: string): string {
   return path.basename(file, path.extname(file));
 }
 
-async function expectJsonSuccess<T>(response: {ok: boolean; status: number; data: T | null}, label: string): Promise<{ok: boolean; status: number; data: T | null}> {
+async function expectJsonSuccess<T>(
+  response: {ok: boolean; status: number; data: T | null},
+  label: string,
+): Promise<{ok: boolean; status: number; data: T | null}> {
   if (response.ok) {
     return response;
   }

@@ -18,11 +18,15 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('db');
   }, 15000);
 
-  test.each(['project', 'db', 'deploy', 'env', 'worktree', 'osgi', 'liferay', 'doctor', 'context'])('%s --help works', async (namespace) => {
-    const result = await runProcess('npx', ['tsx', CLI_ENTRY, namespace, '--help'], {cwd: CLI_CWD});
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain(namespace);
-  }, 15000);
+  test.each(['project', 'db', 'deploy', 'env', 'worktree', 'osgi', 'liferay', 'doctor', 'context'])(
+    '%s --help works',
+    async (namespace) => {
+      const result = await runProcess('npx', ['tsx', CLI_ENTRY, namespace, '--help'], {cwd: CLI_CWD});
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain(namespace);
+    },
+    15000,
+  );
 
   test('db --help documents destructive force import', async () => {
     const result = await runProcess('npx', ['tsx', CLI_ENTRY, 'db', '--help'], {cwd: CLI_CWD});

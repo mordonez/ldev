@@ -9,7 +9,8 @@ export async function writeLiferayResourceFile(
   const resolvedOutputPath = path.resolve(outputPath);
   await fs.ensureDir(path.dirname(resolvedOutputPath));
   const normalizedPayload = options?.payloadNormalizer ? options.payloadNormalizer(payload) : payload;
-  const serialized = options?.pretty === false ? JSON.stringify(normalizedPayload) : JSON.stringify(normalizedPayload, null, 2);
+  const serialized =
+    options?.pretty === false ? JSON.stringify(normalizedPayload) : JSON.stringify(normalizedPayload, null, 2);
   await fs.writeFile(resolvedOutputPath, `${serialized}\n`);
   return resolvedOutputPath;
 }

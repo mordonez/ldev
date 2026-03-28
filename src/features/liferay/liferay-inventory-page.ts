@@ -1,9 +1,15 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import {createLiferayApiClient} from '../../core/liferay/client.js';
-import {authedGet, expectJsonSuccess, fetchAccessToken, resolveSite, type ResolvedSite} from './liferay-inventory-shared.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayApiClient} from '../../core/http/client.js';
+import {
+  authedGet,
+  expectJsonSuccess,
+  fetchAccessToken,
+  resolveSite,
+  type ResolvedSite,
+} from './liferay-inventory-shared.js';
 import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent, type Layout} from './liferay-layout-shared.js';
 
 type InventoryPageDependencies = {
@@ -337,11 +343,13 @@ async function fetchDisplayPageInventory(
       friendlyUrlPath: article.friendlyUrlPath ?? urlTitle,
       contentStructureId: article.contentStructureId ?? -1,
     },
-    ...(structuredContent ? {
-      articleProperties: {
-        contentFields: summarizeContentFields(structuredContent.contentFields),
-      },
-    } : {}),
+    ...(structuredContent
+      ? {
+          articleProperties: {
+            contentFields: summarizeContentFields(structuredContent.contentFields),
+          },
+        }
+      : {}),
   };
 }
 
@@ -370,7 +378,13 @@ async function fetchRegularPageInventory(
 
   if (componentInspectionSupported) {
     const pageElement = await fetchSitePageElement(config, apiClient, accessToken, site.id, friendlyUrl);
-    const rawFragmentLinks = await tryFetchFragmentEntryLinks(config, apiClient, accessToken, site.id, layout.plid ?? -1);
+    const rawFragmentLinks = await tryFetchFragmentEntryLinks(
+      config,
+      apiClient,
+      accessToken,
+      site.id,
+      layout.plid ?? -1,
+    );
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks);
     widgets = fragmentEntryLinks
       .filter((entry) => entry.type === 'widget' && entry.widgetName)
@@ -406,13 +420,15 @@ async function fetchRegularPageInventory(
       configure: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
       translate: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=translation&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
     },
-    ...(componentInspectionSupported ? {
-      componentInspectionSupported,
-      fragmentEntryLinks,
-      widgets,
-      journalArticles,
-      contentStructures,
-    } : {}),
+    ...(componentInspectionSupported
+      ? {
+          componentInspectionSupported,
+          fragmentEntryLinks,
+          widgets,
+          journalArticles,
+          contentStructures,
+        }
+      : {}),
   };
 }
 
@@ -431,7 +447,14 @@ export async function resolveRegularLayoutPage(
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
   const site = await resolveSite(config, request.siteSlug, dependencies);
-  const layout = await findLayoutByFriendlyUrl(config, apiClient, accessToken, site.id, request.friendlyUrl, request.privateLayout);
+  const layout = await findLayoutByFriendlyUrl(
+    config,
+    apiClient,
+    accessToken,
+    site.id,
+    request.friendlyUrl,
+    request.privateLayout,
+  );
   if (!layout) {
     throw new CliError(`Layout not found for friendlyUrl=${request.friendlyUrl} in site=${site.friendlyUrlPath}.`, {
       code: 'LIFERAY_INVENTORY_ERROR',
@@ -635,10 +658,7 @@ function collectPageElements(
   return result;
 }
 
-function collectPageElementsRecursive(
-  element: Record<string, unknown> | null,
-  result: PageFragmentEntry[],
-): void {
+function collectPageElementsRecursive(element: Record<string, unknown> | null, result: PageFragmentEntry[]): void {
   if (!element) {
     return;
   }
@@ -756,7 +776,9 @@ function extractArticleRefs(
         if (!key.includes('journal_content') && !key.includes('JournalContent')) {
           continue;
         }
-        const prefsMap = asRecord(asRecord(value).portletPreferencesMap ?? asRecord(asRecord(value).configuration).portletPreferencesMap);
+        const prefsMap = asRecord(
+          asRecord(value).portletPreferencesMap ?? asRecord(asRecord(value).configuration).portletPreferencesMap,
+        );
         const articleId = firstString(prefsMap.articleId);
         if (!articleId) {
           continue;
@@ -831,7 +853,10 @@ function appendContentFieldSummary(target: ContentFieldSummary[], contentFields:
     const field = item as Record<string, unknown>;
     const label = firstNonBlank(String(field.label ?? '').trim(), String(field.name ?? '').trim());
     const name = String(field.name ?? '').trim();
-    const type = firstNonBlank(String(field.dataType ?? '').trim(), inferContentFieldType(asRecord(field.contentFieldValue)));
+    const type = firstNonBlank(
+      String(field.dataType ?? '').trim(),
+      inferContentFieldType(asRecord(field.contentFieldValue)),
+    );
     const value = summarizeContentFieldValue(asRecord(field.contentFieldValue));
     if (value !== '') {
       target.push({

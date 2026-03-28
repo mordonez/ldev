@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {
   ensureGradleWrapper,
   resolveDeployContext,
@@ -27,15 +27,12 @@ export type DeployPrepareResult = {
   cacheDir: string;
 };
 
-export async function runDeployPrepare(
-  config: AppConfig,
-  options?: {printer?: Printer},
-): Promise<DeployPrepareResult> {
+export async function runDeployPrepare(config: AppConfig, options?: {printer?: Printer}): Promise<DeployPrepareResult> {
   const context = resolveDeployContext(config);
   await ensureGradleWrapper(context);
 
   const modulesDir = `${context.liferayDir}/modules`;
-  const buildServiceExecuted = await shouldRunBuildService(modulesDir)
+  const buildServiceExecuted = (await shouldRunBuildService(modulesDir))
     ? await runDeployStep(options?.printer, 'Ejecutando buildService', async () => {
         await runGradleTask(context, ['buildService', '-q']);
         await restoreTrackedServiceProperties(context.repoRoot);
@@ -44,11 +41,7 @@ export async function runDeployPrepare(
     : false;
 
   await runDeployStep(options?.printer, 'Ejecutando dockerDeploy', async () => {
-    await runGradleTask(context, [
-      'dockerDeploy',
-      '-Pliferay.workspace.environment=dockerenv',
-      '-q',
-    ]);
+    await runGradleTask(context, ['dockerDeploy', '-Pliferay.workspace.environment=dockerenv', '-q']);
   });
 
   const seededDockerenv = await seedBuildDockerConfigs(context);

@@ -1,8 +1,14 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
-import {formatLiferayInventoryStructures, runLiferayInventoryStructures} from '../../src/features/liferay/liferay-inventory-structures.js';
-import {formatLiferayInventoryTemplates, runLiferayInventoryTemplates} from '../../src/features/liferay/liferay-inventory-templates.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {
+  formatLiferayInventoryStructures,
+  runLiferayInventoryStructures,
+} from '../../src/features/liferay/liferay-inventory-structures.js';
+import {
+  formatLiferayInventoryTemplates,
+  runLiferayInventoryTemplates,
+} from '../../src/features/liferay/liferay-inventory-templates.js';
 import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/liferay-inventory-shared.js';
 
 const CONFIG = {

@@ -25,10 +25,10 @@ export async function runLiferayResourceImportTemplates(
   },
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceImportTemplatesResult> {
-  const baseDir = path.resolve(options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveTemplatesBaseDir(config));
-  const siteTokens = options?.allSites
-    ? await listSiteTokens(baseDir)
-    : [siteToToken(options?.site ?? '/global')];
+  const baseDir = path.resolve(
+    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveTemplatesBaseDir(config),
+  );
+  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [siteToToken(options?.site ?? '/global')];
 
   let processed = 0;
   let failed = 0;
@@ -37,14 +37,18 @@ export async function runLiferayResourceImportTemplates(
     for (const file of await listFiles(path.join(baseDir, siteToken), '.ftl')) {
       const id = path.basename(file, '.ftl');
       try {
-        await runLiferayResourceSyncTemplate(config, {
-          site: tokenToSite(siteToken),
-          key: id,
-          file,
-          structureKey: options?.structureKey,
-          checkOnly: Boolean(options?.checkOnly),
-          createMissing: Boolean(options?.createMissing),
-        }, dependencies);
+        await runLiferayResourceSyncTemplate(
+          config,
+          {
+            site: tokenToSite(siteToken),
+            key: id,
+            file,
+            structureKey: options?.structureKey,
+            checkOnly: Boolean(options?.checkOnly),
+            createMissing: Boolean(options?.createMissing),
+          },
+          dependencies,
+        );
         processed += 1;
       } catch {
         failed += 1;
@@ -83,7 +87,7 @@ async function listFiles(baseDir: string, extension: string): Promise<string[]> 
   for (const entry of entries) {
     const fullPath = path.join(baseDir, entry.name);
     if (entry.isDirectory()) {
-      matches.push(...await listFiles(fullPath, extension));
+      matches.push(...(await listFiles(fullPath, extension)));
       continue;
     }
     if (entry.isFile() && fullPath.endsWith(extension)) {

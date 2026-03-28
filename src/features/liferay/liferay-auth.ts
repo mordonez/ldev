@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import {createOAuthTokenClient, type OAuthTokenClient, type TokenResponse} from '../../core/liferay/auth.js';
+import {createOAuthTokenClient, type OAuthTokenClient, type TokenResponse} from '../../core/http/auth.js';
 
 export type LiferayAuthCheckResult = {
   ok: true;
@@ -80,10 +80,7 @@ function maskToken(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-async function fetchToken(
-  config: AppConfig,
-  dependencies?: {tokenClient?: OAuthTokenClient},
-): Promise<TokenResponse> {
+async function fetchToken(config: AppConfig, dependencies?: {tokenClient?: OAuthTokenClient}): Promise<TokenResponse> {
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   return tokenClient.fetchClientCredentialsToken(config.liferay);
 }

@@ -2,9 +2,9 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {HttpResponse, LiferayApiClient} from '../../core/liferay/client.js';
-import {createLiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {HttpResponse, LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayApiClient} from '../../core/http/client.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
 
@@ -273,7 +273,10 @@ async function runStructureMigration(
 ): Promise<MigrationStats> {
   const accessToken = await fetchAccessToken(config, {apiClient: options.apiClient, tokenClient: options.tokenClient});
   const planRoot = await fs.readJson(migrationPlanPath);
-  const plan = typeof planRoot === 'object' && planRoot && 'plan' in planRoot ? (planRoot.plan as Record<string, unknown>) : planRoot;
+  const plan =
+    typeof planRoot === 'object' && planRoot && 'plan' in planRoot
+      ? (planRoot.plan as Record<string, unknown>)
+      : planRoot;
   const rules = parseMappings(plan?.mappings);
   if (rules.length === 0) {
     throw new CliError('Migration plan inválido: falta mappings[]', {code: 'LIFERAY_RESOURCE_ERROR'});
@@ -287,12 +290,21 @@ async function runStructureMigration(
   const scopedRootFolderIds = parseNumberList(plan?.rootFolderIds);
   const scopedFolderIds = new Set<number>([
     ...parseNumberList(plan?.folderIds),
-    ...(scopedRootFolderIds.length > 0 ? await expandRootFolderScope(config, options.apiClient, accessToken, siteId, scopedRootFolderIds) : []),
+    ...(scopedRootFolderIds.length > 0
+      ? await expandRootFolderScope(config, options.apiClient, accessToken, siteId, scopedRootFolderIds)
+      : []),
   ]);
   const articleIds = new Set(parseStringList(plan?.articleIds));
-  const contents = scopedFolderIds.size > 0
-    ? await listStructureContentsByFolders(config, options.apiClient, accessToken, [...scopedFolderIds], String(structure.id))
-    : await listStructureContents(config, options.apiClient, accessToken, String(structure.id));
+  const contents =
+    scopedFolderIds.size > 0
+      ? await listStructureContentsByFolders(
+          config,
+          options.apiClient,
+          accessToken,
+          [...scopedFolderIds],
+          String(structure.id),
+        )
+      : await listStructureContents(config, options.apiClient, accessToken, String(structure.id));
 
   const selected = contents.filter((item) => {
     const folderId = Number(item.structuredContentFolderId ?? Number.MIN_SAFE_INTEGER);
@@ -303,7 +315,14 @@ async function runStructureMigration(
   });
 
   const migratedArticleKeys = new Set<string>();
-  const stats: MigrationStats = {scanned: 0, migrated: 0, unchanged: 0, failed: 0, dryRun: options.dryRun, articleKeys: []};
+  const stats: MigrationStats = {
+    scanned: 0,
+    migrated: 0,
+    unchanged: 0,
+    failed: 0,
+    dryRun: options.dryRun,
+    articleKeys: [],
+  };
   for (const item of selected) {
     stats.scanned += 1;
     try {
@@ -318,7 +337,13 @@ async function runStructureMigration(
       }
 
       if (!options.dryRun) {
-        const payload = copyIfPresent(after, ['contentStructureId', 'structuredContentFolderId', 'friendlyUrlPath', 'title', 'contentFields']);
+        const payload = copyIfPresent(after, [
+          'contentStructureId',
+          'structuredContentFolderId',
+          'friendlyUrlPath',
+          'title',
+          'contentFields',
+        ]);
         await expectJsonSuccess(
           await options.apiClient.putJson(
             config.liferay.url,
@@ -417,7 +442,9 @@ async function fetchStructuredContentForMigration(
   accessToken: string,
   contentId: string,
 ): Promise<Record<string, unknown>> {
-  const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,contentFields');
+  const fields = encodeURIComponent(
+    'id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,contentFields',
+  );
   const response = await expectJsonSuccess(
     await apiClient.get<Record<string, unknown>>(
       config.liferay.url,
@@ -473,16 +500,20 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
     if (!row || typeof row !== 'object') {
       return [];
     }
-    const source = String((row as Record<string, unknown>).source ?? (row as Record<string, unknown>).from ?? '').trim();
+    const source = String(
+      (row as Record<string, unknown>).source ?? (row as Record<string, unknown>).from ?? '',
+    ).trim();
     const target = String((row as Record<string, unknown>).target ?? (row as Record<string, unknown>).to ?? '').trim();
     if (!source || !target) {
       return [];
     }
-    return [{
-      source,
-      target,
-      cleanupSource: Boolean((row as Record<string, unknown>).cleanupSource),
-    }];
+    return [
+      {
+        source,
+        target,
+        cleanupSource: Boolean((row as Record<string, unknown>).cleanupSource),
+      },
+    ];
   });
 }
 
@@ -642,10 +673,17 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
   }
 }
 
-function buildTransitionPayload(runtimeDefinition: Record<string, unknown>, finalPayload: Record<string, unknown>): Record<string, unknown> {
+function buildTransitionPayload(
+  runtimeDefinition: Record<string, unknown>,
+  finalPayload: Record<string, unknown>,
+): Record<string, unknown> {
   const transition = structuredClone(finalPayload);
-  const runtimeFields = Array.isArray(runtimeDefinition.dataDefinitionFields) ? structuredClone(runtimeDefinition.dataDefinitionFields) as Array<Record<string, unknown>> : [];
-  const finalFields = Array.isArray(transition.dataDefinitionFields) ? transition.dataDefinitionFields as Array<Record<string, unknown>> : [];
+  const runtimeFields = Array.isArray(runtimeDefinition.dataDefinitionFields)
+    ? (structuredClone(runtimeDefinition.dataDefinitionFields) as Array<Record<string, unknown>>)
+    : [];
+  const finalFields = Array.isArray(transition.dataDefinitionFields)
+    ? (transition.dataDefinitionFields as Array<Record<string, unknown>>)
+    : [];
   const runtimeIds = new Set(runtimeFields.map(fieldIdentity));
   for (const field of finalFields) {
     const identity = fieldIdentity(field);
@@ -737,7 +775,10 @@ function shouldRunPostMigration(phase: '' | 'pre' | 'post' | 'both'): boolean {
   return phase === '' || phase === 'post' || phase === 'both';
 }
 
-function authOptions(config: AppConfig, accessToken: string): {headers: Record<string, string>; timeoutSeconds: number} {
+function authOptions(
+  config: AppConfig,
+  accessToken: string,
+): {headers: Record<string, string>; timeoutSeconds: number} {
   return {
     timeoutSeconds: config.liferay.timeoutSeconds,
     headers: {

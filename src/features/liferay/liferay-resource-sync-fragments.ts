@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {HttpResponse} from '../../core/liferay/client.js';
+import type {HttpResponse} from '../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 import {resolveFragmentsBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
@@ -131,14 +131,7 @@ export async function runLiferayResourceSyncFragments(
     : await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const projectDir = resolveFragmentsProjectDir(config, options?.dir, resolveSiteToken(site.friendlyUrlPath));
 
-  return runFragmentsImport(
-    config,
-    site.id,
-    site.friendlyUrlPath,
-    projectDir,
-    options?.fragment ?? '',
-    dependencies,
-  );
+  return runFragmentsImport(config, site.id, site.friendlyUrlPath, projectDir, options?.fragment ?? '', dependencies);
 }
 
 export function formatLiferayResourceSyncFragments(result: LiferayResourceSyncFragmentsResult): string {
@@ -150,9 +143,7 @@ export function formatLiferayResourceSyncFragments(result: LiferayResourceSyncFr
 }
 
 export function getLiferayResourceSyncFragmentsExitCode(result: LiferayResourceSyncFragmentsResult): number {
-  return result.mode === 'all-sites'
-    ? (result.errors > 0 ? 1 : 0)
-    : (result.summary.errors > 0 ? 1 : 0);
+  return result.mode === 'all-sites' ? (result.errors > 0 ? 1 : 0) : result.summary.errors > 0 ? 1 : 0;
 }
 
 async function runFragmentsImport(
@@ -206,7 +197,12 @@ async function runFragmentsImportLegacy(
         runtimeCollection = await createFragmentCollection(config, groupId, localCollection, dependencies);
         collectionByKey.set(localCollection.slug.toLowerCase(), runtimeCollection);
       } else {
-        await updateFragmentCollection(config, Number(runtimeCollection.fragmentCollectionId ?? -1), localCollection, dependencies);
+        await updateFragmentCollection(
+          config,
+          Number(runtimeCollection.fragmentCollectionId ?? -1),
+          localCollection,
+          dependencies,
+        );
       }
 
       const collectionId = Number(runtimeCollection.fragmentCollectionId ?? -1);
@@ -234,13 +230,13 @@ async function runFragmentsImportLegacy(
           const runtimeFragment = runtimeByKey.get(localFragment.slug.toLowerCase());
           const syncedFragment = runtimeFragment
             ? await updateFragmentEntry(
-              config,
-              groupId,
-              collectionId,
-              Number(runtimeFragment.fragmentEntryId ?? -1),
-              localFragment,
-              dependencies,
-            )
+                config,
+                groupId,
+                collectionId,
+                Number(runtimeFragment.fragmentEntryId ?? -1),
+                localFragment,
+                dependencies,
+              )
             : await createFragmentEntry(config, groupId, collectionId, localFragment, dependencies);
 
           fragmentResults.push({
@@ -388,19 +384,30 @@ async function runFragmentsZipImport(
     }
 
     const importResults = Array.isArray(payload?.fragmentEntriesImportResult)
-      ? payload.fragmentEntriesImportResult.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+      ? payload.fragmentEntriesImportResult.filter(
+          (item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object',
+        )
       : [];
-    const importResultByName = new Map(importResults.map((item) => [String(item.name ?? '').trim().toLowerCase(), item]));
-    const fragmentResults = project.collections.flatMap((collection) => collection.fragments.map((fragment) => {
-      const importResult = importResultByName.get(fragment.name.trim().toLowerCase());
-      const errorMessage = String(importResult?.errorMessage ?? '').trim();
-      return {
-        collection: collection.slug,
-        fragment: fragment.slug,
-        status: errorMessage === '' ? 'imported' as const : 'error' as const,
-        ...(errorMessage === '' ? {} : {error: errorMessage}),
-      };
-    }));
+    const importResultByName = new Map(
+      importResults.map((item) => [
+        String(item.name ?? '')
+          .trim()
+          .toLowerCase(),
+        item,
+      ]),
+    );
+    const fragmentResults = project.collections.flatMap((collection) =>
+      collection.fragments.map((fragment) => {
+        const importResult = importResultByName.get(fragment.name.trim().toLowerCase());
+        const errorMessage = String(importResult?.errorMessage ?? '').trim();
+        return {
+          collection: collection.slug,
+          fragment: fragment.slug,
+          status: errorMessage === '' ? ('imported' as const) : ('error' as const),
+          ...(errorMessage === '' ? {} : {error: errorMessage}),
+        };
+      }),
+    );
     const pageTemplateResults = Array.isArray(payload?.pageTemplatesImportResult)
       ? payload.pageTemplatesImportResult
       : [];
@@ -432,7 +439,9 @@ async function readLocalFragment(collectionSlug: string, fragmentDir: string): P
   const cssPath = ensureText(fragmentJson.cssPath, 'index.css');
   const jsPath = ensureText(fragmentJson.jsPath, 'index.js');
   const configurationPath = ensureText(fragmentJson.configurationPath, 'configuration.json');
-  const configuration = normalizeFragmentConfiguration(await readTextIfExists(path.join(fragmentDir, configurationPath)));
+  const configuration = normalizeFragmentConfiguration(
+    await readTextIfExists(path.join(fragmentDir, configurationPath)),
+  );
 
   return {
     slug,
@@ -451,7 +460,9 @@ async function readLocalFragment(collectionSlug: string, fragmentDir: string): P
   };
 }
 
-async function prepareFragmentsImportDir(project: LocalFragmentsProject): Promise<{dirPath: string; cleanup: () => Promise<void>}> {
+async function prepareFragmentsImportDir(
+  project: LocalFragmentsProject,
+): Promise<{dirPath: string; cleanup: () => Promise<void>}> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dev-cli-fragments-import-'));
   const tempProjectDir = path.join(tempDir, 'project');
   const tempSrcDir = path.join(tempProjectDir, 'src');
@@ -696,7 +707,11 @@ async function updateFragmentEntry(
   );
 }
 
-function fragmentEntryBaseForm(groupId: number, fragmentCollectionId: number, fragment: LocalFragment): Record<string, string> {
+function fragmentEntryBaseForm(
+  groupId: number,
+  fragmentCollectionId: number,
+  fragment: LocalFragment,
+): Record<string, string> {
   return {
     groupId: String(groupId),
     fragmentCollectionId: String(fragmentCollectionId),
@@ -775,7 +790,10 @@ async function readTextIfExists(filePath: string): Promise<string> {
 }
 
 function sanitizeFileToken(value: string): string {
-  const normalized = value.trim().replaceAll(/[^A-Za-z0-9_.-]+/g, '_').replaceAll(/_+/g, '_');
+  const normalized = value
+    .trim()
+    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
+    .replaceAll(/_+/g, '_');
   return normalized === '' ? 'unnamed' : normalized;
 }
 

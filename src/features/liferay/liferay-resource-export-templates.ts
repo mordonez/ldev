@@ -3,8 +3,8 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 import {runLiferayInventoryTemplates, type LiferayInventoryTemplate} from './liferay-inventory-templates.js';
 import {resolveTemplatesBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
@@ -174,6 +174,9 @@ function resolveTemplateExportName(template: LiferayInventoryTemplate): string {
 }
 
 function sanitizeFileToken(value: string): string {
-  const normalized = value.trim().replaceAll(/[^A-Za-z0-9_.-]+/g, '_').replaceAll(/_+/g, '_');
+  const normalized = value
+    .trim()
+    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
+    .replaceAll(/_+/g, '_');
   return normalized === '' ? 'unnamed' : normalized;
 }

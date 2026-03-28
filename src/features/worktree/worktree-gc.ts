@@ -4,7 +4,7 @@ import path from 'node:path';
 import {CliError} from '../../cli/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {runWorktreeClean} from './worktree-clean.js';
 import {resolveWorktreeContext} from './worktree-paths.js';
@@ -104,7 +104,10 @@ async function listRunningWorktreeNames(prefix: string, processEnv?: NodeJS.Proc
     return new Set();
   }
   const names = new Set<string>();
-  for (const container of result.stdout.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '')) {
+  for (const container of result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '')) {
     if (!container.startsWith(`${prefix}-`)) {
       continue;
     }

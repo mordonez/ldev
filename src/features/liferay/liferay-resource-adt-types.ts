@@ -16,7 +16,5 @@ export function formatLiferayResourceAdtTypes(rows: LiferayResourceAdtTypeRow[])
     return 'No built-in ADT types';
   }
 
-  return rows
-    .map((row) => `${row.widgetType}\t${row.className}`)
-    .join('\n');
+  return rows.map((row) => `${row.widgetType}\t${row.className}`).join('\n');
 }

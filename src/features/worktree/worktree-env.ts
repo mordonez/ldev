@@ -5,7 +5,7 @@ import fs from 'fs-extra';
 import {CliError} from '../../cli/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 import {ensureEnvDataLayout, resolveDataRoot, resolveEnvContext, seedBuildDockerConfigs} from '../env/env-files.js';
 import {resolveWorktreeContext, resolveWorktreeTarget, resolvePortSet, type WorktreeTarget} from './worktree-paths.js';
 import {cloneInitialWorktreeState, resolveBtrfsConfig, worktreeEnvHasState} from './worktree-state.js';
@@ -38,7 +38,9 @@ export async function runWorktreeEnv(options: {
 }): Promise<WorktreeEnvResult> {
   const config = loadConfig({cwd: options.cwd, env: process.env});
   if (!config.repoRoot) {
-    throw new CliError('No se ha detectado un repositorio válido para worktree env.', {code: 'WORKTREE_REPO_NOT_FOUND'});
+    throw new CliError('No se ha detectado un repositorio válido para worktree env.', {
+      code: 'WORKTREE_REPO_NOT_FOUND',
+    });
   }
 
   const context = resolveWorktreeContext(config.repoRoot);

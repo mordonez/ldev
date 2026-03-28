@@ -45,17 +45,8 @@ export const ROOT_COMMANDS: RootCommandEntry[] = [
 ];
 
 export const ROOT_HELP_SECTIONS = {
-  quickStart: [
-    'ldev doctor',
-    'ldev context --json',
-    'ldev setup',
-    'ldev start',
-  ],
-  automationContract: [
-    'ldev doctor --json',
-    'ldev context --json',
-    'ldev status --json',
-  ],
+  quickStart: ['ldev doctor', 'ldev context --json', 'ldev setup', 'ldev start'],
+  automationContract: ['ldev doctor --json', 'ldev context --json', 'ldev status --json'],
   examples: [
     'ldev doctor',
     'ldev setup',

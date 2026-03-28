@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {
   fetchAdtResourceClassNameId,
   listDdmTemplatesByClassName,
@@ -79,9 +79,7 @@ export function formatLiferayResourceAdts(rows: LiferayResourceAdtRow[]): string
     return 'Sin ADTs';
   }
 
-  return rows
-    .map((row) => `${row.widgetType}\t${row.templateId}\t${row.templateKey}\t${row.adtName}`)
-    .join('\n');
+  return rows.map((row) => `${row.widgetType}\t${row.templateId}\t${row.templateKey}\t${row.adtName}`).join('\n');
 }
 
 export function normalizeAdtWidgetType(widgetType: string): string {

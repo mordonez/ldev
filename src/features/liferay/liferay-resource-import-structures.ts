@@ -30,10 +30,10 @@ export async function runLiferayResourceImportStructures(
   },
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceImportStructuresResult> {
-  const baseDir = path.resolve(options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveStructuresBaseDir(config));
-  const siteTokens = options?.allSites
-    ? await listSiteTokens(baseDir)
-    : [siteToToken(options?.site ?? '/global')];
+  const baseDir = path.resolve(
+    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveStructuresBaseDir(config),
+  );
+  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [siteToToken(options?.site ?? '/global')];
 
   let processed = 0;
   let failed = 0;
@@ -42,19 +42,23 @@ export async function runLiferayResourceImportStructures(
     for (const file of await listFiles(path.join(baseDir, siteToken), '.json')) {
       const key = path.basename(file, '.json');
       try {
-        await runLiferayResourceSyncStructure(config, {
-          site: tokenToSite(siteToken),
-          key,
-          file,
-          checkOnly: Boolean(options?.checkOnly),
-          createMissing: Boolean(options?.createMissing),
-          skipUpdate: Boolean(options?.skipUpdate),
-          migrationPlan: options?.migrationPlan,
-          migrationPhase: options?.migrationPhase,
-          migrationDryRun: Boolean(options?.migrationDryRun),
-          cleanupMigration: Boolean(options?.cleanupMigration),
-          allowBreakingChange: Boolean(options?.allowBreakingChange),
-        }, dependencies);
+        await runLiferayResourceSyncStructure(
+          config,
+          {
+            site: tokenToSite(siteToken),
+            key,
+            file,
+            checkOnly: Boolean(options?.checkOnly),
+            createMissing: Boolean(options?.createMissing),
+            skipUpdate: Boolean(options?.skipUpdate),
+            migrationPlan: options?.migrationPlan,
+            migrationPhase: options?.migrationPhase,
+            migrationDryRun: Boolean(options?.migrationDryRun),
+            cleanupMigration: Boolean(options?.cleanupMigration),
+            allowBreakingChange: Boolean(options?.allowBreakingChange),
+          },
+          dependencies,
+        );
         processed += 1;
       } catch {
         failed += 1;
@@ -93,7 +97,7 @@ async function listFiles(baseDir: string, extension: string): Promise<string[]> 
   for (const entry of entries) {
     const fullPath = path.join(baseDir, entry.name);
     if (entry.isDirectory()) {
-      matches.push(...await listFiles(fullPath, extension));
+      matches.push(...(await listFiles(fullPath, extension)));
       continue;
     }
     if (entry.isFile() && fullPath.endsWith(extension)) {

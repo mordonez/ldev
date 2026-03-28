@@ -32,9 +32,10 @@ export async function runOsgiLiferayCliCreds(
   }
 
   const dockerEnvFile = config.files.dockerEnv ?? null;
-  const dockerEnvUpdated = options?.writeEnv === true
-    ? await writeCredentialsToDockerEnv(dockerEnvFile, readWrite.clientId, readWrite.clientSecret)
-    : false;
+  const dockerEnvUpdated =
+    options?.writeEnv === true
+      ? await writeCredentialsToDockerEnv(dockerEnvFile, readWrite.clientId, readWrite.clientSecret)
+      : false;
 
   return {
     ok: true,
@@ -47,9 +48,8 @@ export async function runOsgiLiferayCliCreds(
 }
 
 export function formatOsgiLiferayCliCreds(result: OsgiLiferayCliCredsResult): string {
-  const lines = result.dockerEnvUpdated && result.dockerEnvFile
-    ? [`docker/.env actualizado: ${result.dockerEnvFile}`, '']
-    : [];
+  const lines =
+    result.dockerEnvUpdated && result.dockerEnvFile ? [`docker/.env actualizado: ${result.dockerEnvFile}`, ''] : [];
 
   lines.push(
     `LIFERAY_CLI_OAUTH2_CLIENT_ID=${result.readWrite.clientId}`,

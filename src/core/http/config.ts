@@ -20,21 +20,14 @@ export function resolveLiferayConfig(input: ResolvedLiferayConfigInput) {
 
   const rawBindIp = dockerEnv.BIND_IP?.trim();
   const hasSpecificBindIp =
-    rawBindIp !== undefined &&
-    rawBindIp !== '' &&
-    !['0.0.0.0', '127.0.0.1', 'localhost'].includes(rawBindIp);
+    rawBindIp !== undefined && rawBindIp !== '' && !['0.0.0.0', '127.0.0.1', 'localhost'].includes(rawBindIp);
   const bindIp = hasSpecificBindIp ? rawBindIp : 'localhost';
   const httpPort = dockerEnv.LIFERAY_HTTP_PORT ?? '8080';
   const bindIpUrl = hasSpecificBindIp ? `http://${bindIp}:${httpPort}` : undefined;
   const fallbackUrl = `http://${bindIp}:${httpPort}`;
 
   return {
-    url:
-      processEnv.LIFERAY_CLI_URL ??
-      dockerEnv.LIFERAY_CLI_URL ??
-      bindIpUrl ??
-      profile['liferay.url'] ??
-      fallbackUrl,
+    url: processEnv.LIFERAY_CLI_URL ?? dockerEnv.LIFERAY_CLI_URL ?? bindIpUrl ?? profile['liferay.url'] ?? fallbackUrl,
     oauth2ClientId:
       processEnv.LIFERAY_CLI_OAUTH2_CLIENT_ID ??
       dockerEnv.LIFERAY_CLI_OAUTH2_CLIENT_ID ??

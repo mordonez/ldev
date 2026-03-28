@@ -6,8 +6,8 @@ import {spawn} from 'node:child_process';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
@@ -23,7 +23,13 @@ export type DbImportResult = {
 
 export async function runDbImport(
   config: AppConfig,
-  options?: {file?: string; skipPostImport?: boolean; force?: boolean; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
+  options?: {
+    file?: string;
+    skipPostImport?: boolean;
+    force?: boolean;
+    processEnv?: NodeJS.ProcessEnv;
+    printer?: Printer;
+  },
 ): Promise<DbImportResult> {
   const capabilities = await detectCapabilities(config.cwd);
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
@@ -63,9 +69,7 @@ export async function runDbImport(
     await streamSqlIntoPostgres(context.dockerDir, backupFile, context.envValues, options?.processEnv);
   });
 
-  const postImportFiles = !(options?.skipPostImport ?? false)
-    ? await resolvePostImportFiles(context.dockerDir)
-    : [];
+  const postImportFiles = !(options?.skipPostImport ?? false) ? await resolvePostImportFiles(context.dockerDir) : [];
 
   for (const sqlFile of postImportFiles) {
     await runStep(options?.printer, `Aplicando post-import ${path.basename(sqlFile)}`, async () => {
@@ -184,7 +188,16 @@ async function hasDirectoryContents(directory: string, processEnv?: NodeJS.Proce
   }
 
   const result = await runDocker(
-    ['run', '--rm', '-v', `${directory}:/target:ro`, 'alpine', 'sh', '-lc', 'find /target -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null'],
+    [
+      'run',
+      '--rm',
+      '-v',
+      `${directory}:/target:ro`,
+      'alpine',
+      'sh',
+      '-lc',
+      'find /target -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null',
+    ],
     {env: processEnv, reject: false},
   );
 
@@ -229,15 +242,11 @@ async function streamSqlIntoPostgres(
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
-  const child = spawn(
-    'docker',
-    ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db],
-    {
-      cwd: dockerDir,
-      env: processEnv,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    },
-  );
+  const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
+    cwd: dockerDir,
+    env: processEnv,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 
   let stderr = '';
   let stdout = '';

@@ -5,8 +5,8 @@ import {spawn} from 'node:child_process';
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {runProcess} from '../../core/platform/process.js';
 
 export type DbFilesDownloadResult = {
@@ -39,9 +39,11 @@ export async function runDbFilesDownload(
   await ensureLcpAvailable();
 
   const dockerEnv = readEnvFile(config.files.dockerEnv);
-  const project = options?.project?.trim() || process.env.LCP_PROJECT?.trim() || dockerEnv.LCP_PROJECT || 'my-lcp-project';
-  const environment = options?.environment?.trim() || process.env.LCP_ENVIRONMENT?.trim() || dockerEnv.LCP_ENVIRONMENT || 'prd';
-  const backupId = options?.backupId?.trim() || await resolveLatestBackupId(project, environment);
+  const project =
+    options?.project?.trim() || process.env.LCP_PROJECT?.trim() || dockerEnv.LCP_PROJECT || 'my-lcp-project';
+  const environment =
+    options?.environment?.trim() || process.env.LCP_ENVIRONMENT?.trim() || dockerEnv.LCP_ENVIRONMENT || 'prd';
+  const backupId = options?.backupId?.trim() || (await resolveLatestBackupId(project, environment));
   const backupDir = path.join(config.dockerDir, 'backups');
 
   await fs.ensureDir(backupDir);
@@ -101,9 +103,12 @@ async function resolveLatestBackupId(project: string, environment: string): Prom
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(`No se pudieron listar backups de ${project}/${environment}: ${result.stderr.trim() || result.stdout.trim()}`, {
-      code: 'DB_LCP_BACKUP_LIST_FAILED',
-    });
+    throw new CliError(
+      `No se pudieron listar backups de ${project}/${environment}: ${result.stderr.trim() || result.stdout.trim()}`,
+      {
+        code: 'DB_LCP_BACKUP_LIST_FAILED',
+      },
+    );
   }
 
   const backupId = result.stdout
@@ -142,7 +147,19 @@ async function ensureDoclibBackup(options: {
   await runStep(options.printer, 'Descargando doclib desde LCP', async () => {
     const result = await runProcess(
       'lcp',
-      ['backup', 'download', '--project', options.project, '--environment', options.environment, '--backupId', options.backupId, '--doclib', '--dest', targetDoclibDir],
+      [
+        'backup',
+        'download',
+        '--project',
+        options.project,
+        '--environment',
+        options.environment,
+        '--backupId',
+        options.backupId,
+        '--doclib',
+        '--dest',
+        targetDoclibDir,
+      ],
       {reject: false},
     );
     if (!result.ok) {
@@ -188,7 +205,19 @@ async function ensureDoclibBackupBackground(options: {
   const outFd = await fs.open(logFile, 'a');
   const child = spawn(
     'lcp',
-    ['backup', 'download', '--project', options.project, '--environment', options.environment, '--backupId', options.backupId, '--doclib', '--dest', targetDoclibDir],
+    [
+      'backup',
+      'download',
+      '--project',
+      options.project,
+      '--environment',
+      options.environment,
+      '--backupId',
+      options.backupId,
+      '--doclib',
+      '--dest',
+      targetDoclibDir,
+    ],
     {
       detached: true,
       stdio: ['ignore', outFd, outFd],

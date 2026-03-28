@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {restoreArtifactsFromDeployCache, resolveDeployContext} from '../deploy/deploy-shared.js';
@@ -136,7 +136,9 @@ async function hasBootstrapArtifact(buildDeployDir: string): Promise<boolean> {
   }
 
   const entries = await fs.readdir(buildDeployDir, {withFileTypes: true});
-  return entries.some((entry) => entry.isFile() && entry.name.includes('liferay.cli.bootstrap') && entry.name.endsWith('.jar'));
+  return entries.some(
+    (entry) => entry.isFile() && entry.name.includes('liferay.cli.bootstrap') && entry.name.endsWith('.jar'),
+  );
 }
 
 async function restoreBuildDeployFromCache(config: AppConfig): Promise<void> {
@@ -145,7 +147,7 @@ async function restoreBuildDeployFromCache(config: AppConfig): Promise<void> {
   }
 
   const context = resolveDeployContext(config);
-  const buildArtifacts = await fs.pathExists(context.buildDeployDir)
+  const buildArtifacts = (await fs.pathExists(context.buildDeployDir))
     ? await fs.readdir(context.buildDeployDir, {withFileTypes: true})
     : [];
 

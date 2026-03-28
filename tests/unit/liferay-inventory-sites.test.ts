@@ -1,7 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
-import {formatLiferayInventorySites, runLiferayInventorySites} from '../../src/features/liferay/liferay-inventory-sites.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {
+  formatLiferayInventorySites,
+  runLiferayInventorySites,
+} from '../../src/features/liferay/liferay-inventory-sites.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -45,23 +48,29 @@ describe('liferay inventory sites', () => {
         }
 
         if (url.includes('start=2&end=4')) {
-          return new Response('[{"groupId":103,"friendlyURL":"/global","nameCurrentValue":"Global","site":true}]', {status: 200});
+          return new Response('[{"groupId":103,"friendlyURL":"/global","nameCurrentValue":"Global","site":true}]', {
+            status: 200,
+          });
         }
 
         throw new Error(`Unexpected URL ${url}`);
       },
     });
 
-    const result = await runLiferayInventorySites(CONFIG, {pageSize: 2}, {
-      apiClient,
-      tokenClient: {
-        fetchClientCredentialsToken: async () => ({
-          accessToken: 'token-123',
-          tokenType: 'Bearer',
-          expiresIn: 3600,
-        }),
+    const result = await runLiferayInventorySites(
+      CONFIG,
+      {pageSize: 2},
+      {
+        apiClient,
+        tokenClient: {
+          fetchClientCredentialsToken: async () => ({
+            accessToken: 'token-123',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+          }),
+        },
       },
-    });
+    );
 
     expect(result).toEqual([
       {

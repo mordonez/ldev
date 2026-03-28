@@ -14,7 +14,7 @@ export type ProjectAssets = {
 export function resolveProjectAssets(repoRoot = getDefaultRepoRoot()): ProjectAssets {
   return {
     repoRoot,
-    scaffoldDir: path.join(repoRoot, 'scaffold'),
+    scaffoldDir: path.join(repoRoot, 'templates'),
     dockerDir: path.join(repoRoot, 'docker'),
     liferayDir: path.join(repoRoot, 'liferay'),
     modulesDir: path.join(repoRoot, 'modules'),
@@ -25,9 +25,14 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
   const copied: string[] = [];
 
   copied.push(
-    ...(await copyMissingFile(path.join(assets.scaffoldDir, '.liferay-cli.yml'), path.join(targetDir, '.liferay-cli.yml'))),
+    ...(await copyMissingFile(
+      path.join(assets.scaffoldDir, '.liferay-cli.yml'),
+      path.join(targetDir, '.liferay-cli.yml'),
+    )),
   );
-  copied.push(...(await copyMissingFile(path.join(assets.scaffoldDir, '.gitignore'), path.join(targetDir, '.gitignore'))));
+  copied.push(
+    ...(await copyMissingFile(path.join(assets.scaffoldDir, '.gitignore'), path.join(targetDir, '.gitignore'))),
+  );
 
   return copied;
 }
@@ -125,10 +130,10 @@ function findPackageRoot(fromFile: string): string {
 
   while (true) {
     if (
-      fs.existsSync(path.join(current, 'package.json'))
-      && fs.existsSync(path.join(current, 'docker'))
-      && fs.existsSync(path.join(current, 'liferay'))
-      && fs.existsSync(path.join(current, 'modules'))
+      fs.existsSync(path.join(current, 'package.json')) &&
+      fs.existsSync(path.join(current, 'docker')) &&
+      fs.existsSync(path.join(current, 'liferay')) &&
+      fs.existsSync(path.join(current, 'modules'))
     ) {
       return current;
     }

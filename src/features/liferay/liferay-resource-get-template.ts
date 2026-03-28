@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventoryTemplates} from './liferay-inventory-templates.js';
 import {resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 
@@ -35,11 +35,9 @@ export async function runLiferayResourceGetTemplate(
 
   if (!match) {
     const inventoryTemplates = await runLiferayInventoryTemplates(config, {site: site.friendlyUrlPath}, dependencies);
-    const inventoryMatch = inventoryTemplates.find((item) => (
-      options.id === item.id ||
-      options.id === item.externalReferenceCode ||
-      options.id === item.name
-    ));
+    const inventoryMatch = inventoryTemplates.find(
+      (item) => options.id === item.id || options.id === item.externalReferenceCode || options.id === item.name,
+    );
 
     if (inventoryMatch) {
       match = {

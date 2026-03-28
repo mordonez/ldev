@@ -1,12 +1,9 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventorySites} from './liferay-inventory-sites.js';
-import {
-  normalizeAdtWidgetType,
-  resolveAdtClassEntries,
-} from './liferay-resource-list-adts.js';
+import {normalizeAdtWidgetType, resolveAdtClassEntries} from './liferay-resource-list-adts.js';
 import {
   fetchAdtResourceClassNameId,
   listDdmTemplatesByClassName,
@@ -72,13 +69,7 @@ export async function runLiferayResourceResolveAdt(
         continue;
       }
 
-      const templates = await listDdmTemplatesByClassName(
-        config,
-        site,
-        className,
-        resourceClassNameId,
-        dependencies,
-      );
+      const templates = await listDdmTemplatesByClassName(config, site, className, resourceClassNameId, dependencies);
 
       for (const item of templates) {
         if (!matchesAdt(item, resolvedTemplateId, normalizedName)) {

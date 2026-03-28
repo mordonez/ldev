@@ -7,8 +7,8 @@ import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {deleteGitBranch, isGitRepository, listGitWorktrees, removeGitWorktree} from '../../core/platform/git.js';
-import type {Printer} from '../../core/output/print.js';
-import {withProgress} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
+import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
@@ -49,36 +49,43 @@ export async function runWorktreeClean(options: {
   const mainEnvFile = path.join(context.mainRepoRoot, 'docker', '.env');
   const mainEnvValues = readEnvFile(mainEnvFile);
   const mainDockerDir = path.join(context.mainRepoRoot, 'docker');
-  const btrfs = await resolveBtrfsConfig({
-    repoRoot: context.mainRepoRoot,
-    liferayDir: path.join(context.mainRepoRoot, 'liferay'),
-    dockerDir: mainDockerDir,
-    dockerComposeFile: path.join(mainDockerDir, 'docker-compose.yml'),
-    dockerEnvFile: mainEnvFile,
-    dockerEnvExampleFile: null,
-    envValues: mainEnvValues,
-    dataRoot: '',
-    bindIp: '',
-    httpPort: '',
-    portalUrl: '',
-    composeProjectName: mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay',
-  }, mainEnvValues);
+  const btrfs = await resolveBtrfsConfig(
+    {
+      repoRoot: context.mainRepoRoot,
+      liferayDir: path.join(context.mainRepoRoot, 'liferay'),
+      dockerDir: mainDockerDir,
+      dockerComposeFile: path.join(mainDockerDir, 'docker-compose.yml'),
+      dockerEnvFile: mainEnvFile,
+      dockerEnvExampleFile: null,
+      envValues: mainEnvValues,
+      dataRoot: '',
+      bindIp: '',
+      httpPort: '',
+      portalUrl: '',
+      composeProjectName: mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay',
+    },
+    mainEnvValues,
+  );
   const registered = await listGitWorktrees(context.mainRepoRoot);
   const isRegistered = registered.includes(target.worktreeDir);
   const worktreeDirExists = await fs.pathExists(target.worktreeDir);
-  if (!isRegistered && !worktreeDirExists && !isOwnedBtrfsWorktreeDataRoot(path.join(btrfs.envsDir ?? '', target.name), target.name, btrfs.envsDir)) {
+  if (
+    !isRegistered &&
+    !worktreeDirExists &&
+    !isOwnedBtrfsWorktreeDataRoot(path.join(btrfs.envsDir ?? '', target.name), target.name, btrfs.envsDir)
+  ) {
     throw new CliError(`El path no es un git worktree registrado: ${target.worktreeDir}`, {
       code: 'WORKTREE_NOT_REGISTERED',
     });
   }
 
-  const envValues = await fs.pathExists(target.envFile) ? readEnvFile(target.envFile) : {};
+  const envValues = (await fs.pathExists(target.envFile)) ? readEnvFile(target.envFile) : {};
   const composeProjectName = envValues.COMPOSE_PROJECT_NAME || `liferay-${target.name}`;
-  const mainDoclibVolume = mainEnvValues.DOCLIB_VOLUME_NAME || `${mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay'}-doclib`;
-  const doclibCandidates = [
-    envValues.DOCLIB_VOLUME_NAME || '',
-    `${composeProjectName}-doclib`,
-  ].filter((value) => value !== '' && value !== mainDoclibVolume);
+  const mainDoclibVolume =
+    mainEnvValues.DOCLIB_VOLUME_NAME || `${mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay'}-doclib`;
+  const doclibCandidates = [envValues.DOCLIB_VOLUME_NAME || '', `${composeProjectName}-doclib`].filter(
+    (value) => value !== '' && value !== mainDoclibVolume,
+  );
 
   const cleanTask = async () => {
     if (await fs.pathExists(target.dockerDir)) {
@@ -117,7 +124,10 @@ export async function runWorktreeClean(options: {
     if (candidate === '' || !(await fs.pathExists(candidate))) {
       continue;
     }
-    if (isPathInside(target.worktreeDir, candidate) || isOwnedBtrfsWorktreeDataRoot(candidate, target.name, btrfs.envsDir)) {
+    if (
+      isPathInside(target.worktreeDir, candidate) ||
+      isOwnedBtrfsWorktreeDataRoot(candidate, target.name, btrfs.envsDir)
+    ) {
       await removePathRobust(candidate, {processEnv: options.processEnv});
       dataRootsDeleted.push(candidate);
     } else {
@@ -191,7 +201,10 @@ async function listComposeContainers(composeProjectName: string, processEnv?: No
   if (!result.ok) {
     return [];
   }
-  return result.stdout.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '');
+  return result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
 }
 
 function resolveWorktreeDataRoot(dockerDir: string, configured: string): string {

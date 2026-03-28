@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import YAML from 'yaml';
 
-import {resolveLiferayConfig} from '../liferay/config.js';
+import {resolveLiferayConfig} from '../http/config.js';
 import {appConfigSchema, type AppConfig} from './schema.js';
 import {readEnvFile} from './env-file.js';
 import {detectRepoPaths, type RepoPaths} from './repo-paths.js';
@@ -77,8 +77,8 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     .split(',')
     .map((value) => value.trim())
     .filter((value) => value !== '');
-  const bindIp = repoPaths.repoRoot ? (dockerEnv.BIND_IP || 'localhost') : null;
-  const httpPort = repoPaths.repoRoot ? (dockerEnv.LIFERAY_HTTP_PORT || '8080') : null;
+  const bindIp = repoPaths.repoRoot ? dockerEnv.BIND_IP || 'localhost' : null;
+  const httpPort = repoPaths.repoRoot ? dockerEnv.LIFERAY_HTTP_PORT || '8080' : null;
 
   return {
     cwd,
@@ -97,7 +97,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
       profile,
     },
     env: {
-      composeProjectName: repoPaths.repoRoot ? (dockerEnv.COMPOSE_PROJECT_NAME || 'liferay') : null,
+      composeProjectName: repoPaths.repoRoot ? dockerEnv.COMPOSE_PROJECT_NAME || 'liferay' : null,
       bindIp,
       httpPort,
       portalUrl: bindIp && httpPort ? `http://${bindIp}:${httpPort}` : null,

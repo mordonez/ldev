@@ -58,7 +58,9 @@ describe('ai integration', () => {
     });
 
     expect(updateResult.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
+      true,
+    );
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('local agents\n');
   }, 15000);
 
@@ -82,7 +84,9 @@ describe('ai integration', () => {
     expect(updateResult.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'developing-liferay', 'SKILL.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
+      true,
+    );
   }, 15000);
 
   test('install without force keeps AGENTS.md and install with force overwrites it', async () => {
@@ -100,11 +104,9 @@ describe('ai integration', () => {
     expect(keepResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom agents\n');
 
-    const forceResult = await runProcess(
-      'npx',
-      ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir, '--force'],
-      {cwd: CLI_CWD},
-    );
+    const forceResult = await runProcess('npx', ['tsx', CLI_ENTRY, 'ai', 'install', '--target', targetDir, '--force'], {
+      cwd: CLI_CWD,
+    });
     expect(forceResult.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe(
       await fs.readFile(path.join(AI_ROOT, 'install', 'AGENTS.md'), 'utf8'),

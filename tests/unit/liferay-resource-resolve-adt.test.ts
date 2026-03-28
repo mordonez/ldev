@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceResolveAdt,
   matchesAdt,
@@ -67,13 +67,23 @@ describe('liferay resource resolve-adt', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')) {
+        if (
+          url.includes('classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')
+        ) {
           return new Response('{"classNameId":2001}', {status: 200});
         }
-        if (url.includes('classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext')) {
+        if (
+          url.includes(
+            'classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
           return new Response('{"classNameId":3001}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":"19690804","templateKey":"UB_ADT_ACTIVIDADES_SEARCH","externalReferenceCode":"erc-adt","nameCurrentValue":"UB ADT Actividades Search"}]',
             {status: 200},
@@ -120,7 +130,14 @@ describe('liferay resource resolve-adt', () => {
 
   test('formats text output and fails clearly when not found', async () => {
     const text = formatLiferayResourceResolveAdt({
-      query: {site: '/global', displayStyle: null, id: '42', name: null, widgetType: 'search-result-summary', className: null},
+      query: {
+        site: '/global',
+        displayStyle: null,
+        id: '42',
+        name: null,
+        widgetType: 'search-result-summary',
+        className: null,
+      },
       searchedSites: ['/global'],
       matches: [
         {
@@ -141,7 +158,9 @@ describe('liferay resource resolve-adt', () => {
 
     expect(text).toContain('RESOURCE_RESOLVE_ADT');
     expect(text).toContain('matches=1');
-    expect(text).toContain('site=/global widgetType=search-result-summary className=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext templateId=42');
+    expect(text).toContain(
+      'site=/global widgetType=search-result-summary className=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext templateId=42',
+    );
 
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {

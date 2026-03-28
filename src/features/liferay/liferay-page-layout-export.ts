@@ -3,9 +3,9 @@ import path from 'node:path';
 
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import {createLiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayApiClient} from '../../core/http/client.js';
 import {resolveRegularLayoutPage} from './liferay-inventory-page.js';
 import {authedGet, fetchAccessToken} from './liferay-inventory-shared.js';
 
@@ -59,7 +59,13 @@ export async function runLiferayPageLayoutExport(
   const regularPage = await resolveExportableRegularPage(config, options, dependencies);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const headlessSitePage = await fetchSitePage(config, apiClient, accessToken, regularPage.groupId, regularPage.friendlyUrl);
+  const headlessSitePage = await fetchSitePage(
+    config,
+    apiClient,
+    accessToken,
+    regularPage.groupId,
+    regularPage.friendlyUrl,
+  );
 
   if (headlessSitePage === null) {
     throw new CliError('La página no es exportable por Headless Delivery o no se pudo resolver como content page.', {
@@ -67,7 +73,13 @@ export async function runLiferayPageLayoutExport(
     });
   }
 
-  const experiences = await fetchSitePageExperiences(config, apiClient, accessToken, regularPage.groupId, regularPage.friendlyUrl);
+  const experiences = await fetchSitePageExperiences(
+    config,
+    apiClient,
+    accessToken,
+    regularPage.groupId,
+    regularPage.friendlyUrl,
+  );
 
   return {
     kind: EXPORT_KIND,
@@ -123,9 +135,12 @@ async function resolveExportableRegularPage(
   const page = await resolveRegularLayoutPage(config, options, dependencies);
 
   if (page.layoutType.toLowerCase() !== 'content') {
-    throw new CliError(`page-layout export solo soporta layoutType=content; recibido ${page.layoutType || '<empty>'}.`, {
-      code: 'LIFERAY_PAGE_LAYOUT_ERROR',
-    });
+    throw new CliError(
+      `page-layout export solo soporta layoutType=content; recibido ${page.layoutType || '<empty>'}.`,
+      {
+        code: 'LIFERAY_PAGE_LAYOUT_ERROR',
+      },
+    );
   }
 
   return page;
@@ -171,7 +186,12 @@ async function fetchSitePageExperiences(
   return response.ok ? response.data : null;
 }
 
-function buildConfigureUrl(baseUrl: string, siteFriendlyUrl: string, plid: number, screenNavigationEntryKey: string): string {
+function buildConfigureUrl(
+  baseUrl: string,
+  siteFriendlyUrl: string,
+  plid: number,
+  screenNavigationEntryKey: string,
+): string {
   const siteSlug = siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl;
   const prefix = '&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_';
   return (

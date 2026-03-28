@@ -21,9 +21,9 @@ export function createAiCommand(): Command {
       .requiredOption('--target <target>', 'Project root'),
   );
 
-  command
-    .description('Standard reusable AI assets and skills for ldev projects')
-    .addHelpText('after', `
+  command.description('Standard reusable AI assets and skills for ldev projects').addHelpText(
+    'after',
+    `
 This namespace bootstraps only the reusable vendor-managed AI surface.
 Project-specific context, prompts and workflows should stay in the project repo.
 
@@ -32,25 +32,36 @@ Safe defaults:
 
 Potentially mutating:
   install --force   Overwrite AGENTS.md when bootstrapping a project
-`);
+`,
+  );
 
-  installCommand.action(createFormattedAction(async (context, options) => {
-      const result = await runAiInstall({
-        targetDir: options.target,
-        force: Boolean(options.force),
-        skillsOnly: Boolean(options.skillsOnly),
-        printer: context.printer,
-      });
-      return result;
-    }, {text: formatAiResult}));
+  installCommand.action(
+    createFormattedAction(
+      async (context, options) => {
+        const result = await runAiInstall({
+          targetDir: options.target,
+          force: Boolean(options.force),
+          skillsOnly: Boolean(options.skillsOnly),
+          printer: context.printer,
+        });
+        return result;
+      },
+      {text: formatAiResult},
+    ),
+  );
 
-  updateCommand.action(createFormattedAction(async (context, options) => {
-      const result = await runAiUpdate({
-        targetDir: options.target,
-        printer: context.printer,
-      });
-      return result;
-    }, {text: formatAiResult}));
+  updateCommand.action(
+    createFormattedAction(
+      async (context, options) => {
+        const result = await runAiUpdate({
+          targetDir: options.target,
+          printer: context.printer,
+        });
+        return result;
+      },
+      {text: formatAiResult},
+    ),
+  );
 
   return command;
 }

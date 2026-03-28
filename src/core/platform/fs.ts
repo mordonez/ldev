@@ -28,9 +28,7 @@ export async function removePathRobust(targetPath: string, options?: {processEnv
 }
 
 function isPermissionError(error: unknown): boolean {
-  return error instanceof Error
-    && 'code' in error
-    && (error.code === 'EACCES' || error.code === 'EPERM');
+  return error instanceof Error && 'code' in error && (error.code === 'EACCES' || error.code === 'EPERM');
 }
 
 async function removePathWithDockerHelper(targetPath: string, processEnv?: NodeJS.ProcessEnv): Promise<void> {

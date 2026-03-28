@@ -16,10 +16,10 @@ function stripVolatilePortletAuthToken(content: string): string {
     .replaceAll(/([?&])p_p_auth=[^"'&\s]+(?=["'&\s]|$)/g, '')
     .replaceAll('?&', '?')
     .replaceAll('&&', '&')
-    .replaceAll('?\"', '"')
+    .replaceAll('?"', '"')
     .replaceAll("?'", "'")
     .replaceAll('? ', ' ')
-    .replaceAll('&\"', '"')
+    .replaceAll('&"', '"')
     .replaceAll("&'", "'")
     .replaceAll('& ', ' ');
 }
@@ -32,7 +32,7 @@ function stripVolatileCacheBusterParam(content: string): string {
     .replaceAll('&&', '&')
     .replaceAll('&amp;&amp;', '&amp;')
     .replaceAll('&amp;&', '&amp;')
-    .replaceAll('&?\"', '"')
+    .replaceAll('&?"', '"')
     .replaceAll("&?'", "'")
     .replaceAll('&? ', ' ')
     .replaceAll('&amp;"', '"')

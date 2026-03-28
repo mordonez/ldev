@@ -70,11 +70,7 @@ export function createOAuthTokenClient(options?: {
   };
 }
 
-async function requestWithFallback(
-  apiClient: LiferayApiClient,
-  settings: LiferayAuthConfig,
-  scope: string,
-) {
+async function requestWithFallback(apiClient: LiferayApiClient, settings: LiferayAuthConfig, scope: string) {
   const baseForm = {
     grant_type: 'client_credentials',
     ...(scope === '' ? {} : {scope}),

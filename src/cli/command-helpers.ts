@@ -46,39 +46,49 @@ export async function withCommandContext<TOptions extends object>(
 export function createFormattedAction<TOptions extends object, TResult>(
   run: (context: CommandContext, options: TOptions) => Promise<TResult>,
   renderOptions?:
-  | {
-    text?: string | ((result: TResult) => string);
-    json?: unknown | ((result: TResult) => unknown);
-    exitCode?: number | ((result: TResult) => number | undefined);
-  }
-  | ((options: TOptions) => {
-    text?: string | ((result: TResult) => string);
-    json?: unknown | ((result: TResult) => unknown);
-    exitCode?: number | ((result: TResult) => number | undefined);
-  }),
+    | {
+        text?: string | ((result: TResult) => string);
+        json?: unknown | ((result: TResult) => unknown);
+        exitCode?: number | ((result: TResult) => number | undefined);
+      }
+    | ((options: TOptions) => {
+        text?: string | ((result: TResult) => string);
+        json?: unknown | ((result: TResult) => unknown);
+        exitCode?: number | ((result: TResult) => number | undefined);
+      }),
 ): (options: TOptions) => Promise<void> {
-  return async (options) => withCommandContext(options, async (context) => {
-    const result = await run(context, options);
-    renderCommandResult(context, result, typeof renderOptions === 'function' ? renderOptions(options) : renderOptions);
-  });
+  return async (options) =>
+    withCommandContext(options, async (context) => {
+      const result = await run(context, options);
+      renderCommandResult(
+        context,
+        result,
+        typeof renderOptions === 'function' ? renderOptions(options) : renderOptions,
+      );
+    });
 }
 
 export function createFormattedArgumentAction<TArg, TOptions extends object, TResult>(
   run: (context: CommandContext, argument: TArg, options: TOptions) => Promise<TResult>,
   renderOptions?:
-  | {
-    text?: string | ((result: TResult) => string);
-    json?: unknown | ((result: TResult) => unknown);
-    exitCode?: number | ((result: TResult) => number | undefined);
-  }
-  | ((options: TOptions) => {
-    text?: string | ((result: TResult) => string);
-    json?: unknown | ((result: TResult) => unknown);
-    exitCode?: number | ((result: TResult) => number | undefined);
-  }),
+    | {
+        text?: string | ((result: TResult) => string);
+        json?: unknown | ((result: TResult) => unknown);
+        exitCode?: number | ((result: TResult) => number | undefined);
+      }
+    | ((options: TOptions) => {
+        text?: string | ((result: TResult) => string);
+        json?: unknown | ((result: TResult) => unknown);
+        exitCode?: number | ((result: TResult) => number | undefined);
+      }),
 ): (argument: TArg, options: TOptions) => Promise<void> {
-  return async (argument, options) => withCommandContext(options, async (context) => {
-    const result = await run(context, argument, options);
-    renderCommandResult(context, result, typeof renderOptions === 'function' ? renderOptions(options) : renderOptions);
-  });
+  return async (argument, options) =>
+    withCommandContext(options, async (context) => {
+      const result = await run(context, argument, options);
+      renderCommandResult(
+        context,
+        result,
+        typeof renderOptions === 'function' ? renderOptions(options) : renderOptions,
+      );
+    });
 }

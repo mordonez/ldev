@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
-import {createLiferayApiClient} from '../../src/core/liferay/client.js';
+import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceSyncTemplate,
   runLiferayResourceSyncTemplate,
@@ -66,7 +66,9 @@ describe('liferay resource template-sync', () => {
         calls.push(`${init?.method ?? 'GET'} ${url}`);
 
         if (url.includes('/by-friendly-url-path/global')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {status: 200});
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":20097}', {status: 200});
@@ -83,7 +85,11 @@ describe('liferay resource template-sync', () => {
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=BASIC')) {
           return new Response('{"templateId":"T-100","templateKey":"BASIC","classPK":"301"}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":"T-100","templateKey":"T-100","externalReferenceCode":"BASIC","nameCurrentValue":"BASIC","name":"BASIC","script":"Hello from local","classPK":"301"}]',
             {status: 200},
@@ -111,9 +117,11 @@ describe('liferay resource template-sync', () => {
     expect(result.status).toBe('updated');
     expect(result.id).toBe('BASIC');
     expect(formatLiferayResourceSyncTemplate(result)).toContain('updated\tBASIC\tBASIC');
-    expect(calls).toEqual(expect.arrayContaining([
-      expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
   });
 
   test('resolves a content-template inventory id to the matching ddm template key', async () => {
@@ -125,7 +133,9 @@ describe('liferay resource template-sync', () => {
         calls.push(`${init?.method ?? 'GET'} ${url}`);
 
         if (url.includes('/by-friendly-url-path/global')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {status: 200});
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":20097}', {status: 200});
@@ -145,7 +155,11 @@ describe('liferay resource template-sync', () => {
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33954')) {
           return new Response('{"templateId":"33955","templateKey":"33954","classPK":"301"}', {status: 200});
         }
-        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0')) {
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0',
+          )
+        ) {
           return new Response(
             '[{"templateId":"33955","templateKey":"33954","externalReferenceCode":"33954","nameCurrentValue":"NUEVA","name":"NUEVA","script":"Hello from local","classPK":"301"}]',
             {status: 200},
@@ -158,7 +172,10 @@ describe('liferay resource template-sync', () => {
           return new Response('{"templateId":"33955"}', {status: 200});
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33955')) {
-          return new Response('{"cacheable":true,"templateId":"33955","templateKey":"33954","script":"Hello from local"}', {status: 200});
+          return new Response(
+            '{"cacheable":true,"templateId":"33955","templateKey":"33954","script":"Hello from local"}',
+            {status: 200},
+          );
         }
         throw new Error(`Unexpected URL ${url}`);
       },
@@ -172,10 +189,16 @@ describe('liferay resource template-sync', () => {
 
     expect(result.status).toBe('updated');
     expect(result.id).toBe('33954');
-    expect(calls).toEqual(expect.arrayContaining([
-      expect.stringContaining('GET http://localhost:8080/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200'),
-      expect.stringContaining('GET http://localhost:8080/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33954'),
-      expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
-    ]));
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          'GET http://localhost:8080/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200',
+        ),
+        expect.stringContaining(
+          'GET http://localhost:8080/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33954',
+        ),
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
   });
 });

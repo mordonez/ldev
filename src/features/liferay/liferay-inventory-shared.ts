@@ -1,7 +1,7 @@
 import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/liferay/auth.js';
-import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../core/liferay/client.js';
+import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
+import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../core/http/client.js';
 
 export type ResolvedSite = {
   id: number;
@@ -25,10 +25,7 @@ type SiteLookupPayload = {
   name?: string | Record<string, string>;
 };
 
-export async function fetchAccessToken(
-  config: AppConfig,
-  dependencies?: InventoryDependencies,
-): Promise<string> {
+export async function fetchAccessToken(config: AppConfig, dependencies?: InventoryDependencies): Promise<string> {
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const token = await tokenClient.fetchClientCredentialsToken(config.liferay);
   return token.accessToken;
@@ -73,12 +70,7 @@ export async function resolveSite(
 
   while (page <= lastPage) {
     const response = await expectJsonSuccess<HeadlessPage<SiteLookupPayload>>(
-      await authedGet(
-        config,
-        apiClient,
-        accessToken,
-        `/o/headless-admin-user/v1.0/sites?pageSize=100&page=${page}`,
-      ),
+      await authedGet(config, apiClient, accessToken, `/o/headless-admin-user/v1.0/sites?pageSize=100&page=${page}`),
       `list sites page=${page}`,
     );
 
@@ -159,10 +151,7 @@ export async function authedGet<T>(
   });
 }
 
-export async function expectJsonSuccess<T>(
-  response: HttpResponse<T>,
-  label: string,
-): Promise<HttpResponse<T>> {
+export async function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): Promise<HttpResponse<T>> {
   if (response.ok) {
     return response;
   }

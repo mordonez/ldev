@@ -6,7 +6,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
 import {readEnvFile} from '../../core/config/env-file.js';
-import {detectRepoPaths, type RepoPaths} from '../../core/config/repo-paths.js';
+import {detectRepoPaths} from '../../core/config/repo-paths.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
@@ -98,7 +98,8 @@ export async function runDoctor(
   const detectCapabilitiesFn = dependencies?.detectCapabilities ?? detectCapabilities;
   const detectRepoPathsFn = dependencies?.detectRepoPaths ?? detectRepoPaths;
   const isWorktreeFn = dependencies?.isWorktree ?? isWorktree;
-  const loadConfigFn = dependencies?.loadConfig ?? loadConfig;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _loadConfigFn = dependencies?.loadConfig ?? loadConfig;
   const readEnvFileFn = dependencies?.readEnvFile ?? readEnvFile;
   const readProfileFileFn = dependencies?.readProfileFile ?? readProfileFile;
   const runProcessFn = dependencies?.runProcess ?? runProcess;
@@ -128,7 +129,11 @@ export async function runDoctor(
   const tools = {
     git: await detectTool(runProcessFn, capabilities.hasGit, 'git', ['--version']),
     docker: await detectTool(runProcessFn, capabilities.hasDocker, 'docker', ['--version']),
-    dockerCompose: await detectTool(runProcessFn, capabilities.hasDockerCompose, 'docker', ['compose', 'version', '--short']),
+    dockerCompose: await detectTool(runProcessFn, capabilities.hasDockerCompose, 'docker', [
+      'compose',
+      'version',
+      '--short',
+    ]),
     node: await detectTool(runProcessFn, capabilities.hasNode, 'node', ['--version']),
     java: await detectTool(runProcessFn, capabilities.hasJava, 'java', ['-version']),
     lcp: await detectTool(runProcessFn, capabilities.hasLcp, 'lcp', ['version']),
@@ -178,13 +183,17 @@ export async function runDoctor(
       id: 'docker',
       label: 'Docker',
       status: capabilities.hasDocker ? 'pass' : 'fail',
-      summary: capabilities.hasDocker ? summarizeTool('docker', tools.docker) : 'docker no esta disponible o el daemon no responde',
+      summary: capabilities.hasDocker
+        ? summarizeTool('docker', tools.docker)
+        : 'docker no esta disponible o el daemon no responde',
     },
     {
       id: 'docker-compose',
       label: 'Docker Compose',
       status: capabilities.hasDockerCompose ? 'pass' : 'fail',
-      summary: capabilities.hasDockerCompose ? summarizeTool('docker compose', tools.dockerCompose) : 'docker compose no esta disponible',
+      summary: capabilities.hasDockerCompose
+        ? summarizeTool('docker compose', tools.dockerCompose)
+        : 'docker compose no esta disponible',
     },
     {
       id: 'node',
@@ -196,58 +205,78 @@ export async function runDoctor(
       id: 'repo-root',
       label: 'Repo Root',
       status: repoPaths.repoRoot ? 'pass' : 'fail',
-      summary: repoPaths.repoRoot ? `repo detectado en ${repoPaths.repoRoot}` : 'no se detecto un repo compatible con docker/ y liferay/',
+      summary: repoPaths.repoRoot
+        ? `repo detectado en ${repoPaths.repoRoot}`
+        : 'no se detecto un repo compatible con docker/ y liferay/',
     },
     {
       id: 'worktree-context',
       label: 'Worktree Context',
       status: repoPaths.repoRoot ? 'pass' : 'warn',
-      summary: repoPaths.repoRoot ? (worktree ? 'ejecutando dentro de un worktree' : 'ejecutando en el repo principal') : 'sin contexto de repo; worktree no aplica',
+      summary: repoPaths.repoRoot
+        ? worktree
+          ? 'ejecutando dentro de un worktree'
+          : 'ejecutando en el repo principal'
+        : 'sin contexto de repo; worktree no aplica',
     },
     {
       id: 'docker-env-file',
       label: 'docker/.env',
       status: repoPaths.repoRoot ? (repoPaths.dockerEnvFile ? 'pass' : 'warn') : 'warn',
-      summary: repoPaths.dockerEnvFile ? `archivo detectado en ${repoPaths.dockerEnvFile}` : 'docker/.env no existe; se usaran defaults y env vars',
+      summary: repoPaths.dockerEnvFile
+        ? `archivo detectado en ${repoPaths.dockerEnvFile}`
+        : 'docker/.env no existe; se usaran defaults y env vars',
     },
     {
       id: 'liferay-profile-file',
       label: '.liferay-cli.yml',
       status: repoPaths.repoRoot ? (repoPaths.liferayProfileFile ? 'pass' : 'warn') : 'warn',
-      summary: repoPaths.liferayProfileFile ? `archivo detectado en ${repoPaths.liferayProfileFile}` : '.liferay-cli.yml no existe; config local limitada a env/.env',
+      summary: repoPaths.liferayProfileFile
+        ? `archivo detectado en ${repoPaths.liferayProfileFile}`
+        : '.liferay-cli.yml no existe; config local limitada a env/.env',
     },
     {
       id: 'liferay-url',
       label: 'Liferay URL',
       status: config.liferay.url.trim() !== '' ? 'pass' : 'fail',
-      summary: config.liferay.url.trim() !== ''
-        ? `url=${config.liferay.url} (source=${configSources.url})`
-        : 'LIFERAY_CLI_URL no resuelta',
+      summary:
+        config.liferay.url.trim() !== ''
+          ? `url=${config.liferay.url} (source=${configSources.url})`
+          : 'LIFERAY_CLI_URL no resuelta',
     },
     {
       id: 'liferay-oauth2-client',
       label: 'Liferay OAuth2',
-      status: config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== '' ? 'pass' : 'warn',
-      summary: config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== ''
-        ? `credenciales configuradas (id=${configSources.oauth2ClientId}, secret=${configSources.oauth2ClientSecret})`
-        : 'faltan client id o client secret para comandos liferay autenticados',
-      details: config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== ''
-        ? undefined
-        : [
-          'Define LIFERAY_CLI_OAUTH2_CLIENT_ID y LIFERAY_CLI_OAUTH2_CLIENT_SECRET en env, docker/.env o .liferay-cli.yml.',
-        ],
+      status:
+        config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== ''
+          ? 'pass'
+          : 'warn',
+      summary:
+        config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== ''
+          ? `credenciales configuradas (id=${configSources.oauth2ClientId}, secret=${configSources.oauth2ClientSecret})`
+          : 'faltan client id o client secret para comandos liferay autenticados',
+      details:
+        config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== ''
+          ? undefined
+          : [
+              'Define LIFERAY_CLI_OAUTH2_CLIENT_ID y LIFERAY_CLI_OAUTH2_CLIENT_SECRET en env, docker/.env o .liferay-cli.yml.',
+            ],
     },
     {
       id: 'java',
       label: 'Java (legacy)',
       status: capabilities.hasJava ? 'pass' : 'warn',
-      summary: capabilities.hasJava ? summarizeTool('java', tools.java) : 'java no esta disponible; ya no es requisito para ldev',
+      summary: capabilities.hasJava
+        ? summarizeTool('java', tools.java)
+        : 'java no esta disponible; ya no es requisito para ldev',
     },
     {
       id: 'lcp',
       label: 'LCP CLI (optional)',
       status: capabilities.hasLcp ? 'pass' : 'warn',
-      summary: capabilities.hasLcp ? summarizeTool('lcp', tools.lcp) : 'lcp no esta disponible; solo afecta flujos legacy/locales concretos',
+      summary: capabilities.hasLcp
+        ? summarizeTool('lcp', tools.lcp)
+        : 'lcp no esta disponible; solo afecta flujos legacy/locales concretos',
     },
   ];
 

@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {resolveStructuresBaseDir, resolveSiteToken} from './liferay-resource-paths.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
@@ -22,10 +22,14 @@ export async function runLiferayResourceExportStructure(
     {site: options.site, key: options.key, id: options.id},
     dependencies,
   );
-  const outputPath = await writeLiferayResourceFile(result.raw, options.output ?? buildDefaultOutputPath(config, result.siteFriendlyUrl, result.key), {
-    payloadNormalizer: normalizeLiferayStructurePayload,
-    pretty: options.pretty,
-  });
+  const outputPath = await writeLiferayResourceFile(
+    result.raw,
+    options.output ?? buildDefaultOutputPath(config, result.siteFriendlyUrl, result.key),
+    {
+      payloadNormalizer: normalizeLiferayStructurePayload,
+      pretty: options.pretty,
+    },
+  );
 
   return {outputPath};
 }

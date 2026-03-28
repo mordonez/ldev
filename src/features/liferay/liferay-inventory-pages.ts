@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
-import {createLiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayApiClient} from '../../core/http/client.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from './liferay-layout-shared.js';
 

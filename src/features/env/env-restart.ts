@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {Printer} from '../../core/output/print.js';
+import type {Printer} from '../../core/output/printer.js';
 
 import {resolveEnvContext} from './env-files.js';
 import {runEnvStart} from './env-start.js';
@@ -35,7 +35,9 @@ export async function runEnvRestart(
 }
 
 export function formatEnvRestart(result: EnvRestartResult): string {
-  return [`Contenedor liferay reiniciado`, `Portal URL: ${result.portalUrl}`, `Espera de salud: ${result.waitedForHealth ? 'sí' : 'no'}`].join(
-    '\n',
-  );
+  return [
+    `Contenedor liferay reiniciado`,
+    `Portal URL: ${result.portalUrl}`,
+    `Espera de salud: ${result.waitedForHealth ? 'sí' : 'no'}`,
+  ].join('\n');
 }

@@ -27,7 +27,9 @@ describe('liferay page-layout smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/guest')) {
@@ -85,7 +87,9 @@ describe('liferay page-layout smoke', () => {
         const url = String(input);
 
         if (url.endsWith('/o/oauth2/token')) {
-          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+          return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
+            status: 200,
+          });
         }
 
         if (url.includes('/by-friendly-url-path/guest')) {
@@ -123,7 +127,9 @@ describe('liferay page-layout smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(['liferay', 'page-layout', 'export', '--url', '/web/guest/home', '--output', outputPath], {from: 'user'});
+      await cli.parseAsync(['liferay', 'page-layout', 'export', '--url', '/web/guest/home', '--output', outputPath], {
+        from: 'user',
+      });
     } finally {
       process.chdir(originalCwd);
     }

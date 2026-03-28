@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 import {runLiferayInventoryStructures} from './liferay-inventory-structures.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
@@ -45,7 +45,13 @@ export async function runLiferayResourceExportStructures(
     let diffs = 0;
 
     for (const site of sites) {
-      const result = await exportStructuresForSite(config, site.siteFriendlyUrl, options?.dir, Boolean(options?.checkOnly), dependencies);
+      const result = await exportStructuresForSite(
+        config,
+        site.siteFriendlyUrl,
+        options?.dir,
+        Boolean(options?.checkOnly),
+        dependencies,
+      );
       siteResults.push(result);
       processed += result.processed;
       diffs += result.diffs;
@@ -61,7 +67,13 @@ export async function runLiferayResourceExportStructures(
     };
   }
 
-  const result = await exportStructuresForSite(config, options?.site ?? '/global', options?.dir, Boolean(options?.checkOnly), dependencies);
+  const result = await exportStructuresForSite(
+    config,
+    options?.site ?? '/global',
+    options?.dir,
+    Boolean(options?.checkOnly),
+    dependencies,
+  );
   return {
     mode: 'single-site',
     checkOnly: Boolean(options?.checkOnly),

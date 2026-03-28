@@ -51,11 +51,7 @@ export function resolveMigrationsBaseDir(config: AppConfig): string {
   return resolveRepoPath(config, config.paths?.migrations ?? 'liferay/resources/journal/migrations');
 }
 
-export async function resolveStructureFile(
-  config: AppConfig,
-  key: string,
-  file?: string,
-): Promise<string> {
+export async function resolveStructureFile(config: AppConfig, key: string, file?: string): Promise<string> {
   if (file) {
     return resolveExistingResourceFile(config, file);
   }

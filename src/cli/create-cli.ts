@@ -1,6 +1,6 @@
 import {Command} from 'commander';
 
-import {ROOT_COMMANDS, ROOT_HELP_SECTIONS} from './root-command-manifest.js';
+import {ROOT_COMMANDS, ROOT_HELP_SECTIONS} from './command-registry.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -9,7 +9,9 @@ export function createCli(): Command {
     .name('ldev')
     .description('Official Liferay local development CLI')
     .showHelpAfterError()
-    .addHelpText('after', `
+    .addHelpText(
+      'after',
+      `
 Quick start:
   ${ROOT_HELP_SECTIONS.quickStart.join('\n  ')}
 
@@ -22,7 +24,8 @@ For scripting and automation:
 
 Examples:
   ${ROOT_HELP_SECTIONS.examples.join('\n  ')}
-`);
+`,
+    );
 
   for (const entry of ROOT_COMMANDS) {
     const command = entry.factory().helpGroup(entry.group);

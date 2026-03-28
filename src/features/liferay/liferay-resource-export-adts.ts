@@ -2,11 +2,16 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../core/liferay/auth.js';
-import type {LiferayApiClient} from '../../core/liferay/client.js';
+import type {OAuthTokenClient} from '../../core/http/auth.js';
+import type {LiferayApiClient} from '../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {resolveAdtsBaseDir, resolveRepoPath, resolveSiteToken, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
+import {
+  resolveAdtsBaseDir,
+  resolveRepoPath,
+  resolveSiteToken,
+  ADT_WIDGET_DIR_BY_TYPE,
+} from './liferay-resource-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
@@ -27,10 +32,21 @@ export type LiferayResourceExportAdtsResult = {
 
 export async function runLiferayResourceExportAdts(
   config: AppConfig,
-  options?: {site?: string; dir?: string; widgetType?: string; className?: string; key?: string; name?: string; continueOnError?: boolean; allSites?: boolean},
+  options?: {
+    site?: string;
+    dir?: string;
+    widgetType?: string;
+    className?: string;
+    key?: string;
+    name?: string;
+    continueOnError?: boolean;
+    allSites?: boolean;
+  },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportAdtsResult> {
-  const baseDir = path.resolve(options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveAdtsBaseDir(config));
+  const baseDir = path.resolve(
+    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveAdtsBaseDir(config),
+  );
 
   if (options?.allSites) {
     const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
@@ -39,15 +55,19 @@ export async function runLiferayResourceExportAdts(
     let failed = 0;
 
     for (const site of sites) {
-      const result = await runLiferayResourceExportAdts(config, {
-        site: site.siteFriendlyUrl,
-        dir: options.dir,
-        widgetType: options.widgetType,
-        className: options.className,
-        key: options.key,
-        name: options.name,
-        continueOnError: options.continueOnError,
-      }, dependencies);
+      const result = await runLiferayResourceExportAdts(
+        config,
+        {
+          site: site.siteFriendlyUrl,
+          dir: options.dir,
+          widgetType: options.widgetType,
+          className: options.className,
+          key: options.key,
+          name: options.name,
+          continueOnError: options.continueOnError,
+        },
+        dependencies,
+      );
       siteResults.push(result);
       exported += result.exported;
       failed += result.failed;
@@ -68,12 +88,16 @@ export async function runLiferayResourceExportAdts(
   const site = await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const siteToken = resolveSiteToken(site.friendlyUrlPath);
   const outputDir = path.join(baseDir, siteToken);
-  const rows = await runLiferayResourceListAdts(config, {
-    site: site.friendlyUrlPath,
-    widgetType: options?.widgetType,
-    className: options?.className,
-    includeScript: true,
-  }, dependencies);
+  const rows = await runLiferayResourceListAdts(
+    config,
+    {
+      site: site.friendlyUrlPath,
+      widgetType: options?.widgetType,
+      className: options?.className,
+      includeScript: true,
+    },
+    dependencies,
+  );
   const filteredRows = rows.filter((row) => {
     if (options?.key && row.templateKey !== options.key) {
       return false;
@@ -90,7 +114,11 @@ export async function runLiferayResourceExportAdts(
   for (const row of filteredRows) {
     try {
       const widgetDir = ADT_WIDGET_DIR_BY_TYPE[row.widgetType];
-      const target = path.join(outputDir, widgetDir ?? row.widgetType.replaceAll('-', '_'), `${sanitizeFileToken(row.templateKey || row.adtName)}.ftl`);
+      const target = path.join(
+        outputDir,
+        widgetDir ?? row.widgetType.replaceAll('-', '_'),
+        `${sanitizeFileToken(row.templateKey || row.adtName)}.ftl`,
+      );
       await fs.ensureDir(path.dirname(target));
       await fs.writeFile(target, `${row.script ?? ''}`);
       exported += 1;
@@ -102,7 +130,7 @@ export async function runLiferayResourceExportAdts(
     }
   }
 
-  if (exported === 0 && failed === 0 && await fs.pathExists(outputDir)) {
+  if (exported === 0 && failed === 0 && (await fs.pathExists(outputDir))) {
     await fs.remove(outputDir);
   }
 
@@ -124,6 +152,9 @@ export function formatLiferayResourceExportAdts(result: LiferayResourceExportAdt
 }
 
 function sanitizeFileToken(value: string): string {
-  const normalized = value.trim().replaceAll(/[^A-Za-z0-9_.-]+/g, '_').replaceAll(/_+/g, '_');
+  const normalized = value
+    .trim()
+    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
+    .replaceAll(/_+/g, '_');
   return normalized === '' ? 'unnamed' : normalized;
 }
