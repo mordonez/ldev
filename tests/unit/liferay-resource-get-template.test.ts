@@ -129,6 +129,9 @@ describe('liferay resource get-template', () => {
             {status: 200},
           );
         }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates')) {
+          return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
+        }
 
         throw new Error(`Unexpected URL ${url}`);
       },

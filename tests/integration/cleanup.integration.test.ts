@@ -254,6 +254,7 @@ async function createWorktreeRepoFixture(): Promise<string> {
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.name', 'Tests'], {cwd: repoRoot});
+  await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: repoRoot});
   await runProcess('git', ['add', '-A'], {cwd: repoRoot});
   await runProcess('git', ['commit', '-m', 'chore: init'], {cwd: repoRoot});
   return repoRoot;

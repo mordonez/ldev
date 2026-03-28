@@ -97,6 +97,7 @@ describe('liferay resource list', () => {
         adtName: 'Search Results',
         displayName: 'Search Results',
         widgetType: 'search-result-summary',
+        className: 'com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
         templateId: 40801,
         templateKey: 'SEARCH_RESULTS',
         classNameId: 3001,

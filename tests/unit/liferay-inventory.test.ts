@@ -131,7 +131,15 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([{id: '40801', name: 'News Template', contentStructureId: 302}]);
+    expect(result).toEqual([
+      {
+        id: '40801',
+        name: 'News Template',
+        contentStructureId: 302,
+        externalReferenceCode: '40801',
+        templateScript: undefined,
+      },
+    ]);
     expect(formatLiferayInventoryTemplates(result)).toContain('key=40801 structureId=302 name=News Template');
   });
 

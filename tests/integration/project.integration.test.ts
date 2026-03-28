@@ -218,6 +218,7 @@ async function initializeRepo(targetDir: string, branch?: string): Promise<void>
     (await runProcess('git', ['config', 'user.email', 'dev-cli-tests@example.com'], {cwd: targetDir})).exitCode,
   ).toBe(0);
   expect((await runProcess('git', ['config', 'user.name', 'Dev CLI Tests'], {cwd: targetDir})).exitCode).toBe(0);
+  expect((await runProcess('git', ['config', 'commit.gpgsign', 'false'], {cwd: targetDir})).exitCode).toBe(0);
 }
 
 async function gitCommitAll(targetDir: string, message: string): Promise<void> {
