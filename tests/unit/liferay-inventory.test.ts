@@ -4,12 +4,12 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayInventoryStructures,
   runLiferayInventoryStructures,
-} from '../../src/features/liferay/liferay-inventory-structures.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-structures.js';
 import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
-} from '../../src/features/liferay/liferay-inventory-templates.js';
-import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/liferay-inventory-shared.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-templates.js';
+import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

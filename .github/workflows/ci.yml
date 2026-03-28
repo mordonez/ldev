@@ -44,6 +44,12 @@ jobs:
         run: |
           node dist/index.js --help
           node dist/index.js doctor --json || true
+      - name: Installed binary smoke test
+        run: |
+          npm pack
+          npm install -g ldev-*.tgz
+          ldev --help
+          ldev --version
 
   package:
     needs: smoke

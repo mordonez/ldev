@@ -3,18 +3,18 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
-import {runLiferayResourceExportStructure} from '../../src/features/liferay/liferay-resource-export-structure.js';
+import {runLiferayResourceExportStructure} from '../../src/features/liferay/resource/liferay-resource-export-structure.js';
 import {
   formatLiferayResourceExportStructures,
   runLiferayResourceExportStructures,
-} from '../../src/features/liferay/liferay-resource-export-structures.js';
-import {runLiferayResourceExportTemplate} from '../../src/features/liferay/liferay-resource-export-template.js';
-import {runLiferayResourceExportAdts} from '../../src/features/liferay/liferay-resource-export-adts.js';
-import {runLiferayResourceExportFragments} from '../../src/features/liferay/liferay-resource-export-fragments.js';
+} from '../../src/features/liferay/resource/liferay-resource-export-structures.js';
+import {runLiferayResourceExportTemplate} from '../../src/features/liferay/resource/liferay-resource-export-template.js';
+import {runLiferayResourceExportAdts} from '../../src/features/liferay/resource/liferay-resource-export-adts.js';
+import {runLiferayResourceExportFragments} from '../../src/features/liferay/resource/liferay-resource-export-fragments.js';
 import {
   formatLiferayResourceExportTemplates,
   runLiferayResourceExportTemplates,
-} from '../../src/features/liferay/liferay-resource-export-templates.js';
+} from '../../src/features/liferay/resource/liferay-resource-export-templates.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {

@@ -6,7 +6,7 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceSyncTemplate,
   runLiferayResourceSyncTemplate,
-} from '../../src/features/liferay/liferay-resource-sync-template.js';
+} from '../../src/features/liferay/resource/liferay-resource-sync-template.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {

@@ -6,7 +6,7 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   runLiferayPageLayoutExport,
   writeLiferayPageLayoutExport,
-} from '../../src/features/liferay/liferay-page-layout-export.js';
+} from '../../src/features/liferay/page-layout/liferay-page-layout-export.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {

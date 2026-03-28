@@ -6,7 +6,7 @@ import {
   matchesAdt,
   runLiferayResourceResolveAdt,
   templateIdFromDisplayStyle,
-} from '../../src/features/liferay/liferay-resource-resolve-adt.js';
+} from '../../src/features/liferay/resource/liferay-resource-resolve-adt.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

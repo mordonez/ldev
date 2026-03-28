@@ -4,11 +4,11 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceAdts,
   runLiferayResourceListAdts,
-} from '../../src/features/liferay/liferay-resource-list-adts.js';
+} from '../../src/features/liferay/resource/liferay-resource-list-adts.js';
 import {
   formatLiferayResourceFragments,
   runLiferayResourceListFragments,
-} from '../../src/features/liferay/liferay-resource-list-fragments.js';
+} from '../../src/features/liferay/resource/liferay-resource-list-fragments.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

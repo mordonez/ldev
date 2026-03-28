@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
-import {fetchPagedItems, resolveSite} from './liferay-inventory-shared.js';
+import {fetchPagedItems, resolveSite} from './inventory/liferay-inventory-shared.js';
 import {performLiferayHealthCheck} from './liferay-health.js';
 
 export type LiferayAuditResult = {

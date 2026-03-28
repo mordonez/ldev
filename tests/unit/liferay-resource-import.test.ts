@@ -2,17 +2,17 @@ import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test, vi} from 'vitest';
 
-import {runLiferayResourceExportAdts} from '../../src/features/liferay/liferay-resource-export-adts.js';
+import {runLiferayResourceExportAdts} from '../../src/features/liferay/resource/liferay-resource-export-adts.js';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const syncAdtMock = vi.fn();
 
-vi.mock('../../src/features/liferay/liferay-resource-sync-adt.js', () => ({
+vi.mock('../../src/features/liferay/resource/liferay-resource-sync-adt.js', () => ({
   runLiferayResourceSyncAdt: syncAdtMock,
 }));
 
-const {runLiferayResourceImportAdts} = await import('../../src/features/liferay/liferay-resource-import-adts.js');
+const {runLiferayResourceImportAdts} = await import('../../src/features/liferay/resource/liferay-resource-import-adts.js');
 
 const CONFIG = {
   cwd: '/tmp/repo',

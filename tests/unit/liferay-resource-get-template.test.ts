@@ -4,7 +4,7 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceTemplate,
   runLiferayResourceGetTemplate,
-} from '../../src/features/liferay/liferay-resource-get-template.js';
+} from '../../src/features/liferay/resource/liferay-resource-get-template.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

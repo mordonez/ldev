@@ -4,7 +4,7 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayInventoryPages,
   runLiferayInventoryPages,
-} from '../../src/features/liferay/liferay-inventory-pages.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-pages.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',

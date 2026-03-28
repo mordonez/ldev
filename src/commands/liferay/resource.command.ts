@@ -1,88 +1,88 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
-import {runLiferayResourceExportStructure} from '../../features/liferay/liferay-resource-export-structure.js';
-import {runLiferayResourceExportTemplate} from '../../features/liferay/liferay-resource-export-template.js';
+import {runLiferayResourceExportStructure} from '../../features/liferay/resource/liferay-resource-export-structure.js';
+import {runLiferayResourceExportTemplate} from '../../features/liferay/resource/liferay-resource-export-template.js';
 import {
   formatLiferayResourceExportAdts,
   runLiferayResourceExportAdts,
-} from '../../features/liferay/liferay-resource-export-adts.js';
+} from '../../features/liferay/resource/liferay-resource-export-adts.js';
 import {
   formatLiferayResourceExportFragments,
   runLiferayResourceExportFragments,
-} from '../../features/liferay/liferay-resource-export-fragments.js';
+} from '../../features/liferay/resource/liferay-resource-export-fragments.js';
 import {
   formatLiferayResourceExportStructures,
   runLiferayResourceExportStructures,
-} from '../../features/liferay/liferay-resource-export-structures.js';
+} from '../../features/liferay/resource/liferay-resource-export-structures.js';
 import {
   formatLiferayResourceExportTemplates,
   getLiferayResourceExportTemplatesExitCode,
   runLiferayResourceExportTemplates,
-} from '../../features/liferay/liferay-resource-export-templates.js';
+} from '../../features/liferay/resource/liferay-resource-export-templates.js';
 import {
   formatLiferayResourceImportAdts,
   runLiferayResourceImportAdts,
-} from '../../features/liferay/liferay-resource-import-adts.js';
+} from '../../features/liferay/resource/liferay-resource-import-adts.js';
 import {
   formatLiferayResourceImportStructures,
   runLiferayResourceImportStructures,
-} from '../../features/liferay/liferay-resource-import-structures.js';
+} from '../../features/liferay/resource/liferay-resource-import-structures.js';
 import {
   formatLiferayResourceImportTemplates,
   runLiferayResourceImportTemplates,
-} from '../../features/liferay/liferay-resource-import-templates.js';
+} from '../../features/liferay/resource/liferay-resource-import-templates.js';
 import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
-} from '../../features/liferay/liferay-resource-get-structure.js';
+} from '../../features/liferay/resource/liferay-resource-get-structure.js';
 import {
   formatLiferayResourceTemplate,
   runLiferayResourceGetTemplate,
-} from '../../features/liferay/liferay-resource-get-template.js';
+} from '../../features/liferay/resource/liferay-resource-get-template.js';
 import {
   formatLiferayResourceAdts,
   runLiferayResourceListAdts,
-} from '../../features/liferay/liferay-resource-list-adts.js';
+} from '../../features/liferay/resource/liferay-resource-list-adts.js';
 import {
   formatLiferayResourceAdtTypes,
   runLiferayResourceListAdtTypes,
-} from '../../features/liferay/liferay-resource-adt-types.js';
+} from '../../features/liferay/resource/liferay-resource-adt-types.js';
 import {
   formatLiferayResourceFragments,
   runLiferayResourceListFragments,
-} from '../../features/liferay/liferay-resource-list-fragments.js';
+} from '../../features/liferay/resource/liferay-resource-list-fragments.js';
 import {
   formatLiferayResourceMigrationPipeline,
   formatLiferayResourceMigrationRun,
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-} from '../../features/liferay/liferay-resource-migration.js';
+} from '../../features/liferay/resource/liferay-resource-migration.js';
 import {
   formatLiferayResourceMigrationInit,
   runLiferayResourceMigrationInit,
-} from '../../features/liferay/liferay-resource-migration-init.js';
+} from '../../features/liferay/resource/liferay-resource-migration-init.js';
 import {
   formatLiferayResourceResolveAdt,
   runLiferayResourceResolveAdt,
-} from '../../features/liferay/liferay-resource-resolve-adt.js';
+} from '../../features/liferay/resource/liferay-resource-resolve-adt.js';
 import {
   formatLiferayResourceSyncAdt,
   runLiferayResourceSyncAdt,
-} from '../../features/liferay/liferay-resource-sync-adt.js';
+} from '../../features/liferay/resource/liferay-resource-sync-adt.js';
 import {
   formatLiferayResourceSyncFragments,
   getLiferayResourceSyncFragmentsExitCode,
   runLiferayResourceSyncFragments,
-} from '../../features/liferay/liferay-resource-sync-fragments.js';
+} from '../../features/liferay/resource/liferay-resource-sync-fragments.js';
 import {
   formatLiferayResourceSyncStructure,
   runLiferayResourceSyncStructure,
-} from '../../features/liferay/liferay-resource-sync-structure.js';
+} from '../../features/liferay/resource/liferay-resource-sync-structure.js';
 import {
   formatLiferayResourceSyncTemplate,
   runLiferayResourceSyncTemplate,
-} from '../../features/liferay/liferay-resource-sync-template.js';
+} from '../../features/liferay/resource/liferay-resource-sync-template.js';
 
 export function createResourceCommands(parent: Command): void {
   const resource = new Command('resource')

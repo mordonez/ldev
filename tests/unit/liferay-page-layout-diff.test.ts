@@ -7,7 +7,7 @@ import {
   collectPageLayoutDiffs,
   formatLiferayPageLayoutDiff,
   runLiferayPageLayoutDiff,
-} from '../../src/features/liferay/liferay-page-layout-diff.js';
+} from '../../src/features/liferay/page-layout/liferay-page-layout-diff.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {

@@ -2,7 +2,7 @@ import {CliError} from '../../cli/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
-import {authedGet} from './liferay-inventory-shared.js';
+import {authedGet} from './inventory/liferay-inventory-shared.js';
 
 const DEFAULT_HEALTH_PATH = '/o/headless-admin-user/v1.0/sites/by-friendly-url-path/global';
 

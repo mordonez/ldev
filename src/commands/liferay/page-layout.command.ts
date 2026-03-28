@@ -4,11 +4,11 @@ import {addOutputFormatOption, createFormattedAction} from '../../cli/command-he
 import {
   formatLiferayPageLayoutDiff,
   runLiferayPageLayoutDiff,
-} from '../../features/liferay/liferay-page-layout-diff.js';
+} from '../../features/liferay/page-layout/liferay-page-layout-diff.js';
 import {
   runLiferayPageLayoutExport,
   writeLiferayPageLayoutExport,
-} from '../../features/liferay/liferay-page-layout-export.js';
+} from '../../features/liferay/page-layout/liferay-page-layout-export.js';
 
 export function createPageLayoutCommands(parent: Command): void {
   const pageLayout = new Command('page-layout').description('Content page export and diff tools');

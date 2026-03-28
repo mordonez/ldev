@@ -8,7 +8,7 @@ import {
   formatLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-} from '../../src/features/liferay/liferay-resource-migration.js';
+} from '../../src/features/liferay/resource/liferay-resource-migration.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const TOKEN_CLIENT = {

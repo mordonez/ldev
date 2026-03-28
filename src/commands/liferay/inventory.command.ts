@@ -1,17 +1,17 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
-import {formatLiferayInventoryPage, runLiferayInventoryPage} from '../../features/liferay/liferay-inventory-page.js';
-import {formatLiferayInventoryPages, runLiferayInventoryPages} from '../../features/liferay/liferay-inventory-pages.js';
-import {formatLiferayInventorySites, runLiferayInventorySites} from '../../features/liferay/liferay-inventory-sites.js';
+import {formatLiferayInventoryPage, runLiferayInventoryPage} from '../../features/liferay/inventory/liferay-inventory-page.js';
+import {formatLiferayInventoryPages, runLiferayInventoryPages} from '../../features/liferay/inventory/liferay-inventory-pages.js';
+import {formatLiferayInventorySites, runLiferayInventorySites} from '../../features/liferay/inventory/liferay-inventory-sites.js';
 import {
   formatLiferayInventoryStructures,
   runLiferayInventoryStructures,
-} from '../../features/liferay/liferay-inventory-structures.js';
+} from '../../features/liferay/inventory/liferay-inventory-structures.js';
 import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
-} from '../../features/liferay/liferay-inventory-templates.js';
+} from '../../features/liferay/inventory/liferay-inventory-templates.js';
 
 export function createInventoryCommands(parent: Command): void {
   const inventory = new Command('inventory')

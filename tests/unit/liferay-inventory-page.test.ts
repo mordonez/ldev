@@ -5,7 +5,7 @@ import {
   formatLiferayInventoryPage,
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
-} from '../../src/features/liferay/liferay-inventory-page.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-page.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
