@@ -18,46 +18,81 @@ const silentPrinter = {
 };
 
 describe('project integration', () => {
+  const GIT_ENV_KEYS = [
+    'GIT_AUTHOR_NAME',
+    'GIT_AUTHOR_EMAIL',
+    'GIT_COMMITTER_NAME',
+    'GIT_COMMITTER_EMAIL',
+    'GIT_CONFIG_GLOBAL',
+  ] as const;
+  const savedGitEnv: Record<string, string | undefined> = {};
+
+  function setupGitIdentityEnv(): void {
+    for (const key of GIT_ENV_KEYS) {
+      savedGitEnv[key] = process.env[key];
+    }
+    process.env.GIT_AUTHOR_NAME = 'Dev CLI Tests';
+    process.env.GIT_AUTHOR_EMAIL = 'dev-cli-tests@example.com';
+    process.env.GIT_COMMITTER_NAME = 'Dev CLI Tests';
+    process.env.GIT_COMMITTER_EMAIL = 'dev-cli-tests@example.com';
+    process.env.GIT_CONFIG_GLOBAL = '/dev/null';
+  }
+
+  function restoreGitIdentityEnv(): void {
+    for (const key of GIT_ENV_KEYS) {
+      if (savedGitEnv[key] === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = savedGitEnv[key];
+      }
+    }
+  }
+
   test('init scaffolds a new repository without requiring a vendor symlink', async () => {
-    const repoRoot = await createProjectRepoFixture();
-    const targetDir = createTempDir('dev-cli-project-init-');
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-');
 
-    const result = await runProjectInit(
-      {
-        name: 'sample-project',
-        targetDir,
-        printer: silentPrinter,
-      },
-      {
-        assets: resolveProjectAssets(repoRoot),
-      },
-    );
+      const result = await runProjectInit(
+        {
+          name: 'sample-project',
+          targetDir,
+          printer: silentPrinter,
+        },
+        {
+          assets: resolveProjectAssets(repoRoot),
+        },
+      );
 
-    expect(result.gitInitialized).toBe(true);
-    expect(result.toolingLinked).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.git'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docker', '.env'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'liferay', 'build.gradle'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'Taskfile.yml'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.liferay-cli.yml'))).toBe(true);
-    expect(await fs.readFile(path.join(targetDir, '.liferay-cli.yml'), 'utf8')).not.toContain(
-      'url: http://localhost:8080',
-    );
-    expect(await fs.pathExists(path.join(targetDir, 'liferay', 'modules', 'liferay-cli-bootstrap', 'README.md'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, 'vendor', 'liferay-tooling'))).toBe(false);
-    expect(await gitStatus(targetDir)).toBe('');
+      expect(result.gitInitialized).toBe(true);
+      expect(result.toolingLinked).toBe(false);
+      expect(await fs.pathExists(path.join(targetDir, '.git'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'docker', '.env'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'liferay', 'build.gradle'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'Taskfile.yml'))).toBe(false);
+      expect(await fs.pathExists(path.join(targetDir, '.liferay-cli.yml'))).toBe(true);
+      expect(await fs.readFile(path.join(targetDir, '.liferay-cli.yml'), 'utf8')).not.toContain(
+        'url: http://localhost:8080',
+      );
+      expect(
+        await fs.pathExists(path.join(targetDir, 'liferay', 'modules', 'liferay-cli-bootstrap', 'README.md')),
+      ).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'vendor', 'liferay-tooling'))).toBe(false);
+      expect(await gitStatus(targetDir)).toBe('');
+    } finally {
+      restoreGitIdentityEnv();
+    }
   });
 
   test('init propagates BIND_IP from the host environment into docker/.env', async () => {
-    const repoRoot = await createProjectRepoFixture();
-    const targetDir = createTempDir('dev-cli-project-init-bind-ip-');
+    setupGitIdentityEnv();
     const previousBindIp = process.env.BIND_IP;
-
-    process.env.BIND_IP = '100.115.222.80';
-
     try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-bind-ip-');
+      process.env.BIND_IP = '100.115.222.80';
+
       await runProjectInit(
         {
           name: 'sample-project',
@@ -68,15 +103,16 @@ describe('project integration', () => {
           assets: resolveProjectAssets(repoRoot),
         },
       );
+
+      expect(await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8')).toContain('BIND_IP=100.115.222.80');
     } finally {
+      restoreGitIdentityEnv();
       if (previousBindIp === undefined) {
         delete process.env.BIND_IP;
       } else {
         process.env.BIND_IP = previousBindIp;
       }
     }
-
-    expect(await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8')).toContain('BIND_IP=100.115.222.80');
   });
 
   test('add updates an existing repo without creating docker or liferay scaffold', async () => {
