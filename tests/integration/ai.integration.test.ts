@@ -8,7 +8,7 @@ import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CLI_CWD = process.cwd();
 const CLI_ENTRY = 'src/index.ts';
-const AI_ROOT = path.resolve(CLI_CWD, 'tools', 'ai');
+const AI_ROOT = path.resolve(CLI_CWD, 'templates', 'ai');
 describe('ai integration', () => {
   test('install creates vendor skills, manifest and the standard AGENTS.md', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-');
@@ -116,7 +116,7 @@ describe('ai integration', () => {
   test('legacy overlay installs cleanly on top of the standard package', async () => {
     const targetDir = createTempDir('dev-cli-ai-legacy-');
 
-    const result = await runProcess('bash', ['tools/ai/legacy/install.sh', targetDir], {
+    const result = await runProcess('bash', ['templates/ai/legacy/install.sh', targetDir], {
       cwd: CLI_CWD,
     });
 
