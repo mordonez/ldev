@@ -13,7 +13,7 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {buildComposeFilesEnv, resolveEnvContext} from '../env/env-files.js';
 
 export type DbImportResult = {
   ok: true;
@@ -59,23 +59,25 @@ export async function runDbImport(
     forcedReset = true;
   }
 
+  const postgresEnv = buildComposeFilesEnv(['postgres'], options?.processEnv);
+
   await runStep(options?.printer, 'Starting postgres', async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {env: options?.processEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {env: postgresEnv});
   });
 
   await runStep(options?.printer, 'Waiting for PostgreSQL to become ready', async () => {
-    await waitForPostgresReady(context.dockerDir, context.envValues, options?.processEnv);
+    await waitForPostgresReady(context.dockerDir, context.envValues, postgresEnv);
   });
 
   await runStep(options?.printer, 'Importing backup into PostgreSQL', async () => {
-    await streamSqlIntoPostgres(context.dockerDir, backupFile, context.envValues, options?.processEnv);
+    await streamSqlIntoPostgres(context.dockerDir, backupFile, context.envValues, postgresEnv);
   });
 
   const postImportFiles = !(options?.skipPostImport ?? false) ? await resolvePostImportFiles(context.dockerDir) : [];
 
   for (const sqlFile of postImportFiles) {
     await runStep(options?.printer, `Applying post-import ${path.basename(sqlFile)}`, async () => {
-      await streamSqlIntoPostgres(context.dockerDir, sqlFile, context.envValues, options?.processEnv);
+      await streamSqlIntoPostgres(context.dockerDir, sqlFile, context.envValues, postgresEnv);
     });
   }
 
