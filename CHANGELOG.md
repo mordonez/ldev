@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/mordonez/ldev/compare/ldev-v0.2.0...ldev-v0.2.1) (2026-04-07)
+
+
+### Bug Fixes
+
+* ignore stdin in runProcess to prevent lcp interactive prompts from hanging ([fea078a](https://github.com/mordonez/ldev/commit/fea078a78fde51ec766b4ec763d2edbe2d0aff95))
+* project init create dockerenv folder ([1825c79](https://github.com/mordonez/ldev/commit/1825c791fd5f05add8bcb23abc8b16b663b34485))
+
 ## [0.2.0](https://github.com/mordonez/ldev/compare/ldev-v0.1.0...ldev-v0.2.0) (2026-04-07)
 
 
