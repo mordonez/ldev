@@ -5,6 +5,7 @@ export type RunProcessOptions = {
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
   reject?: boolean;
+  stdin?: 'ignore' | 'inherit' | 'pipe';
   stdout?: 'pipe' | 'inherit';
   stderr?: 'pipe' | 'inherit';
   input?: string | Buffer;
@@ -29,6 +30,7 @@ export async function runProcess(
     input: options?.input,
     timeout: options?.timeoutMs,
     reject: options?.reject ?? false,
+    stdin: options?.stdin ?? (options?.input !== undefined ? 'pipe' : 'ignore'),
     stdout: options?.stdout ?? 'pipe',
     stderr: options?.stderr ?? 'pipe',
   });
