@@ -1,5 +1,12 @@
-# Entorno local
-docker/
+# Docker - configuración local del usuario (no commitear)
+docker/.env
+docker/backups/
+docker/dumps/
+docker/data/
+# Datos en runtime de Elasticsearch y PostgreSQL
+docker/elasticsearch/data/
+docker/postgres/data/
+# Local DXP activation keys
 liferay/configs/dockerenv/osgi/modules/activation-key-*.xml
 .worktrees/
 
