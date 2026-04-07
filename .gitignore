@@ -7,7 +7,7 @@ npm-debug.log*
 .gradle
 templates/modules/bin/
 templates/modules/build/
-mordonez-ldev-*.tgz
+mordonezdev-ldev-*.tgz
 docs/.vitepress/cache/
 .env
 .env.*
