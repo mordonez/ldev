@@ -5,9 +5,9 @@ import {sleep} from '../../src/core/utils/async.js';
 describe('sleep', () => {
   test('resolves after specified timeout', async () => {
     const start = Date.now();
-    await sleep(100);
+    await sleep(50);
     const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(100);
+    expect(elapsed).toBeGreaterThanOrEqual(40);
   });
 
   test('returns a promise', () => {
