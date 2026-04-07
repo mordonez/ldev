@@ -13,7 +13,8 @@ export default defineConfig({
   },
   ignoreDeadLinks: [
     // Example localhost links in documentation, not real dead links
-    /http:\/\/localhost:\d+/,
+    /http:\/\/localhost(:\d+)?/,
+    /http:\/\/localhost:8080/,
   ],
   themeConfig: {
     nav: [
