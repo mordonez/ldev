@@ -6,7 +6,7 @@ For command-by-command implementation details, use the dedicated guides:
 
 - [Portal Inventory](/portal-inventory)
 - [Resource Migration Pipeline](/resource-migration-pipeline)
-- [AI Workflows](/ai-workflows)
+- [AI Integration](/ai-integration)
 - [Worktree Environments](/worktree-environments)
 - [Automation Contract](/automation)
 
@@ -172,7 +172,7 @@ The installed skills cover: `liferay-expert` (routing), `developing-liferay`, `d
 
 **Advanced. Useful to: teams using AI-assisted development workflows.**
 
-See also: [AI Workflows](/ai-workflows).
+See also: [AI Integration](/ai-integration).
 
 ---
 

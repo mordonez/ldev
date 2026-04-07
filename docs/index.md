@@ -82,8 +82,8 @@ Follow this path:
 | [Resource Migration Pipeline](/resource-migration-pipeline) | End-to-end structure migration |
 | [Worktree Environments](/worktree-environments) | Isolated branch environments |
 | [Automation](/automation) | Machine-readable output contract |
-| [AI Workflows](/ai-workflows) | Agent integration patterns |
-| [AI Skills](/skills) | `ldev ai install` usage and skill catalog |
+| [AI Integration](/ai-integration) | Agent integration patterns |
+| [AI Integration](/ai-integration) | `ldev ai install` usage and agent workflows |
 | [MCP Strategy](/mcp-strategy) | When to use ldev vs MCP |
 | [MCP Capability Matrix](/mcp-liferay-capability-matrix) | Runtime-validated MCP capability table |
 | [Support Matrix](/support-matrix) | Platform and Docker provider support |

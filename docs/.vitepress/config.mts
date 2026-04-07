@@ -6,6 +6,15 @@ export default defineConfig({
   base: '/ldev/',
   cleanUrls: true,
   lastUpdated: true,
+  markdown: {
+    links: {
+      externalLinkIcon: true,
+    },
+  },
+  ignoreDeadLinks: [
+    // Example localhost links in documentation, not real dead links
+    /http:\/\/localhost:\d+/,
+  ],
   themeConfig: {
     nav: [
       {text: 'Install', link: '/install'},

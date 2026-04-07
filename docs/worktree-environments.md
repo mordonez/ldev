@@ -41,6 +41,6 @@ Isolated worktrees run separate containers and data directories, so RAM and disk
 
 ## Related docs
 
-- [AI Workflows](/ai-workflows)
+- [AI Integration](/ai-integration)
 - [Resource Migration Pipeline](/resource-migration-pipeline)
 - [Command Reference](/commands)
