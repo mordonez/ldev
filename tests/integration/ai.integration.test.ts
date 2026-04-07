@@ -7,7 +7,7 @@ import {createTempDir, createTempRepo, createTempWorkspace} from '../../src/test
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
 
 const AI_ROOT = path.resolve(CLI_CWD, 'templates', 'ai');
-const PACKAGE_VERSION = '0.1.0';
+const PACKAGE_VERSION = (fs.readJsonSync(path.join(CLI_CWD, 'package.json')) as {version: string}).version;
 
 describe('ai integration', () => {
   test('install creates vendor skills, manifest, AGENTS.md and common managed AI rules', async () => {

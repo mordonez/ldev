@@ -1,13 +1,13 @@
 import {CliError} from '../../core/errors.js';
 import {runProcess, type RunProcessOptions, type RunProcessResult} from './process.js';
 
-export async function isDockerAvailable(): Promise<boolean> {
-  const result = await runProcess('docker', ['version', '--format', 'json']);
+export async function isDockerAvailable(env?: NodeJS.ProcessEnv): Promise<boolean> {
+  const result = await runProcess('docker', ['version', '--format', 'json'], {env});
   return result.ok;
 }
 
-export async function isDockerComposeAvailable(): Promise<boolean> {
-  const result = await runProcess('docker', ['compose', 'version']);
+export async function isDockerComposeAvailable(env?: NodeJS.ProcessEnv): Promise<boolean> {
+  const result = await runProcess('docker', ['compose', 'version'], {env});
   return result.ok;
 }
 

@@ -19,12 +19,15 @@ export type PlatformCapabilities = {
   supportsBtrfsSnapshots: boolean;
 };
 
-export async function detectCapabilities(cwd: string): Promise<PlatformCapabilities> {
+export async function detectCapabilities(
+  cwd: string,
+  options?: {processEnv?: NodeJS.ProcessEnv},
+): Promise<PlatformCapabilities> {
   const detectedOs = detectOs();
   const hasGit = (await runProcess('git', ['--version'])).ok;
   const hasBlade = (await runProcess('blade', ['version'])).ok;
-  const hasDocker = await isDockerAvailable();
-  const hasDockerCompose = await isDockerComposeAvailable();
+  const hasDocker = await isDockerAvailable(options?.processEnv);
+  const hasDockerCompose = await isDockerComposeAvailable(options?.processEnv);
   const hasJava = (await runProcess('java', ['-version'])).ok;
   const hasNode = true;
   const hasLcp = (await runProcess('lcp', ['version'])).ok;

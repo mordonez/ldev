@@ -35,7 +35,7 @@ export async function runEnvSetup(
   }
 
   const context = resolveEnvContext(config);
-  const capabilities = await detectCapabilities(config.cwd);
+  const capabilities = await detectCapabilities(config.cwd, {processEnv: options?.processEnv});
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
     throw new CliError('Docker and docker compose are required for env setup.', {code: 'ENV_CAPABILITY_MISSING'});
