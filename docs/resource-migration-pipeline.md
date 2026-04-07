@@ -186,7 +186,7 @@ ldev portal inventory page --url /web/rankings/home --json
 Validate at least one migrated content item through API:
 
 ```bash
-curl -s -u 'CLIENT_ID:CLIENT_SECRET' \
+curl -s -u "$OAUTH2_CLIENT_ID:$OAUTH2_CLIENT_SECRET" \
   -d 'grant_type=client_credentials' \
   'http://localhost:8080/o/oauth2/token'
 

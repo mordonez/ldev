@@ -187,8 +187,8 @@ Representative output:
 OAuth2 app installed via ldev:oauthInstall
 Company: 91244089858519 (liferay.com)
 User: 20131 (test@liferay.com)
-LIFERAY_CLI_OAUTH2_CLIENT_ID=ldev-1eb367bef3d4
-LIFERAY_CLI_OAUTH2_CLIENT_SECRET=secret-0e0a6338-65d0-49c1-a48b-a57455a6a9bf
+LIFERAY_CLI_OAUTH2_CLIENT_ID=<redacted>
+LIFERAY_CLI_OAUTH2_CLIENT_SECRET=<redacted>
 .liferay-cli.local.yml actualizado: /private/tmp/ldev-demo-30209/ldev-demo/.liferay-cli.local.yml
 ```
 
@@ -220,7 +220,7 @@ Representative output:
 ```text
 HEALTH_OK
 baseUrl=http://localhost:8081
-clientId=ldev-1eb367bef3d4
+clientId=<redacted>
 checkedPath=/api/jsonws/company/get-companies
 status=200
 tokenType=Bearer
