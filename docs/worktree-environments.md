@@ -24,13 +24,12 @@ If `main` is still running and your host does not have Btrfs snapshot cloning av
 - hand off an isolated branch environment to CI or AI agents
 
 
-## Where this gives the most value
+## Platform support
 
-`worktree` is useful on all supported hosts, but the biggest operational gain is on **Linux with Btrfs snapshots enabled**.
+`worktree` is supported on all platforms. Btrfs snapshots on Linux enable additional optimization:
 
-With Btrfs-based cloning, creating branch environments can reuse snapshot workflows instead of full data copies, which is faster and more disk-efficient for large local datasets.
-
-On macOS/Windows (or Linux without Btrfs), normal worktree isolation still works, but without the Btrfs optimization path.
+- On **Linux with Btrfs**, worktree environments can use snapshot-based cloning, which is faster and more disk-efficient for large datasets
+- On **macOS/Windows** (or Linux without Btrfs), worktrees use standard data isolation
 
 See:
 - [Support Matrix](/support-matrix)

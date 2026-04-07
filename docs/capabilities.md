@@ -16,11 +16,11 @@ For command-by-command implementation details, use the dedicated guides:
 
 `ldev` is a Liferay-focused CLI that accepts those constraints and builds workflows around them. It does not try to replace the official Liferay Workspace standard. Its goal is to make Liferay local work predictable: clear diagnostics when something breaks, consistent workflows for the things Liferay teams do every day, and advanced operational flows beyond the standard workspace baseline.
 
-Public recommendation:
+Project type guidance:
 
-- use a standard **Liferay Workspace** as the default project structure
-- use `ldev` on top of that workspace for diagnostics, runtime shortcuts, and portal-aware automation
-- keep `ldev-native` for opinionated repositories that already rely on the existing `docker/` + `liferay/` model
+- **For teams new to `ldev`**: Start with a standard **Liferay Workspace** (blade-init). `ldev` adds diagnostics, runtime shortcuts, and portal-aware automation on top.
+- **For the full `ldev` potential**: Use `ldev project init` with Docker Compose (`docker/` + `liferay/` layout). This unlocks isolated worktrees, snapshot-based workflows, and advanced runtime capabilities.
+- **Existing Blade workspaces**: `ldev` integrates with your current setup without requiring migration.
 
 ---
 
@@ -102,11 +102,13 @@ See also: [Resource Migration Pipeline](/resource-migration-pipeline).
 
 ---
 
-## 4. Workspace-first operation and legacy native bootstrap — `project`
+## 4. Project bootstrap — `project`
 
-For new public projects, the recommended path is to create a standard Liferay Workspace with Blade and then use `ldev` inside that workspace.
+`ldev project init` sets up the `ldev-native` layout with Docker Compose, where `ldev` manages the full local runtime model. This unlocks the complete feature set: isolated worktrees, snapshot-based workflows, and advanced runtime control.
 
-`ldev project init` is the entry point for repositories that use the `ldev-native` layout. It works without creating a git commit by default, so the generated files are always reviewable before they are committed.
+Alternatively, use `blade init` for a standard Liferay Workspace and integrate `ldev` on top of that structure.
+
+`ldev project init` works without creating a git commit by default, so the generated files are always reviewable before they are committed.
 
 ```bash
 ldev project init --name my-project --dir ./my-project

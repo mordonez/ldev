@@ -43,7 +43,13 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
   return copied;
 }
 
-export async function ensureDockerScaffold(targetDir: string, assets: ProjectAssets): Promise<boolean> {
+export type DockerService = 'postgres' | 'elasticsearch';
+
+export async function ensureDockerScaffold(
+  targetDir: string,
+  assets: ProjectAssets,
+  services: DockerService[] = [],
+): Promise<boolean> {
   const destination = path.join(targetDir, 'docker');
   if (await fs.pathExists(destination)) {
     return false;
@@ -52,16 +58,23 @@ export async function ensureDockerScaffold(targetDir: string, assets: ProjectAss
   await fs.ensureDir(destination);
   await copyAsset(assets.dockerDir, destination, '.env.example');
   await copyAsset(assets.dockerDir, destination, 'docker-compose.yml');
-  await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
-  await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
-  await copyAsset(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
+
+  if (services.includes('postgres')) {
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
+    await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
+    await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
+  }
+
+  if (services.includes('elasticsearch')) {
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
+    await copyAsset(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
+  }
+
   await fs.copy(path.join(assets.dockerDir, 'liferay-configs-full'), path.join(destination, 'liferay-configs-full'), {
     overwrite: true,
   });
   await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/configure-session-cookie.sh');
   await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/install-activation-key.sh');
-  await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
-  await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
   await ensureFile(path.join(destination, 'patching', '.gitkeep'));
   await ensureFile(path.join(destination, 'dumps', '.gitkeep'));
   await fs.copy(path.join(assets.dockerDir, '.env.example'), path.join(destination, '.env'), {overwrite: true});

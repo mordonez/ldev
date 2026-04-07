@@ -16,6 +16,7 @@ import {
   ensureDockerScaffold,
   ensureLiferayScaffold,
   resolveProjectAssets,
+  type DockerService,
   type ProjectAssets,
 } from './project-scaffold.js';
 
@@ -37,7 +38,7 @@ type ProjectCommandDependencies = {
 };
 
 export async function runProjectInit(
-  options: {name: string; targetDir: string; printer: Printer; commit?: boolean},
+  options: {name: string; targetDir: string; printer: Printer; commit?: boolean; services?: DockerService[]},
   dependencies?: ProjectCommandDependencies,
 ): Promise<ProjectCommandResult> {
   const targetDir = path.resolve(options.targetDir);
@@ -56,6 +57,7 @@ export async function runProjectInit(
     commitMessage: 'chore: scaffold initial Liferay project files',
     gitInitialized: !hadGit,
     commitRequested: Boolean(options.commit),
+    services: options.services ?? [],
   });
 }
 
@@ -83,11 +85,12 @@ async function applyProjectTooling(options: {
   commitMessage: string;
   gitInitialized: boolean;
   commitRequested: boolean;
+  services: DockerService[];
 }): Promise<ProjectCommandResult> {
-  const dockerCreated = await ensureDockerScaffold(options.targetDir, options.assets);
+  const dockerCreated = await ensureDockerScaffold(options.targetDir, options.assets, options.services);
   const liferayCreated = await ensureLiferayScaffold(options.targetDir, options.assets);
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
-  await configureGeneratedProjectFiles(options.targetDir, options.projectName);
+  await configureGeneratedProjectFiles(options.targetDir, options.projectName, options.services);
 
   const touchedPaths = await collectTouchedPaths(options.targetDir, {
     dockerCreated,
@@ -134,12 +137,21 @@ function getNextSteps(targetDir: string): string[] {
   ];
 }
 
-async function configureGeneratedProjectFiles(targetDir: string, projectName: string): Promise<void> {
+async function configureGeneratedProjectFiles(
+  targetDir: string,
+  projectName: string,
+  services: DockerService[],
+): Promise<void> {
   const slug = toProjectSlug(projectName);
-  await updateDockerEnv(path.join(targetDir, 'docker', '.env'), slug, process.env.BIND_IP?.trim());
+  await updateDockerEnv(path.join(targetDir, 'docker', '.env'), slug, services, process.env.BIND_IP?.trim());
 }
 
-async function updateDockerEnv(dockerEnvFile: string, projectSlug: string, bindIp?: string): Promise<void> {
+async function updateDockerEnv(
+  dockerEnvFile: string,
+  projectSlug: string,
+  services: DockerService[],
+  bindIp?: string,
+): Promise<void> {
   if (!(await fs.pathExists(dockerEnvFile))) {
     return;
   }
@@ -149,6 +161,11 @@ async function updateDockerEnv(dockerEnvFile: string, projectSlug: string, bindI
     COMPOSE_PROJECT_NAME: projectSlug,
     DOCLIB_VOLUME_NAME: `${projectSlug}-doclib`,
   };
+
+  if (services.length > 0) {
+    const composeFiles = ['docker-compose.yml', ...services.map((s) => `docker-compose.${s}.yml`)];
+    envValues.COMPOSE_FILE = composeFiles.join(':');
+  }
 
   if (bindIp && bindIp !== '') {
     envValues.BIND_IP = bindIp;

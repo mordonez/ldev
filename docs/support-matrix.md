@@ -8,10 +8,10 @@ title: Support Matrix
 
 ## Project types
 
-- `blade-workspace` — the recommended public path; standard Liferay Workspace with `ldev` on top
-- `ldev-native` — supported for advanced repositories; `ldev` owns more of the local runtime model directly
+- `blade-workspace` — standard Liferay Workspace created with Blade. `ldev` integrates on top. Good for existing Workspace setups.
+- `ldev-native` — `ldev` manages the full local runtime model with Docker Compose. Unlocks isolated worktrees, snapshot-based workflows, and advanced runtime capabilities.
 
-Both project types may use Docker. The recommendation is about runtime ownership, not whether Docker appears in the stack.
+For the full potential of `ldev`, use `ldev-native` with Docker Compose. For teams with existing Workspace structure, use `blade-workspace` with `ldev` integration.
 
 ## Product baseline
 

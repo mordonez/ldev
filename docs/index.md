@@ -8,13 +8,13 @@ Agentic CLI for [Liferay](https://www.liferay.com) local development.
 
 `ldev` works across two project types:
 
-- **`blade-workspace`** — the recommended public path. Standard Liferay Workspace generated with Blade. `ldev` adds diagnostics, runtime shortcuts, portal workflows, and agent context on top.
-- **`ldev-native`** — the more opinionated `docker/` + `liferay/` layout. First-class for repositories that rely on Compose overlays, worktrees, snapshots, and advanced runtime patterns.
+- **`blade-workspace`** — integrates `ldev` into a standard Liferay Workspace created with Blade. Good for teams with existing Workspace structure.
+- **`ldev-native`** — the full-featured path. Uses `docker/` + `liferay/` layout with Docker Compose. Unlocks isolated worktrees, snapshot-based workflows, and advanced runtime capabilities.
 
-The recommendation is:
-- use a standard **Liferay Workspace** (`blade-workspace`)
-- use **`ldev`** for direct local-development workflows and task-shaped agent commands
-- use the official **Liferay MCP** where generic portal interoperability helps
+Guidance:
+- Start with **`blade-workspace`** if you have an existing Workspace setup or prefer the official Liferay structure
+- Use **`ldev-native`** (Docker Compose) to unlock the full potential of `ldev`
+- Use the official **Liferay MCP** alongside `ldev` for generic portal interoperability
 
 See [Support Matrix](/support-matrix) for Docker provider and platform support.
 

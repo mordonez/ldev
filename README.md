@@ -9,7 +9,7 @@ It gives humans and coding agents short commands, stable JSON output, and direct
 
 ## Quickstart
 
-Full local runtime with isolated environments, worktrees, and deploy cache.
+Full local runtime with Docker Compose, with support for isolated environments and deploy cache.
 
 ```bash
 npm i -g @mordonezdev/ldev
@@ -22,7 +22,7 @@ ldev oauth admin-unblock
 ldev portal inventory page --url /web/guest/home --json
 ```
 
-This workflow also works in standard [Liferay Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace) and [AI Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace/ai-tools-in-workspace)
+`ldev` also supports integration with standard [Liferay Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace) and [AI Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace/ai-tools-in-workspace) for teams that prefer the Blade-generated layout.
 
 ## Agent-first commands
 

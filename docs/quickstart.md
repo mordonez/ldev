@@ -2,12 +2,12 @@
 
 ## Choose your path
 
-- Use [Docker runtime (recommended)](#docker-runtime-recommended) for full local runtime features.
-- Use [Standard Liferay Workspace](#standard-liferay-workspace) if you already have a Blade workspace.
+- Use [Docker runtime](#docker-runtime) to unlock the full potential of `ldev` with Docker Compose.
+- Use [Standard Liferay Workspace](#standard-liferay-workspace) to integrate `ldev` into an existing Blade workspace.
 
 If you want the shortest possible setup, follow only the first command block in your selected path.
 
-## Docker runtime (recommended)
+## Docker runtime
 
 Full local runtime with isolated environments, worktrees, and deploy cache.
 
