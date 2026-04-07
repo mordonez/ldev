@@ -1,3 +1,8 @@
+---
+title: Contributing
+description: Development guide for ldev. Learn how to set up the local environment, run tests, and contribute new features or commands.
+---
+
 # Contributing
 
 See [CONTRIBUTING.md](https://github.com/mordonez/ldev/blob/main/CONTRIBUTING.md) for the full development workflow, testing patterns, and code conventions.

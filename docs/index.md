@@ -1,102 +1,131 @@
-# ldev
+---
+layout: home
 
-Agentic CLI for [Liferay](https://www.liferay.com) local development.
+title: Advanced Liferay Local Development
+description: Agentic CLI for Liferay local runtimes, portal discovery, and OAuth2 bootstrap. Built for humans and coding agents.
 
-`ldev` is built for the parts of local Liferay development that are usually awkward: Java-heavy runtime setup, portal auth, [OSGi](https://www.osgi.org)/runtime diagnostics, deploy loops, and repo-backed content workflows. It does not try to be a universal environment manager — its goal is to make Liferay local work predictable.
+hero:
+  name: ldev
+  text: Liferay environment as code.
+  tagline: "STATUS: OPERATIONAL // THE AGENTIC BACKBONE FOR LIFERAY"
+  image:
+    src: /logo.svg
+    alt: ldev logo
+  actions:
+    - theme: theme
+      text: Installation
+      link: /install
+    - theme: alt
+      text: GitHub
+      link: https://github.com/mordonez/ldev
 
-## Project types
+features:
+  - title: 01. DIAGNOSTIC
+    details: "`ldev doctor` understands the full Liferay/Docker chain, identifying misconfigurations instantly."
+  - title: 02. DISCOVERY
+    details: "Explore sites, pages, and fragments without a browser using `ldev portal inventory`."
+  - title: 03. AUTOMATION
+    details: "Stable JSON output and context snapshots for CI/CD pipelines and coding agents."
+---
 
-`ldev` enhances both standard Liferay Workspace setups and Docker-based projects:
+<div class="home-content-extra">
 
-- **`blade-workspace`** — the recommended path. Standard Liferay Workspace created with Blade. `ldev` adds diagnostics, runtime shortcuts, portal workflows, and agent context on top of the standard setup.
-- **`ldev-native`** — advanced option. Uses `docker/` + `liferay/` layout with Docker Compose. For teams relying on Compose overlays, worktrees, snapshots, and advanced runtime patterns.
-
-See [Support Matrix](/support-matrix) for Docker provider and platform support.
-
-## What ldev is not
-
-- not a generic environment manager for every stack
-- not a stable public plugin platform
-- not a replacement for Gradle or every Liferay admin workflow
-
-## Key capabilities
-
-| Capability | Command | Level |
-| --- | --- | --- |
-| Diagnostics that understand Liferay | `doctor` | Core |
-| Stable repo/runtime snapshot for agents | `context` | Core |
-| Portal context discovery (sites, pages, full page snapshot) | `portal inventory` | Core |
-| Portal-aware resource sync | `resource` | Advanced |
-| Project bootstrap | `project` | Core |
-| Deploy and watch loops | `deploy` | Advanced |
-| Isolated worktree environments | `worktree` | Advanced |
-| AI agent integration | `ai install` | Advanced |
-| Machine-readable output contract | `--json` / `--ndjson` | Core |
-
-See [Key Capabilities](/capabilities) for detailed descriptions with runnable examples.
-
-## Quick Start
+## The Daily Loop
 
 ```bash
-npm install -g @mordonezdev/ldev
-blade init ai-workspace
-cd ai-workspace
+# Validate, start, and inspect
 ldev doctor
 ldev start
-ldev deploy all
+ldev portal inventory page --url /home --json
 ```
 
-Detailed path: [Install](/install) → [Quickstart](/quickstart) → [First Run Walkthrough](/first-run-walkthrough)
+## Engineering Pipeline
 
-## New here?
+<div class="pipeline-text">
 
-Follow this path:
+[**doctor**](/commands#project-setup) (validate) &nbsp;→&nbsp; [**env**](/commands#runtime-control) (boot) &nbsp;→&nbsp; [**portal**](/commands#portal-inspection) (inspect) &nbsp;→&nbsp; [**resource**](/commands#content-resources) (sync)
 
-1. [Install](/install) — requirements and installation
-2. [Quickstart](/quickstart) — minimal path to a working environment
-3. [First Run Walkthrough](/first-run-walkthrough) — realistic end-to-end run with expected output
-4. [Commands](/commands) — full reference with fast navigation
+</div>
 
-## Daily commands
+---
 
-- [`ldev doctor`](/commands)
-- [`ldev context`](/commands)
-- [`ldev start`](/commands)
-- [`ldev oauth install`](/commands)
-- [`ldev portal check`](/commands)
-- [`ldev portal inventory page`](/commands)
-- [`ldev logs diagnose`](/commands)
+<div class="footer-links">
 
-## Guides
+### [Commands](/commands) &nbsp; | &nbsp; [Capabilities](/capabilities) &nbsp; | &nbsp; [Quickstart](/quickstart)
 
-| Guide | When to use |
-|---|---|
-| [Key Capabilities](/capabilities) | Understand what ldev can do |
-| [Portal Inventory](/portal-inventory) | Deep dive into site/page discovery |
-| [OAuth2 Scopes](/oauth-scopes) | Scope profiles and override instructions |
-| [Resource Migration Pipeline](/resource-migration-pipeline) | End-to-end structure migration |
-| [Worktree Environments](/worktree-environments) | Isolated branch environments |
-| [Automation](/automation) | Machine-readable output contract |
-| [AI Integration](/ai-integration) | Agent integration patterns |
-| [AI Integration](/ai-integration) | `ldev ai install` usage and agent workflows |
-| [MCP Strategy](/mcp-strategy) | When to use ldev vs MCP |
-| [MCP Capability Matrix](/mcp-liferay-capability-matrix) | Runtime-validated MCP capability table |
-| [Support Matrix](/support-matrix) | Platform and Docker provider support |
-| [Upgrading](/upgrading) | CLI upgrade and scaffold-refresh guide |
-| [Troubleshooting](/troubleshooting) | Common failures and fixes |
-| [FAQ](/faq) | Frequently asked questions |
+</div>
 
-## Reference
+</div>
 
-- [Commands](/commands) — full CLI reference
-- [Configuration](/configuration) — env vars and config files
-- [API Surfaces](/api-surfaces) — Headless, MCP, JSONWS surfaces
-- [Architecture](/architecture) — internal design and ownership
-- [Contributing](/contributing) — development workflow
-- [Releasing](/releasing) — release flow and checklist
+<style scoped>
+/* Scoped styles for Home Layout components */
+:deep(.VPHero) {
+  text-align: center !important;
+}
+:deep(.VPHero .container) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+:deep(.VPHero .name) {
+  font-size: 5rem !important;
+  letter-spacing: -4px !important;
+  text-transform: uppercase;
+}
+:deep(.VPHero .tagline) {
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px !important;
+  letter-spacing: 3px;
+  opacity: 0.7;
+}
+:deep(.VPFeature) {
+  background: transparent !important;
+  border: none !important;
+  border-left: 1px solid var(--vp-c-divider) !important;
+  border-radius: 0 !important;
+}
 
-## Links
+/* Scoped styles for custom markdown content */
+.home-content-extra h2 {
+  text-align: center;
+  font-family: var(--vp-font-family-mono);
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 60px !important;
+  border: none;
+  color: var(--vp-c-text-2);
+}
 
-- [GitHub Repository](https://github.com/mordonez/ldev)
-- [npm Package](https://www.npmjs.com/package/@mordonezdev/ldev)
-- [GitHub Releases](https://github.com/mordonez/ldev/releases)
+.home-content-extra .pipeline-text {
+  text-align: center;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin: 20px 0;
+}
+
+.home-content-extra .pipeline-text a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s;
+}
+
+.home-content-extra .pipeline-text a:hover {
+  color: var(--vp-c-brand);
+}
+
+.home-content-extra .pipeline-text strong {
+  color: var(--vp-c-brand);
+}
+
+.home-content-extra .footer-links {
+  text-align: center;
+  margin-top: 40px;
+}
+
+.home-content-extra .footer-links h3 {
+  margin: 0;
+  border: none;
+}
+</style>

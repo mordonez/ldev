@@ -1,3 +1,8 @@
+---
+title: Architecture
+description: Internal design, source layout, and product philosophy of ldev. Understand the core principles behind our Liferay-focused CLI.
+---
+
 # Architecture
 
 `ldev` is a TypeScript CLI focused on Liferay local environments. The architecture is intentionally simple:

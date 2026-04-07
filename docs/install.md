@@ -1,3 +1,8 @@
+---
+title: Installation
+description: System requirements and installation guide for @mordonezdev/ldev. Setup Liferay local development in minutes.
+---
+
 # Install
 
 Install `ldev` only after checking the [Support Matrix](/support-matrix), which covers platform/Docker provider support and the current Docker image baseline.

@@ -1,5 +1,6 @@
 ---
 title: First Run Walkthrough
+description: A complete end-to-end example session with ldev, showing expected commands and outputs.
 ---
 
 # First Run Walkthrough

@@ -1,18 +1,27 @@
+---
+title: Quickstart
+description: Minimal setup guide to get ldev running with Docker Compose or within a standard Liferay Workspace.
+---
+
 # Quickstart
+
+Get up and running with `ldev` in minutes. Choose the path that best fits your current environment.
 
 ## Choose your path
 
-- Use [Docker runtime](#docker-runtime) to unlock the full potential of `ldev` with Docker Compose.
-- Use [Standard Liferay Workspace](#standard-liferay-workspace) to integrate `ldev` into an existing Blade workspace.
+- **[Docker runtime](#docker-runtime)** — unlock the full potential of `ldev` with Docker Compose. Recommended for new projects.
+- **[Standard Liferay Workspace](#standard-liferay-workspace)** — integrate `ldev` into an existing Blade workspace. Recommended for teams already using Blade.
 
+::: info
 If you want the shortest possible setup, follow only the first command block in your selected path.
+:::
 
 ## Docker runtime
 
 Full local runtime with isolated environments, worktrees, and deploy cache.
 
 ```bash
-npm install -g @mordonez/ldev
+npm install -g @mordonezdev/ldev
 ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ldev setup
@@ -21,13 +30,22 @@ ldev oauth install --write-env
 ldev oauth admin-unblock
 ```
 
-Then start using the main workflows:
+### Main Workflows
+
+Once your project is running, you can use these main workflows:
 
 ```bash
+# Run diagnostics
 ldev doctor --json
+
+# Get current repo and runtime context
 ldev context --json
+
+# Explore portal pages
 ldev portal inventory page --url /web/guest/home --json
 ```
+
+---
 
 ## Standard Liferay Workspace
 
@@ -35,13 +53,15 @@ Add `ldev` on top of an existing Blade Workspace.
 
 ### Prerequisites
 
-**DXP activation key** — Liferay DXP requires a valid license before the portal will start.
+::: warning DXP Activation Key
+Liferay DXP requires a valid license before the portal will start.
 Get your key from the [Liferay Customer Portal](https://customer.liferay.com) and note the path.
+:::
 
 ### Setup
 
 ```bash
-npm install -g @mordonez/ldev
+npm install -g @mordonezdev/ldev
 blade init ai-workspace
 cd ai-workspace
 ldev doctor
@@ -55,12 +75,12 @@ ldev doctor
 ldev start --activation-key-file /path/to/activation-key-dxp-*.xml
 ```
 
-Or set the environment variable so you don't need to pass it every time:
-
+::: tip Environment Variable
+You can set `LDEV_ACTIVATION_KEY_FILE` in your shell profile so you don't need to pass it every time:
 ```bash
 export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp-*.xml
-ldev start
 ```
+:::
 
 ### First login
 
@@ -71,48 +91,37 @@ The portal starts with a default admin account. You must complete the setup wiza
 3. Accept the Terms of Use
 4. Set a new password when prompted
 
-> After changing your password, the default `test` credentials no longer work.
-> Use your new password in all subsequent steps.
+::: danger Password Change
+After changing your password, the default `test` credentials no longer work.
+Use your new password in all subsequent steps.
+:::
 
 ### Configure OAuth2
 
-`ldev` uses OAuth2 for portal commands (`portal inventory`, `resource`, `mcp`, etc.).
-Run this once after the first login:
+`ldev` uses OAuth2 for portal commands. Run this once after your first login:
 
 ```bash
 ldev oauth install --write-env
 ```
 
-This registers an OAuth2 application in the portal and writes the credentials to your local config.
-If prompted for a password, use the one you set during first login.
+This registers an OAuth2 application in the portal and writes the credentials to your local configuration.
 
-The installed app uses the default `ldev` scope profile: enough for `portal`,
-`resource`, and MCP OpenAPI discovery without granting every admin scope by
-default. See [OAuth2 Scopes](/oauth-scopes) if you need to extend that profile.
-
-### Deploy and verify
-
-```bash
-ldev deploy all
-ldev doctor --json
-ldev context --json
-ldev portal inventory sites --json
-```
+---
 
 ## AI bootstrap (both project types)
 
+Prepare your project for AI agents.
+
 ```bash
 ldev ai install --target .
-ldev ai install --target . --project-context
-ldev ai install --target . --project
 ```
 
-Use `--project-context` only when the repo will keep `docs/ai/project-context.md` maintained.
-Use `--project` when you want the optional project-owned AI overlay on top of the vendor-managed base.
+Options:
+- `--project-context`: Use when the repo will keep `docs/ai/project-context.md` maintained.
+- `--project`: Use for optional project-owned AI overlay on top of the vendor-managed base.
 
-## Next docs
+## Next steps
 
-- [First Run Walkthrough](/first-run-walkthrough) — see expected output for every command in a realistic session
-- [Commands](/commands) — full reference with fast navigation
-- [Portal Inventory](/portal-inventory) — deep dive into site and page discovery
-- [Support Matrix](/support-matrix) — platform and Docker provider support
+- [First Run Walkthrough](/first-run-walkthrough) — see expected output for every command.
+- [Commands](/commands) — full CLI reference.
+- [Support Matrix](/support-matrix) — platform and Docker provider support.

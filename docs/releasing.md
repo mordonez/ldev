@@ -1,3 +1,8 @@
+---
+title: Releasing
+description: Standard release procedure for ldev, including versioning, artifacts, and post-release validation steps.
+---
+
 # Releasing
 
 This project is prepared to make packaging and release validation boring for public npm releases.

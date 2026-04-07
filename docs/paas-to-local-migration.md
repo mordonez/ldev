@@ -1,5 +1,6 @@
 ---
-title: PaaS to Local Migration with ldev-native
+title: PaaS to Local Migration
+description: Migrate Liferay projects from Liferay Cloud (PaaS) to a local Docker-Native environment using ldev.
 ---
 
 # PaaS to Local Migration with ldev-native

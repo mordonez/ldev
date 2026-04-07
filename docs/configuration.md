@@ -1,5 +1,6 @@
 ---
-title: Configuration Reference
+title: Configuration
+description: Learn how to configure ldev using environment variables, local .env files, and the .liferay-cli.yml project manifest.
 ---
 
 # Configuration Reference

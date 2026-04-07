@@ -1,5 +1,6 @@
 ---
 title: Automation Contract
+description: Stable JSON/NDJSON output contract for ldev commands. Reliable integration for CI/CD pipelines and coding agents.
 ---
 
 `ldev` exposes a stable machine-readable contract for CI pipelines, scripts, and tooling integrations.
