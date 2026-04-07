@@ -58,11 +58,11 @@ export async function ensureDockerScaffold(
   await fs.ensureDir(destination);
   await copyAsset(assets.dockerDir, destination, '.env.example');
   await copyAsset(assets.dockerDir, destination, 'docker-compose.yml');
+  await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
 
   if (services.includes('postgres')) {
     await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
     await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
-    await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
   }
 
   if (services.includes('elasticsearch')) {
