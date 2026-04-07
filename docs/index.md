@@ -2,12 +2,13 @@
 layout: home
 
 title: Advanced Liferay Local Development
-description: Agentic CLI for Liferay local runtimes, portal discovery, and OAuth2 bootstrap. Built for humans and coding agents.
+description: Agentic CLI for Liferay development and automation.
 
 hero:
-  name: ldev
-  text: Liferay environment as code.
-  tagline: "STATUS: OPERATIONAL // THE AGENTIC BACKBONE FOR LIFERAY"
+  name: LDEV
+  tagline: |
+    Agentic CLI for Liferay
+    Inspect and automate your portal without a browser.
   image:
     src: /logo.svg
     alt: ldev logo
@@ -21,11 +22,11 @@ hero:
 
 features:
   - title: 01. DIAGNOSTIC
-    details: "`ldev doctor` understands the full Liferay/Docker chain, identifying misconfigurations instantly."
+    details: "`ldev doctor` validates your full Liferay + Docker setup and detects issues instantly."
   - title: 02. DISCOVERY
-    details: "Explore sites, pages, and fragments without a browser using `ldev portal inventory`."
+    details: "Explore sites, pages, fragments and content structures without a browser using `ldev portal inventory`."
   - title: 03. AUTOMATION
-    details: "Stable JSON output and context snapshots for CI/CD pipelines and coding agents."
+    details: "Structured JSON output and snapshots designed for CI/CD pipelines and AI agents."
 ---
 
 <div class="home-content-extra">
@@ -51,7 +52,7 @@ ldev portal inventory page --url /home --json
 
 <div class="footer-links">
 
-### [Commands](/commands) &nbsp; | &nbsp; [Capabilities](/capabilities) &nbsp; | &nbsp; [Quickstart](/quickstart)
+### [Commands](/commands) &nbsp; · &nbsp; [Capabilities](/capabilities) &nbsp; · &nbsp; [Quickstart](/quickstart)
 
 </div>
 
@@ -74,9 +75,10 @@ ldev portal inventory page --url /home --json
 }
 :deep(.VPHero .tagline) {
   font-family: var(--vp-font-family-mono);
-  font-size: 13px !important;
-  letter-spacing: 3px;
-  opacity: 0.7;
+  font-size: 1.1rem !important;
+  line-height: 1.6;
+  opacity: 0.8;
+  white-space: pre-wrap;
 }
 :deep(.VPFeature) {
   background: transparent !important;

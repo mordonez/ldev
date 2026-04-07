@@ -1,7 +1,7 @@
 import {defineConfig} from 'vitepress';
 
 export default defineConfig({
-  title: 'ldev',
+  title: 'LDEV',
   description: 'Advanced Liferay local development CLI',
   base: '/ldev/',
   cleanUrls: true,
@@ -75,7 +75,8 @@ export default defineConfig({
     },
     socialLinks: [{icon: 'github', link: 'https://github.com/mordonez/ldev'}],
     footer: {
-      message: 'Focused local tooling for Liferay environments.',
+      message:
+        '@mordonezdev/ldev - Agentic CLI for Liferay development and automation. Desarrollado por <a href="https://github.com/mordonez">Miguel Ordóñez</a>',
       copyright: 'Released under the Apache-2.0 License',
     },
   },
