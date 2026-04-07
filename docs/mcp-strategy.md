@@ -144,6 +144,5 @@ The recommended public stance is:
 
 See also:
 
-- [AI Workflows](/ai-workflows)
-- [MCP Demo Environment](/mcp-demo)
+- [AI Integration](/ai-integration)
 - [Support Matrix](/support-matrix)

@@ -26,7 +26,7 @@ This matrix is intentionally explicit about confidence. It separates:
 
 This matrix is based on:
 
-- the validated `MCP Demo Environment` flow in a local `blade-workspace`
+- a local `blade-workspace` as the validated baseline
 - `ldev oauth install --scope-profile max-test --write-env`
 - the OpenAPI families visible through `ldev mcp openapis --json`
 - direct MCP calls through `get-openapi` and `call-http-endpoint`
@@ -36,7 +36,7 @@ Validated examples in the runtime:
 - OpenAPI discovery through MCP
 - Blog post create/read/delete through MCP
 
-See [MCP Demo Environment](/mcp-demo).
+See [MCP Strategy](/mcp-strategy).
 
 ## Status legend
 
@@ -224,7 +224,6 @@ If you want to harden this matrix further, validate these next:
 
 ## Related docs
 
-- [MCP Demo Environment](/mcp-demo)
 - [MCP Strategy](/mcp-strategy)
 - [OAuth2 Scopes](/oauth-scopes)
 - [API Surfaces](/api-surfaces)

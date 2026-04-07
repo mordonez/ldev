@@ -188,6 +188,6 @@ The default `ldev` OAuth2 app should remain:
 - sufficient for MCP discovery
 - not a grab-bag of every admin scope in the portal
 
-The `max-test` profile is used in the MCP demo environment to grant broad access for exploration and testing. See [MCP Demo Environment](/mcp-demo) for the full demo setup.
+The `max-test` profile grants broad access for exploration and testing when you need full admin scope coverage.
 
 See also: [Commands — oauth install](/commands#ldev-oauth-install) · [Configuration](/configuration) · [MCP Strategy](/mcp-strategy)

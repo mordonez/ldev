@@ -46,19 +46,18 @@ export default defineConfig({
         items: [
           {text: 'PaaS to Local Migration', link: '/paas-to-local-migration'},
           {text: 'Worktree Environments', link: '/worktree-environments'},
-          {text: 'AI Skills', link: '/skills'},
-          {text: 'AI Workflows', link: '/ai-workflows'},
+          {text: 'AI Integration', link: '/ai-integration'},
           {text: 'Portal Inventory', link: '/portal-inventory'},
           {text: 'Resource Migration Pipeline', link: '/resource-migration-pipeline'},
           {text: 'Automation', link: '/automation'},
-          {text: 'MCP Strategy', link: '/mcp-strategy'},
-          {text: 'MCP Demo Environment', link: '/mcp-demo'},
         ],
       },
       {
-        text: 'Project',
+        text: 'Technical & Project',
         items: [
           {text: 'Architecture', link: '/architecture'},
+          {text: 'API Surfaces', link: '/api-surfaces'},
+          {text: 'MCP Strategy', link: '/mcp-strategy'},
           {text: 'Liferay Domain', link: '/liferay-domain'},
           {text: 'Contributing', link: '/contributing'},
           {text: 'Releasing', link: '/releasing'},
