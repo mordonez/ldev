@@ -78,7 +78,7 @@ jobs:
         run: |
           rm -f mordonezdev-ldev-*.tgz mordonezdev-ldev-*-checksums.txt
           npm pack
-          PACKAGE_FILE="$(ls mordonez-ldev-*.tgz)"
+          PACKAGE_FILE="$(ls mordonezdev-ldev-*.tgz)"
           CHECKSUM_FILE="${PACKAGE_FILE%.tgz}-checksums.txt"
           sha256sum "$PACKAGE_FILE" > "$CHECKSUM_FILE"
           {
