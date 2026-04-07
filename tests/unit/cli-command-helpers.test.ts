@@ -9,6 +9,20 @@ import {
 } from '../../src/cli/command-helpers.js';
 import type {CommandContext} from '../../src/cli/command-context.js';
 
+const createMockContext = (format: 'text' | 'json' | 'ndjson'): CommandContext => ({
+  cwd: '/repo',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: {} as any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+  project: {} as any,
+  printer: {
+    format,
+    write: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+});
+
 describe('addOutputFormatOption', () => {
   test('adds format options to command', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,31 +58,15 @@ describe('addOutputFormatOption', () => {
 
 describe('renderCommandResult', () => {
   test('renders text output when format is text', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'text',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    } as any;
+    const mockContext = createMockContext('text');
 
     renderCommandResult(mockContext, {data: 'result'}, {text: 'Text output'});
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(mockContext.printer.write).toHaveBeenCalledWith('Text output');
   });
 
   test('renders JSON output when format is json', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'json',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('json');
 
     renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
 
@@ -76,14 +74,7 @@ describe('renderCommandResult', () => {
   });
 
   test('calls text function when provided', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'text',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('text');
 
     const textFn = vi.fn(() => 'computed text');
     renderCommandResult(mockContext, {value: 42}, {text: textFn});
@@ -93,14 +84,7 @@ describe('renderCommandResult', () => {
   });
 
   test('calls json function when provided', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'json',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('json');
 
     const jsonFn = vi.fn(() => ({computed: true}));
     renderCommandResult(mockContext, {value: 42}, {json: jsonFn});
@@ -110,14 +94,7 @@ describe('renderCommandResult', () => {
   });
 
   test('uses result as fallback when text is undefined', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'text',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('text');
 
     renderCommandResult(mockContext, {data: 'fallback'});
 
@@ -125,14 +102,7 @@ describe('renderCommandResult', () => {
   });
 
   test('sets exit code when provided', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'text',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('text');
 
     renderCommandResult(mockContext, {}, {text: '', exitCode: 42});
 
@@ -141,14 +111,7 @@ describe('renderCommandResult', () => {
   });
 
   test('calls exit code function when provided', () => {
-    const mockContext: CommandContext = {
-      printer: {
-        format: 'text',
-        write: vi.fn(),
-        error: vi.fn(),
-        info: vi.fn(),
-      },
-    };
+    const mockContext = createMockContext('text');
 
     const exitCodeFn = vi.fn(() => 5);
     renderCommandResult(mockContext, {value: 100}, {text: '', exitCode: exitCodeFn});
@@ -166,7 +129,8 @@ describe('withCommandContext', () => {
     await withCommandContext({format: 'json'}, action);
 
     expect(action).toHaveBeenCalled();
-    const context = action.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const context = (action.mock.calls as any)[0]?.[0] as CommandContext;
     expect(context.printer.format).toBe('json');
   });
 
@@ -175,7 +139,8 @@ describe('withCommandContext', () => {
 
     await withCommandContext({}, action);
 
-    const context = action.mock.calls[0][0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const context = (action.mock.calls as any)[0]?.[0] as CommandContext;
     expect(context.printer.format).toBe('text');
   });
 
