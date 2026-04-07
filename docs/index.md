@@ -64,13 +64,13 @@ Follow this path:
 
 ## Daily commands
 
-- [`ldev doctor`](/commands#ldev-doctor)
-- [`ldev context`](/commands#ldev-context)
-- [`ldev start`](/commands#ldev-start)
-- [`ldev oauth install`](/commands#ldev-oauth-install)
-- [`ldev portal check`](/commands#ldev-portal-check)
-- [`ldev portal inventory page`](/commands#ldev-portal-inventory-page)
-- [`ldev logs diagnose`](/commands#ldev-logs-diagnose)
+- [`ldev doctor`](/commands)
+- [`ldev context`](/commands)
+- [`ldev start`](/commands)
+- [`ldev oauth install`](/commands)
+- [`ldev portal check`](/commands)
+- [`ldev portal inventory page`](/commands)
+- [`ldev logs diagnose`](/commands)
 
 ## Guides
 

@@ -21,7 +21,7 @@ export default defineConfig({
       {text: 'Install', link: '/install'},
       {text: 'Quickstart', link: '/quickstart'},
       {text: 'First Run', link: '/first-run-walkthrough'},
-      {text: 'AI Skills', link: '/skills'},
+      {text: 'AI Skills', link: '/ai-integration'},
       {text: 'Commands', link: '/commands'},
       {text: 'Troubleshooting', link: '/troubleshooting'},
       {text: 'GitHub', link: 'https://github.com/mordonez/ldev'},
