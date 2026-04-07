@@ -2,7 +2,7 @@ import {defineConfig} from 'vitepress';
 
 export default defineConfig({
   title: 'ldev',
-  description: 'Liferay local development CLI',
+  description: 'Advanced Liferay local development CLI',
   base: '/ldev/',
   cleanUrls: true,
   lastUpdated: true,
@@ -11,27 +11,25 @@ export default defineConfig({
       externalLinkIcon: true,
     },
   },
-  ignoreDeadLinks: [
-    // Example localhost links in documentation, not real dead links
-    /http:\/\/localhost(:\d+)?/,
-    /http:\/\/localhost:8080/,
+  head: [
+    ['link', {rel: 'icon', href: '/ldev/logo.svg'}],
+    ['meta', {name: 'theme-color', content: '#0072ff'}],
   ],
+  ignoreDeadLinks: [/http:\/\/localhost(:\d+)?/, /http:\/\/localhost:8080/],
   themeConfig: {
+    logo: '/logo.svg',
     nav: [
       {text: 'Install', link: '/install'},
       {text: 'Quickstart', link: '/quickstart'},
-      {text: 'First Run', link: '/first-run-walkthrough'},
-      {text: 'AI Skills', link: '/ai-integration'},
       {text: 'Commands', link: '/commands'},
       {text: 'Troubleshooting', link: '/troubleshooting'},
-      {text: 'GitHub', link: 'https://github.com/mordonez/ldev'},
     ],
     sidebar: [
       {
-        text: 'Get Started',
+        text: '🚀 Getting Started',
         items: [
-          {text: 'Home', link: '/'},
-          {text: 'Install', link: '/install'},
+          {text: 'Introduction', link: '/'},
+          {text: 'Installation', link: '/install'},
           {text: 'Quickstart', link: '/quickstart'},
           {text: 'First Run Walkthrough', link: '/first-run-walkthrough'},
           {text: 'Key Capabilities', link: '/capabilities'},
@@ -41,33 +39,31 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Reference',
+        text: '📖 Reference',
         items: [
-          {text: 'Commands', link: '/commands'},
+          {text: 'Command Reference', link: '/commands'},
           {text: 'Configuration', link: '/configuration'},
           {text: 'OAuth2 Scopes', link: '/oauth-scopes'},
           {text: 'API Surfaces', link: '/api-surfaces'},
-          {text: 'MCP Liferay Capability Matrix', link: '/mcp-liferay-capability-matrix'},
+          {text: 'Capability Matrix', link: '/mcp-liferay-capability-matrix'},
           {text: 'Troubleshooting', link: '/troubleshooting'},
         ],
       },
       {
-        text: 'Advanced',
+        text: '⚡ Advanced Workflows',
         items: [
           {text: 'PaaS to Local Migration', link: '/paas-to-local-migration'},
           {text: 'Worktree Environments', link: '/worktree-environments'},
           {text: 'AI Integration', link: '/ai-integration'},
           {text: 'Portal Inventory', link: '/portal-inventory'},
           {text: 'Resource Migration Pipeline', link: '/resource-migration-pipeline'},
-          {text: 'Automation', link: '/automation'},
+          {text: 'Automation Contract', link: '/automation'},
         ],
       },
       {
-        text: 'Technical & Project',
+        text: '🏗️ Technical Design',
         items: [
           {text: 'Architecture', link: '/architecture'},
-          {text: 'API Surfaces', link: '/api-surfaces'},
-          {text: 'MCP Strategy', link: '/mcp-strategy'},
           {text: 'Liferay Domain', link: '/liferay-domain'},
           {text: 'Contributing', link: '/contributing'},
           {text: 'Releasing', link: '/releasing'},

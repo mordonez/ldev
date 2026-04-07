@@ -1,5 +1,6 @@
 ---
 title: Support Matrix
+description: Platform and Docker provider compatibility table for ldev. Linux, macOS, and experimental Windows support details.
 ---
 
 # Support Matrix

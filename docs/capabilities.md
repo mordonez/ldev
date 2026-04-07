@@ -1,3 +1,8 @@
+---
+title: Key Capabilities
+description: Overview of the core value propositions of ldev, including diagnostics, portal discovery, and AI integration.
+---
+
 # Key Capabilities
 
 This page is the detailed capability reference for `ldev`.

@@ -1,5 +1,6 @@
 ---
-title: MCP Liferay Capability Matrix
+title: MCP Capability Matrix
+description: Detailed matrix of Model Context Protocol (MCP) capabilities in Liferay runtimes, validated by ldev.
 ---
 
 # MCP Liferay Capability Matrix

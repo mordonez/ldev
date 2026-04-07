@@ -1,3 +1,8 @@
+---
+title: Liferay Domain
+description: Understanding how ldev maps Liferay concepts like sites, pages, structures, and OSGi bundles into command logic.
+---
+
 # Liferay Domain — Internal Boundaries
 
 This document records the target module structure and ownership rules for `src/features/liferay/` and `src/commands/liferay/`. Future refactors should land within this plan rather than ad hoc.

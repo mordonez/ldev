@@ -1,5 +1,6 @@
 ---
 title: OAuth2 Scopes
+description: Reference of the default OAuth2 scopes used by ldev. Learn how to extend scope profiles for custom portal discovery tasks.
 ---
 
 # OAuth2 Scopes

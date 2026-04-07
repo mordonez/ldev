@@ -1,3 +1,8 @@
+---
+title: MCP Strategy
+description: Strategy for using ldev alongside the Model Context Protocol (MCP) in Liferay environments.
+---
+
 # MCP Strategy
 
 `ldev` should help humans and agents use the official Liferay MCP where it adds value, without making MCP a hard dependency for core workflows.

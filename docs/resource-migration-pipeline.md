@@ -1,3 +1,8 @@
+---
+title: Resource Migration Pipeline
+description: Safely export and migrate Liferay resources like Journal structures and templates with a reviewable execution plan.
+---
+
 # Resource Migration Pipeline
 
 Migrate Journal structures safely when content already exists.

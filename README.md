@@ -2,73 +2,72 @@
 
 [![npm version](https://img.shields.io/npm/v/@mordonezdev/ldev.svg)](https://www.npmjs.com/package/@mordonezdev/ldev)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-`ldev` is the recommended workflow CLI for Liferay.
+> Advanced Liferay local development CLI for humans and coding agents.
 
-It gives humans and coding agents short commands, stable JSON output, and direct workflows for local runtime work, portal discovery, OAuth bootstrap, and MCP diagnostics.
+`ldev` is the recommended workflow CLI for Liferay. It provides specialized commands for local runtime management, portal discovery, OAuth bootstrap, and MCP diagnostics, making Liferay development predictable and agent-friendly.
 
-## Quickstart
+## 🚀 Quickstart
 
-Full local runtime with Docker Compose, with support for isolated environments and deploy cache.
+Install the CLI globally and initialize your first project.
 
 ```bash
-npm i -g @mordonezdev/ldev
+npm install -g @mordonezdev/ldev
 ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ldev setup
 ldev start
 ldev oauth install --write-env
-ldev oauth admin-unblock
-ldev portal inventory page --url /web/guest/home --json
 ```
 
-`ldev` also supports integration with standard [Liferay Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace) and [AI Workspaces](https://learn.liferay.com/w/dxp/development/tooling/liferay-workspace/ai-tools-in-workspace) for teams that prefer the Blade-generated layout.
+## ✨ Main Capabilities
 
-## Agent-first commands
+- **Smart Diagnostics** — `ldev doctor` identifies misconfigurations in your Liferay environment.
+- **Agent Context** — `ldev context --json` provides a stable snapshot for AI agents.
+- **Portal Discovery** — `ldev portal inventory` explores sites, pages, and structures.
+- **OAuth2 Management** — `ldev oauth install` handles complex OAuth2 registrations.
+- **Advanced Workflows** — Resource migration, isolated worktree environments, and more.
 
-Once the portal is running and OAuth is configured:
+## 🤖 Agent-First Commands
+
+Once your portal is running and OAuth is configured, `ldev` provides high-signal output for coding agents:
 
 ```bash
 ldev ai install --target .
 ldev doctor --json
 ldev context --json
 ldev portal inventory sites --json
-ldev portal inventory page --url /web/guest/home --json
 ldev logs diagnose --json
 ldev mcp check --json
 ```
 
-## Main capabilities
+## 📚 Documentation
 
-- Runtime diagnostics with `ldev doctor`
-- Stable project/runtime snapshot with `ldev context --json`
-- Portal discovery with `ldev portal inventory ...`
-- OAuth bootstrap with `ldev oauth install`
-- MCP diagnostics with `ldev mcp check`, `probe`, and `openapis`
-- Resource export, import, and migration workflows
-- AI and agent bootstrap with `ldev ai install`
+Visit the full documentation site: **[mordonez.github.io/ldev](https://mordonez.github.io/ldev/)**
 
-## Docs
-
+- [Installation Guide](https://mordonez.github.io/ldev/install)
 - [Quickstart](https://mordonez.github.io/ldev/quickstart)
 - [Command Reference](https://mordonez.github.io/ldev/commands)
-- [Portal Inventory](https://mordonez.github.io/ldev/portal-inventory)
-- [AI Workflows](https://mordonez.github.io/ldev/ai-workflows)
-- [MCP Strategy](https://mordonez.github.io/ldev/mcp-strategy)
-- [Product Compatibility](https://mordonez.github.io/ldev/product-compatibility)
+- [AI Integration](https://mordonez.github.io/ldev/ai-integration)
+- [Troubleshooting](https://mordonez.github.io/ldev/troubleshooting)
 
-## Contribute
+## 🛠️ Development
 
 ```bash
 git clone git@github.com:mordonez/ldev.git
 cd ldev
 npm install
-npm link
 npm run build:watch
+npm link
 ```
 
-To explore the CLI without installing:
+To explore without installing:
 
 ```bash
 npx @mordonezdev/ldev --help
 ```
+
+## 📄 License
+
+Released under the **[Apache-2.0 License](LICENSE)**.

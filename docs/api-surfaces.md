@@ -1,5 +1,6 @@
 ---
 title: API Surfaces
+description: Technical details of the API surfaces explored by ldev, including Headless APIs, JSONWS, and Model Context Protocol.
 ---
 
 # API Surfaces

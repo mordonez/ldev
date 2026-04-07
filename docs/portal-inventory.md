@@ -1,3 +1,8 @@
+---
+title: Portal Inventory
+description: Explore Liferay sites, pages, fragments, and structures directly from the command line without opening a browser.
+---
+
 # Portal Inventory
 
 Use `ldev portal inventory` to discover what's running in a Liferay instance without the admin UI.

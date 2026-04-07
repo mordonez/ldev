@@ -1,3 +1,8 @@
+---
+title: Upgrading
+description: Safe upgrade path for ldev. Update the global binary and refresh project-specific scaffolds to the latest version.
+---
+
 # Upgrading
 
 This guide covers two different upgrade paths:

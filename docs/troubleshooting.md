@@ -1,5 +1,6 @@
 ---
 title: Troubleshooting
+description: Common error patterns and fixes for ldev runtimes, Docker issues, and portal authentication failures.
 ---
 
 # Troubleshooting

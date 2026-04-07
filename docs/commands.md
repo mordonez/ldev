@@ -1,10 +1,9 @@
 ---
 title: Command Reference
+description: Full reference of all ldev command namespaces, flags, and options for Liferay local development.
 ---
 
-> **Quick tip:** Every command has `--help`. When in doubt: `ldev <command> --help`.
-
-## Start Here
+# Command Reference
 
 Safe daily flow:
 
