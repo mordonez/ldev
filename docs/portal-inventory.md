@@ -1,173 +1,124 @@
-# Portal Inventory (`ldev portal inventory`)
+# Portal Inventory
 
-Use `portal inventory` to inspect what is running in a Liferay instance without opening the admin UI.
+Use `ldev portal inventory` to discover what's running in a Liferay instance without the admin UI.
 
-It is especially useful for:
+## Quick Reference
 
-- fast discovery before implementing or debugging
-- understanding page trees and URL routing
-- inspecting page composition (fragments/widgets)
-- extracting display-page article fields in machine-readable JSON
+```bash
+# List all sites
+ldev portal inventory sites --json
 
-## 1) List sites
+# List pages in a site
+ldev portal inventory pages --site /my-site --json
+
+# Inspect a specific page
+ldev portal inventory page --url /web/my-site/home --json
+
+# List structures/templates
+ldev portal inventory structures --site /my-site --json
+ldev portal inventory templates --site /my-site --json
+```
+
+---
+
+## Use Cases
+
+- **Discovery**: Understand site/page structure before implementation
+- **Debugging**: Find which page contains which content
+- **Inspection**: Extract page composition (fragments, widgets, fields)
+- **Scripting**: Use `--json` output in CI/AI workflows
+
+---
+
+## 1) List Sites
 
 ```bash
 ldev portal inventory sites
-```
-
-Example text output (sanitized):
-
-```text
-- id=91001 site=/engineering name=Engineering Hub pages=inventory pages --site /engineering
-- id=91002 site=/newsroom name=Newsroom pages=inventory pages --site /newsroom
-- id=91003 site=/students name=Students Portal pages=inventory pages --site /students
-```
-
-JSON output:
-
-```bash
 ldev portal inventory sites --json
 ```
 
-```json
-[
-  {
-    "groupId": "91001",
-    "siteFriendlyUrl": "/engineering",
-    "name": "Engineering Hub",
-    "pagesCommand": "inventory pages --site /engineering"
-  },
-  {
-    "groupId": "91002",
-    "siteFriendlyUrl": "/newsroom",
-    "name": "Newsroom",
-    "pagesCommand": "inventory pages --site /newsroom"
-  }
-]
-```
+Returns:
+- Site ID, friendly URL, name
+- Commands to drill deeper
 
-## 2) List pages for one site
+---
+
+## 2) List Pages for a Site
 
 ```bash
-ldev portal inventory pages --site /engineering
+ldev portal inventory pages --site /my-site --json
 ```
 
-Example text output (sanitized):
+Returns:
+- Page names, types (portlet/content/display), URLs
+- Hierarchy (parents/children)
+- Commands to inspect each page
 
-```text
-inspectCommandTemplate=inventory page --url <fullUrl>
-- Home [portlet] /web/engineering/home
-  - Announcements [portlet] /web/engineering/announcements
-- Programs [content] /web/engineering/programs
-  - Masters Catalog [url] /web/engineering/masters -> https://example.edu/masters
-```
+---
 
-JSON output:
+## 3) Inspect a Specific Page
 
 ```bash
-ldev portal inventory pages --site /engineering --json
+ldev portal inventory page --url /web/my-site/home --json
 ```
+
+Returns:
+- Page type and layout
+- Fragments and their configuration
+- Widgets (portlets) on the page
+- Display page articles and content fields
+
+**Example output:**
 
 ```json
 {
-  "inventoryType": "pages",
-  "groupId": 91001,
-  "siteName": "Engineering Hub",
-  "siteFriendlyUrl": "/engineering",
-  "sitePathPrefix": "/web/engineering",
-  "inspectCommandTemplate": "inventory page --url <fullUrl>",
-  "pageCount": 12,
-  "pages": [
+  "pageType": "content",
+  "siteName": "My Site",
+  "url": "/web/my-site/home",
+  "fragments": [
     {
-      "pageSubtype": "portlet",
-      "name": "Home",
-      "fullUrl": "/web/engineering/home",
-      "pageCommand": "inventory page --url /web/engineering/home",
-      "children": []
+      "name": "hero-banner",
+      "editUrl": "http://localhost:8080/c/portal/layout?..."
+    }
+  ],
+  "portlets": [
+    {
+      "title": "Recent Posts",
+      "instanceId": "..."
     }
   ]
 }
 ```
 
-## 3) Inspect one page deeply
+---
+
+## 4) List Structures & Templates
 
 ```bash
-ldev portal inventory page --url /web/engineering/programs
+ldev portal inventory structures --site /my-site
+ldev portal inventory templates --site /my-site
 ```
 
-### Regular/content page example (text)
+Useful for:
+- Understanding content types
+- Planning resource migrations
+- Identifying what needs to be exported
 
-```text
-REGULAR PAGE
-site=Engineering Hub
-siteFriendlyUrl=/engineering
-groupId=91001
-url=/web/engineering/programs
-pageName=Programs
-layoutType=content
-FRAGMENTS (2)
-1. eng-hero
-   [title] Study Engineering
-2. eng-links
-   [item-1] Undergraduate
-   [item-2] Graduate
-```
+---
 
-### Display page example (text)
+## Workflow Tips
 
-```bash
-ldev portal inventory page --url /web/newsroom/w/scholarship-results
-```
+1. Start: `ldev portal inventory sites`
+2. Pick: `ldev portal inventory pages --site /chosen-site`
+3. Inspect: `ldev portal inventory page --url /specific-page`
+4. Export: `ldev resource export-structures --site /chosen-site`
 
-```text
-DISPLAY PAGE
-site=Newsroom
-siteFriendlyUrl=/newsroom
-groupId=91002
-url=/web/newsroom/w/scholarship-results
-articleId=550101
-articleKey=550099
-articleTitle=Scholarship results 2026
-contentField Headline=Scholarship results are now available
-contentField Summary=Published after committee approval.
-```
+Use `--json` in scripts and agent sessions.
 
-JSON output:
+---
 
-```bash
-ldev portal inventory page --url /web/newsroom/w/scholarship-results --json
-```
+## See Also
 
-```json
-{
-  "pageType": "displayPage",
-  "pageSubtype": "journalArticle",
-  "siteName": "Newsroom",
-  "siteFriendlyUrl": "/newsroom",
-  "url": "/web/newsroom/w/scholarship-results",
-  "article": {
-    "id": 550101,
-    "key": "550099",
-    "title": "Scholarship results 2026"
-  },
-  "articleProperties": {
-    "contentFields": [
-      { "path": "Headline", "type": "string", "value": "Scholarship results are now available" },
-      { "path": "Summary", "type": "string", "value": "Published after committee approval." }
-    ]
-  }
-}
-```
-
-## Practical usage tips
-
-- Start with `sites`, then narrow to `pages`, then inspect with `page`.
-- Use `--json` for scripts, CI, and AI-agent sessions.
-- Use the `pageCommand`/`inspectCommandTemplate` values to recurse programmatically.
-
-## Related docs
-
-- [Key Capabilities](/capabilities)
-- [Command Reference](/commands)
-- [AI Workflows](/ai-workflows)
-- [Automation](/automation)
+- [Commands Reference](/commands#portal-commands)
+- [Resource Migration Pipeline](/resource-migration-pipeline)
+- [Automation](/automation) — JSON output contract
