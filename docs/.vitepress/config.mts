@@ -44,12 +44,13 @@ export default defineConfig({
       {
         text: 'Advanced',
         items: [
+          {text: 'PaaS to Local Migration', link: '/paas-to-local-migration'},
+          {text: 'Worktree Environments', link: '/worktree-environments'},
           {text: 'AI Skills', link: '/skills'},
           {text: 'AI Workflows', link: '/ai-workflows'},
-          {text: 'Automation', link: '/automation'},
-          {text: 'Worktree Environments', link: '/worktree-environments'},
           {text: 'Portal Inventory', link: '/portal-inventory'},
           {text: 'Resource Migration Pipeline', link: '/resource-migration-pipeline'},
+          {text: 'Automation', link: '/automation'},
           {text: 'MCP Strategy', link: '/mcp-strategy'},
           {text: 'MCP Demo Environment', link: '/mcp-demo'},
         ],
