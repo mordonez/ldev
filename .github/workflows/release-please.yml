@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   release-please:
@@ -20,3 +21,69 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: npm run check
+        if: ${{ steps.release.outputs.release_created }}
+
+      - name: Build release package
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          rm -f mordonezdev-ldev-*.tgz mordonezdev-ldev-*-checksums.txt
+          npm pack
+          PACKAGE_FILE="$(ls mordonezdev-ldev-*.tgz)"
+          CHECKSUM_FILE="${PACKAGE_FILE%.tgz}-checksums.txt"
+          sha256sum "$PACKAGE_FILE" > "$CHECKSUM_FILE"
+          {
+            echo "PACKAGE_FILE=$PACKAGE_FILE"
+            echo "CHECKSUM_FILE=$CHECKSUM_FILE"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate CycloneDX SBOM
+        if: ${{ steps.release.outputs.release_created }}
+        uses: anchore/sbom-action@v0.17.5
+        with:
+          file: ${{ env.PACKAGE_FILE }}
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate SPDX SBOM
+        if: ${{ steps.release.outputs.release_created }}
+        uses: anchore/sbom-action@v0.17.5
+        with:
+          file: ${{ env.PACKAGE_FILE }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Attach package assets to GitHub Release
+        if: ${{ steps.release.outputs.release_created }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          files: |
+            ${{ env.PACKAGE_FILE }}
+            ${{ env.CHECKSUM_FILE }}
+            sbom.cyclonedx.json
+            sbom.spdx.json
+
+      - name: Publish to npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
