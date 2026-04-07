@@ -4,6 +4,9 @@ Operational reference for preparing, inspecting, and cleaning the isolated envir
 
 ## Create and Start
 
+> **Never use `git worktree add` directly.** `ldev worktree setup` is required — it handles
+> environment isolation, database copying, and Btrfs snapshots beyond what git provides alone.
+
 ```bash
 ldev worktree setup --name issue-NUM --with-env
 cd .worktrees/issue-NUM

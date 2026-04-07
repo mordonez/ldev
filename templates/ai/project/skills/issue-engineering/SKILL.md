@@ -14,6 +14,7 @@ Single guide for the full issue lifecycle. These guardrails are **non-negotiable
 | Rule | Do not do | Do |
 |---|---|---|
 | **Isolation** | Work in `main` | `ldev worktree setup --name issue-NUM --with-env` |
+| **Worktree creation** | `git worktree add` | `ldev worktree setup --name issue-NUM --with-env` — never use git directly; `ldev` adds env isolation on top |
 | **Cleanup** | `rm -rf .worktrees/NUM` | `ldev worktree clean issue-NUM --force` |
 | **Discovery** | Broad code search when the issue already has a URL | `ldev portal inventory page --url <URL>` first |
 | **Playwright** | Connect to production without local verification | Local first; production only on explicit request |

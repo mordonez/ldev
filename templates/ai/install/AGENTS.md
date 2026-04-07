@@ -26,6 +26,12 @@ Use `ldev --help` as the source of truth for the public CLI surface.
 
 - Use `ldev` as the official entrypoint. Do not fall back to legacy wrappers or
   ad hoc project scripts when an `ldev` command already exists.
+- Before using a `git`, `blade`, or ad hoc shell command to accomplish something,
+  check `ldev --help` to verify no `ldev` equivalent exists.
+- Never use `git worktree add` directly. Use `ldev worktree setup --name <name> --with-env`
+  instead — it handles environment isolation, database copying, and Btrfs snapshots
+  on top of the git worktree. `git worktree add` alone is incomplete and unsafe for
+  this workflow.
 - Prefer the task-shaped public contract first:
   - `ldev doctor --json`
   - `ldev context --json`
