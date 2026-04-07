@@ -43,17 +43,19 @@ jobs:
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@v0.17.5
         with:
-          path: ${{ env.PACKAGE_FILE }}
+          file: ${{ env.PACKAGE_FILE }}
           format: cyclonedx-json
           output-file: sbom.cyclonedx.json
           upload-artifact: false
+          upload-release-assets: false
       - name: Generate SPDX SBOM
         uses: anchore/sbom-action@v0.17.5
         with:
-          path: ${{ env.PACKAGE_FILE }}
+          file: ${{ env.PACKAGE_FILE }}
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: false
+          upload-release-assets: false
       - name: Upload dry-run artifacts
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
