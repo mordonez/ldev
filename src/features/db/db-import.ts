@@ -263,11 +263,12 @@ async function streamSqlIntoPostgres(
   try {
     await pipeline(input, child.stdin);
   } catch (error) {
-    // EPIPE means the child closed its stdin end before we finished writing.
-    // This is expected when the process (or fake docker in tests) exits early.
-    // Wait for the actual exit code rather than aborting.
-    const isEpipe = error instanceof Error && (error as NodeJS.ErrnoException).code === 'EPIPE';
-    if (!isEpipe) {
+    // EPIPE / ERR_STREAM_PREMATURE_CLOSE: the child closed its stdin before we
+    // finished writing (e.g. fake docker in tests or a quick psql exit).
+    // This is expected — wait for the actual exit code rather than aborting.
+    const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
+    const isExpected = errorCode === 'EPIPE' || errorCode === 'ERR_STREAM_PREMATURE_CLOSE';
+    if (!isExpected) {
       child.kill('SIGTERM');
       throw error;
     }
