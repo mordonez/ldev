@@ -99,16 +99,31 @@ export async function ensureLiferayScaffold(targetDir: string, assets: ProjectAs
   await fs.copy(path.join(assets.liferayDir, 'configs', 'common'), path.join(destination, 'configs', 'common'), {
     overwrite: true,
   });
-  await copyAsset(assets.liferayDir, destination, 'configs/dockerenv/portal-ext.properties');
-  await copyAsset(assets.liferayDir, destination, 'configs/dockerenv/portal-setup-wizard.properties');
+  await ensureLiferayDockerenvScaffold(targetDir, assets);
+  await ensureFile(path.join(destination, 'modules', '.gitkeep'));
+  return true;
+}
+
+export async function ensureLiferayDockerenvScaffold(targetDir: string, assets: ProjectAssets): Promise<boolean> {
+  const liferayDir = path.join(targetDir, 'liferay');
+  if (!(await fs.pathExists(liferayDir))) {
+    return false;
+  }
+
+  const dockerenvDir = path.join(liferayDir, 'configs', 'dockerenv');
+  if (await fs.pathExists(dockerenvDir)) {
+    return false;
+  }
+
+  await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-ext.properties');
+  await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-setup-wizard.properties');
   await copyAsset(
     assets.liferayDir,
-    destination,
+    liferayDir,
     'configs/dockerenv/osgi/configs/com.liferay.portal.store.file.system.configuration.AdvancedFileSystemStoreConfiguration.config',
   );
-  await ensureFile(path.join(destination, 'configs', 'dockerenv', 'osgi', 'configs', '.gitkeep'));
-  await ensureFile(path.join(destination, 'configs', 'dockerenv', 'osgi', 'modules', '.gitkeep'));
-  await ensureFile(path.join(destination, 'modules', '.gitkeep'));
+  await ensureFile(path.join(dockerenvDir, 'osgi', 'configs', '.gitkeep'));
+  await ensureFile(path.join(dockerenvDir, 'osgi', 'modules', '.gitkeep'));
   return true;
 }
 

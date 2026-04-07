@@ -14,6 +14,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {
   copyProjectScaffoldFiles,
   ensureDockerScaffold,
+  ensureLiferayDockerenvScaffold,
   ensureLiferayScaffold,
   resolveProjectAssets,
   type DockerService,
@@ -89,12 +90,16 @@ async function applyProjectTooling(options: {
 }): Promise<ProjectCommandResult> {
   const dockerCreated = await ensureDockerScaffold(options.targetDir, options.assets, options.services);
   const liferayCreated = await ensureLiferayScaffold(options.targetDir, options.assets);
+  const dockerenvCreated = liferayCreated
+    ? false
+    : await ensureLiferayDockerenvScaffold(options.targetDir, options.assets);
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
   await configureGeneratedProjectFiles(options.targetDir, options.projectName, options.services);
 
   const touchedPaths = await collectTouchedPaths(options.targetDir, {
     dockerCreated,
     liferayCreated,
+    dockerenvCreated,
     scaffoldFilesCopied,
   });
 
@@ -190,6 +195,7 @@ async function collectTouchedPaths(
   changes: {
     dockerCreated: boolean;
     liferayCreated: boolean;
+    dockerenvCreated: boolean;
     scaffoldFilesCopied: string[];
   },
 ): Promise<string[]> {
@@ -201,6 +207,8 @@ async function collectTouchedPaths(
 
   if (changes.liferayCreated) {
     touchedPaths.push('liferay');
+  } else if (changes.dockerenvCreated) {
+    touchedPaths.push(path.join('liferay', 'configs', 'dockerenv'));
   }
 
   return touchedPaths;
