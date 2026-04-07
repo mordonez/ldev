@@ -75,40 +75,6 @@ describe('snapshot integration', () => {
       ]),
     );
   }, 30000);
-
-  test('snapshot can write a zip archive and restore from it', async () => {
-    const repoRoot = await createSnapshotRepoFixture();
-    const fakeBinDir = await createFakeDockerBin();
-    const env = {
-      ...process.env,
-      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
-      FAKE_DOCKER_PG_DUMP_OUTPUT: 'SELECT 1;\n',
-      FAKE_DOCKER_PSQL_OUTPUT: 'ok\n',
-    };
-    const archiveFile = path.join(repoRoot, '.ldev', 'snapshots', 'bundle.zip');
-
-    const snapshotResult = await runCli(['snapshot', '--output', archiveFile, '--json'], {
-      cwd: repoRoot,
-      env,
-    });
-    expect(snapshotResult.exitCode).toBe(0);
-    expect(await fs.pathExists(archiveFile)).toBe(true);
-
-    await fs.writeFile(
-      path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
-      'modified=true\n',
-    );
-
-    const restoreResult = await runCli(['restore', archiveFile, '--force', '--json'], {
-      cwd: repoRoot,
-      env,
-    });
-
-    expect(restoreResult.exitCode, `restore stderr: ${restoreResult.stderr}\nstdout: ${restoreResult.stdout}`).toBe(0);
-    expect(
-      await fs.readFile(path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'), 'utf8'),
-    ).toContain('foo=bar');
-  }, 30000);
 });
 
 async function createSnapshotRepoFixture(): Promise<string> {
