@@ -43,7 +43,7 @@ See [Key Capabilities](/capabilities) for detailed descriptions with runnable ex
 ## Quick Start
 
 ```bash
-npm install -g @mordonez/ldev
+npm install -g @mordonezdev/ldev
 blade init ai-workspace
 cd ai-workspace
 ldev doctor
@@ -103,5 +103,5 @@ Follow this path:
 ## Links
 
 - [GitHub Repository](https://github.com/mordonez/ldev)
-- [npm Package](https://www.npmjs.com/package/@mordonez/ldev)
+- [npm Package](https://www.npmjs.com/package/@mordonezdev/ldev)
 - [GitHub Releases](https://github.com/mordonez/ldev/releases)

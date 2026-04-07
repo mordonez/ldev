@@ -6,9 +6,9 @@ This project is prepared to make packaging and release validation boring for pub
 
 Current release outputs:
 
-- public npm package `@mordonez/ldev`
-- npm package tarball from `npm pack`, for example `mordonez-ldev-0.1.0.tgz`
-- SHA-256 checksums file, for example `mordonez-ldev-0.1.0-checksums.txt`
+- public npm package `@mordonezdev/ldev`
+- npm package tarball from `npm pack`, for example `mordonezdev-ldev-0.1.0.tgz`
+- SHA-256 checksums file, for example `mordonezdev-ldev-0.1.0-checksums.txt`
 - GitHub Release assets for tagged releases
 
 ## Normal Flow
@@ -97,7 +97,7 @@ Do **not** mix that PR with unrelated feature work.
 3. confirm the tarball contents are correct
 4. confirm the package name in docs, README, and install examples is exact
 5. confirm `ldev --version` reports the release version from the built artifact
-6. confirm `npx @mordonez/ldev@<version> --help` is the intended public invocation
+6. confirm `npx @mordonezdev/ldev@<version> --help` is the intended public invocation
 
 ### Publication step
 
@@ -106,8 +106,8 @@ After the dedicated PR is merged:
 1. confirm `NPM_PUBLISH_ENABLED=true` is set only when you are ready
 2. publish the GitHub Release or run the manual release workflow with explicit sign-off
 3. verify the package is visible on npm
-4. verify `npm install -g @mordonez/ldev` works from a clean machine or clean environment
-5. verify `npx @mordonez/ldev --version` resolves to the published version
+4. verify `npm install -g @mordonezdev/ldev` works from a clean machine or clean environment
+5. verify `npx @mordonezdev/ldev --version` resolves to the published version
 
 ### Immediate post-publication checks
 

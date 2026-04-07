@@ -12,26 +12,26 @@ These are related, but they are not the same operation.
 If you installed `ldev` globally:
 
 ```bash
-npm install -g @mordonez/ldev@latest
+npm install -g @mordonezdev/ldev@latest
 ldev --version
 ```
 
 If you prefer `npx`:
 
 ```bash
-npx @mordonez/ldev@latest --version
+npx @mordonezdev/ldev@latest --version
 ```
 
 If you need to roll back to a known-good release:
 
 ```bash
-npm install -g @mordonez/ldev@0.1.0
+npm install -g @mordonezdev/ldev@0.1.0
 ```
 
 or:
 
 ```bash
-npx @mordonez/ldev@0.1.0 --help
+npx @mordonezdev/ldev@0.1.0 --help
 ```
 
 Before upgrading a team machine image or shared setup, read:
@@ -108,7 +108,7 @@ Those files often contain project overrides and should not be replaced blindly.
 ### Example
 
 ```bash
-npm install -g @mordonez/ldev@latest
+npm install -g @mordonezdev/ldev@latest
 mkdir -p /tmp/ldev-upgrade-check
 ldev project init --name upgrade-check --dir /tmp/ldev-upgrade-check
 diff -ru /tmp/ldev-upgrade-check/docker ./docker

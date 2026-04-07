@@ -14,19 +14,19 @@ Install `ldev` only after checking the [Support Matrix](/support-matrix), which 
 ## Install globally
 
 ```bash
-npm install -g @mordonez/ldev
+npm install -g @mordonezdev/ldev
 ldev --help
 ```
 
 ## Run without global install
 
 ```bash
-npx @mordonez/ldev --help
+npx @mordonezdev/ldev --help
 ```
 
 ## Package name
 
-Install the public package `@mordonez/ldev`.
+Install the public package `@mordonezdev/ldev`.
 
 ## Platform summary
 

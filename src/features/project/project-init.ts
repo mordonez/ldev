@@ -125,7 +125,7 @@ function getNextSteps(targetDir: string): string[] {
     'Edit docker/.env and adjust COMPOSE_PROJECT_NAME, ports, and local variables.',
     'Edit .liferay-cli.yml and review the project paths.',
     `cd ${targetDir}`,
-    'Install ldev globally with npm i -g @mordonez/ldev or use npm link from your local ldev checkout.',
+    'Install ldev globally with npm i -g @mordonezdev/ldev or use npm link from your local ldev checkout.',
     'ldev setup',
     'If you need local data, use ldev db import --file path/to/backup.gz.',
     'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',

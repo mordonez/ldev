@@ -1,5 +1,5 @@
 {
-  "name": "@mordonez/ldev",
+  "name": "@mordonezdev/ldev",
   "version": "0.1.0",
   "description": "Advanced developer workflows for Liferay local environments",
   "type": "module",

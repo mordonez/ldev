@@ -1,6 +1,6 @@
 # ldev
 
-[![npm version](https://img.shields.io/npm/v/@mordonez/ldev.svg)](https://www.npmjs.com/package/@mordonez/ldev)
+[![npm version](https://img.shields.io/npm/v/@mordonezdev/ldev.svg)](https://www.npmjs.com/package/@mordonezdev/ldev)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
 `ldev` is the recommended workflow CLI for Liferay.
@@ -12,7 +12,7 @@ It gives humans and coding agents short commands, stable JSON output, and direct
 Full local runtime with isolated environments, worktrees, and deploy cache.
 
 ```bash
-npm i -g @mordonez/ldev
+npm i -g @mordonezdev/ldev
 ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ldev setup
@@ -70,5 +70,5 @@ npm run build:watch
 To explore the CLI without installing:
 
 ```bash
-npx @mordonez/ldev --help
+npx @mordonezdev/ldev --help
 ```

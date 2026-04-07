@@ -45,13 +45,13 @@ The tool is shaped around Liferay realities:
 Install a specific version directly:
 
 ```bash
-npm install -g @mordonez/ldev@0.1.0
+npm install -g @mordonezdev/ldev@0.1.0
 ```
 
 Or run a specific version with `npx`:
 
 ```bash
-npx @mordonez/ldev@0.1.0 --help
+npx @mordonezdev/ldev@0.1.0 --help
 ```
 
 See [Upgrading](/upgrading) for the broader workflow, including scaffolded-project refresh guidance.

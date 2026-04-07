@@ -96,7 +96,7 @@ describe('smoke help', () => {
   });
 
   test('install snippets stay aligned with the published package name', () => {
-    expect(PACKAGE_JSON.name).toBe('@mordonez/ldev');
+    expect(PACKAGE_JSON.name).toBe('@mordonezdev/ldev');
     expect(README_TEXT).toContain(`npm i -g ${PACKAGE_JSON.name}`);
     expect(README_TEXT).toContain(`npx ${PACKAGE_JSON.name} --help`);
     expect(INSTALL_DOC_TEXT).toContain(`npm install -g ${PACKAGE_JSON.name}`);
