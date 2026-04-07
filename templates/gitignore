@@ -1,9 +1,5 @@
 # Entorno local
-docker/.env
-docker/data/
-docker/backups/
-docker/dumps/
-docker/patching/
+docker/
 liferay/configs/dockerenv/osgi/modules/activation-key-*.xml
 .worktrees/
 
