@@ -1,25 +1,19 @@
+---
+title: First Run Walkthrough
+---
+
 # First Run Walkthrough
 
-This guide shows a realistic end-to-end `ldev` flow for a fresh DXP local environment.
+A realistic end-to-end `ldev` flow for a fresh DXP local environment. This is longer than [Quickstart](/quickstart) for confidence, not verbosity.
 
-It is intentionally longer than [Quickstart](/quickstart): the goal here is not minimality, but confidence. You see the order of commands, the kind of output each step prints, and what “healthy” looks like from the first scaffold to the final `stop`.
+**Total time**: ~20-30 minutes (excluding DXP startup waiting time).
 
-Use this when:
+---
 
-- you are onboarding a developer to `ldev`
-- you want a realistic transcript to compare against your own machine
-- you want one walkthrough that touches setup, OAuth, portal inspection, search, repo-backed resources, and AI bootstrap
-
-If you only want the shortest path to a running environment, use [Quickstart](/quickstart).
-
-## What this walkthrough covers
-
-The flow below creates a new project, starts DXP, installs the OAuth2 apps that `ldev` uses for authenticated API workflows, inspects the default Guest site, exports a few resources into the repo, restarts the environment, and shuts it down cleanly.
-
-High-level command flow:
+## Command Flow
 
 ```bash
-ldev project init --name my-project --dir ~/projects/my-project --commit
+ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ldev ai install --target .
 ldev doctor
@@ -28,314 +22,199 @@ ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
 ldev oauth admin-unblock
 ldev status
-ldev portal check
 ldev portal inventory sites --json
-ldev portal page-layout export --url /web/guest/home --json
-ldev portal search indices --json
 ldev resource export-templates
 ldev resource export-structures
-ldev resource import-templates --apply
-ldev resource import-structures --apply
-ldev env restart
+ldev ai install --target . --project  # optional
 ldev stop
 ```
 
-## Prerequisites
+---
 
-Before starting:
+## Step-by-Step
 
-- install `ldev`
-- make sure Docker is running
-- have a valid DXP activation key XML file ready
-
-Example activation key location:
+### 1. Create Project
 
 ```bash
-export ACTIVATION_KEY=/path/to/activation-key-dxp.xml
-```
-
-## Use the demo script
-
-To run the same walkthrough as a visible terminal transcript, use:
-
-```bash
-ACTIVATION_KEY=/path/to/activation-key-dxp.xml ./scripts/demo-first-run.sh
-```
-
-This script is separate from the smoke tests on purpose:
-
-- it keeps command output visible
-- it is designed for documentation and onboarding
-- it is easier to copy from when you want example output snippets
-
-The technical smoke test remains:
-
-```bash
-ACTIVATION_KEY=/path/to/activation-key-dxp.xml npm run smoke:solo
-```
-
-The smoke test is optimized for verification, not for human-readable transcripts.
-
-## Step-by-step walkthrough
-
-### 1. Create the project
-
-```bash
-ldev project init --name my-project --dir ~/projects/my-project --commit
+ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ```
 
-What to expect:
+Creates:
+- `docker/` — Docker Compose setup
+- `liferay/` — Project structure
+- `docker/.env` — Environment config
+- `.liferay-cli.yml` — ldev configuration
 
-- `docker/` with compose files and `.env`
-- `liferay/` with configs, build output locations, and repo-backed resource directories
-- an initial git commit if you used `--commit`
-
-Representative output:
-
-```text
-Project ready in: /path/to/my-project
-Git repository: initialized
-Git commit: created
-```
-
-### 2. Install reusable AI assets
+### 2. Install AI Skills (Optional)
 
 ```bash
 ldev ai install --target .
 ```
 
-What this adds:
+Installs:
+- `AGENTS.md` — Agent bootstrap
+- `CLAUDE.md` — Project context
+- `.agents/skills/` — Vendor skills
 
-- `AGENTS.md`
-- `CLAUDE.md`
-- `.github/copilot-instructions.md`
-- vendor-managed skills in `.agents/skills/`
+See [AI Integration](/ai-integration) for details.
 
-Representative output:
-
-```text
-Installation completed in: /private/tmp/ldev-demo-30209/ldev-demo
-
-Skills instaladas: 6
-AGENTS.md: installed
-CLAUDE.md: installed
-.github/copilot-instructions.md: installed
-```
-
-### 3. Validate the host and prepare the environment
+### 3. Validate Prerequisites
 
 ```bash
 ldev doctor
+```
+
+Checks:
+- Docker CLI and daemon
+- Project layout
+- Host memory (8+ GB)
+- Port conflicts
+- OAuth2 setup
+
+Fix any **[FAIL]** items before continuing.
+
+### 4. Prepare Environment
+
+```bash
 ldev setup
 ```
 
-What this does:
+- Creates `docker/.env`
+- Prepares data directories
+- Selects compose profile
 
-- checks Docker, compose, repo structure, and local configuration
-- creates or updates `docker/.env`
-- prepares data directories
-- persists the selected compose profile
-
-Representative output:
-
-```text
-Doctor: OK (14 pass, 2 warn, 0 fail)
-...
-Environment prepared at /private/tmp/ldev-demo-30209/ldev-demo/docker/.env
-Data root: /private/tmp/ldev-demo-30209/ldev-demo/docker/data/default
-Docker pull: skipped
-Profile: DXP only (embedded)
-```
-
-### 4. Start DXP
+### 5. Start DXP
 
 ```bash
-ldev start --activation-key-file "$ACTIVATION_KEY"
+ldev start --activation-key-file /path/to/activation-key-dxp.xml
 ```
 
-What to expect:
+Or set environment variable:
 
-- Docker services start
-- the activation key is copied into the right config directory
-- `ldev` waits until the portal is healthy
-
-Representative output:
-
-```text
-Environment started from /private/tmp/ldev-demo-30209/ldev-demo/docker
-Portal URL: http://127.0.0.1:8081
-Activation key: /private/tmp/ldev-demo-30209/ldev-demo/liferay/configs/dockerenv/osgi/modules/activation-key-....xml
-Health wait: yes
+```bash
+export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp.xml
+ldev start
 ```
 
-### 5. Install the OAuth2 apps used by `ldev`
+**Startup time**: 3-5 minutes for first run (schema initialization).
+
+Verify:
+
+```bash
+ldev status     # Check containers
+ldev portal check     # Check portal health
+```
+
+### 6. Install OAuth2 Apps
 
 ```bash
 ldev oauth install --write-env
+```
+
+Creates OAuth2 apps in the portal for authenticated commands.
+
+When prompted: use default admin credentials (`test@liferay.com` / `test`).
+
+### 7. Unblock Admin
+
+```bash
 ldev oauth admin-unblock
 ```
 
-Why these two commands matter:
+Clears the initial password-reset gate so `ldev` commands work immediately.
 
-- `oauth install --write-env` creates the OAuth2 apps that power authenticated `portal` and `resource` commands
-- `oauth admin-unblock` clears the initial admin password-reset gate in a fresh portal so authenticated commands stop returning `403`
-
-Representative output:
-
-```text
-OAuth2 app installed via ldev:oauthInstall
-Company: 91244089858519 (liferay.com)
-User: 20131 (test@liferay.com)
-LIFERAY_CLI_OAUTH2_CLIENT_ID=<redacted>
-LIFERAY_CLI_OAUTH2_CLIENT_SECRET=<redacted>
-.liferay-cli.local.yml actualizado: /private/tmp/ldev-demo-30209/ldev-demo/.liferay-cli.local.yml
-```
-
-```text
-Admin user unblocked via ldev:adminUnblock
-passwordReset=false
-```
-
-## Useful checks after the first start
-
-### Environment status
+### 8. Verify Setup
 
 ```bash
-ldev status
-ldev portal check
-ldev portal auth token
-ldev context --json
+ldev status                    # All containers healthy
+ldev portal check              # Portal responding
+ldev portal inventory sites    # Can query sites
 ```
 
-These confirm:
-
-- containers are running
-- the portal health endpoint is reachable
-- OAuth token generation works
-- `ldev` has the expected local project context
-
-Representative output:
-
-```text
-HEALTH_OK
-baseUrl=http://localhost:8081
-clientId=<redacted>
-checkedPath=/api/jsonws/company/get-companies
-status=200
-tokenType=Bearer
-expiresIn=600
-```
-
-### Inspect the default Guest site
-
-```bash
-ldev portal inventory sites --json
-ldev portal page-layout export --url /web/guest/home --json
-```
-
-This is a good first taste of why `ldev` exists:
-
-- you can list accessible sites quickly
-- export a normalized content-page view for diffing or analysis
-
-Representative output:
-
-```text
-[
-  {
-    "groupId": "20126",
-    "siteFriendlyUrl": "/guest",
-    "name": "Guest",
-    "pagesCommand": "inventory pages --site /guest"
-  }
-]
-```
-
-### Inspect search
-
-```bash
-ldev portal search indices --json
-ldev portal search mappings --index liferay-0 --json
-```
-
-On the default profile, these commands talk to the internal Elasticsearch sidecar inside the `liferay` container.
-
-Representative output:
-
-```text
-{
-  "ok": true,
-  "esUrl": "http://127.0.0.1:9201 (inside liferay)",
-  "rows": [
-    {
-      "health": "green",
-      "status": "open",
-      "index": "liferay-25321648551395",
-      "docs.count": "410"
-    },
-    {
-      "health": "green",
-      "status": "open",
-      "index": "liferay-0",
-      "docs.count": "0"
-    }
-  ]
-}
-```
-
-### Export and re-import a few repo-backed resources
+### 9. Export Resources (Optional)
 
 ```bash
 ldev resource export-templates
 ldev resource export-structures
-ldev resource import-templates --apply
-ldev resource import-structures --apply
+ldev resource export-adts
+ldev resource export-fragments
 ```
 
-This shows the repo-backed content workflow:
+Exports content definitions to version control under `liferay/resources/`.
 
-- export from portal into the repository
-- review files in `liferay/resources/...`
-- apply them back to the portal
-
-Representative output:
-
-```text
-EXPORTED site=/global exported=1 failed=0 dir=/private/tmp/ldev-demo-39227/ldev-demo/liferay/resources/journal/templates/global
-```
-
-## Finish cleanly
+### 10. Install Project Overlays (Optional)
 
 ```bash
-ldev env restart
+ldev ai install --target . --project --project-context
+```
+
+Adds project-specific AI context if your team maintains it.
+
+### 11. Stop When Done
+
+```bash
 ldev stop
 ```
 
-Use `env restart` when you want a full container restart while staying inside the same repo and state directory. Use `stop` when you are done for the day.
+---
 
-Representative output:
+## What Success Looks Like
 
-```text
-Waiting for Liferay to become ready: ok
-Liferay container restarted
-Portal URL: http://127.0.0.1:8081
-Health wait: yes
+You should have:
+
+✓ Working local DXP on http://localhost:8080  
+✓ `docker/.env` with `LIFERAY_CLI_OAUTH2_CLIENT_ID` and `...SECRET`  
+✓ AI bootstrap files (`AGENTS.md`, `.agents/skills/`)  
+✓ Exported structures/templates under `liferay/resources/`  
+✓ Successful responses from `portal check`, `portal inventory`, etc.
+
+---
+
+## Daily Workflow After First Run
+
+```bash
+ldev start                          # Start services
+ldev portal inventory page --url /  # Explore
+# ... development ...
+ldev stop                           # Stop when done
 ```
 
-## What success looks like
+---
 
-At the end of a healthy first run, you should have:
+## Troubleshooting
 
-- a working local DXP reachable in the browser
-- `docker/.env` populated with `LIFERAY_CLI_OAUTH2_CLIENT_ID` and `...SECRET`
-- AI bootstrap files such as `AGENTS.md` and `.agents/skills/`
-- exported structures/templates under `liferay/resources/`
-- successful responses from `portal check`, `portal inventory`, and `portal search`
+### Portal not responding after startup
 
-## Notes
+```bash
+ldev logs diagnose          # Detailed diagnosis
+ldev logs follow --service liferay    # Stream logs
+```
 
-- `Quickstart` remains the shortest route to a running environment.
-- This walkthrough is the better document to share in onboarding sessions or internal team docs.
-- The exact IDs and secrets in your output will differ from the examples above.
-- Some advanced commands can still show transient startup-related differences on a fresh portal. Prefer the command flow and the general shape of the output over exact literal matches.
+### OAuth install fails
+
+Portal setup wizard must be completed first:
+
+1. Open http://localhost:8080
+2. Log in with `test@liferay.com` / `test`
+3. Accept Terms of Use
+4. Set new password
+5. Run `ldev oauth install --write-env` again
+
+### Port conflict
+
+If port 8080 is in use, edit `docker/.env`:
+
+```bash
+LIFERAY_HTTP_PORT=8081
+```
+
+---
+
+## Next Steps
+
+- [Commands Reference](/commands) — Full CLI reference
+- [PaaS to Local Migration](/paas-to-local-migration) — Migrate from production
+- [Resource Migration Pipeline](/resource-migration-pipeline) — Safe structure migrations
+- [AI Integration](/ai-integration) — Agent workflows
+- [Troubleshooting](/troubleshooting) — Common issues

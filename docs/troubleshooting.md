@@ -2,24 +2,13 @@
 title: Troubleshooting
 ---
 
-If you are on a platform marked experimental or unsupported, check the [Support Matrix](/support-matrix) first. Some failures are host/platform limitations, not CLI regressions.
+# Troubleshooting
 
-## Triage in 60 seconds
-
-Read only the section that matches your symptom:
-
-- Setup or host checks fail: `ldev doctor` fails
-- Portal does not get healthy: Liferay start health timeout
-- API commands fail: `ldev portal check` fails
-- Deploy completed but changes are missing: Deploy not reflected in the portal
-- DB import/sync problems: Database issues
-- Worktree issues: Worktrees
-
-If you are unsure where to start, run `ldev doctor`, then `ldev logs diagnose`.
+Start with `ldev doctor`, then `ldev logs diagnose` for detailed diagnosis.
 
 ---
 
-## `ldev doctor` fails
+## Startup Issues
 
 ### Docker not running
 
@@ -27,326 +16,189 @@ If you are unsure where to start, run `ldev doctor`, then `ldev logs diagnose`.
 [FAIL] Docker Daemon: docker CLI is available but the daemon is not responding
 ```
 
-Start Docker Desktop (or `sudo systemctl start docker` on Linux) and run `ldev doctor` again.
-
----
+**Fix**: Start Docker Desktop (or `sudo systemctl start docker` on Linux).
 
 ### Port already in use
 
 ```text
-[WARN] HTTP Port: host port localhost:8080 is already in use
+[WARN] HTTP Port: localhost:8080 is already in use
 ```
 
-Find what is using the port and stop it, or change `LIFERAY_HTTP_PORT` in `docker/.env`:
+**Fix**: Change port in `docker/.env`:
 
 ```bash
-lsof -i :8080
-# then stop the process, or:
-echo "LIFERAY_HTTP_PORT=8181" >> docker/.env
+LIFERAY_HTTP_PORT=8181
 ```
-
----
 
 ### Low host memory
 
 ```text
-[WARN] Host Memory: host memory 4.0 GiB is below the recommended 8 GB for Docker + Liferay
+[WARN] Host Memory: 4.0 GiB is below recommended 8 GB
 ```
 
-Increase Docker Desktop memory or free RAM on the host before starting Elasticsearch and Liferay together.
+**Fix**: Allocate more RAM to Docker, or close other apps. Minimum 8 GB required.
 
----
-
-### `docker/.env` not found
-
-ldev did not detect a valid project (needs `docker/docker-compose.yml` + `liferay/` directory).
-
-```bash
-ldev setup      # creates docker/.env from .env.example
-# or
-ldev env init   # normalize docker/.env for the current repo
-```
-
----
-
-### Activation key path invalid or missing
+### Activation key invalid or missing
 
 ```text
-[FAIL] Activation Key: activation key file does not exist: /path/to/activation-key.xml
+[FAIL] Activation Key: path does not exist
 ```
 
-Set a readable `activation-key-*.xml` file before starting DXP:
-
+**Fix**: 
 ```bash
-export LDEV_ACTIVATION_KEY_FILE=/absolute/path/to/activation-key-dxp.xml
-ldev doctor
-```
-
----
-
-## Liferay start health timeout
-
-### Startup timeout
-
-```text
-✗ Timed out waiting for Liferay to become healthy
-```
-
-Increase the timeout or skip waiting and check logs manually:
-
-```bash
-ldev start --timeout 600
-# or
-ldev start --no-wait
-ldev logs --since 5m
-ldev logs diagnose
-```
-
----
-
-### Activation key missing or expired
-
-Liferay DXP will start but stay in an unusable state without a valid key. Pass the key at start:
-
-```bash
-ldev start --activation-key-file /path/to/activation-key-dxp.xml
-```
-
-Or set it permanently in your shell profile:
-
-```bash
-export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp.xml
-```
-
----
-
-### Not enough memory
-
-Elasticsearch and Liferay together need at least 8 GB of RAM available to Docker. On Docker Desktop, go to **Settings → Resources** and increase the memory limit.
-
----
-
-## Worktree and resource edge cases
-
-### `ldev worktree setup --with-env` stops before creating anything
-
-If the main checkout is still running and the host is not using Btrfs snapshot cloning, this is expected. `ldev` now fails in preflight before creating the worktree, instead of creating it first and then stopping during env preparation.
-
-Stop the main environment first:
-
-```bash
-ldev stop
-ldev worktree setup --name issue-123 --with-env
-```
-
-Or, if you only need the git checkout for now, create it without env preparation:
-
-```bash
-ldev worktree setup --name issue-123
-```
-
----
-
-### `ldev resource import-structure` timed out
-
-If the timeout happens after Liferay already accepted the structure update, `ldev` performs a short recovery poll. A recovered run is reported as updated instead of forcing an immediate blind retry.
-
-If recovery still cannot confirm the final state, inspect the structure once and then retry only if needed:
-
-```bash
-ldev resource get-structure --site /global --key YOUR_STRUCTURE
-ldev resource import-structure --site /global --key YOUR_STRUCTURE
-```
-
----
-
-## Platform-specific limits
-
-### Btrfs worktree features missing on macOS or Windows
-
-This is expected. Btrfs-backed worktree flows are Linux-only.
-
-Use normal `worktree setup`, `worktree env`, and `worktree start` flows without Btrfs, or move that workflow to a Linux host.
-
----
-
-### Windows host issues
-
-Native Windows is not a supported target.
-
-If you are using WSL2:
-
-- keep the repo inside the Linux filesystem
-- avoid Windows-mounted paths for the project root
-- treat the setup as experimental
-
----
-
-### Containers crashed on previous run
-
-```bash
-ldev stop
-ldev env recreate   # recreate containers keeping volumes
+export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp-*.xml
 ldev start
 ```
 
-If that does not help, check logs from the last run:
-
-```bash
-ldev logs --no-follow --since 30m
-```
-
----
-
-## `ldev portal check` fails
-
-### OAuth2 not configured
+### Portal not starting (timeout)
 
 ```text
-✗ OAuth2 client ID or secret is missing
+Health wait: liferay health endpoint not responding
 ```
 
-Add credentials to `docker/.env` (or shell env vars). See [Configuration Reference](/configuration#oauth2-setup).
-
-For a standard local environment:
+**Fix**: Check logs:
 
 ```bash
-ldev start
-ldev oauth install --write-env
+ldev logs follow --service liferay     # Stream logs
+ldev logs diagnose                      # Full diagnosis
 ```
 
-If you intentionally configured the read-only credentials, commands that write to the portal will fail until you switch back to the read/write pair.
+Common causes:
+- Activation key expired or invalid
+- Not enough memory/disk
+- Port conflict
+- Corrupted data directory: `ldev env clean` then `ldev start`
 
 ---
 
-### Portal not reachable from the host
+## OAuth & Authentication
 
-```text
-✗ Could not connect to http://localhost:8080
-```
+### OAuth install fails
 
-1. Confirm Liferay is running: `ldev status`
-2. Confirm the URL matches your `BIND_IP` and `LIFERAY_HTTP_PORT` in `docker/.env`
-3. If you changed `BIND_IP` to a non-localhost value, also set `LIFERAY_CLI_URL` explicitly:
+**Cause**: Portal setup wizard not completed or wrong credentials.
+
+**Fix**:
+1. Open http://localhost:8080
+2. Log in with `test@liferay.com` / `test`
+3. Complete setup wizard
+4. Run: `ldev oauth install --write-env`
+
+### Portal check fails: "401 Unauthorized"
+
+**Cause**: OAuth2 credentials missing or invalid.
+
+**Fix**:
 
 ```bash
-LIFERAY_CLI_URL=http://100.115.222.80:8080 ldev portal check
+ldev oauth install --write-env     # Re-register apps
+ldev oauth admin-unblock           # Clear password-reset gate
+ldev portal check                  # Retry
 ```
+
+### "Portal requires first login"
+
+**Cause**: Setup wizard not completed.
+
+**Fix**: Manually complete setup at http://localhost:8080, then retry OAuth install.
 
 ---
 
-### Wrong site or scope
+## Database & Import Issues
 
-`portal` commands target the default site. Pass `--site-id` or `--site` to override:
+### `ldev db import` times out or fails
+
+**Cause**: Database too large or corrupted backup.
+
+**Fix**:
 
 ```bash
-ldev portal audit --site /my-site
-ldev portal inventory pages --site-id 20121
+ldev db import --verbose           # See what's happening
+# If it fails, check post-import script syntax:
+cat docker/sql/post-import.d/010-adapt-local-db.sql | head -20
 ```
 
----
+### `ldev db download` fails (LCP credentials)
 
-## Deploy not reflected in the portal
+**Cause**: Invalid LCP_PROJECT or LCP_ENVIRONMENT in `docker/.env`.
 
-### Artifact built but not picked up
-
-Check what is in the deploy directory and what OSGi sees:
+**Fix**: Verify in `docker/.env`:
 
 ```bash
-ldev deploy status
-ldev osgi status my.bundle.symbolic.name
+LCP_PROJECT=my-actual-lcp-project     # Check spelling
+LCP_ENVIRONMENT=staging               # dev, staging, or prd
 ```
 
----
+### Database corrupted after import
 
-### Bundle stuck in `INSTALLED` state
+**Cause**: Post-import SQL script error or data corruption.
 
-The bundle has unsatisfied dependencies. Run `diag` to find out which ones:
-
-```bash
-ldev osgi diag my.bundle.symbolic.name
-```
-
-Common causes: missing dependency bundle, wrong version range, Service Builder output not deployed.
-
----
-
-### Theme change not visible
-
-CSS/JS changes in a theme require a full theme build and redeploy:
+**Fix**: Reimport from backup:
 
 ```bash
-ldev deploy theme
-```
-
-If still not visible, clear the browser cache or test in a private window.
-
----
-
-### `deploy watch` not detecting changes
-
-Watch uses file system events. On macOS inside a Docker bind-mount, events can be delayed. Try saving the file again or use `ldev deploy all` for a one-shot rebuild.
-
----
-
-## Database issues
-
-### Import fails
-
-```bash
-ldev db import --file docker/backups/liferay.sql --force
-```
-
-`--force` is required to replace an existing database. Without it, the command refuses to overwrite.
-
----
-
-### Local database is corrupted / out of sync
-
-Re-sync from LCP:
-
-```bash
-ldev db sync --force
-```
-
-Or restore from a local snapshot:
-
-```bash
-ldev restore .ldev/snapshots/my-snapshot --force
+ldev env clean                 # Delete data
+ldev db download               # Re-download
+ldev db import                 # Re-import
 ```
 
 ---
 
-### `db sync` fails — LCP credentials
+## Deployment Issues
 
-`db download` and `db sync` need `LCP_PROJECT` and `LCP_ENVIRONMENT` set:
+### Deploy completes but changes don't appear
+
+**Cause**: Bundle stuck, or app not reloaded.
+
+**Fix**:
 
 ```bash
-# in docker/.env
-LCP_PROJECT=my-project
-LCP_ENVIRONMENT=prd
-# or as env vars:
-LCP_PROJECT=my-project LCP_ENVIRONMENT=prd ldev db sync
+ldev deploy prepare               # Build only
+ldev osgi status                  # Check bundle state
+ldev env restart                  # Full restart
+```
+
+### Deploy fails with "artifact not found"
+
+**Cause**: Build failed or wrong module name.
+
+**Fix**:
+
+```bash
+ldev deploy prepare               # Test build without deploying
+# Check error output and fix build
 ```
 
 ---
 
-## OSGi / Gogo Shell
+## Portal Issues
 
-### Can't connect to Gogo Shell
+### Elasticsearch not responding / reindex stuck
 
-Gogo Shell is only accessible while Liferay is running. Confirm it is healthy first:
+**Cause**: Elasticsearch OOM or corrupted indices.
+
+**Fix**:
 
 ```bash
-ldev status
-ldev osgi gogo "lb | grep -i my-bundle"
+ldev env clean                        # Clean all data
+ldev start                            # Fresh start
+ldev portal reindex speedup-on         # Reindex
 ```
 
----
+### Search queries return no results
 
-### Thread dump hangs
+**Cause**: Content not indexed.
 
-If the JVM is fully hung, `thread-dump` may also hang. Wait 30 seconds and cancel with `Ctrl+C`. If Liferay is unresponsive, restart:
+**Fix**:
+
+```bash
+ldev portal reindex speedup-on         # Full reindex
+ldev portal search indices            # Verify indices exist
+```
+
+### Portal shows old data
+
+**Cause**: Cache not cleared.
+
+**Fix**: Restart Liferay:
 
 ```bash
 ldev env restart
@@ -354,33 +206,65 @@ ldev env restart
 
 ---
 
-## Worktrees
+## Worktree Issues
 
-### Worktree env not isolated
+### `ldev worktree setup --with-env` fails
 
-Each worktree needs its own Docker Compose project name. Set `COMPOSE_PROJECT_NAME` to a unique value in the worktree's `docker/.env` before starting:
+**Cause**: Not enough disk space or `main` environment still running.
+
+**Fix**:
 
 ```bash
-# ldev worktree setup handles this automatically:
-ldev worktree setup --name issue-123 --with-env
+ldev status              # Check main environment
+ldev stop                # Stop main if running
+ldev worktree setup --name task-123 --with-env
+```
+
+### Worktree takes too much disk space
+
+**Cause**: Multiple worktrees with separate Docker data.
+
+**Fix**:
+
+```bash
+ldev worktree gc                  # Clean unused worktrees
+ldev worktree clean --force       # Delete specific worktree
 ```
 
 ---
 
-### Stale worktree taking up disk space
+## Quick Diagnostic Commands
+
+When stuck, run:
 
 ```bash
-ldev worktree gc              # preview what would be removed
-ldev worktree gc --apply      # remove stale worktrees
+ldev doctor                    # Check prerequisites
+ldev status                    # Show container status
+ldev logs diagnose             # Full diagnosis
+ldev context --json            # Current configuration
+ldev portal check              # Portal health
+```
+
+For verbose output:
+
+```bash
+ldev logs follow --service liferay      # Stream Liferay logs
+ldev logs follow --service elasticsearch # Stream Elasticsearch logs
 ```
 
 ---
 
-## General tips
+## Still Stuck?
 
-- **Always run `ldev doctor` first** when something is broken. It catches most configuration problems.
-- **Check `ldev logs diagnose`** before scrolling through thousands of log lines. It groups exceptions by type.
-- **`ldev status --json`** gives machine-readable state useful for debugging scripts.
-- Most commands accept `--help` — check the options before guessing.
+1. Run: `ldev logs diagnose` (provides full context)
+2. Check: [Support Matrix](/support-matrix) for platform/host issues
+3. See: [Commands Reference](/commands) for detailed command options
+4. Explore: `ldev <command> --help` for all flags
 
-[Back to Home](/)
+---
+
+## See Also
+
+- [First Run Walkthrough](/first-run-walkthrough) — Expected behavior
+- [Configuration](/configuration) — Environment variables
+- [Support Matrix](/support-matrix) — Platform compatibility
