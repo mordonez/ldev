@@ -1,0 +1,30 @@
+services:
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+      dockerfile: Dockerfile
+    image: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch:7.17.26
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=${ES_JAVA_OPTS:--Xms1g -Xmx1g}"
+      - ingest.geoip.downloader.enabled=false
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${ES_HTTP_PORT:-9200}:9200"
+    volumes:
+      - ${ENV_DATA_ROOT:-./data/default}/elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - liferay-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cat/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  liferay:
+    depends_on:
+      elasticsearch:
+        condition: service_healthy

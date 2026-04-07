@@ -1,0 +1,3 @@
+# ldev-native gets the full project-owned pack, including worktree-oriented issue flow.
+capturing-session-knowledge
+issue-engineering

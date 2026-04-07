@@ -1,0 +1,51 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '28 3 * * 1'
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  preflight:
+    name: CodeQL preflight
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ vars.ENABLE_CODE_SCANNING }}" = "true" ]; then
+            echo "Code scanning enabled."
+          else
+            echo "Code scanning is not enabled for this repository; skipping CodeQL analysis."
+          fi
+
+  analyze:
+    name: Analyze (javascript-typescript)
+    needs: preflight
+    if: ${{ vars.ENABLE_CODE_SCANNING == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

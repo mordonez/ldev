@@ -1,0 +1,2 @@
+# Workspace-specific project agent pack intentionally starts empty.
+# The current issue-resolver / PR flow assumes ldev-native worktree workflows.

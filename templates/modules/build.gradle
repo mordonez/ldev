@@ -1,0 +1,39 @@
+plugins {
+	id "java"
+	id "biz.aQute.bnd.builder" version "7.1.0"
+}
+
+group = "dev.mordonez"
+version = "1.0.0"
+
+def liferayTargetPlatformVersion = findProperty("liferay.target.platform.version") ?: "2026.q1.0"
+
+repositories {
+	gradlePluginPortal()
+	mavenCentral()
+	maven {
+		url "https://repository-cdn.liferay.com/nexus/content/groups/public"
+	}
+}
+
+dependencies {
+	compileOnly group: "com.liferay.portal", name: "release.dxp.api", version: liferayTargetPlatformVersion
+	testImplementation group: "junit", name: "junit", version: "4.13.2"
+}
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+jar {
+	archiveBaseName = "dev.mordonez.ldev.oauth2.app"
+	archiveVersion = project.version.toString()
+}
+
+tasks.register("stageReleaseBundle", Copy) {
+	dependsOn tasks.named("jar")
+	from(tasks.named("jar"))
+	into(layout.projectDirectory.dir("../bundles"))
+}

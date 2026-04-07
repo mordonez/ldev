@@ -1,0 +1,83 @@
+# Project Context
+
+Example filled using the `web` repository as a reference. Copy the structure,
+not the literal values, into your real `docs/ai/project-context.md`.
+
+## Stack
+
+| Component | Version / detail |
+|---|---|
+| Product | `web` |
+| Platform | Liferay DXP 2025 quarterly |
+| Target platform | `2026.q1.0` |
+| Docker image | `liferay/dxp:2026.q1.0-lts` |
+| Java | 21 |
+| Gradle wrapper | 8.5 |
+| Node.js | Used locally for tooling and Playwright |
+| Browser automation | Playwright |
+| Runtime | Local Docker env managed with `ldev` |
+
+## Local Runtime
+
+```bash
+ldev doctor
+ldev context --json
+ldev setup
+ldev start
+ldev status --json
+ldev logs --since 10m --service liferay --no-follow
+ldev stop
+```
+
+Notes:
+
+- Use `ldev` as the official entrypoint instead of ad hoc Docker commands.
+- Prefer JSON output when an agent or script will consume the result.
+- If the env is down, verify it with `ldev status --json` before debugging portal behavior.
+
+## Project Layout
+
+- Liferay workspace root: `liferay/`
+- Modules: `liferay/modules/`
+- Themes: `liferay/themes/`
+- Fragments: `liferay/ub-fragments/`
+- Journal structures: `liferay/resources/journal/structures/`
+- Journal templates: `liferay/resources/journal/templates/`
+- ADTs: `liferay/resources/templates/application_display/`
+- Migrations: `liferay/resources/journal/migrations/`
+- Liferay configs: `liferay/configs/`
+- Project docs: `docs/`
+
+## Conventions
+
+- Treat `ldev` output and the code under the repo as the source of truth.
+- Keep project-specific AI knowledge in repo-owned docs, not in vendor skills.
+- Prefer the smallest deploy or import that proves a change.
+- For runtime or portal diagnosis, capture the exact failing command or URL first.
+
+## Project Runbooks
+
+- Build and prepare deploy artifacts:
+
+```bash
+ldev deploy service
+ldev deploy prepare
+```
+
+- Diagnose local runtime before deeper fixes:
+
+```bash
+ldev doctor --json
+ldev context --json
+ldev status --json
+ldev logs --since 10m --service liferay --no-follow
+```
+
+- When working on Journal resources, inspect structures, templates, migrations
+  and any project-owned skills before changing data-affecting assets.
+
+## Maintenance Notes
+
+- Keep this file factual and updated as the project evolves.
+- If a section becomes generally reusable across projects, move it to a skill
+  or reusable `ldev` doc instead of expanding the sample.

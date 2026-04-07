@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metatype:MetaData
+    xmlns:metatype="http://www.osgi.org/xmlns/metatype/v1.4.0"
+    localization="content/Language">
+  <OCD
+      id="dev.mordonez.ldev.oauth2.app.configuration.LdevOAuth2AppConfiguration"
+      name="ldev OAuth2 App">
+    <AD id="enabled" type="Boolean" default="false" required="false" name="enabled"/>
+    <AD id="companyId" type="Long" default="0" required="false" name="companyId"/>
+    <AD id="userId" type="Long" default="0" required="false" name="userId"/>
+    <AD id="externalReferenceCode" type="String" default="ldev" required="false" name="externalReferenceCode"/>
+    <AD id="appName" type="String" default="ldev" required="false" name="appName"/>
+    <AD id="clientId" type="String" default="" required="false" name="clientId"/>
+    <AD id="clientSecret" type="String" default="" required="false" name="clientSecret"/>
+    <AD id="rotateClientSecret" type="Boolean" default="false" required="false" name="rotateClientSecret"/>
+    <AD
+        id="clientAuthenticationMethod"
+        type="String"
+        default="client_secret_basic"
+        required="false"
+        name="clientAuthenticationMethod"/>
+    <AD
+        id="scopeAliases"
+        type="String"
+        cardinality="2147483647"
+        default="Liferay.Headless.Admin.User.everything.read,Liferay.Headless.Admin.Site.everything.read,Liferay.Data.Engine.REST.everything.read,Liferay.Data.Engine.REST.everything.write,Liferay.Headless.Delivery.everything.read,Liferay.Headless.Delivery.everything.write,liferay-json-web-services.everything.read,liferay-json-web-services.everything.write,Liferay.Headless.Discovery.API.everything.read,Liferay.Headless.Discovery.OpenAPI.everything.read"
+        required="false"
+        name="scopeAliases"/>
+  </OCD>
+  <Designate pid="dev.mordonez.ldev.oauth2.app.configuration.LdevOAuth2AppConfiguration">
+    <Object ocdref="dev.mordonez.ldev.oauth2.app.configuration.LdevOAuth2AppConfiguration"/>
+  </Designate>
+</metatype:MetaData>

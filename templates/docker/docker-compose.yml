@@ -1,0 +1,47 @@
+services:
+  liferay:
+    image: ${LIFERAY_IMAGE:-liferay/2026.q1.0-lts}
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-liferay
+    restart: unless-stopped
+    stop_grace_period: 120s
+    environment:
+      LIFERAY_JPDA_ENABLED: "true"
+      BIND_IP: ${BIND_IP:-}
+      LIFERAY_HTTP_PORT: ${LIFERAY_HTTP_PORT:-8080}
+      LIFERAY_SESSION_COOKIE_NAME: ${LIFERAY_SESSION_COOKIE_NAME:-}
+      LIFERAY_JVM_OPTS: ${LIFERAY_JVM_OPTS:--Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.net.preferIPv4Stack=true}
+      LIFERAY_CONTAINER_STATUS_ENABLED: "true"
+      LIFERAY_THREAD_DUMPS_DIRECTORY: "/opt/liferay/dumps/thread_dumps"
+      LIFERAY_WEB_PERIOD_SERVER_PERIOD_HTTP_PERIOD_PORT: "${LIFERAY_HTTP_PORT:-8080}"
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${LIFERAY_HTTP_PORT:-8080}:8080"
+      - "${BIND_IP:-127.0.0.1}:${LIFERAY_DEBUG_PORT:-8000}:8000"
+      - "${BIND_IP:-127.0.0.1}:${GOGO_PORT:-11311}:11311"
+    volumes:
+      - ./liferay-scripts:/usr/local/liferay/scripts
+      - ../liferay/build/docker/configs/dockerenv:/mnt/liferay/files
+      - ../liferay/build/docker/deploy:/mnt/liferay/deploy
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-deploy-cache:/mnt/liferay/deploy-cache
+      - ./patching:/mnt/liferay/patching
+      - ./dumps:/opt/liferay/dumps
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-data:/opt/liferay/data
+      - doclib:/opt/liferay/data/document_library
+      - ${ENV_DATA_ROOT:-./data/default}/liferay-osgi-state:/opt/liferay/osgi/state
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --max-time 20 -o /dev/null http://localhost:8080/c/portal/login || exit 1"]
+      interval: 15s
+      timeout: 25s
+      retries: 40
+      start_period: 120s
+    networks:
+      - liferay-network
+
+networks:
+  liferay-network:
+    name: ${COMPOSE_PROJECT_NAME:-liferay}-network
+    driver: bridge
+
+volumes:
+  doclib:
+    name: ${DOCLIB_VOLUME_NAME:-liferay-doclib}
+    external: true

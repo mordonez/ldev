@@ -1,0 +1,112 @@
+{
+  "name": "@mordonez/ldev",
+  "version": "0.1.0",
+  "description": "Advanced developer workflows for Liferay local environments",
+  "type": "module",
+  "bin": {
+    "ldev": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "templates/.gitignore",
+    "templates/.liferay-cli.yml",
+    "templates/docker/.env",
+    "templates/docker/.env.example",
+    "templates/docker/docker-compose.yml",
+    "templates/docker/docker-compose.elasticsearch.yml",
+    "templates/docker/docker-compose.postgres.yml",
+    "templates/docker/liferay-configs-full/osgi/configs/com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config",
+    "templates/docker/dumps/.gitkeep",
+    "templates/docker/liferay-scripts/post-shutdown/.gitkeep",
+    "templates/docker/liferay-scripts/pre-configure/.gitkeep",
+    "templates/docker/patching/.gitkeep",
+    "templates/docker/postgres/init/.gitkeep",
+    "templates/bundles/*.jar",
+    "templates/liferay/.gitignore",
+    "templates/liferay/configs/.gitkeep",
+    "templates/liferay/modules/.gitkeep",
+    "!templates/**/.gradle",
+    "!templates/**/.gradle/**",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "smoke": "bash scripts/smoke-test-compose-profiles.sh",
+    "smoke:solo": "bash scripts/smoke-test-solo-dxp.sh",
+    "smoke:workspace": "bash scripts/smoke-test-workspace.sh",
+    "build:oauth-bundle": "bash scripts/build-oauth-bundle.sh",
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "dev": "tsx src/index.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs && node scripts/postprocess-docs-build.mjs",
+    "docs:check-links": "node scripts/check-doc-links.mjs",
+    "docs:preview": "vitepress preview docs",
+    "start": "node dist/index.js",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "prepare": "npm run build && ([ -n \"$CI\" ] || npm run hooks:install)",
+    "link:global": "npm link",
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint src/ tests/ --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:smoke": "vitest run tests/smoke",
+    "test:system": "vitest run tests/system",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mordonez/ldev.git"
+  },
+  "homepage": "https://github.com/mordonez/ldev",
+  "bugs": {
+    "url": "https://github.com/mordonez/ldev/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "liferay",
+    "dxp",
+    "docker",
+    "cli",
+    "developer-experience"
+  ],
+  "dependencies": {
+    "commander": "^14.0.0",
+    "execa": "^9.6.0",
+    "fs-extra": "^11.3.0",
+    "jszip": "^3.10.1",
+    "p-retry": "^8.0.0",
+    "p-wait-for": "^6.0.0",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^24.5.2",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^10.1.0",
+    "linkinator": "^7.6.1",
+    "prettier": "^3.8.1",
+    "tsdown": "^0.21.7",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.57.2",
+    "vitepress": "^1.6.4",
+    "vitest": "^3.2.4"
+  }
+}

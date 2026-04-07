@@ -1,0 +1,38 @@
+name: Docs issue
+description: Report missing, broken, or confusing documentation
+title: '[Docs]: '
+labels:
+  - documentation
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Docs page
+      description: URL or file path
+      placeholder: https://mordonez.github.io/ldev/quickstart
+    validations:
+      required: true
+  - type: dropdown
+    id: docs_problem_type
+    attributes:
+      label: Type of docs problem
+      options:
+        - Broken link
+        - Incorrect instruction
+        - Missing explanation
+        - Outdated content
+        - Confusing wording
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is wrong or missing
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+    validations:
+      required: false

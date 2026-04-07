@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-liferay}
+      POSTGRES_USER: ${POSTGRES_USER:-liferay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-liferay}
+    # Dev-optimized: prioritize speed over durability (data is disposable)
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c work_mem=64MB
+      -c maintenance_work_mem=256MB
+      -c fsync=off
+      -c synchronous_commit=off
+      -c full_page_writes=off
+      -c max_wal_size=2GB
+      -c checkpoint_completion_target=0.9
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ${ENV_DATA_ROOT:-./data/default}/postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - liferay-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liferay} -d ${POSTGRES_DB:-liferay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  liferay:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_DRIVER_UPPERCASEC_LASS_UPPERCASEN_AME: org.postgresql.Driver
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_URL: "jdbc:postgresql://postgres:5432/${POSTGRES_DB:-liferay}"
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_USERNAME: "${POSTGRES_USER:-liferay}"
+      LIFERAY_JDBC_PERIOD_DEFAULT_PERIOD_PASSWORD: "${POSTGRES_PASSWORD:-liferay}"

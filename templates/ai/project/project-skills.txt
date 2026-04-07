@@ -1,0 +1,4 @@
+# Project-owned skills installed with ldev ai install --project.
+# These skills are copied to the target repository with the project- prefix and ldev ai update does not touch them.
+capturing-session-knowledge
+issue-engineering

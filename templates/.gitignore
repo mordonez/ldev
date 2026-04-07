@@ -1,0 +1,25 @@
+# Entorno local
+docker/.env
+docker/data/
+docker/backups/
+docker/dumps/
+docker/patching/
+liferay/configs/dockerenv/osgi/modules/activation-key-*.xml
+.worktrees/
+
+# Build
+liferay/build/
+liferay/.gradle/
+liferay/modules/**/build/
+liferay/themes/**/build/
+liferay/themes/**/node_modules/
+liferay/themes/**/.sass-cache/
+
+# liferay-cli
+.liferay-cli.local.yml
+.tmp/
+
+# IDE
+.idea/
+.vscode/
+*.iml

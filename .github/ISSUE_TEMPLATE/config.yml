@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support and troubleshooting guide
+    url: https://mordonez.github.io/ldev/troubleshooting
+    about: Start here before opening a support-oriented issue.
+  - name: Support matrix
+    url: https://mordonez.github.io/ldev/support-matrix
+    about: Check whether your host/platform setup is currently supported.
+  - name: Product compatibility
+    url: https://mordonez.github.io/ldev/product-compatibility
+    about: Check the documented Liferay/DXP image baseline first.

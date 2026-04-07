@@ -1,0 +1,17 @@
+templates/**/.gradle
+templates/**/.gradle/**
+templates/**/.DS_Store
+templates/**/node_modules
+templates/**/node_modules/**
+!templates/.gitignore
+!templates/.liferay-cli.yml
+!templates/docker/.env
+!templates/docker/.env.example
+!templates/docker/dumps/.gitkeep
+!templates/docker/liferay-scripts/post-shutdown/.gitkeep
+!templates/docker/liferay-scripts/pre-configure/.gitkeep
+!templates/docker/patching/.gitkeep
+!templates/docker/postgres/init/.gitkeep
+!templates/liferay/.gitignore
+!templates/liferay/configs/.gitkeep
+!templates/liferay/modules/.gitkeep

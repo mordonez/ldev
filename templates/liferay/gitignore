@@ -1,0 +1,29 @@
+**/node_modules
+**/node_modules_cache
+**/dist
+**/bin
+**/lib
+**/generatedsources
+.vscode
+/bundles
+/bundles_old
+/gradle-*.properties
+**/.sass-cache
+**/.DS_Store
+.gradle
+.idea
+**/.classpath
+**/.project
+**/.settings
+**/package-lock.json
+yarn.lock
+.yarnrc
+/package.json
+**/liferay-theme.json
+**/*.iml
+
+# Ignore build output
+**/build
+
+# Local DXP activation keys must never be committed
+configs/dockerenv/osgi/modules/activation-key-*.xml

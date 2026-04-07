@@ -1,0 +1,4 @@
+interface:
+  display_name: "Liferay Expert"
+  short_description: "Route technical Liferay work to the right specialist skill"
+  default_prompt: "Use $liferay-expert to decide if this Liferay task should go through troubleshooting, development, deploy, or migration."

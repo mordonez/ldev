@@ -1,0 +1,6 @@
+Bundle-Name: ldev.oauth2.app
+Bundle-SymbolicName: dev.mordonez.ldev.oauth2.app
+Bundle-Version: 1.0.0
+Export-Package: dev.mordonez.ldev.oauth2.app.configuration
+-dsannotations: *
+-metatypeannotations: *

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session Knowledge Sync"
+  short_description: "Consolidate reusable learning at session close"
+  default_prompt: "Use $session-knowledge-sync to update CLAUDE.md, AGENTS.md and/or skills with verified knowledge from this session."

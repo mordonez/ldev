@@ -1,0 +1,6 @@
+paths:
+  theme: custom-theme        # Replace with your theme name (folder in liferay/themes/)
+  structures: liferay/resources/journal/structures
+  templates: liferay/resources/journal/templates
+  fragments: liferay/fragments
+  adts: liferay/resources/templates/application_display

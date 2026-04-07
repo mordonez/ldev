@@ -1,0 +1,91 @@
+name: Bug report
+description: Report a reproducible problem in ldev
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please run `ldev doctor` and check the support matrix and troubleshooting docs.
+  - type: input
+    id: ldev_version
+    attributes:
+      label: ldev version
+      description: Output of `ldev --version`
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: host_platform
+    attributes:
+      label: Host platform
+      description: OS and version
+      placeholder: macOS 15.3 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: docker_provider
+    attributes:
+      label: Docker provider
+      description: Docker Engine, Docker Desktop, OrbStack, WSL2, etc.
+      placeholder: Docker Desktop 4.x
+    validations:
+      required: true
+  - type: dropdown
+    id: project_origin
+    attributes:
+      label: Project setup
+      options:
+        - project init
+        - project add
+        - project add-community
+        - existing custom repo
+    validations:
+      required: true
+  - type: input
+    id: liferay_image
+    attributes:
+      label: Liferay image
+      description: Documented baseline or custom override
+      placeholder: liferay/dxp:2026.q1.0-lts
+    validations:
+      required: true
+  - type: textarea
+    id: command_run
+    attributes:
+      label: Command run
+      description: Exact command that failed
+      placeholder: ldev start
+    validations:
+      required: true
+  - type: textarea
+    id: observed_behavior
+    attributes:
+      label: What happened
+      description: Include relevant stderr/stdout and any `ldev doctor` failures
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I checked the docs and support matrix first
+          required: true
+        - label: I ran `ldev doctor` before filing
+          required: true
+        - label: This is a reproducible ldev problem, not only a project-specific customization
+          required: true
