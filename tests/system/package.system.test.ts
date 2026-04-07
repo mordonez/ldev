@@ -54,7 +54,7 @@ describe('package integration', () => {
     });
     expect(installResult.exitCode).toBe(0);
 
-    const installedCli = path.join(installDir, 'node_modules', '@mordonez', 'ldev', 'dist', 'index.js');
+    const installedCli = path.join(installDir, 'node_modules', '@mordonezdev', 'ldev', 'dist', 'index.js');
     const versionResult = await runProcess('node', [installedCli, '--version'], {cwd: installDir, env: npmEnv});
     expect(versionResult.exitCode).toBe(0);
     expect(versionResult.stdout.trim()).toBe(PACKAGE_JSON.version);
