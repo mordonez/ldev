@@ -59,7 +59,7 @@ jobs:
       - name: Installed binary smoke test
         run: |
           npm pack
-          npm install -g mordonez-ldev-*.tgz
+          npm install -g mordonezdev-ldev-*.tgz
           ldev --help
           ldev --version
 
@@ -76,7 +76,7 @@ jobs:
       - run: npm run build
       - name: Create release package
         run: |
-          rm -f mordonez-ldev-*.tgz mordonez-ldev-*-checksums.txt
+          rm -f mordonezdev-ldev-*.tgz mordonezdev-ldev-*-checksums.txt
           npm pack
           PACKAGE_FILE="$(ls mordonez-ldev-*.tgz)"
           CHECKSUM_FILE="${PACKAGE_FILE%.tgz}-checksums.txt"
