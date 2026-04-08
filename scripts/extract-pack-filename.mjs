@@ -13,7 +13,16 @@ process.stdin.on('end', () => {
     process.exit(1);
   }
 
-  const parsed = JSON.parse(packJson);
+  let parsed;
+
+  try {
+    parsed = JSON.parse(packJson);
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+    return;
+  }
+
   const filename = parsed.at(-1)?.filename;
 
   if (!filename) {
