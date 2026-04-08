@@ -13,10 +13,10 @@ hero:
   actions:
     - theme: theme
       text: Start Here
-      link: /quickstart
+      link: /getting-started/quickstart
     - theme: alt
       text: Command Reference
-      link: /commands
+      link: /commands/
 
 features:
   - title: Understand the portal
@@ -35,7 +35,7 @@ features:
 ldev doctor
 ldev start
 ldev logs diagnose --json
-ldev deploy --module my-module
+ldev deploy module my-module
 ```
 
 </div>
@@ -80,7 +80,7 @@ Liferay maintenance work often starts with a vague symptom and too much clicking
 
 ```bash
 ldev portal inventory sites
-ldev portal inventory pages
+ldev portal inventory pages --site /global
 ldev portal inventory page --url /home --json
 ```
 
@@ -88,6 +88,19 @@ ldev portal inventory page --url /home --json
 Inspect Liferay without opening the UI. See sites and pages immediately, resolve what a URL maps to, and get structured output that works for humans, automation, and agents.
 </p>
 
+</div>
+
+## Resources as Files
+
+<div class="signal-grid compact">
+  <div class="signal-card">
+    <span class="signal-label">Export / Import</span>
+    <p>Use <code>ldev resource</code> to export and import structures, templates, ADTs, and fragments without depending on the UI.</p>
+  </div>
+  <div class="signal-card">
+    <span class="signal-label">Migration Plans</span>
+    <p>Use migration descriptors when structure changes affect real content so the change stays reviewable and reproducible.</p>
+  </div>
 </div>
 
 ## Who Is This For
@@ -136,12 +149,12 @@ Inspect Liferay without opening the UI. See sites and pages immediately, resolve
 
 ```bash
 ldev logs diagnose --json
-ldev osgi list
-ldev deploy --module my-module
-ldev context
+ldev osgi status com.acme.foo.web
+ldev deploy module foo-web
+ldev context --json
 ```
 
-<p>A bundle is not working. Diagnose the symptom, inspect runtime state, deploy the module, and confirm the environment you actually fixed. From symptom to verified fix — without guesswork.</p>
+<p>A bundle is not working. Diagnose the symptom, inspect runtime state, deploy the module, and confirm the environment you actually fixed. From symptom to verified fix, without guesswork.</p>
 
 </div>
 
@@ -164,6 +177,12 @@ ldev doctor
 ## Agents
 
 `ldev` exposes JSON outputs, context snapshots, and machine-readable portal data so scripts and agents can work from the same operational state as the developer.
+
+If you want that layer in the repo, bootstrap it explicitly:
+
+```bash
+ldev ai install --target .
+```
 
 Agents are secondary. They are useful because the system is already inspectable and scriptable.
 

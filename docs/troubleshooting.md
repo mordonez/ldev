@@ -45,7 +45,7 @@ LIFERAY_HTTP_PORT=8181
 [FAIL] Activation Key: path does not exist
 ```
 
-**Fix**: 
+**Fix**:
 ```bash
 export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp-*.xml
 ldev start
