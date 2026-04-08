@@ -23,7 +23,7 @@ npm run dev -- doctor --json
 ### Quality checks
 
 ```bash
-npm run check  # lint + format:check + typecheck + test + build
+npm run verify # local mirror of the GitHub Actions quality gate
 ```
 
 Current CI coverage is Linux-only. If you change platform-sensitive behavior, validate it manually on macOS as well before calling it supported.
@@ -217,7 +217,7 @@ Guardrails:
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Run `npm run check` to verify everything passes
+3. Run `npm run verify` to verify the local CI gate passes
 4. Open a PR with a clear description
 5. Wait for CI to pass and a maintainer review
 
@@ -229,7 +229,7 @@ Before merging a release-impacting PR, confirm the README stays intentionally sh
 - [ ] Detailed capability explanations are kept in `docs/capabilities.md` (not re-expanded in README)
 - [ ] Workflow-specific deep dives live in dedicated docs pages (for example: portal inventory, resource migration, AI workflows, worktree, automation)
 - [ ] Any new README section is justified as top-level onboarding content and links to docs for details
-- [ ] Docs-site links remain valid (`npm run docs:check-links` if doc links changed)
+- [ ] Local CI gate passes (`npm run verify`)
 
 ## Support And Security
 
