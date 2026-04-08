@@ -8,15 +8,15 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**Agentic CLI for Liferay development and automation.**
+**Operational CLI for diagnosing, reproducing, and fixing Liferay environments.**
 
 ---
 
-`ldev` is the recommended workflow CLI for Liferay. It provides specialized commands for local runtime management, portal discovery, OAuth bootstrap, and MCP diagnostics, making Liferay development predictable and agent-friendly.
+`ldev` is an operational CLI for Liferay maintenance work. It helps you inspect the portal, diagnose failures, reproduce production issues locally, apply fixes safely, and verify the result without depending on the UI.
 
 ## 🚀 Quickstart
 
-Install the CLI globally and initialize your first project.
+Install the CLI, initialize a local project, and run the first checks.
 
 ```bash
 npm install -g @mordonezdev/ldev
@@ -24,38 +24,54 @@ ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ldev setup
 ldev start
-ldev oauth install --write-env
+ldev doctor
 ```
 
 ## ✨ Main Capabilities
 
-- **Smart Diagnostics** — `ldev doctor` identifies misconfigurations in your Liferay environment.
-- **Agent Context** — `ldev context --json` provides a stable snapshot for AI agents.
-- **Portal Discovery** — `ldev portal inventory` explores sites, pages, and structures.
-- **OAuth2 Management** — `ldev oauth install` handles complex OAuth2 registrations.
-- **Advanced Workflows** — Resource migration, isolated worktree environments, and more.
+- **Understand the Environment** — `ldev context`, `ldev status`, and `ldev portal inventory` expose the actual runtime and portal state.
+- **Diagnose Faster** — `ldev doctor` and `ldev logs diagnose` help isolate environment and runtime failures quickly.
+- **Reproduce Production Locally** — Docker, database, and worktree workflows help bring real issues into a controlled local setup.
+- **Apply Fixes Safely** — `ldev deploy`, `ldev osgi`, and related tooling support controlled runtime changes and verification.
+- **Work with Structured Output** — JSON output makes the same workflows usable for humans, scripts, and coding agents.
 
-## 🤖 Agent-First Commands
+## 🧭 Typical Incident Flow
 
-Once your portal is running and OAuth is configured, `ldev` provides high-signal output for coding agents:
+Use `ldev` in the same order you would handle a real Liferay issue:
+
+```bash
+ldev context --json
+ldev doctor --json
+ldev logs diagnose --json
+ldev oauth install --write-env
+ldev portal check
+ldev portal inventory page --url /home --json
+ldev osgi diag com.acme.foo.web
+ldev deploy module foo-web
+ldev portal check
+```
+
+## 🤖 Agent Workflows
+
+Agents are a layer on top of the operational CLI, not the product story. Once the repo and environment are ready, `ldev` can bootstrap agent-facing assets such as `AGENTS.md`, `CLAUDE.md`, and managed skills while providing stable machine-readable workflows:
 
 ```bash
 ldev ai install --target .
-ldev doctor --json
 ldev context --json
+ldev doctor --json
 ldev portal inventory sites --json
 ldev logs diagnose --json
-ldev mcp check --json
 ```
 
 ## 📚 Documentation
 
 Visit the full documentation site: **[mordonez.github.io/ldev](https://mordonez.github.io/ldev/)**
 
-- [Installation Guide](https://mordonez.github.io/ldev/install)
-- [Quickstart](https://mordonez.github.io/ldev/quickstart)
-- [Command Reference](https://mordonez.github.io/ldev/commands)
-- [AI Integration](https://mordonez.github.io/ldev/ai-integration)
+- [Introduction](https://mordonez.github.io/ldev/getting-started/introduction)
+- [Quickstart](https://mordonez.github.io/ldev/getting-started/quickstart)
+- [First Incident](https://mordonez.github.io/ldev/getting-started/first-incident)
+- [Command Reference](https://mordonez.github.io/ldev/commands/)
+- [Agent Workflows](https://mordonez.github.io/ldev/agentic/)
 - [Troubleshooting](https://mordonez.github.io/ldev/troubleshooting)
 
 ## 🛠️ Development
