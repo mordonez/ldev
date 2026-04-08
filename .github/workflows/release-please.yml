@@ -9,11 +9,16 @@ permissions:
   pull-requests: write
   id-token: write
 
+concurrency:
+  group: release-please-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
         id: release
         env:
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -22,17 +27,17 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         if: ${{ steps.release.outputs.release_created }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: ${{ steps.release.outputs.release_created }}
         with:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         if: ${{ steps.release.outputs.release_created }}
 
       - run: npm run check
@@ -42,8 +47,8 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         run: |
           rm -f mordonezdev-ldev-*.tgz mordonezdev-ldev-*-checksums.txt
-          npm pack
-          PACKAGE_FILE="$(ls mordonezdev-ldev-*.tgz)"
+          PACK_JSON="$(npm pack --json --ignore-scripts)"
+          PACKAGE_FILE="$(printf '%s' "$PACK_JSON" | node scripts/extract-pack-filename.mjs)"
           CHECKSUM_FILE="${PACKAGE_FILE%.tgz}-checksums.txt"
           sha256sum "$PACKAGE_FILE" > "$CHECKSUM_FILE"
           {
@@ -53,7 +58,7 @@ jobs:
 
       - name: Generate CycloneDX SBOM
         if: ${{ steps.release.outputs.release_created }}
-        uses: anchore/sbom-action@v0.17.5
+        uses: anchore/sbom-action@1ca97d9028b51809cf6d3c934c3e160716e1b605 # v0.17.5
         with:
           file: ${{ env.PACKAGE_FILE }}
           format: cyclonedx-json
@@ -63,7 +68,7 @@ jobs:
 
       - name: Generate SPDX SBOM
         if: ${{ steps.release.outputs.release_created }}
-        uses: anchore/sbom-action@v0.17.5
+        uses: anchore/sbom-action@1ca97d9028b51809cf6d3c934c3e160716e1b605 # v0.17.5
         with:
           file: ${{ env.PACKAGE_FILE }}
           format: spdx-json
@@ -73,7 +78,7 @@ jobs:
 
       - name: Attach package assets to GitHub Release
         if: ${{ steps.release.outputs.release_created }}
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
         with:
           tag_name: ${{ steps.release.outputs.tag_name }}
           files: |
