@@ -28,6 +28,12 @@ If an asset becomes generally reusable, move it into `install/` or `skills/`.
 ldev ai install --target /path/to/project
 ```
 
+If the repository wants to keep agent/editor tooling local, use:
+
+```bash
+ldev ai install --target /path/to/project --local --project-context
+```
+
 2. If the repository wants project context scaffolding, add it:
 
 ```bash

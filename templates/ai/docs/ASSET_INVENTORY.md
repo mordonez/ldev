@@ -27,6 +27,9 @@ existed in the original `tools/ai` tree.
 ## Notes
 
 - `ldev ai install` installs `AGENTS.md`, `CLAUDE.md`,
+- `ldev ai install --local` keeps the generated agent/editor tooling local by
+  adding it to `.gitignore`, while leaving `docs/ai/project-context.md` and
+  `docs/ai/project-context.md.sample` versionable.
 - `ldev ai install --project-context` additionally installs `docs/ai/project-context.md`,
   curated vendor skills and the vendor manifest.
 - `ldev ai install --project` additionally installs the project-owned skills

@@ -19,6 +19,13 @@ Install base vendor skills in a project:
 ldev ai install --target .
 ```
 
+Install the same AI assets but keep agent/editor tooling local by adding it to
+`.gitignore` while leaving `docs/ai` versionable:
+
+```bash
+ldev ai install --target . --local --project-context
+```
+
 Install only selected skills (incremental rollout):
 
 ```bash

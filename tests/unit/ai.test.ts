@@ -136,6 +136,7 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     mode: 'install',
     targetDir: '/workspace',
     projectType: 'blade-workspace',
+    local: false,
     skillsOnly: false,
     vendorSkills: ['commit', 'review-pr'],
     updatedSkills: ['commit', 'review-pr'],
@@ -155,6 +156,7 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     selectedSkills: [],
     warnings: [],
     nextSteps: [],
+    gitignoreEntriesAdded: [],
     ...overrides,
   };
 }
@@ -172,6 +174,13 @@ describe('formatAiResult', () => {
 
     expect(result).toContain('Installed skills: 2');
     expect(result).toContain('AGENTS.md: installed');
+  });
+
+  test('shows local gitignore mode when install uses --local', () => {
+    const result = formatAiResult(makeAiCommandResult({local: true, gitignoreEntriesAdded: ['AGENTS.md', '.agents/']}));
+
+    expect(result).toContain('Git ignore mode: local');
+    expect(result).toContain('AI/tooling paths added to .gitignore: 2');
   });
 
   test('shows updated skills in skillsOnly mode', () => {

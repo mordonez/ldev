@@ -24,6 +24,7 @@ export type AiCommandResult = {
   mode: 'install' | 'update';
   targetDir: string;
   projectType: ProjectType;
+  local: boolean;
   skillsOnly: boolean;
   vendorSkills: string[];
   updatedSkills: string[];
@@ -43,6 +44,7 @@ export type AiCommandResult = {
   selectedSkills: string[];
   warnings: string[];
   nextSteps: string[];
+  gitignoreEntriesAdded: string[];
 };
 
 type AiDependencies = {
@@ -54,6 +56,7 @@ export async function runAiInstall(
   options: {
     targetDir: string;
     force: boolean;
+    local?: boolean;
     skillsOnly: boolean;
     project?: boolean;
     projectContext?: boolean;
@@ -67,6 +70,7 @@ export async function runAiInstall(
     targetDir: path.resolve(options.targetDir),
     projectType: detectProjectType(path.resolve(options.targetDir)),
     force: options.force,
+    local: Boolean(options.local),
     skillsOnly: options.skillsOnly,
     project: Boolean(options.project),
     projectContext: Boolean(options.projectContext),
@@ -83,6 +87,9 @@ export function formatAiResult(result: AiCommandResult): string {
   if (result.selectedSkills.length > 0) {
     lines.push(`Selected skills: ${result.selectedSkills.join(', ')}`);
   }
+  if (result.local) {
+    lines.push('Git ignore mode: local');
+  }
 
   if (result.skillsOnly) {
     lines.push(`Updated vendor skills: ${result.updatedSkills.length}`);
@@ -96,6 +103,9 @@ export function formatAiResult(result: AiCommandResult): string {
     if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: installed');
     if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: installed');
     if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: installed');
+    if (result.gitignoreEntriesAdded.length > 0) {
+      lines.push(`AI/tooling paths added to .gitignore: ${result.gitignoreEntriesAdded.length}`);
+    }
   }
   if (result.workspaceRulesInstalled.length > 0) {
     lines.push(`Installed AI rules: ${result.workspaceRulesInstalled.join(', ')}`);
@@ -138,6 +148,7 @@ async function applyAiInstall(options: {
   targetDir: string;
   projectType: ProjectType;
   force: boolean;
+  local: boolean;
   skillsOnly: boolean;
   project: boolean;
   projectContext: boolean;
@@ -245,10 +256,14 @@ async function applyAiInstall(options: {
       : await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'))
     : false;
 
+  const gitignoreEntriesAdded =
+    !options.skillsOnly && options.local ? await ensureLocalAiGitignoreEntries(options.targetDir) : [];
+
   return {
     mode: options.mode,
     targetDir: options.targetDir,
     projectType: options.projectType,
+    local: options.local,
     skillsOnly: options.skillsOnly,
     vendorSkills: managedVendorSkills,
     updatedSkills: skillsToUpdate,
@@ -270,11 +285,13 @@ async function applyAiInstall(options: {
     nextSteps: buildNextSteps(
       options.targetDir,
       options.projectType,
+      options.local,
       options.skillsOnly,
       options.project,
       installProjectContext,
       selectedSkills,
     ),
+    gitignoreEntriesAdded,
   };
 }
 
@@ -545,6 +562,7 @@ async function renderAgentsFile(
 function buildNextSteps(
   targetDir: string,
   projectType: ProjectType,
+  local: boolean,
   skillsOnly: boolean,
   project: boolean,
   projectContext: boolean,
@@ -576,6 +594,9 @@ function buildNextSteps(
         ? 'Review AGENTS.md, CLAUDE.md, and docs/ai/project-context.md; use docs/ai/project-context.md.sample as a guide.'
         : 'Review AGENTS.md and CLAUDE.md.',
     );
+  }
+  if (local) {
+    steps.push('Review the ldev AI block in .gitignore and keep docs/ai tracked if you want shared project context.');
   }
   steps.push('Review .agents/skills/.');
   if (project) {
@@ -785,4 +806,60 @@ async function readSimpleManifest(manifestPath: string): Promise<string[]> {
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'));
+}
+
+const LOCAL_AI_GITIGNORE_MARKER = '# ldev ai install --local';
+const LOCAL_AI_GITIGNORE_ENTRIES = [
+  'AGENTS.md',
+  'CLAUDE.md',
+  '.agents/',
+  '.claude/',
+  '.cursor/',
+  '.gemini/',
+  '.windsurf/',
+  '.workspace-rules/',
+  '.github/instructions/',
+  '.github/copilot-instructions.md',
+  '.ldev/ai/',
+  '.liferay-cli.yml',
+];
+
+async function ensureLocalAiGitignoreEntries(targetDir: string): Promise<string[]> {
+  const gitignorePath = path.join(targetDir, '.gitignore');
+  const exists = await fs.pathExists(gitignorePath);
+  const currentContent = exists ? await fs.readFile(gitignorePath, 'utf8') : '';
+  const currentLines = currentContent.split(/\r?\n/);
+  const normalizedCurrentEntries = new Set(
+    currentLines.map((line) => normalizeGitignoreEntryForComparison(line)).filter((line) => line.length > 0),
+  );
+  const missingEntries = LOCAL_AI_GITIGNORE_ENTRIES.filter(
+    (entry) => !normalizedCurrentEntries.has(normalizeGitignoreEntryForComparison(entry)),
+  );
+
+  const lines = currentContent.length > 0 ? [...currentLines] : [];
+
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+
+  if (lines.length > 0) {
+    lines.push('');
+  }
+  if (!lines.includes(LOCAL_AI_GITIGNORE_MARKER)) {
+    lines.push(LOCAL_AI_GITIGNORE_MARKER);
+  }
+  lines.push(...missingEntries);
+
+  await fs.writeFile(gitignorePath, `${lines.join('\n')}\n`);
+  return missingEntries;
+}
+
+function normalizeGitignoreEntryForComparison(line: string): string {
+  const withoutComment = line.replace(/\s+#.*$/, '').trim();
+
+  if (withoutComment.length === 0 || withoutComment.startsWith('#')) {
+    return '';
+  }
+
+  return withoutComment.replace(/^\/+/, '');
 }
