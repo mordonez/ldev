@@ -74,6 +74,40 @@ describe('ai integration', () => {
     expect(claude).toContain('if it exists');
   }, 30000);
 
+  test('install --local adds agent/editor tooling paths to .gitignore but keeps docs/ai versionable', async () => {
+    const targetDir = createTempDir('dev-cli-ai-install-local-');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--local', '--project-context'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+
+    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
+    expect(gitignore).toContain('# ldev ai install --local');
+    expect(gitignore).toContain('AGENTS.md');
+    expect(gitignore).toContain('CLAUDE.md');
+    expect(gitignore).toContain('.agents/');
+    expect(gitignore).toContain('.claude/');
+    expect(gitignore).toContain('.github/instructions/');
+    expect(gitignore).toContain('.ldev/ai/');
+    expect(gitignore).toContain('.liferay-cli.yml');
+    expect(gitignore).not.toContain('docs/ai/project-context.md');
+    expect(gitignore).not.toContain('docs/ai/project-context.md.sample');
+
+    expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
+
+    const secondResult = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
+      cwd: CLI_CWD,
+    });
+    expect(secondResult.exitCode).toBe(0);
+    const secondGitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
+    expect(secondGitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
+  }, 30000);
+
   test('install --skill installs only selected vendor skills and writes manifest accordingly', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-selected-');
 
