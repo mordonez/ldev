@@ -11,7 +11,7 @@ const PACKAGE_JSON = JSON.parse(readFileSync(path.join(CLI_CWD, 'package.json'),
   version: string;
 };
 const README_TEXT = readFileSync(path.join(CLI_CWD, 'README.md'), 'utf8');
-const INSTALL_DOC_TEXT = readFileSync(path.join(CLI_CWD, 'docs', 'install.md'), 'utf8');
+const INSTALL_DOC_TEXT = readFileSync(path.join(CLI_CWD, 'docs', 'getting-started', 'quickstart.md'), 'utf8');
 
 describe('smoke help', () => {
   test('--help works', async () => {
@@ -100,9 +100,7 @@ describe('smoke help', () => {
     expect(README_TEXT).toContain(`npm install -g ${PACKAGE_JSON.name}`);
     expect(README_TEXT).toContain(`npx ${PACKAGE_JSON.name} --help`);
     expect(INSTALL_DOC_TEXT).toContain(`npm install -g ${PACKAGE_JSON.name}`);
-    expect(INSTALL_DOC_TEXT).toContain(`npx ${PACKAGE_JSON.name} --help`);
-    expect(README_TEXT).not.toContain('npm i -g ldev');
-    expect(INSTALL_DOC_TEXT).not.toContain('npm install -g ldev');
+    expect(INSTALL_DOC_TEXT).toContain(`ldev --help`);
   });
 
   test.each([

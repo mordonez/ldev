@@ -8,7 +8,12 @@ const previewHost = 'localhost';
 const previewPort = 4173 + Math.floor(Math.random() * 1000);
 const previewUrl = `http://${previewHost}:${previewPort}/ldev/`;
 const previewBuildPath = 'docs/.vitepress/dist/index.html';
-const requiredCleanUrls = ['/ldev/support-matrix', '/ldev/configuration', '/ldev/commands', '/ldev/troubleshooting'];
+const requiredCleanUrls = [
+  '/ldev/getting-started/quickstart',
+  '/ldev/reference/configuration',
+  '/ldev/commands',
+  '/ldev/troubleshooting',
+];
 
 function getNpmCommand() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';

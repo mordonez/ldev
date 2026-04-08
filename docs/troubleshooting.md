@@ -45,7 +45,7 @@ LIFERAY_HTTP_PORT=8181
 [FAIL] Activation Key: path does not exist
 ```
 
-**Fix**: 
+**Fix**:
 ```bash
 export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp-*.xml
 ldev start
@@ -258,14 +258,14 @@ ldev logs follow --service elasticsearch # Stream Elasticsearch logs
 ## Still Stuck?
 
 1. Run: `ldev logs diagnose` (provides full context)
-2. Check: [Support Matrix](/support-matrix) for platform/host issues
-3. See: [Commands Reference](/commands) for detailed command options
+2. Check: [FAQ](/reference/faq) for common platform and usage questions
+3. See: [Commands Reference](/commands/) for detailed command options
 4. Explore: `ldev <command> --help` for all flags
 
 ---
 
 ## See Also
 
-- [First Run Walkthrough](/first-run-walkthrough) — Expected behavior
-- [Configuration](/configuration) — Environment variables
-- [Support Matrix](/support-matrix) — Platform compatibility
+- [First Incident](/getting-started/first-incident) — Practical diagnosis flow
+- [Configuration](/reference/configuration) — Environment variables
+- [FAQ](/reference/faq) — Common platform and workflow questions

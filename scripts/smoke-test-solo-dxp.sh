@@ -33,6 +33,7 @@ TEST_NAME="lsmoke-solo"
 TEST_BASE="/tmp/ldev-smoke-solo-$$"
 PROJECT_DIR="${TEST_BASE}/${TEST_NAME}"
 HTTP_PORT="${HTTP_PORT:-8081}"
+SMOKE_LOG_FILE="${SMOKE_LOG_FILE:-${TMPDIR:-/tmp}/ldev-smoke-solo-$(date +%Y%m%d-%H%M%S)-$$.log}"
 PASS=0
 FAIL=0
 
@@ -41,6 +42,16 @@ ok()   { echo -e "  ${GREEN}✓ $*${NC}"; PASS=$((PASS + 1)); }
 fail() { echo -e "  ${RED}✗ $*${NC}"; FAIL=$((FAIL + 1)); }
 warn() { echo -e "  ${YELLOW}! $*${NC}"; }
 log()  { echo -e "  $*"; }
+
+init_log_file() {
+  mkdir -p "$(dirname "$SMOKE_LOG_FILE")"
+  : > "$SMOKE_LOG_FILE"
+
+  # Mirror all script output (stdout+stderr) to terminal and log file.
+  exec > >(tee -a "$SMOKE_LOG_FILE") 2>&1
+
+  echo "Smoke log file: $SMOKE_LOG_FILE"
+}
 
 preflight() {
   echo -e "\n${BOLD}=== Preflight ===${NC}"
@@ -142,6 +153,8 @@ run_check_with_retry() {
 }
 
 main() {
+  init_log_file
+
   echo -e "\n${BOLD}╔══════════════════════════════════════════════════════╗${NC}"
   echo -e "${BOLD}║  ldev solo DXP — focused end-to-end smoke test      ║${NC}"
   echo -e "${BOLD}╚══════════════════════════════════════════════════════╝${NC}"
@@ -196,15 +209,19 @@ main() {
 
   run_check \
     "status --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV status --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV status --json"
+
+  run_check \
+    "logs diagnose --json passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV logs diagnose --json"
 
   run_check \
     "logs --no-follow passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV logs --no-follow --since 5m >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV logs --no-follow --since 5m"
 
   run_check \
     "context --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV context --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV context --json"
 
   run_check \
     "portal check passed" \
@@ -212,55 +229,79 @@ main() {
 
   run_check \
     "portal auth token passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal auth token >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal auth token"
 
   run_check \
     "portal inventory sites --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory sites --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory sites --json"
 
   run_check \
     "portal inventory pages --site /guest --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory pages --site /guest --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory pages --site /guest --json"
 
   run_check \
     "portal inventory page --url /web/guest/home --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory page --url /web/guest/home --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory page --url /web/guest/home --json"
+
+  run_check \
+    "portal inventory structures passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory structures"
+
+  run_check \
+    "portal inventory templates passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal inventory templates"
 
   run_check \
     "portal audit --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal audit --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal audit --json"
 
   run_check \
     "portal page-layout export --url /web/guest/home --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal page-layout export --url /web/guest/home --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal page-layout export --url /web/guest/home --json"
 
   run_check \
     "portal search indices --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal search indices --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal search indices --json"
 
   run_check \
     "portal search mappings --index liferay-0 --json passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal search mappings --index liferay-0 --json >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal search mappings --index liferay-0 --json"
 
   run_check \
     "resource export-templates passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-templates >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-templates --all-sites"
+
+  run_check \
+    "resource structure --key BASIC-WEB-CONTENT passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource structure --key BASIC-WEB-CONTENT"
+
+  run_check \
+    "resource template --id BASIC-WEB-CONTENT passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource template --id BASIC-WEB-CONTENT"
+
+  run_check \
+    "resource adt-types passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource adt-types"
 
   run_check \
     "resource export-structures passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-structures >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-structures --all-sites"
 
   run_check \
     "resource export-fragments passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-fragments >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-fragments --all-sites"
 
   run_check \
     "resource import-templates --apply passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource import-templates --apply >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource import-templates --apply"
 
   run_check \
     "resource import-structures --apply passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource import-structures --apply >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource import-structures --apply"
+
+  run_check \
+    "ai install --target . --project --project-context passed" \
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV ai install --target . --project --project-context"
 
   local final_url
   final_url=$(curl -fsS --max-time 15 -L -w "%{url_effective}" -o /dev/null \
@@ -275,16 +316,17 @@ main() {
 
   run_check \
     "env restart passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV env restart >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV env restart"
 
   run_check \
     "portal check after restart passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal check >/dev/null"
+    bash -lc "cd \"$PROJECT_DIR\" && $LDEV portal check"
 
   stop_environment
 
   echo -e "\n${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "  ${BOLD}Total: ${GREEN}${PASS} passed${NC}  ${RED}${FAIL} failed${NC}"
+  echo -e "  ${BOLD}Smoke log:${NC} $SMOKE_LOG_FILE"
   echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 
   [[ $FAIL -eq 0 ]]

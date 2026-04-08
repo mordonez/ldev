@@ -115,6 +115,10 @@ describe('capabilities', () => {
           hasDocker: false,
           hasDockerCompose: false,
         }),
+        detectProject: () => ({
+          type: 'unknown',
+          root: null,
+        }),
         detectRepoPaths: () => ({
           repoRoot: null,
           dockerDir: null,
