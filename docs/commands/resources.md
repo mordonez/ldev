@@ -11,8 +11,8 @@ description: Minimal reference for exporting, importing, and migrating Liferay r
 ldev resource structure --site /global --key MY_STRUCTURE
 ldev resource template --site /global --key MY_TEMPLATE
 ldev resource adts --site /global
+ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
-ldev resource adt-types
 ```
 
 Real examples:

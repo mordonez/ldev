@@ -10,7 +10,7 @@ Use this namespace for file-based content workflows for structures, templates, A
 It is intended for more specialized content workflows rather than first-run onboarding.
 
 Read:
-  structure, template, adts, adt-types, fragments, resolve-adt
+  structure, template, adts, adt, fragments
 
 Export:
   export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments

@@ -132,7 +132,7 @@ Extended references:
 ldev portal inventory page --url <URL> --json
 
 # If there is a displayStyle: ddmTemplate_<ID>
-ldev resource resolve-adt --display-style ddmTemplate_<ID> --site /<site> --json
+ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 
 # Logs for backend errors
 ldev logs --since 10m --no-follow

@@ -161,7 +161,7 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('Read:');
     expect(result.stdout).toContain('Export:');
     expect(result.stdout).toContain('Import:');
-    expect(result.stdout).toContain('adt-types');
+    expect(result.stdout).toContain('adt');
     expect(result.stdout).toContain('export-structures');
     expect(result.stdout).toContain('export-templates');
     expect(result.stdout).toContain('import-fragments');

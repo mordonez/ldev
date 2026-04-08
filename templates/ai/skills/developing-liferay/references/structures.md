@@ -22,7 +22,7 @@ Reference: `references/structure-field-catalog.md`
 ```bash
 ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
-ldev resource resolve-adt --display-style ddmTemplate_<ID> --site /<site> --json
+ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
 2. Export current state if needed:

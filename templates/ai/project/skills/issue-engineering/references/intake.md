@@ -34,7 +34,7 @@ ldev portal inventory page --url <fullUrl> --json
 4. If `displayStyle: ddmTemplate_<ID>` appears:
 
 ```bash
-ldev resource resolve-adt --display-style ddmTemplate_<ID> --site /<site> --json
+ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
 5. If you need a structured issue enrichment draft:

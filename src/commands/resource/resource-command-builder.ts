@@ -36,6 +36,10 @@ import {
   runLiferayResourceImportTemplates,
 } from '../../features/liferay/resource/liferay-resource-import-templates.js';
 import {
+  formatLiferayResourceAdt,
+  runLiferayResourceGetAdt,
+} from '../../features/liferay/resource/liferay-resource-get-adt.js';
+import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
 } from '../../features/liferay/resource/liferay-resource-get-structure.js';
@@ -47,10 +51,6 @@ import {
   formatLiferayResourceAdts,
   runLiferayResourceListAdts,
 } from '../../features/liferay/resource/liferay-resource-list-adts.js';
-import {
-  formatLiferayResourceAdtTypes,
-  runLiferayResourceListAdtTypes,
-} from '../../features/liferay/resource/liferay-resource-adt-types.js';
 import {
   formatLiferayResourceFragments,
   runLiferayResourceListFragments,
@@ -65,10 +65,6 @@ import {
   formatLiferayResourceMigrationInit,
   runLiferayResourceMigrationInit,
 } from '../../features/liferay/resource/liferay-resource-migration-init.js';
-import {
-  formatLiferayResourceResolveAdt,
-  runLiferayResourceResolveAdt,
-} from '../../features/liferay/resource/liferay-resource-resolve-adt.js';
 import {
   formatLiferayResourceSyncAdt,
   runLiferayResourceSyncAdt,
@@ -674,12 +670,13 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
 
   addOutputFormatOption(
     resource
-      .command('resolve-adt')
-      .description('Resolve an ADT by display style, id or name')
-      .option('--site <site>', 'Site friendly URL or numeric ID; omit to search accessible sites')
+      .command('adt')
+      .description('Inspect one ADT in detail')
+      .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
       .option('--display-style <displayStyle>', 'Runtime display style like ddmTemplate_19690804')
       .option('--id <id>', 'Numeric template id')
-      .option('--name <name>', 'Template key, ERC or visible name')
+      .option('--key <key>', 'ADT template key')
+      .option('--name <name>', 'ADT visible name')
       .option('--widget-type <widgetType>', 'Optional widget type filter')
       .option(
         '--class-name <className>',
@@ -688,23 +685,18 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
   ).action(
     createFormattedAction(
       async (context, options) =>
-        runLiferayResourceResolveAdt(context.config, {
+        runLiferayResourceGetAdt(context.config, {
           site: options.site,
           displayStyle: options.displayStyle,
           id: options.id,
+          key: options.key,
           name: options.name,
           widgetType: options.widgetType,
           className: options.className,
         }),
-      {text: formatLiferayResourceResolveAdt},
+      {text: formatLiferayResourceAdt},
     ),
   );
-
-  addOutputFormatOption(
-    resource
-      .command('adt-types')
-      .description('List the built-in ADT widget type to Java class mappings bundled with the CLI'),
-  ).action(createFormattedAction(async () => runLiferayResourceListAdtTypes(), {text: formatLiferayResourceAdtTypes}));
 
   addOutputFormatOption(
     resource
