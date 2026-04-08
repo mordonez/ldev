@@ -108,6 +108,76 @@ describe('ai integration', () => {
     expect(secondGitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
   }, 30000);
 
+  test('install --local adds marker when equivalent gitignore entries already exist', async () => {
+    const targetDir = createTempDir('dev-cli-ai-install-local-marker-');
+
+    await fs.writeFile(
+      path.join(targetDir, '.gitignore'),
+      ['/AGENTS.md', 'CLAUDE.md # local tool file', '.agents/', '.claude/   ', ''].join('\n'),
+    );
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+
+    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
+    expect(gitignore).toContain('# ldev ai install --local');
+    expect(gitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
+    expect(gitignore.match(/^AGENTS\.md$/gm)?.length ?? 0).toBe(0);
+    expect(gitignore.match(/^CLAUDE\.md$/gm)?.length ?? 0).toBe(0);
+    expect(gitignore.endsWith('\n')).toBe(true);
+    expect(gitignore.endsWith('\n\n')).toBe(false);
+  }, 30000);
+
+  test('install --local does not duplicate equivalent gitignore entries', async () => {
+    const targetDir = createTempDir('dev-cli-ai-install-local-normalize-');
+
+    await fs.writeFile(
+      path.join(targetDir, '.gitignore'),
+      [
+        '# existing ignore rules',
+        '/AGENTS.md',
+        'CLAUDE.md # managed locally',
+        '/.agents/',
+        '.claude/   ',
+        '/.cursor/',
+        '.gemini/ # optional',
+        '/.windsurf/',
+        '.workspace-rules/',
+        '/.github/instructions/',
+        '.github/copilot-instructions.md # keep local',
+        '/.ldev/ai/',
+        '.liferay-cli.yml',
+        '',
+      ].join('\n'),
+    );
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+
+    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
+    expect(gitignore).toContain('# ldev ai install --local');
+    expect(gitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
+    expect(gitignore).not.toContain('\nAGENTS.md\n');
+    expect(gitignore).not.toContain('\nCLAUDE.md\n');
+    expect(gitignore).not.toContain('\n.agents/\n');
+    expect(gitignore).not.toContain('\n.claude/\n');
+    expect(gitignore).not.toContain('\n.cursor/\n');
+    expect(gitignore).not.toContain('\n.gemini/\n');
+    expect(gitignore).not.toContain('\n.windsurf/\n');
+    expect(gitignore.match(/^\.workspace-rules\/$/gm)?.length ?? 0).toBe(1);
+    expect(gitignore).not.toContain('\n.github/instructions/\n');
+    expect(gitignore).not.toContain('\n.github/copilot-instructions.md\n');
+    expect(gitignore).not.toContain('\n.ldev/ai/\n');
+    expect(gitignore.match(/^\.liferay-cli\.yml$/gm)?.length ?? 0).toBe(1);
+    expect(gitignore.trimEnd().endsWith('# ldev ai install --local')).toBe(true);
+  }, 30000);
+
   test('install --skill installs only selected vendor skills and writes manifest accordingly', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-selected-');
 
