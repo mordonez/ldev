@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/mordonez/ldev/compare/ldev-v0.2.1...ldev-v0.2.2) (2026-04-08)
+
+
+### Bug Fixes
+
+* **resource:** simplify ADT inspection workflow ([a5e6633](https://github.com/mordonez/ldev/commit/a5e66335528f83df53090e69eb2d2764224a2cf1))
+
 ## [0.2.1](https://github.com/mordonez/ldev/compare/ldev-v0.2.0...ldev-v0.2.1) (2026-04-07)
 
 
