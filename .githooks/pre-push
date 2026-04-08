@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
 set -eu
 
+# Git hooks export repository-local env vars (GIT_DIR, GIT_WORK_TREE, etc.).
+# The test suite creates temporary repos and invokes git inside them; without
+# clearing this inherited env, those git commands can target the current repo.
+for var in $(git rev-parse --local-env-vars); do
+  unset "$var"
+done
+
 npm run verify:push
