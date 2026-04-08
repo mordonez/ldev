@@ -11,7 +11,7 @@ export function createResourceCommands(parent: Command): void {
 Use this namespace when you need stable file-based workflows for structures, templates, ADTs or fragments.
 
 Read:
-  structure, template, adts, adt-types, fragments, resolve-adt
+  structure, template, adts, adt, fragments
 
 Export:
   export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments

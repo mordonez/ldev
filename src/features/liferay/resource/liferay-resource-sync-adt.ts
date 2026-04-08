@@ -188,7 +188,7 @@ function inferAdtWidgetType(file: string): string {
 function inferAdtName(file: string): string {
   if (!file) {
     throw new CliError(
-      "ADT requires --file or (--key and --widget-type). Use 'resource resolve-adt --display-style ddmTemplate_<ID>' if you need to resolve it first.",
+      "ADT requires --file or (--key and --widget-type). Use 'resource adt --display-style ddmTemplate_<ID>' if you need to inspect it first.",
       {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }

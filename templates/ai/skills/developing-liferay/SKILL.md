@@ -28,7 +28,7 @@ with portal discovery before editing code:
 ldev portal inventory sites --json
 ldev portal inventory pages --site /<site> --json
 ldev portal inventory page --url <fullUrl> --json
-ldev resource resolve-adt --display-style ddmTemplate_<ID> --site /<site> --json
+ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
 Use file exports when you need the current source of truth from the portal:

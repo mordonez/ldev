@@ -511,7 +511,7 @@ describe('liferay resource smoke', () => {
     expect(output.stderr()).toBe('');
   });
 
-  test('dev-cli liferay resource resolve-adt works with fake fetch', async () => {
+  test('dev-cli liferay resource adt works with fake fetch', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
@@ -571,7 +571,7 @@ describe('liferay resource smoke', () => {
       await cli.parseAsync(
         [
           'resource',
-          'resolve-adt',
+          'adt',
           '--display-style',
           'ddmTemplate_19690804',
           '--site',
@@ -588,9 +588,10 @@ describe('liferay resource smoke', () => {
     }
 
     const parsed = JSON.parse(output.stdout());
-    expect(parsed.matches).toHaveLength(1);
-    expect(parsed.matches[0].templateId).toBe('19690804');
-    expect(parsed.matches[0].widgetType).toBe('search-result-summary');
+    expect(parsed.templateId).toBe('19690804');
+    expect(parsed.widgetType).toBe('search-result-summary');
+    expect(parsed.displayStyle).toBe('ddmTemplate_19690804');
+    expect(parsed.script).toBe('');
     expect(output.stderr()).toBe('');
   });
 
