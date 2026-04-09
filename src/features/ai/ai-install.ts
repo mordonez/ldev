@@ -591,7 +591,7 @@ function buildNextSteps(
   } else {
     steps.push(
       projectContext
-        ? 'Review AGENTS.md, CLAUDE.md, and docs/ai/project-context.md; use docs/ai/project-context.md.sample as a guide.'
+        ? 'Review AGENTS.md, CLAUDE.md, and docs/ai/project-context.md. Treat docs/ai/project-context.md.sample as a human template only.'
         : 'Review AGENTS.md and CLAUDE.md.',
     );
   }
