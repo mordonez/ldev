@@ -119,6 +119,7 @@ type FolderTree = {
 };
 
 const ARTICLE_DELETE_CONCURRENCY = 2;
+const ARTICLE_INVENTORY_CONCURRENCY = 2;
 
 // === Main export ===
 
@@ -136,6 +137,7 @@ export async function runContentPrune(
     });
   }
 
+  const rootFolderIds = [...new Set(options.rootFolders)];
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const printer = dependencies?.printer;
@@ -161,34 +163,32 @@ export async function runContentPrune(
 
   // 2. Validate root folders and build folder tree
   const tree = await runStep(printer, 'Resolving folder scope', () =>
-    collectFolderTree(config, apiClient, authState, options.rootFolders, groupId, wholeFolderDelete),
+    collectFolderTree(config, apiClient, authState, rootFolderIds, groupId, wholeFolderDelete),
   );
 
   if (wholeFolderDelete) {
     const removedFolders: number[] = [];
     const failedFolders: FailedFolder[] = [];
     const articleCount = countStructuredContents(tree.allFolders);
-    const existingRootFolders = options.rootFolders.filter((folderId) => tree.allFolders.has(folderId));
+    const existingRootFolders = rootFolderIds.filter((folderId) => tree.allFolders.has(folderId));
 
-    if (!options.dryRun) {
-      await runStep(printer, 'Deleting root folders', async () => {
-        for (const folderId of existingRootFolders) {
-          const deletion = await deleteJournalFolder(config, apiClient, authState, folderId);
-          if (deletion.ok) {
-            removedFolders.push(folderId);
-          } else {
-            failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
-          }
+    await runStep(printer, 'Deleting root folders', async () => {
+      for (const folderId of existingRootFolders) {
+        const deletion = await deleteJournalFolder(config, apiClient, authState, folderId);
+        if (deletion.ok) {
+          removedFolders.push(folderId);
+        } else {
+          failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
         }
-      });
-    }
+      }
+    });
 
     return {
       ok: true,
       mode: options.dryRun ? 'dry-run' : 'apply',
       groupId,
       siteFriendlyUrl,
-      rootFolders: options.rootFolders,
+      rootFolders: rootFolderIds,
       folderCount: tree.allFolders.size,
       articleCount,
       keptCount: 0,
@@ -197,7 +197,7 @@ export async function runContentPrune(
         : countStructuredContentsForRoots(removedFolders, tree.allFolders, tree.childrenMap),
       structures: [],
       sampleArticles: [],
-      removedFolders: options.dryRun ? existingRootFolders : removedFolders,
+      removedFolders,
       missingFolders: tree.missingRootFolders,
       failedArticles: [],
       failedFolders,
@@ -226,10 +226,10 @@ export async function runContentPrune(
   // 4. Fetch all articles in all folders
   const allArticles = await runStep(printer, 'Collecting journal articles', async () => {
     const articles: ArticleWithFolder[] = [];
-    for (const [folderId] of tree.allFolders) {
+    await runConcurrent([...tree.allFolders.keys()], ARTICLE_INVENTORY_CONCURRENCY, async (folderId) => {
       const folderArticles = await fetchJournalArticlesInFolder(config, apiClient, authState, groupId, folderId);
       articles.push(...folderArticles);
-    }
+    });
 
     return dedupeArticles(articles);
   });
@@ -292,8 +292,8 @@ export async function runContentPrune(
     toDeleteByFolder.set(article.folderId, (toDeleteByFolder.get(article.folderId) ?? 0) + 1);
   }
 
-  const removableFolderIds = computeRemovableFolderIds(
-    options.rootFolders,
+  const plannedRemovableFolderIds = computeRemovableFolderIds(
+    rootFolderIds,
     tree.allFolders,
     tree.childrenMap,
     tree.depths,
@@ -317,6 +317,7 @@ export async function runContentPrune(
   const removedFolders: number[] = [];
   const failedArticles: FailedArticle[] = [];
   const failedFolders: FailedFolder[] = [];
+  const deletedByFolder = new Map<number, number>();
   if (!options.dryRun) {
     await runStep(printer, 'Deleting journal articles', async () => {
       await runConcurrent(toDelete, ARTICLE_DELETE_CONCURRENCY, async (article) => {
@@ -330,18 +331,25 @@ export async function runContentPrune(
         );
         if (failure) {
           failedArticles.push(failure);
+          return;
         }
+
+        deletedByFolder.set(article.folderId, (deletedByFolder.get(article.folderId) ?? 0) + 1);
       });
     });
 
     await runStep(printer, 'Deleting empty folders', async () => {
-      const sortedRemovable = removableFolderIds
-        .slice()
-        .sort((a, b) => (tree.depths.get(b) ?? 0) - (tree.depths.get(a) ?? 0));
+      const sortedRemovable = computeRemovableFolderIds(
+        rootFolderIds,
+        tree.allFolders,
+        tree.childrenMap,
+        tree.depths,
+        deletedByFolder,
+      );
       for (const folderId of sortedRemovable) {
-        const deleted = await tryDeleteFolder(config, apiClient, authState, folderId);
-        if (deleted) removedFolders.push(folderId);
-        else failedFolders.push({folderId, operation: 'delete-folder'});
+        const deletion = await tryDeleteFolder(config, apiClient, authState, folderId);
+        if (deletion.ok) removedFolders.push(folderId);
+        else failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
       }
     });
   }
@@ -351,14 +359,14 @@ export async function runContentPrune(
     mode: options.dryRun ? 'dry-run' : 'apply',
     groupId,
     siteFriendlyUrl,
-    rootFolders: options.rootFolders,
+    rootFolders: rootFolderIds,
     folderCount: tree.allFolders.size,
     articleCount: candidateArticles.length,
     keptCount,
     deletedCount: options.dryRun ? toDelete.length : Math.max(toDelete.length - failedArticles.length, 0),
     structures: [...summaryByKey.values()].sort((a, b) => a.key.localeCompare(b.key)),
     sampleArticles,
-    removedFolders: options.dryRun ? removableFolderIds : removedFolders,
+    removedFolders: options.dryRun ? plannedRemovableFolderIds : removedFolders,
     missingFolders: [],
     failedArticles,
     failedFolders,
@@ -618,7 +626,7 @@ function computeRemovableFolderIds(
   depths: Map<number, number>,
   toDeleteByFolder: Map<number, number>,
 ): number[] {
-  const result: number[] = [];
+  const result = new Set<number>();
   const removableCache = new Map<number, boolean>();
 
   function isRemovable(folderId: number): boolean {
@@ -653,21 +661,19 @@ function computeRemovableFolderIds(
 
   function collect(folderId: number): void {
     if (isRemovable(folderId)) {
-      result.push(folderId);
+      result.add(folderId);
       for (const childId of childrenMap.get(folderId) ?? []) {
         collect(childId);
       }
     }
   }
 
-  for (const rootId of rootFolderIds) {
+  for (const rootId of new Set(rootFolderIds)) {
     collect(rootId);
   }
 
   // Sort bottom-up (deepest first) for safe deletion order
-  result.sort((a, b) => (depths.get(b) ?? 0) - (depths.get(a) ?? 0));
-
-  return result;
+  return [...result].sort((a, b) => (depths.get(b) ?? 0) - (depths.get(a) ?? 0));
 }
 
 async function deleteJournalArticle(
@@ -713,7 +719,7 @@ async function tryDeleteFolder(
   apiClient: LiferayApiClient,
   authState: PruneAuthState,
   folderId: number,
-): Promise<boolean> {
+): Promise<{ok: boolean; status?: number}> {
   const response = await deleteWithRefresh(
     config,
     apiClient,
@@ -721,7 +727,7 @@ async function tryDeleteFolder(
     `/o/headless-delivery/v1.0/structured-content-folders/${folderId}`,
   );
 
-  return response.ok || response.status === 404;
+  return {ok: response.ok || response.status === 404, status: response.status};
 }
 
 async function deleteJournalFolder(

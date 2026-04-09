@@ -4,7 +4,7 @@ import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
-import {authedGet, fetchAccessToken, resolveSite} from '../inventory/liferay-inventory-shared.js';
+import {authedGet, fetchAccessToken, normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {runLiferayInventorySites} from '../inventory/liferay-inventory-sites.js';
 import {
   fetchJournalFoldersByParent,
@@ -116,7 +116,9 @@ export async function runContentStats(
   };
   const limit = options.limit ?? DEFAULT_LIMIT;
   const sortBy = options.sortBy ?? 'content';
-  const excludedSites = new Set((options.excludeSites ?? []).map((site) => site.trim()).filter(Boolean));
+  const excludedSites = new Set(
+    (options.excludeSites ?? []).map((site) => normalizeFriendlyUrl(site.trim())).filter(Boolean),
+  );
   const runLimited = createConcurrencyLimiter(JOURNAL_FOLDER_CONCURRENCY);
 
   if (options.site || options.groupId !== undefined) {
@@ -134,7 +136,7 @@ export async function runContentStats(
 
     const folders = options.withStructures
       ? await runStep(printer, 'Collecting content structures', async () =>
-          enrichFoldersWithStructures(config, apiClient, authState, site.id, selected),
+          enrichFoldersWithStructures(config, apiClient, authState, site.id, selected, runLimited),
         )
       : selected.map(stripComputedFolderStats);
 
@@ -379,62 +381,55 @@ async function enrichFoldersWithStructures(
   authState: AuthState,
   groupId: number,
   folders: ComputedFolderStats[],
+  runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<ContentStatsFolder[]> {
   const structureMap = new Map<number, string>();
   const structureNameMap = new Map<string, string>();
 
   await resolveJournalStructureDefinitions(config, apiClient, authState, groupId, structureMap, structureNameMap);
 
-  return Promise.all(
-    folders.map(async (folder) => {
-      const counts = new Map<string, number>();
+  return mapConcurrent(folders, JOURNAL_FOLDER_CONCURRENCY, async (folder) => {
+    const counts = new Map<string, number>();
 
-      for (const folderId of folder.subtreeFolderIds) {
-        const rows = await fetchJournalArticleRowsInFolder(
-          config,
-          apiClient,
-          authState,
-          groupId,
-          folderId,
-          'LIFERAY_CONTENT_STATS_ERROR',
-        );
+    await mapConcurrent(folder.subtreeFolderIds, JOURNAL_FOLDER_CONCURRENCY, async (folderId) => {
+      const rows = await runLimited(() =>
+        fetchJournalArticleRowsInFolder(config, apiClient, authState, groupId, folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
+      );
 
-        await hydrateMissingJournalStructureDefinitions(
-          config,
-          apiClient,
-          authState,
-          rows
-            .map((row) => (row.DDMStructureId !== undefined ? Number(row.DDMStructureId) : undefined))
-            .filter((value): value is number => value !== undefined && Number.isFinite(value)),
-          structureMap,
-          structureNameMap,
-        );
+      await hydrateMissingJournalStructureDefinitions(
+        config,
+        apiClient,
+        authState,
+        rows
+          .map((row) => (row.DDMStructureId !== undefined ? Number(row.DDMStructureId) : undefined))
+          .filter((value): value is number => value !== undefined && Number.isFinite(value)),
+        structureMap,
+        structureNameMap,
+      );
 
-        for (const row of rows) {
-          const structureId = row.DDMStructureId !== undefined ? Number(row.DDMStructureId) : undefined;
-          const key =
-            structureId !== undefined ? (structureMap.get(structureId) ?? `unknown_${structureId}`) : 'unknown';
+      for (const row of rows) {
+        const structureId = row.DDMStructureId !== undefined ? Number(row.DDMStructureId) : undefined;
+        const key = structureId !== undefined ? (structureMap.get(structureId) ?? `unknown_${structureId}`) : 'unknown';
 
-          counts.set(key, (counts.get(key) ?? 0) + 1);
-        }
+        counts.set(key, (counts.get(key) ?? 0) + 1);
       }
+    });
 
-      const structures = [...counts.entries()]
-        .map(([key, count]) => ({
-          key,
-          name: structureNameMap.get(key) ?? key,
-          count,
-        }))
-        .sort((left, right) =>
-          left.count !== right.count ? right.count - left.count : left.key.localeCompare(right.key),
-        );
+    const structures = [...counts.entries()]
+      .map(([key, count]) => ({
+        key,
+        name: structureNameMap.get(key) ?? key,
+        count,
+      }))
+      .sort((left, right) =>
+        left.count !== right.count ? right.count - left.count : left.key.localeCompare(right.key),
+      );
 
-      return stripComputedFolderStats({
-        ...folder,
-        structures,
-      });
-    }),
-  );
+    return stripComputedFolderStats({
+      ...folder,
+      structures,
+    });
+  });
 }
 
 async function collectJournalFolderTree(

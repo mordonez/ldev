@@ -125,7 +125,12 @@ Notes:
           });
         }
 
-        const limit = Number.parseInt(options.limit, 10) || 10;
+        const limit = Number.parseInt(options.limit, 10);
+        if (!Number.isInteger(limit) || limit < 0) {
+          throw new CliError('--limit must be a non-negative integer.', {
+            code: 'LIFERAY_INVENTORY_ERROR',
+          });
+        }
 
         if (options.withContent || sortBy === 'content' || options.site || groupId !== undefined) {
           return runContentStats(

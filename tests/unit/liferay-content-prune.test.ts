@@ -911,25 +911,30 @@ describe('liferay-content-prune: apply mode', () => {
   test('apply mode refreshes token and retries article deletion on 401', async () => {
     let tokenFetches = 0;
     let firstDeleteAttempt = true;
+    const deleteAuthHeaders: string[] = [];
+
+    function getAuthorizationHeader(init: RequestInit | undefined): string {
+      const headers = init?.headers;
+      if (headers instanceof Headers) {
+        return headers.get('Authorization') ?? '';
+      }
+      if (Array.isArray(headers)) {
+        return headers.find(([key]) => key === 'Authorization')?.[1] ?? '';
+      }
+      if (headers && typeof headers === 'object') {
+        return String((headers as Record<string, string>)['Authorization'] ?? '');
+      }
+
+      return '';
+    }
 
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input, init) => {
         const url = String(input);
         const method = (init as RequestInit | undefined)?.method ?? 'GET';
 
-        if (url.includes('/o/oauth2/token') && method === 'POST') {
-          tokenFetches++;
-          return new Response(
-            JSON.stringify({
-              access_token: `token-${tokenFetches}`,
-              token_type: 'Bearer',
-              expires_in: 3600,
-            }),
-            {status: 200},
-          );
-        }
-
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          deleteAuthHeaders.push(getAuthorizationHeader(init as RequestInit | undefined));
           if (firstDeleteAttempt) {
             firstDeleteAttempt = false;
             return new Response('unauthorized', {status: 401});
@@ -967,21 +972,33 @@ describe('liferay-content-prune: apply mode', () => {
     });
 
     const tokenClient = {
-      fetchClientCredentialsToken: async () => ({
-        accessToken: 'token-1',
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-      }),
+      fetchClientCredentialsToken: async () => {
+        tokenFetches += 1;
+        return {
+          accessToken: `token-${tokenFetches}`,
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+        };
+      },
+    };
+    const config = {
+      ...CONFIG,
+      liferay: {
+        ...CONFIG.liferay,
+        oauth2ClientId: 'refresh-test-client',
+      },
     };
 
     const result = await runContentPrune(
-      CONFIG,
+      config,
       {site: '/estudis', rootFolders: [12345], structures: ['FITXA'], keep: 0, dryRun: false},
       {apiClient, tokenClient},
     );
 
     expect(result.mode).toBe('apply');
     expect(firstDeleteAttempt).toBe(false);
+    expect(tokenFetches).toBe(2);
+    expect(deleteAuthHeaders).toEqual(['Bearer token-1', 'Bearer token-2']);
   });
 
   test('apply mode records failed deletes and keeps going when delete-article fails', async () => {
