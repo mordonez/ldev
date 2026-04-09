@@ -71,6 +71,24 @@ Installed project agents: 4
 
 In Blade workspaces, `ldev` can coexist with the official AI folders and `.workspace-rules` model instead of replacing it.
 
+## Where knowledge lives
+
+The AI layer is easier to maintain if each kind of knowledge has one clear home:
+
+- `.agents/skills/*` without the `project-` prefix are vendor skills installed by `ldev`
+- `.agents/skills/project-*` are project-owned workflows such as issue handling or PR process
+- `docs/ai/project-context.md` is the long-form project context document
+- `.workspace-rules/ldev-*` are runtime/tooling rules for `ldev`, not the main home of project process
+
+In short:
+
+- use skills for workflows
+- use `project-context.md` for project context
+- use `ldev-*` workspace rules for runtime and tooling guidance
+
+This keeps the same model working in both `ldev-native` and `blade-workspace`
+without duplicating project process across multiple folders.
+
 ## Structured portal discovery
 
 Agents can inspect the portal without screen scraping or UI navigation:
