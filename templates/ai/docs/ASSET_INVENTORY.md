@@ -36,4 +36,7 @@ existed in the original `tools/ai` tree.
   and Claude agents overlay.
 - Project overlays should stay thin and process-specific. Reusable `ldev`
   operational knowledge belongs in vendor skills, not in `project/`.
+- In `blade-workspace`, official AI Workspace folders remain the base layer and
+  `ldev` augments them with additional workflow guidance.
+- In `ldev-native`, `ldev` provides the full runtime-specific AI layer itself.
 - New reusable assets must satisfy the rules in `PRODUCT_RULES.md`.

@@ -3,7 +3,8 @@
 Standard entrypoint for coding agents working in a **Liferay Workspace** that uses `ldev`.
 
 This file is intentionally small. In a Workspace, the official Liferay AI files
-are the base layer. `ldev` adds direct workflows and reusable skills on top.
+are the base layer. `ldev` augments that base with direct workflows, runtime
+guidance, and reusable skills on top.
 
 ## Base Context
 
@@ -15,6 +16,17 @@ Treat these files as the primary Workspace guidance:
 
 `ldev` installs complementary `ldev-*` rule files in those locations. Do not
 replace the official Workspace files with vendor-specific rewrites.
+
+Mental model:
+
+- official AI Workspace files explain the standard Liferay Workspace baseline
+- `ldev` adds task-shaped workflows, runtime diagnostics, deploy verification,
+  OAuth bootstrap, MCP checks, and agent-oriented shortcuts
+
+If both layers speak to the same topic:
+
+- keep the official Workspace files as the base source
+- treat `ldev-*` rules as the augmentation layer for direct operational work
 
 ## Required Bootstrap
 
@@ -41,6 +53,18 @@ Examples:
 
 Use the official Liferay MCP only when it provides something that a direct
 `ldev` command does not already provide.
+
+Use vendor skills for the full reusable workflow:
+
+- `liferay-expert`
+- `troubleshooting-liferay`
+- `developing-liferay`
+- `deploying-liferay`
+- `migrating-journal-structures`
+- `automating-browser-tests`
+
+Use `.workspace-rules/ldev-*.md` files to adapt those workflows to the
+Workspace runtime and to coexist cleanly with the official AI Workspace rules.
 
 Before using MCP:
 
@@ -100,3 +124,4 @@ After installing or updating vendor AI assets:
 2. Review the tool-specific generated files under `.claude/`, `.cursor/`,
    `.gemini/`, `.github/`, and `.windsurf/`.
 3. Keep official Liferay Workspace files intact.
+4. Treat `ldev` as augmentation, not replacement, for the Workspace AI layer.

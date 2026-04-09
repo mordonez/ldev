@@ -21,6 +21,7 @@ Typical examples:
 - production-to-local reproduction workflows based on `ldev db ...`, `ldev env ...`, and `ldev worktree ...`
 - generic agent bootstrap instructions that point to `ldev doctor` and `ldev context --json`
 - minimal bootstrap scaffolding such as `CLAUDE.md`
+- runtime-specific augmentation rules for `blade-workspace` or `ldev-native`
 
 ## Does Not Belong in `ldev`
 
@@ -87,3 +88,18 @@ Examples:
 - "How this repository names issue branches and writes PR bodies" -> project
 - "How to discover a page and resolve its owning template with `ldev`" -> vendor
 - "Which site URLs and template IDs this project actually uses" -> project
+
+## Workspace Coexistence Rule
+
+For `blade-workspace` repositories:
+
+- treat the official Liferay Workspace AI folders and `.workspace-rules` as the
+  base layer
+- use `ldev` to augment that base with runtime-specific operational workflows
+
+For `ldev-native` repositories:
+
+- `ldev` provides the full runtime-specific AI layer directly
+
+Do not fork the logical operational model. The same high-level agent workflow
+should still apply in both project types.
