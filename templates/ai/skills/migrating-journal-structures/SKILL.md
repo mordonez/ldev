@@ -67,17 +67,22 @@ ldev resource migration-pipeline \
   --migration-dry-run
 ```
 
-### 4. Run the introduce phase
+### 4. Run the real pipeline deliberately
 
 ```bash
 ldev resource migration-pipeline --migration-file <file>
 ```
 
-### 5. Run cleanup only after validation
+If the descriptor includes cleanup and you intend to execute that cleanup in the
+same real run, enable it explicitly:
 
 ```bash
 ldev resource migration-pipeline --migration-file <file> --run-cleanup
 ```
+
+Do not treat this as a default "run it once and then run it again" sequence.
+Use one real execution plan deliberately after validation, with or without
+`--run-cleanup`, based on the migration you are approving.
 
 ## Validation checklist
 
@@ -97,4 +102,5 @@ ldev portal reindex tasks --json
 - Always keep a descriptor file under version control.
 - Always use `migration-init` to scaffold the descriptor; do not write it from scratch.
 - Always run `--check-only` before the real pipeline.
-- Only run cleanup after functional validation of the introduced shape.
+- Do not document or automate migration-pipeline as a mandatory two-run sequence.
+- If cleanup is intended, make that choice explicit in the approved real execution plan.

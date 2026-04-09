@@ -42,13 +42,11 @@ summary.
 
 ### 2. Migration cleanup clarity
 
-The safer sequencing is:
+The descriptor defines cleanup scope, but docs should avoid implying that
+`migration-pipeline` must be rerun as a default two-step sequence.
 
-1. introduce the new shape
-2. validate it
-3. run cleanup only afterwards
-
-Docs and skills should keep that order.
+Docs and skills should frame cleanup as an explicit execution choice in the
+approved real run.
 
 ### 3. Vendor vs project boundary
 
