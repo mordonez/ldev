@@ -61,6 +61,35 @@ const ARTICLES_FITXA = [
   {id: 1003, title: 'Fitxa C', dateModified: '2024-01-01T10:00:00Z', contentStructureId: 301},
 ];
 
+function toJsonwsArticles(
+  articles: Array<{id: number; title: string; dateModified: string; contentStructureId: number}>,
+  folderId: number,
+  groupId = 20200,
+) {
+  return articles.map((article) => ({
+    resourcePrimKey: String(article.id),
+    articleId: String(article.id),
+    folderId: String(folderId),
+    groupId: String(groupId),
+    DDMStructureId: String(article.contentStructureId),
+    modifiedDate: new Date(article.dateModified).getTime(),
+    titleCurrentValue: article.title,
+    status: 0,
+  }));
+}
+
+function folderArticlesResp(
+  url: string,
+  articles: Array<{id: number; title: string; dateModified: string; contentStructureId: number}>,
+  folderId: number,
+  groupId = 20200,
+) {
+  const parsed = new URL(url);
+  const start = Number(parsed.searchParams.get('start') ?? '0');
+  const end = Number(parsed.searchParams.get('end') ?? String(articles.length));
+  return new Response(JSON.stringify(toJsonwsArticles(articles.slice(start, end), folderId, groupId)), {status: 200});
+}
+
 function makeApiClient(overrides: Record<string, () => Response>) {
   return createLiferayApiClient({
     fetchImpl: async (input) => {
@@ -108,8 +137,8 @@ describe('liferay-content-prune: dry-run', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(ARTICLES_FITXA);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -148,8 +177,8 @@ describe('liferay-content-prune: dry-run', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(ARTICLES_FITXA);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -172,6 +201,222 @@ describe('liferay-content-prune: dry-run', () => {
 
     // Sample should not include the kept article
     expect(result.sampleArticles.every((a) => a.action === 'delete')).toBe(true);
+  });
+
+  test('keep defaults to per-folder across multiple folders', async () => {
+    const folderOneArticles = [
+      {id: 1001, title: 'Fitxa A1', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 301},
+      {id: 1002, title: 'Fitxa A2', dateModified: '2024-02-01T10:00:00Z', contentStructureId: 301},
+    ];
+    const folderTwoArticles = [
+      {id: 2001, title: 'Fitxa B1', dateModified: '2024-03-03T10:00:00Z', contentStructureId: 301},
+      {id: 2002, title: 'Fitxa B2', dateModified: '2024-02-03T10:00:00Z', contentStructureId: 301},
+    ];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, folderOneArticles.length);
+        }
+        if (url.includes('/structured-content-folders/67890') && !url.includes('structured-content-folders/67890/')) {
+          return folderResp(67890, 20200, folderTwoArticles.length);
+        }
+        if (
+          url.includes('/structured-content-folders/12345/structured-content-folders') ||
+          url.includes('/structured-content-folders/67890/structured-content-folders')
+        ) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=12345')
+        ) {
+          return folderArticlesResp(url, folderOneArticles, 12345);
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=67890')
+        ) {
+          return folderArticlesResp(url, folderTwoArticles, 67890);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345, 67890], keep: 1, dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.keptCount).toBe(2);
+    expect(result.deletedCount).toBe(2);
+    expect(result.structures[0]?.kept).toBe(2);
+    expect(result.structures[0]?.deleted).toBe(2);
+  });
+
+  test('dry-run aggregates JSONWS article pages beyond the first slice', async () => {
+    const pagedArticles = Array.from({length: 205}, (_, index) => ({
+      id: 5000 + index,
+      title: `Fitxa ${index + 1}`,
+      dateModified: `2024-03-${String((index % 28) + 1).padStart(2, '0')}T10:00:00Z`,
+      contentStructureId: 301,
+    }));
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, pagedArticles.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, pagedArticles, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.articleCount).toBe(205);
+    expect(result.deletedCount).toBe(205);
+  });
+
+  test('dry-run ignores folder rows returned by get-folders-and-articles', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, 1);
+        }
+        if (url.includes('/structured-content-folders/67890') && !url.includes('structured-content-folders/67890/')) {
+          return folderResp(67890, 20200, 0);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([{id: 67890, name: 'Child', siteId: 20200, numberOfStructuredContents: 0}]);
+        }
+        if (url.includes('/structured-content-folders/67890/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=12345')
+        ) {
+          return new Response(
+            JSON.stringify([
+              {folderId: '67890', name: 'Child Folder', description: ''},
+              ...toJsonwsArticles(
+                [{id: 1001, title: 'Root Article', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 301}],
+                12345,
+              ),
+            ]),
+            {status: 200},
+          );
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=67890')
+        ) {
+          return new Response(JSON.stringify([{folderId: '99999', name: 'Nested Folder', description: ''}]), {
+            status: 200,
+          });
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.articleCount).toBe(1);
+    expect(result.deletedCount).toBe(1);
+    expect(result.sampleArticles[0]?.id).toBe(1001);
+  });
+
+  test('dry-run deduplicates repeated article rows by resource primary key', async () => {
+    const duplicateArticle = {
+      id: 1001,
+      title: 'Duplicated',
+      dateModified: '2024-03-01T10:00:00Z',
+      contentStructureId: 301,
+    };
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, 1);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return new Response(
+            JSON.stringify([
+              ...toJsonwsArticles([duplicateArticle], 12345),
+              ...toJsonwsArticles([duplicateArticle], 12345),
+            ]),
+            {
+              status: 200,
+            },
+          );
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.articleCount).toBe(1);
+    expect(result.deletedCount).toBe(1);
+    expect(result.sampleArticles).toHaveLength(1);
   });
 });
 
@@ -198,8 +443,8 @@ describe('liferay-content-prune: structure filter', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(mixedArticles);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, mixedArticles, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -304,7 +549,7 @@ describe('liferay-content-prune: folder validation', () => {
 });
 
 describe('liferay-content-prune: keep logic', () => {
-  test('keep=2 with two structures keeps 2 per structure', async () => {
+  test('keep=2 with two structures keeps 2 total in the folder by default', async () => {
     const mixedArticles = [
       {id: 1001, title: 'Fitxa A', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 301},
       {id: 1002, title: 'Fitxa B', dateModified: '2024-02-01T10:00:00Z', contentStructureId: 301},
@@ -330,8 +575,8 @@ describe('liferay-content-prune: keep logic', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(mixedArticles);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, mixedArticles, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -350,15 +595,121 @@ describe('liferay-content-prune: keep logic', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result.keptCount).toBe(4); // 2 FITXA + 2 GRAU
-    expect(result.deletedCount).toBe(2); // 1 FITXA + 1 GRAU oldest
+    expect(result.keptCount).toBe(2);
+    expect(result.deletedCount).toBe(4);
 
     const fitxa = result.structures.find((s) => s.key === 'FITXA');
     const grau = result.structures.find((s) => s.key === 'GRAU');
-    expect(fitxa?.kept).toBe(2);
-    expect(fitxa?.deleted).toBe(1);
-    expect(grau?.kept).toBe(2);
-    expect(grau?.deleted).toBe(1);
+    expect(fitxa?.kept).toBe(1);
+    expect(fitxa?.deleted).toBe(2);
+    expect(grau?.kept).toBe(1);
+    expect(grau?.deleted).toBe(2);
+  });
+
+  test('keep-scope structure preserves the legacy keep-per-structure behavior', async () => {
+    const folderOneArticles = [
+      {id: 1001, title: 'Fitxa A1', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 301},
+      {id: 1002, title: 'Fitxa A2', dateModified: '2024-02-01T10:00:00Z', contentStructureId: 301},
+    ];
+    const folderTwoArticles = [
+      {id: 2001, title: 'Fitxa B1', dateModified: '2024-03-03T10:00:00Z', contentStructureId: 301},
+      {id: 2002, title: 'Fitxa B2', dateModified: '2024-02-03T10:00:00Z', contentStructureId: 301},
+    ];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, folderOneArticles.length);
+        }
+        if (url.includes('/structured-content-folders/67890') && !url.includes('structured-content-folders/67890/')) {
+          return folderResp(67890, 20200, folderTwoArticles.length);
+        }
+        if (
+          url.includes('/structured-content-folders/12345/structured-content-folders') ||
+          url.includes('/structured-content-folders/67890/structured-content-folders')
+        ) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=12345')
+        ) {
+          return folderArticlesResp(url, folderOneArticles, 12345);
+        }
+        if (
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') &&
+          url.includes('folderId=67890')
+        ) {
+          return folderArticlesResp(url, folderTwoArticles, 67890);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345, 67890], keep: 1, keepScope: 'structure', dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.keptCount).toBe(1);
+    expect(result.deletedCount).toBe(3);
+    expect(result.structures[0]?.kept).toBe(1);
+    expect(result.structures[0]?.deleted).toBe(3);
+  });
+
+  test('missing site-level structure definitions are resolved by data definition id', async () => {
+    const articleBatch = [
+      {id: 1001, title: 'Legacy A', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 999},
+      {id: 1002, title: 'Legacy B', dateModified: '2024-02-01T10:00:00Z', contentStructureId: 999},
+    ];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, articleBatch.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.endsWith('/o/data-engine/v2.0/data-definitions/999')) {
+          return new Response(JSON.stringify({id: 999, dataDefinitionKey: 'LEGACY', name: {ca_ES: 'Legacy'}}), {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, articleBatch, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], keep: 1, dryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.structures[0]?.key).toBe('LEGACY');
+    expect(result.structures[0]?.name).toBe('Legacy');
   });
 
   test('folders are not marked removable when articles are kept', async () => {
@@ -378,8 +729,8 @@ describe('liferay-content-prune: keep logic', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(ARTICLES_FITXA);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -413,8 +764,8 @@ describe('liferay-content-prune: keep logic', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(ARTICLES_FITXA);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -433,7 +784,7 @@ describe('liferay-content-prune: keep logic', () => {
 
 describe('liferay-content-prune: apply mode', () => {
   test('apply mode deletes articles and empty folders', async () => {
-    const deletedArticles: number[] = [];
+    const deletedArticles: string[] = [];
     const deletedFolders: number[] = [];
 
     const apiClient = createLiferayApiClient({
@@ -441,11 +792,16 @@ describe('liferay-content-prune: apply mode', () => {
         const url = String(input);
         const method = (init as RequestInit | undefined)?.method ?? 'GET';
 
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const articleId = new URLSearchParams(body).get('articleId');
+          if (articleId) deletedArticles.push(articleId);
+          return new Response('{}', {status: 200});
+        }
+
         if (method === 'DELETE') {
-          const articleMatch = /structured-contents\/(\d+)$/.exec(url);
           const folderMatch = /structured-content-folders\/(\d+)$/.exec(url);
-          if (articleMatch) deletedArticles.push(Number(articleMatch[1]));
-          else if (folderMatch) deletedFolders.push(Number(folderMatch[1]));
+          if (folderMatch) deletedFolders.push(Number(folderMatch[1]));
           return new Response(null, {status: 204});
         }
 
@@ -461,8 +817,259 @@ describe('liferay-content-prune: apply mode', () => {
         if (url.includes('/data-definitions/by-content-type/journal')) {
           return paged(STRUCTURES);
         }
-        if (url.includes('/structured-content-folders/12345/structured-contents')) {
-          return paged(ARTICLES_FITXA);
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], structures: ['FITXA'], keep: 0, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('apply');
+    expect(deletedArticles).toHaveLength(3);
+    expect(deletedArticles).toContain('1001');
+    expect(deletedArticles).toContain('1002');
+    expect(deletedArticles).toContain('1003');
+    expect(deletedFolders).toContain(12345);
+    expect(result.removedFolders).toContain(12345);
+  });
+
+  test('apply mode deletes articles concurrently', async () => {
+    const articleBatch = Array.from({length: 8}, (_, index) => ({
+      id: 9000 + index,
+      title: `Fitxa ${index + 1}`,
+      dateModified: `2024-03-${String(index + 1).padStart(2, '0')}T10:00:00Z`,
+      contentStructureId: 301,
+    }));
+
+    let inflightDeletes = 0;
+    let maxInflightDeletes = 0;
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          inflightDeletes++;
+          maxInflightDeletes = Math.max(maxInflightDeletes, inflightDeletes);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          inflightDeletes--;
+          return new Response('{}', {status: 200});
+        }
+
+        if (method === 'DELETE' && url.includes('/structured-content-folders/12345')) {
+          return new Response(null, {status: 204});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, articleBatch.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, articleBatch, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], structures: ['FITXA'], keep: 0, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(maxInflightDeletes).toBeGreaterThan(1);
+  });
+
+  test('apply mode refreshes token and retries article deletion on 401', async () => {
+    let tokenFetches = 0;
+    let firstDeleteAttempt = true;
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (url.includes('/o/oauth2/token') && method === 'POST') {
+          tokenFetches++;
+          return new Response(
+            JSON.stringify({
+              access_token: `token-${tokenFetches}`,
+              token_type: 'Bearer',
+              expires_in: 3600,
+            }),
+            {status: 200},
+          );
+        }
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          if (firstDeleteAttempt) {
+            firstDeleteAttempt = false;
+            return new Response('unauthorized', {status: 401});
+          }
+
+          return new Response('{}', {status: 200});
+        }
+
+        if (method === 'DELETE' && url.includes('/structured-content-folders/12345')) {
+          return new Response(null, {status: 204});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, 1);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(
+            url,
+            [{id: 1001, title: 'Fitxa A', dateModified: '2024-03-01T10:00:00Z', contentStructureId: 301}],
+            12345,
+          );
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const tokenClient = {
+      fetchClientCredentialsToken: async () => ({
+        accessToken: 'token-1',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      }),
+    };
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], structures: ['FITXA'], keep: 0, dryRun: false},
+      {apiClient, tokenClient},
+    );
+
+    expect(result.mode).toBe('apply');
+    expect(firstDeleteAttempt).toBe(false);
+  });
+
+  test('apply mode records failed deletes and keeps going when delete-article fails', async () => {
+    const deletedArticles: string[] = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const articleId = new URLSearchParams(body).get('articleId');
+          if (articleId) deletedArticles.push(articleId);
+          if (articleId === '1001') {
+            return new Response('boom', {status: 500});
+          }
+
+          return new Response('{}', {status: 200});
+        }
+
+        if (method === 'DELETE' && url.includes('/structured-content-folders/12345')) {
+          return new Response(null, {status: 204});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, ARTICLES_FITXA.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], structures: ['FITXA'], keep: 0, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.failedArticles).toHaveLength(1);
+    expect(result.failedArticles[0]).toMatchObject({
+      articleId: '1001',
+      operation: 'delete-article',
+      status: 500,
+    });
+    expect(deletedArticles).toContain('1001');
+    expect(deletedArticles).toContain('1002');
+    expect(deletedArticles).toContain('1003');
+  });
+
+  test('apply mode deletes whole root folders directly when keep is zero and no structure filter is used', async () => {
+    const deletedJournalFolders: string[] = [];
+    const deletedArticles: string[] = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const folderId = new URLSearchParams(body).get('folderId');
+          if (folderId) deletedJournalFolders.push(folderId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const articleId = new URLSearchParams(body).get('articleId');
+          if (articleId) deletedArticles.push(articleId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, ARTICLES_FITXA.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
         }
 
         throw new Error(`Unexpected: ${url}`);
@@ -476,12 +1083,162 @@ describe('liferay-content-prune: apply mode', () => {
     );
 
     expect(result.mode).toBe('apply');
-    expect(deletedArticles).toHaveLength(3);
-    expect(deletedArticles).toContain(1001);
-    expect(deletedArticles).toContain(1002);
-    expect(deletedArticles).toContain(1003);
-    expect(deletedFolders).toContain(12345);
+    expect(deletedJournalFolders).toEqual(['12345']);
+    expect(deletedArticles).toHaveLength(0);
     expect(result.removedFolders).toContain(12345);
+  });
+
+  test('whole-folder deletion fast path skips structure resolution and article inventory', async () => {
+    const deletedJournalFolders: string[] = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const folderId = new URLSearchParams(body).get('folderId');
+          if (folderId) deletedJournalFolders.push(folderId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, ARTICLES_FITXA.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (
+          url.includes('/data-definitions/by-content-type/journal') ||
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') ||
+          url.includes('/api/jsonws/journal.journalarticle/delete-article')
+        ) {
+          throw new Error(`Fast path should not reach: ${url}`);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], keep: 0, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.articleCount).toBe(3);
+    expect(result.deletedCount).toBe(3);
+    expect(result.structures).toHaveLength(0);
+    expect(deletedJournalFolders).toEqual(['12345']);
+  });
+
+  test('whole-folder deletion fast path ignores missing root folders', async () => {
+    const deletedJournalFolders: string[] = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const folderId = new URLSearchParams(body).get('folderId');
+          if (folderId) deletedJournalFolders.push(folderId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, ARTICLES_FITXA.length);
+        }
+        if (url.includes('/structured-content-folders/67890') && !url.includes('structured-content-folders/67890/')) {
+          return new Response('not found', {status: 404});
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (
+          url.includes('/data-definitions/by-content-type/journal') ||
+          url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles') ||
+          url.includes('/api/jsonws/journal.journalarticle/delete-article')
+        ) {
+          throw new Error(`Fast path should not reach: ${url}`);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    const result = await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345, 67890], keep: 0, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.folderCount).toBe(1);
+    expect(deletedJournalFolders).toEqual(['12345']);
+    expect(result.removedFolders).toContain(12345);
+    expect(result.missingFolders).toEqual([67890]);
+    expect(result.failedFolders).toHaveLength(0);
+  });
+
+  test('apply mode does not use whole-folder deletion when keep is positive', async () => {
+    const deletedJournalFolders: string[] = [];
+    const deletedArticles: string[] = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const folderId = new URLSearchParams(body).get('folderId');
+          if (folderId) deletedJournalFolders.push(folderId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
+          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const articleId = new URLSearchParams(body).get('articleId');
+          if (articleId) deletedArticles.push(articleId);
+          return new Response('{}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
+          return siteResp(20200, '/estudis');
+        }
+        if (url.includes('/structured-content-folders/12345') && !url.includes('structured-content-folders/12345/')) {
+          return folderResp(12345, 20200, ARTICLES_FITXA.length);
+        }
+        if (url.includes('/structured-content-folders/12345/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/data-definitions/by-content-type/journal')) {
+          return paged(STRUCTURES);
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles')) {
+          return folderArticlesResp(url, ARTICLES_FITXA, 12345);
+        }
+
+        throw new Error(`Unexpected: ${url}`);
+      },
+    });
+
+    await runContentPrune(
+      CONFIG,
+      {site: '/estudis', rootFolders: [12345], keep: 1, dryRun: false},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(deletedJournalFolders).toHaveLength(0);
+    expect(deletedArticles).toHaveLength(2);
   });
 });
 
@@ -501,6 +1258,9 @@ describe('liferay-content-prune: formatContentPrune', () => {
       {id: 1002, title: 'Fitxa B', structureKey: 'FITXA', modifiedDate: '2024-02-01T10:00:00Z', action: 'delete'},
     ],
     removedFolders: [],
+    missingFolders: [],
+    failedArticles: [],
+    failedFolders: [],
   };
 
   test('includes mode, groupId and site in text output', () => {

@@ -2,13 +2,19 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
+import type {Printer} from '../../../core/output/printer.js';
+import {runStep} from '../../../core/output/run-step.js';
 import {
   authedGet,
   fetchAccessToken,
-  fetchPagedItems,
   normalizeLocalizedName,
   resolveSite,
 } from '../inventory/liferay-inventory-shared.js';
+import {
+  fetchJournalArticleRowsInFolder,
+  hydrateMissingJournalStructureDefinitions,
+  resolveJournalStructureDefinitions,
+} from './liferay-content-journal-shared.js';
 
 // === Public types ===
 
@@ -18,6 +24,7 @@ export type ContentPruneOptions = {
   rootFolders: number[];
   structures?: string[];
   keep?: number;
+  keepScope?: 'folder' | 'structure';
   dryRun?: boolean;
 };
 
@@ -37,6 +44,19 @@ export type SampleArticle = {
   action: 'keep' | 'delete';
 };
 
+export type FailedArticle = {
+  id: number;
+  articleId: string;
+  status?: number;
+  operation: 'delete-article';
+};
+
+export type FailedFolder = {
+  folderId: number;
+  status?: number;
+  operation: 'delete-folder';
+};
+
 export type ContentPruneResult = {
   ok: boolean;
   mode: 'dry-run' | 'apply';
@@ -50,6 +70,9 @@ export type ContentPruneResult = {
   structures: StructurePruneSummary[];
   sampleArticles: SampleArticle[];
   removedFolders: number[];
+  missingFolders: number[];
+  failedArticles: FailedArticle[];
+  failedFolders: FailedFolder[];
 };
 
 // === Internal types ===
@@ -57,6 +80,12 @@ export type ContentPruneResult = {
 type PruneDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
+  printer?: Printer;
+};
+
+type PruneAuthState = {
+  accessToken: string;
+  tokenClient: OAuthTokenClient;
 };
 
 type HeadlessFolder = {
@@ -74,12 +103,6 @@ type HeadlessArticle = {
   contentStructureId?: number;
 };
 
-type DataDefinition = {
-  id?: number;
-  dataDefinitionKey?: string;
-  name?: string | Record<string, string>;
-};
-
 type ArticleWithFolder = HeadlessArticle & {folderId: number};
 
 type ArticlePlan = {
@@ -92,7 +115,10 @@ type FolderTree = {
   allFolders: Map<number, HeadlessFolder>;
   childrenMap: Map<number, number[]>;
   depths: Map<number, number>;
+  missingRootFolders: number[];
 };
+
+const ARTICLE_DELETE_CONCURRENCY = 2;
 
 // === Main export ===
 
@@ -103,8 +129,12 @@ export async function runContentPrune(
 ): Promise<ContentPruneResult> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
-  const accessToken = await fetchAccessToken(config, {tokenClient});
-  const deps = {apiClient, accessToken};
+  const printer = dependencies?.printer;
+  const authState: PruneAuthState = {
+    accessToken: await fetchAccessToken(config, {tokenClient}),
+    tokenClient,
+  };
+  const deps = {apiClient, accessToken: authState.accessToken};
 
   // 1. Resolve groupId
   let groupId: number;
@@ -118,26 +148,60 @@ export async function runContentPrune(
     groupId = options.groupId!;
   }
 
+  const wholeFolderDelete = !options.dryRun && canDeleteWholeFolders(options);
+
   // 2. Validate root folders and build folder tree
-  const tree = await collectFolderTree(config, apiClient, accessToken, options.rootFolders, groupId);
+  const tree = await runStep(printer, 'Resolving folder scope', () =>
+    collectFolderTree(config, apiClient, authState, options.rootFolders, groupId, wholeFolderDelete),
+  );
+
+  if (wholeFolderDelete) {
+    const removedFolders: number[] = [];
+    const failedFolders: FailedFolder[] = [];
+    const articleCount = countStructuredContents(tree.allFolders);
+    const existingRootFolders = options.rootFolders.filter((folderId) => tree.allFolders.has(folderId));
+
+    if (!options.dryRun) {
+      await runStep(printer, 'Deleting root folders', async () => {
+        for (const folderId of existingRootFolders) {
+          const deletion = await deleteJournalFolder(config, apiClient, authState, folderId);
+          if (deletion.ok) {
+            removedFolders.push(folderId);
+          } else {
+            failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
+          }
+        }
+      });
+    }
+
+    return {
+      ok: true,
+      mode: options.dryRun ? 'dry-run' : 'apply',
+      groupId,
+      siteFriendlyUrl,
+      rootFolders: options.rootFolders,
+      folderCount: tree.allFolders.size,
+      articleCount,
+      keptCount: 0,
+      deletedCount: options.dryRun
+        ? articleCount
+        : countStructuredContentsForRoots(removedFolders, tree.allFolders, tree.childrenMap),
+      structures: [],
+      sampleArticles: [],
+      removedFolders: options.dryRun ? existingRootFolders : removedFolders,
+      missingFolders: tree.missingRootFolders,
+      failedArticles: [],
+      failedFolders,
+    };
+  }
 
   // 3. Resolve structures
   const structureMap = new Map<number, string>(); // structureId -> key
   const structureNameMap = new Map<string, string>(); // key -> name
 
-  const allDefs = await fetchPagedItems<DataDefinition>(
-    config,
-    `/o/data-engine/v2.0/sites/${groupId}/data-definitions/by-content-type/journal`,
-    200,
-    deps,
+  await runStep(printer, 'Resolving journal structures', () =>
+    resolveJournalStructureDefinitions(config, apiClient, authState, groupId, structureMap, structureNameMap),
   );
-
-  for (const def of allDefs) {
-    if (def.id && def.dataDefinitionKey) {
-      structureMap.set(def.id, def.dataDefinitionKey);
-      structureNameMap.set(def.dataDefinitionKey, normalizeLocalizedName(def.name));
-    }
-  }
 
   if (options.structures && options.structures.length > 0) {
     for (const key of options.structures) {
@@ -151,16 +215,26 @@ export async function runContentPrune(
   }
 
   // 4. Fetch all articles in all folders
-  const allArticles: ArticleWithFolder[] = [];
-  for (const [folderId] of tree.allFolders) {
-    const articles = await fetchPagedItems<HeadlessArticle>(
+  const allArticles = await runStep(printer, 'Collecting journal articles', async () => {
+    const articles: ArticleWithFolder[] = [];
+    for (const [folderId] of tree.allFolders) {
+      const folderArticles = await fetchJournalArticlesInFolder(config, apiClient, authState, groupId, folderId);
+      articles.push(...folderArticles);
+    }
+
+    return dedupeArticles(articles);
+  });
+
+  await runStep(printer, 'Hydrating missing structure metadata', () =>
+    hydrateMissingJournalStructureDefinitions(
       config,
-      `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents`,
-      200,
-      deps,
-    );
-    allArticles.push(...articles.map((a) => ({...a, folderId})));
-  }
+      apiClient,
+      authState,
+      allArticles.map((article) => article.contentStructureId).filter(isPresentNumber),
+      structureMap,
+      structureNameMap,
+    ),
+  );
 
   // 5. Filter by structure (if structures specified)
   let candidateArticles: ArticleWithFolder[];
@@ -174,9 +248,12 @@ export async function runContentPrune(
     candidateArticles = allArticles;
   }
 
-  // 6. Plan: group by structure, sort deterministically, apply keep
-  const keepPerStructure = options.keep ?? 0;
-  const plan = buildPlan(candidateArticles, structureMap, keepPerStructure);
+  // 6. Plan: group by folder or structure, sort deterministically, apply keep
+  const keepPerBucket = options.keep ?? 0;
+  const keepScope = options.keepScope ?? 'folder';
+  const plan = await runStep(printer, 'Planning content prune', async () =>
+    buildPlan(candidateArticles, structureMap, keepPerBucket, keepScope),
+  );
 
   // 7. Build structure summaries
   const summaryByKey = new Map<string, StructurePruneSummary>();
@@ -214,9 +291,10 @@ export async function runContentPrune(
     toDeleteByFolder,
   );
 
-  // 9. Build stable sample (first 5 articles to delete, sorted by date desc + id asc)
+  // 9. Build stable sample (sorted by date desc + id asc)
   const sampleArticles: SampleArticle[] = plan
     .filter((p) => p.action === 'delete')
+    .sort((left, right) => compareArticlesByRecencyDescThenIdAsc(left.article, right.article))
     .slice(0, 5)
     .map((p) => ({
       id: p.article.id ?? 0,
@@ -228,24 +306,35 @@ export async function runContentPrune(
 
   // 10. Execute (if not dry-run)
   const removedFolders: number[] = [];
+  const failedArticles: FailedArticle[] = [];
+  const failedFolders: FailedFolder[] = [];
   if (!options.dryRun) {
-    for (const article of toDelete) {
-      await authedDeleteResource(
-        config,
-        apiClient,
-        accessToken,
-        `/o/headless-delivery/v1.0/structured-contents/${article.id}`,
-      );
-    }
+    await runStep(printer, 'Deleting journal articles', async () => {
+      await runConcurrent(toDelete, ARTICLE_DELETE_CONCURRENCY, async (article) => {
+        const failure = await deleteJournalArticle(
+          config,
+          apiClient,
+          authState,
+          groupId,
+          article.id ?? 0,
+          article.key ?? String(article.id ?? ''),
+        );
+        if (failure) {
+          failedArticles.push(failure);
+        }
+      });
+    });
 
-    // Delete folders bottom-up (deepest first)
-    const sortedRemovable = removableFolderIds
-      .slice()
-      .sort((a, b) => (tree.depths.get(b) ?? 0) - (tree.depths.get(a) ?? 0));
-    for (const folderId of sortedRemovable) {
-      const deleted = await tryDeleteFolder(config, apiClient, accessToken, folderId);
-      if (deleted) removedFolders.push(folderId);
-    }
+    await runStep(printer, 'Deleting empty folders', async () => {
+      const sortedRemovable = removableFolderIds
+        .slice()
+        .sort((a, b) => (tree.depths.get(b) ?? 0) - (tree.depths.get(a) ?? 0));
+      for (const folderId of sortedRemovable) {
+        const deleted = await tryDeleteFolder(config, apiClient, authState, folderId);
+        if (deleted) removedFolders.push(folderId);
+        else failedFolders.push({folderId, operation: 'delete-folder'});
+      }
+    });
   }
 
   return {
@@ -257,10 +346,13 @@ export async function runContentPrune(
     folderCount: tree.allFolders.size,
     articleCount: candidateArticles.length,
     keptCount,
-    deletedCount: toDelete.length,
+    deletedCount: options.dryRun ? toDelete.length : Math.max(toDelete.length - failedArticles.length, 0),
     structures: [...summaryByKey.values()].sort((a, b) => a.key.localeCompare(b.key)),
     sampleArticles,
     removedFolders: options.dryRun ? removableFolderIds : removedFolders,
+    missingFolders: [],
+    failedArticles,
+    failedFolders,
   };
 }
 
@@ -300,6 +392,29 @@ export function formatContentPrune(result: ContentPruneResult): string {
     lines.push(`${label} ${result.removedFolders.join(', ')}`);
   }
 
+  if (result.missingFolders.length > 0) {
+    lines.push('');
+    lines.push(`Already missing folders: ${result.missingFolders.join(', ')}`);
+  }
+
+  if (result.failedArticles.length > 0) {
+    lines.push('');
+    lines.push(`Failed articles: ${result.failedArticles.length}`);
+    for (const failure of result.failedArticles.slice(0, 5)) {
+      lines.push(
+        `  articleId=${failure.articleId} id=${failure.id} operation=${failure.operation} status=${failure.status ?? 'unknown'}`,
+      );
+    }
+  }
+
+  if (result.failedFolders.length > 0) {
+    lines.push('');
+    lines.push(`Failed folders: ${result.failedFolders.length}`);
+    for (const failure of result.failedFolders.slice(0, 5)) {
+      lines.push(`  folderId=${failure.folderId} operation=${failure.operation} status=${failure.status ?? 'unknown'}`);
+    }
+  }
+
   if (result.mode === 'dry-run') {
     lines.push('');
     lines.push('(dry-run: no changes applied)');
@@ -313,25 +428,32 @@ export function formatContentPrune(result: ContentPruneResult): string {
 async function collectFolderTree(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
+  authState: PruneAuthState,
   rootFolderIds: number[],
   groupId: number,
+  ignoreMissingRootFolders = false,
 ): Promise<FolderTree> {
   const allFolders = new Map<number, HeadlessFolder>();
   const childrenMap = new Map<number, number[]>();
   const depths = new Map<number, number>();
+  const missingRootFolders: number[] = [];
 
   for (const rootId of rootFolderIds) {
     if (allFolders.has(rootId)) continue;
 
-    const resp = await authedGet<HeadlessFolder>(
+    const resp = await authedGetWithRefresh<HeadlessFolder>(
       config,
       apiClient,
-      accessToken,
+      authState,
       `/o/headless-delivery/v1.0/structured-content-folders/${rootId}`,
     );
 
     if (!resp.ok) {
+      if (ignoreMissingRootFolders && resp.status === 404) {
+        missingRootFolders.push(rootId);
+        continue;
+      }
+
       throw new CliError(`Folder ${rootId} not found (status=${resp.status}).`, {
         code: 'LIFERAY_CONTENT_PRUNE_ERROR',
       });
@@ -346,28 +468,49 @@ async function collectFolderTree(
 
     allFolders.set(rootId, folder);
     depths.set(rootId, 0);
-    await collectSubfolders(config, apiClient, accessToken, rootId, 1, allFolders, childrenMap, depths);
+    await collectSubfolders(config, apiClient, authState, rootId, 1, allFolders, childrenMap, depths);
   }
 
-  return {allFolders, childrenMap, depths};
+  return {allFolders, childrenMap, depths, missingRootFolders};
 }
 
 async function collectSubfolders(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
+  authState: PruneAuthState,
   parentId: number,
   depth: number,
   allFolders: Map<number, HeadlessFolder>,
   childrenMap: Map<number, number[]>,
   depths: Map<number, number>,
 ): Promise<void> {
-  const subfolders = await fetchPagedItems<HeadlessFolder>(
-    config,
-    `/o/headless-delivery/v1.0/structured-content-folders/${parentId}/structured-content-folders`,
-    200,
-    {apiClient, accessToken},
-  );
+  const subfolders: HeadlessFolder[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await authedGetWithRefresh<{items?: HeadlessFolder[]; lastPage?: number}>(
+      config,
+      apiClient,
+      authState,
+      `/o/headless-delivery/v1.0/structured-content-folders/${parentId}/structured-content-folders?page=${page}&pageSize=200`,
+    );
+
+    if (!response.ok) {
+      throw new CliError(`Subfolders for folder ${parentId} failed with status=${response.status}.`, {
+        code: 'LIFERAY_CONTENT_PRUNE_ERROR',
+      });
+    }
+
+    const items = response.data?.items ?? [];
+    subfolders.push(...items);
+
+    const lastPage = response.data?.lastPage ?? page;
+    if (page >= lastPage) {
+      break;
+    }
+
+    page += 1;
+  }
 
   const children: number[] = [];
   for (const sf of subfolders) {
@@ -375,49 +518,88 @@ async function collectSubfolders(
     allFolders.set(sf.id, sf);
     depths.set(sf.id, depth);
     children.push(sf.id);
-    await collectSubfolders(config, apiClient, accessToken, sf.id, depth + 1, allFolders, childrenMap, depths);
+    await collectSubfolders(config, apiClient, authState, sf.id, depth + 1, allFolders, childrenMap, depths);
   }
 
   childrenMap.set(parentId, children);
 }
 
+async function fetchJournalArticlesInFolder(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: PruneAuthState,
+  groupId: number,
+  folderId: number,
+): Promise<ArticleWithFolder[]> {
+  const rows = await fetchJournalArticleRowsInFolder(
+    config,
+    apiClient,
+    authState,
+    groupId,
+    folderId,
+    'LIFERAY_CONTENT_PRUNE_ERROR',
+  );
+
+  return rows.map((article) => ({
+    id: Number(article.resourcePrimKey ?? 0),
+    key: article.articleId,
+    title: article.titleCurrentValue ?? '',
+    dateModified: typeof article.modifiedDate === 'number' ? new Date(article.modifiedDate).toISOString() : undefined,
+    contentStructureId: article.DDMStructureId !== undefined ? Number(article.DDMStructureId) : undefined,
+    folderId: article.folderId !== undefined ? Number(article.folderId) : folderId,
+  }));
+}
+
 function buildPlan(
   articles: ArticleWithFolder[],
   structureMap: Map<number, string>,
-  keepPerStructure: number,
+  keepPerBucket: number,
+  keepScope: 'folder' | 'structure',
 ): ArticlePlan[] {
-  const byStructure = new Map<string, ArticleWithFolder[]>();
+  const byBucket = new Map<string, ArticleWithFolder[]>();
 
   for (const article of articles) {
     const key =
       article.contentStructureId !== undefined
         ? (structureMap.get(article.contentStructureId) ?? `unknown_${article.contentStructureId}`)
         : 'unknown';
-    const bucket = byStructure.get(key) ?? [];
+    const bucketKey = keepScope === 'folder' ? `folder_${article.folderId}` : `structure_${key}`;
+    const bucket = byBucket.get(bucketKey) ?? [];
     bucket.push(article);
-    byStructure.set(key, bucket);
+    byBucket.set(bucketKey, bucket);
   }
 
   const plan: ArticlePlan[] = [];
 
-  for (const [structureKey, bucket] of byStructure) {
-    const sorted = bucket.slice().sort((a, b) => {
-      const tA = a.dateModified ? new Date(a.dateModified).getTime() : 0;
-      const tB = b.dateModified ? new Date(b.dateModified).getTime() : 0;
-      if (tA !== tB) return tB - tA; // most recent first
-      return (a.id ?? 0) - (b.id ?? 0); // stable tiebreaker: lower id first (older)
-    });
+  for (const bucket of byBucket.values()) {
+    const sorted = bucket.slice().sort(compareArticlesByRecencyDescThenIdAsc);
 
     for (let i = 0; i < sorted.length; i++) {
+      const article = sorted[i]!;
+      const structureKey =
+        article.contentStructureId !== undefined
+          ? (structureMap.get(article.contentStructureId) ?? `unknown_${article.contentStructureId}`)
+          : 'unknown';
+
       plan.push({
-        article: sorted[i]!,
+        article,
         structureKey,
-        action: i < keepPerStructure ? 'keep' : 'delete',
+        action: i < keepPerBucket ? 'keep' : 'delete',
       });
     }
   }
 
   return plan;
+}
+
+function compareArticlesByRecencyDescThenIdAsc(left: HeadlessArticle, right: HeadlessArticle): number {
+  const leftTime = left.dateModified ? new Date(left.dateModified).getTime() : 0;
+  const rightTime = right.dateModified ? new Date(right.dateModified).getTime() : 0;
+  if (leftTime !== rightTime) {
+    return rightTime - leftTime;
+  }
+
+  return (left.id ?? 0) - (right.id ?? 0);
 }
 
 function computeRemovableFolderIds(
@@ -462,38 +644,247 @@ function computeRemovableFolderIds(
   return result;
 }
 
-async function authedDeleteResource(
+async function deleteJournalArticle(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
-  path: string,
-): Promise<void> {
-  const response = await apiClient.delete(config.liferay.url, path, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {Authorization: `Bearer ${accessToken}`},
-  });
-
-  if (!response.ok && response.status !== 404) {
-    throw new CliError(`DELETE ${path} failed with status=${response.status}.`, {
+  authState: PruneAuthState,
+  groupId: number,
+  id: number,
+  articleId: string,
+): Promise<FailedArticle | null> {
+  if (!articleId) {
+    throw new CliError('Cannot delete article without articleId.', {
       code: 'LIFERAY_CONTENT_PRUNE_ERROR',
     });
   }
+
+  const response = await postFormWithRefresh(
+    config,
+    apiClient,
+    authState,
+    '/api/jsonws/journal.journalarticle/delete-article',
+    {
+      groupId: String(groupId),
+      articleId,
+      articleURL: '',
+    },
+  );
+
+  if (response.ok || response.status === 404) {
+    return null;
+  }
+
+  return {
+    id,
+    articleId,
+    status: response.status,
+    operation: 'delete-article',
+  };
 }
 
 async function tryDeleteFolder(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
+  authState: PruneAuthState,
   folderId: number,
 ): Promise<boolean> {
-  const response = await apiClient.delete(
-    config.liferay.url,
+  const response = await deleteWithRefresh(
+    config,
+    apiClient,
+    authState,
     `/o/headless-delivery/v1.0/structured-content-folders/${folderId}`,
-    {
-      timeoutSeconds: config.liferay.timeoutSeconds,
-      headers: {Authorization: `Bearer ${accessToken}`},
-    },
   );
 
   return response.ok || response.status === 404;
+}
+
+async function deleteJournalFolder(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: PruneAuthState,
+  folderId: number,
+): Promise<{ok: boolean; status?: number}> {
+  const timeoutSeconds = Math.max(config.liferay.timeoutSeconds, 600);
+  const response = await postFormWithRefresh(
+    config,
+    apiClient,
+    authState,
+    '/api/jsonws/journal.journalfolder/delete-folder',
+    {
+      folderId: String(folderId),
+      includeTrashedEntries: 'true',
+    },
+    timeoutSeconds,
+  );
+
+  return {
+    ok: response.ok || response.status === 404,
+    status: response.status,
+  };
+}
+
+function dedupeArticles(articles: ArticleWithFolder[]): ArticleWithFolder[] {
+  const unique = new Map<string, ArticleWithFolder>();
+
+  for (const article of articles) {
+    const dedupeKey = article.id !== undefined ? `id:${article.id}` : `article:${article.key ?? ''}`;
+    const current = unique.get(dedupeKey);
+    if (!current || compareArticlesByRecencyDescThenIdAsc(article, current) < 0) {
+      unique.set(dedupeKey, article);
+    }
+  }
+
+  return [...unique.values()];
+}
+
+function countStructuredContents(allFolders: Map<number, HeadlessFolder>): number {
+  let total = 0;
+
+  for (const folder of allFolders.values()) {
+    total += folder.numberOfStructuredContents ?? 0;
+  }
+
+  return total;
+}
+
+function countStructuredContentsForRoots(
+  rootFolderIds: number[],
+  allFolders: Map<number, HeadlessFolder>,
+  childrenMap: Map<number, number[]>,
+): number {
+  let total = 0;
+  const visited = new Set<number>();
+
+  function visit(folderId: number): void {
+    if (visited.has(folderId)) {
+      return;
+    }
+
+    visited.add(folderId);
+    total += allFolders.get(folderId)?.numberOfStructuredContents ?? 0;
+
+    for (const childId of childrenMap.get(folderId) ?? []) {
+      visit(childId);
+    }
+  }
+
+  for (const rootFolderId of rootFolderIds) {
+    visit(rootFolderId);
+  }
+
+  return total;
+}
+
+function isPresentNumber(value: number | undefined): value is number {
+  return value !== undefined && Number.isFinite(value);
+}
+
+function canDeleteWholeFolders(options: ContentPruneOptions): boolean {
+  return (!options.structures || options.structures.length === 0) && (options.keep === undefined || options.keep === 0);
+}
+
+async function runConcurrent<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  if (items.length === 0) {
+    return;
+  }
+
+  let nextIndex = 0;
+  const workerCount = Math.min(concurrency, items.length);
+
+  await Promise.all(
+    Array.from({length: workerCount}, async () => {
+      while (true) {
+        const currentIndex = nextIndex++;
+        if (currentIndex >= items.length) {
+          return;
+        }
+
+        await worker(items[currentIndex]!, currentIndex);
+      }
+    }),
+  );
+}
+
+async function deleteWithRefresh<T>(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: PruneAuthState,
+  path: string,
+) {
+  let response = await apiClient.delete<T>(config.liferay.url, path, {
+    timeoutSeconds: config.liferay.timeoutSeconds,
+    headers: {Authorization: `Bearer ${authState.accessToken}`},
+  });
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  authState.accessToken = await fetchAccessToken(config, {
+    apiClient,
+    tokenClient: authState.tokenClient,
+    forceRefresh: true,
+  });
+  response = await apiClient.delete<T>(config.liferay.url, path, {
+    timeoutSeconds: config.liferay.timeoutSeconds,
+    headers: {Authorization: `Bearer ${authState.accessToken}`},
+  });
+
+  return response;
+}
+
+async function postFormWithRefresh<T>(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: PruneAuthState,
+  path: string,
+  form: Record<string, string>,
+  timeoutSeconds = config.liferay.timeoutSeconds,
+) {
+  let response = await apiClient.postForm<T>(config.liferay.url, path, form, {
+    timeoutSeconds,
+    headers: {Authorization: `Bearer ${authState.accessToken}`},
+  });
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  authState.accessToken = await fetchAccessToken(config, {
+    apiClient,
+    tokenClient: authState.tokenClient,
+    forceRefresh: true,
+  });
+  response = await apiClient.postForm<T>(config.liferay.url, path, form, {
+    timeoutSeconds,
+    headers: {Authorization: `Bearer ${authState.accessToken}`},
+  });
+
+  return response;
+}
+
+async function authedGetWithRefresh<T>(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: PruneAuthState,
+  path: string,
+) {
+  let response = await authedGet<T>(config, apiClient, authState.accessToken, path);
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  authState.accessToken = await fetchAccessToken(config, {
+    apiClient,
+    tokenClient: authState.tokenClient,
+    forceRefresh: true,
+  });
+  response = await authedGet<T>(config, apiClient, authState.accessToken, path);
+
+  return response;
 }
