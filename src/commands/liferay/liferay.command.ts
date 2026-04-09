@@ -2,6 +2,7 @@ import {Command} from 'commander';
 
 import {createReindexCommand} from '../reindex/reindex.command.js';
 import {createAuthCommands} from './auth.command.js';
+import {createContentCommand} from './content.command.js';
 import {createLiferayConfigCommand} from './config.command.js';
 import {createInventoryCommands} from './inventory.command.js';
 import {createLiferayAuditCommands} from './liferay-audit.command.js';
@@ -36,12 +37,14 @@ Main groups:
   search       Elasticsearch inspection and test queries
   theme-check  Validate Clay icon coverage in a deployed theme
   reindex      Reindex observation and temporary tuning
+  content      Journal/web content management (prune for local environments)
 `,
   );
 
   createAuthCommands(command);
   command.addCommand(createLiferayConfigCommand().helpGroup('Portal diagnostics:'));
   createInventoryCommands(command);
+  command.addCommand(createContentCommand().helpGroup('Content management:'));
   createLiferayAuditCommands(command);
   createPageLayoutCommands(command);
   command.addCommand(createLiferaySearchCommand().helpGroup('Portal diagnostics:'));

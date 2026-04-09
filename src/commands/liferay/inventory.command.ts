@@ -1,6 +1,12 @@
 import {Command} from 'commander';
 
+import {CliError} from '../../core/errors.js';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
+import {
+  formatContentStats,
+  runContentStats,
+  type ContentStatsResult,
+} from '../../features/liferay/content/liferay-content-stats.js';
 import {
   formatLiferayInventoryPage,
   runLiferayInventoryPage,
@@ -11,6 +17,7 @@ import {
 } from '../../features/liferay/inventory/liferay-inventory-pages.js';
 import {
   formatLiferayInventorySites,
+  type LiferayInventorySite,
   runLiferayInventorySites,
 } from '../../features/liferay/inventory/liferay-inventory-sites.js';
 import {
@@ -21,6 +28,14 @@ import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
 } from '../../features/liferay/inventory/liferay-inventory-templates.js';
+
+function collect(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function formatInventorySitesResult(result: LiferayInventorySite[] | ContentStatsResult): string {
+  return Array.isArray(result) ? formatLiferayInventorySites(result) : formatContentStats(result);
+}
 
 export function createInventoryCommands(parent: Command): void {
   const inventory = new Command('inventory')
@@ -43,15 +58,106 @@ Commands:
   addOutputFormatOption(
     inventory
       .command('sites')
-      .description('List accessible sites')
-      .option('--page-size <pageSize>', 'Maximum JSONWS page size', '200'),
+      .description('List accessible sites, or inspect one site folder/content inventory')
+      .option('--page-size <pageSize>', 'Maximum JSONWS page size', '200')
+      .option('--with-content', 'Include Journal content volume metrics')
+      .option('--sort-by <field>', 'Sort by: site, name, content', 'site')
+      .option('--limit <n>', 'Maximum number of sites to return when using content metrics', '10')
+      .option('--site <site>', 'Inspect one site by friendly URL; switches to folder inventory mode')
+      .option('--with-structures', 'When using --site or --group-id, include per-folder structure breakdowns')
+      .option(
+        '--exclude-site <site>',
+        'Exclude a site friendly URL from content metrics (repeatable)',
+        collect,
+        [] as string[],
+      )
+      .option('--group-id <groupId>', 'Inspect one site by group ID; switches to folder inventory mode')
+      .addHelpText(
+        'after',
+        `
+Examples:
+  ldev portal inventory sites
+  ldev portal inventory sites --with-content --sort-by content
+  ldev portal inventory sites --site /facultat-farmacia-alimentacio
+  ldev portal inventory sites --site /facultat-farmacia-alimentacio --with-structures --limit 20
+
+Notes:
+  - Without --site/--group-id, this command lists sites.
+  - With --site or --group-id, it switches to folder inventory for that site.
+  - --with-structures is only meaningful in that scoped folder mode.
+`,
+      ),
   ).action(
-    createFormattedAction(
-      async (context, options) =>
-        runLiferayInventorySites(context.config, {
+    createFormattedAction<
+      {
+        pageSize: string;
+        withContent?: boolean;
+        sortBy?: string;
+        limit: string;
+        site?: string;
+        withStructures?: boolean;
+        excludeSite: string[];
+        groupId?: string;
+        format?: string;
+        json?: boolean;
+        ndjson?: boolean;
+      },
+      LiferayInventorySite[] | ContentStatsResult
+    >(
+      async (context, options): Promise<LiferayInventorySite[] | ContentStatsResult> => {
+        const sortBy = (options.sortBy ?? 'site') as 'site' | 'name' | 'content';
+        if (!['site', 'name', 'content'].includes(sortBy)) {
+          throw new CliError('--sort-by must be one of: site, name, content.', {
+            code: 'LIFERAY_INVENTORY_ERROR',
+          });
+        }
+
+        if (options.site && options.groupId) {
+          throw new CliError('Use either --site or --group-id, not both.', {
+            code: 'LIFERAY_INVENTORY_ERROR',
+          });
+        }
+
+        const groupId = options.groupId !== undefined ? Number.parseInt(options.groupId, 10) : undefined;
+        if (options.groupId !== undefined && (!Number.isInteger(groupId) || groupId! <= 0)) {
+          throw new CliError('--group-id must be a positive integer.', {
+            code: 'LIFERAY_INVENTORY_ERROR',
+          });
+        }
+
+        const limit = Number.parseInt(options.limit, 10);
+        if (!Number.isInteger(limit) || limit < 0) {
+          throw new CliError('--limit must be a non-negative integer.', {
+            code: 'LIFERAY_INVENTORY_ERROR',
+          });
+        }
+
+        if (options.withContent || sortBy === 'content' || options.site || groupId !== undefined) {
+          return runContentStats(
+            context.config,
+            {
+              site: options.site,
+              groupId,
+              limit,
+              sortBy,
+              excludeSites: options.excludeSite,
+              withStructures: Boolean(options.withStructures),
+            },
+            {printer: context.printer},
+          );
+        }
+
+        const sites = await runLiferayInventorySites(context.config, {
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
-        }),
-      {text: formatLiferayInventorySites},
+        });
+
+        if (sortBy === 'name') {
+          return sites.slice().sort((left, right) => left.name.localeCompare(right.name));
+        }
+
+        return sites;
+      },
+      {text: formatInventorySitesResult},
     ),
   );
 

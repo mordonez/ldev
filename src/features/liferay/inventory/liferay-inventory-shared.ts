@@ -13,6 +13,7 @@ type InventoryDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
   accessToken?: string;
+  forceRefresh?: boolean;
 };
 
 type HeadlessPage<T> = {
@@ -40,7 +41,7 @@ export async function fetchAccessToken(config: AppConfig, dependencies?: Invento
     config.liferay.scopeAliases,
   ].join('|');
   const cached = accessTokenCache.get(cacheKey);
-  if (cached) {
+  if (cached && !dependencies?.forceRefresh) {
     return cached;
   }
 

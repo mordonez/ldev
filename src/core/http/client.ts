@@ -20,6 +20,7 @@ export type HttpResponse<T = unknown> = {
 
 export type LiferayApiClient = {
   get: <T = unknown>(baseUrl: string, path: string, options?: HttpRequestOptions) => Promise<HttpResponse<T>>;
+  delete: <T = unknown>(baseUrl: string, path: string, options?: HttpRequestOptions) => Promise<HttpResponse<T>>;
   postForm: <T = unknown>(
     baseUrl: string,
     path: string,
@@ -58,6 +59,21 @@ export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAtte
         `${baseUrl}${path}`,
         {
           method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            ...requestOptions?.headers,
+          },
+        },
+        requestOptions?.timeoutSeconds ?? 30,
+      );
+    },
+    async delete<T>(baseUrl: string, path: string, requestOptions?: HttpRequestOptions) {
+      return sendWithRetry<T>(
+        fetchImpl,
+        maxAttempts,
+        `${baseUrl}${path}`,
+        {
+          method: 'DELETE',
           headers: {
             Accept: 'application/json',
             ...requestOptions?.headers,
