@@ -1,6 +1,6 @@
 ---
 name: issue-engineering
-description: "Use when resolving any GitHub issue end-to-end: intake, isolated worktree, reproduction, fix, validation, PR, and cleanup. Single skill for issue resolution."
+description: 'Use when resolving any GitHub issue end-to-end: intake, isolated worktree, reproduction, fix, validation, PR, and cleanup. Single skill for issue resolution.'
 ---
 
 # Issue Engineering
@@ -11,15 +11,15 @@ Single guide for the full issue lifecycle. These guardrails are **non-negotiable
 
 ## Hard Guardrails
 
-| Rule | Do not do | Do |
-|---|---|---|
-| **Isolation** | Work in `main` | `ldev worktree setup --name issue-NUM --with-env` |
-| **Worktree creation** | `git worktree add` | `ldev worktree setup --name issue-NUM --with-env` — never use git directly; `ldev` adds env isolation on top |
-| **Cleanup** | `rm -rf .worktrees/NUM` | `ldev worktree clean issue-NUM --force` |
-| **Discovery** | Broad code search when the issue already has a URL | `ldev portal inventory page --url <URL>` first |
-| **Playwright** | Connect to production without local verification | Local first; production only on explicit request |
-| **Closure** | Clean the worktree before a PR exists | PR first, cleanup second |
-| **Worktree state** | Stop `main` without asking | If the guardrail says `main` is running without Btrfs, ask for confirmation before running `ldev stop` in `main` |
+| Rule                  | Do not do                                            | Do                                                                                                               |
+| --------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Isolation**         | Work from the repo root as the active issue checkout | `ldev worktree setup --name issue-NUM --with-env`                                                                |
+| **Worktree creation** | `git worktree add`                                   | `ldev worktree setup --name issue-NUM --with-env` — never use git directly; `ldev` adds env isolation on top     |
+| **Cleanup**           | `rm -rf .worktrees/NUM`                              | `ldev worktree clean issue-NUM --force`                                                                          |
+| **Discovery**         | Broad code search when the issue already has a URL   | `ldev portal inventory page --url <URL>` first                                                                   |
+| **Playwright**        | Connect to production without local verification     | Local first; production only on explicit request                                                                 |
+| **Closure**           | Clean the worktree before a PR exists                | PR first, cleanup second                                                                                         |
+| **Worktree state**    | Stop `main` without asking                           | If the guardrail says `main` is running without Btrfs, ask for confirmation before running `ldev stop` in `main` |
 
 ---
 
@@ -36,6 +36,10 @@ ldev start
 ldev status --json
 ```
 
+If the current branch already contains the intended base work, `ldev worktree setup`
+can branch from that current HEAD by default. Use `--base <ref>` only when you want
+the new worktree to start from a different ref explicitly.
+
 ## Phase 0 — Intake (Optional if the issue is already clear)
 
 Extended reference: `references/intake.md`
@@ -47,11 +51,13 @@ gh issue view NUM --json title,body,labels,comments
 ```
 
 For each URL in the body:
+
 ```bash
 ldev portal inventory page --url <URL> --json
 ```
 
 If there are no exact URLs:
+
 ```bash
 ldev portal inventory sites --json
 ldev portal inventory pages --site /<site> --json
@@ -99,6 +105,7 @@ ldev logs --since 5m --no-follow
 ```
 
 Required gate:
+
 - If `pwd` or `git rev-parse --show-toplevel` does not point to `.worktrees/issue-NUM`, stop.
 - In that case: **ESCALATE**. Do not improvise work from the main checkout.
 - If `ldev status --json` is not healthy enough to reproduce locally, stop and fix runtime readiness before discovery.
@@ -106,6 +113,7 @@ Required gate:
 If the unsafe state-copy guardrail appears (`main` running without Btrfs), stop and ask the user before stopping `main`. Do not do it automatically.
 
 If the worktree database becomes inconsistent:
+
 ```bash
 ldev stop
 ldev env restore
@@ -122,6 +130,7 @@ until you have run `ldev start` + `ldev status --json` from the worktree.
 ## Phase 2 — Discovery and Reproduction
 
 Extended references:
+
 - `references/playwright-liferay.md`
 - `references/resource-origin.md` when the runtime URL, shared structure, and template source do not obviously belong to the same site
 
@@ -156,12 +165,12 @@ Discovery anti-patterns:
 
 ## Phase 3 — Resolution
 
-| Change type | Skill | Deploy |
-|---|---|---|
-| CSS / Theme | `developing-liferay` | `ldev deploy theme` |
-| Structures / Templates / ADTs | `developing-liferay` | `ldev resource import-structure` / `import-template` / `import-adt` |
-| Java / OSGi | `developing-liferay` | `ldev deploy module <name>` |
-| Data migration | `migrating-journal-structures` | — |
+| Change type                   | Skill                          | Deploy                                                              |
+| ----------------------------- | ------------------------------ | ------------------------------------------------------------------- |
+| CSS / Theme                   | `developing-liferay`           | `ldev deploy theme`                                                 |
+| Structures / Templates / ADTs | `developing-liferay`           | `ldev resource import-structure` / `import-template` / `import-adt` |
+| Java / OSGi                   | `developing-liferay`           | `ldev deploy module <name>`                                         |
+| Data migration                | `migrating-journal-structures` | —                                                                   |
 
 Make surgical changes. Do not touch code outside the fix surface.
 If validation is blocked by an unrelated runtime failure, stop the functional fix there, open or link a separate runtime issue, and do not silently fold that stabilization work into the original issue.
@@ -219,6 +228,7 @@ gh issue comment NUM --body "Fix in PR #<NUM>. [link to evidence]"
 ```
 
 Required PR body:
+
 - First line: `Closes #NUM` or `Fixes #NUM`
 - What the fix does
 - How to verify it step by step
@@ -241,13 +251,13 @@ ldev worktree clean issue-NUM --force
 
 ## Pipeline Troubleshooting
 
-| Symptom | Action |
-|---|---|
-| Port already in use in `ldev start` | `ldev status --json` — another worktree is active |
-| Unstable env / inconsistent DB | `ldev stop` → `ldev env restore` → `ldev start` |
-| Playwright: browser not installed | `node "$(npm root -g)/@playwright/cli/node_modules/playwright/cli.js" install chromium` |
-| Playwright: session-busy | Sequence commands, do not run them in parallel |
-| Blocked and unable to close | Comment on the issue with verified findings and what is still needed to unblock |
+| Symptom                             | Action                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| Port already in use in `ldev start` | `ldev status --json` — another worktree is active                                       |
+| Unstable env / inconsistent DB      | `ldev stop` → `ldev env restore` → `ldev start`                                         |
+| Playwright: browser not installed   | `node "$(npm root -g)/@playwright/cli/node_modules/playwright/cli.js" install chromium` |
+| Playwright: session-busy            | Sequence commands, do not run them in parallel                                          |
+| Blocked and unable to close         | Comment on the issue with verified findings and what is still needed to unblock         |
 
 ## Auxiliary Resources
 

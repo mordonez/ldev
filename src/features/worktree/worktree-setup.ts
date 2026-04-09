@@ -8,7 +8,6 @@ import {resolveEnvContext} from '../env/env-files.js';
 import {addGitWorktree, isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 import {assertSafeMainEnvClone, resolveBtrfsConfig} from './worktree-state.js';
@@ -42,7 +41,6 @@ export async function runWorktreeSetup(options: {
   }
 
   const context = resolveWorktreeContext(config.repoRoot);
-  await assertPrimaryCheckoutGuardrail(context, 'create another worktree from the wrong checkout root');
 
   if (options.withEnv ?? false) {
     const mainConfig = loadConfig({cwd: context.mainRepoRoot, env: process.env});
