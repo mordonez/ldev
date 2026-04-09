@@ -158,6 +158,45 @@ describe('liferay-content-stats', () => {
     });
   });
 
+  test('scoped folder stats count descendant folders, not only direct children', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=0')) {
+          return new Response(JSON.stringify([{folderId: 31, name: 'Root'}]), {status: 200});
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=31')) {
+          return new Response(JSON.stringify([{folderId: 32, name: 'Child'}]), {status: 200});
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=32')) {
+          return new Response(JSON.stringify([{folderId: 33, name: 'Grandchild'}]), {status: 200});
+        }
+        if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=33')) {
+          return new Response(JSON.stringify([]), {status: 200});
+        }
+        if (url.includes('folderId=31')) {
+          return new Response(JSON.stringify([]), {status: 200});
+        }
+        if (url.includes('folderId=32')) {
+          return new Response(JSON.stringify([]), {status: 200});
+        }
+        if (url.includes('folderId=33')) {
+          return new Response(JSON.stringify([]), {status: 200});
+        }
+
+        throw new Error(`Unexpected URL: ${url}`);
+      },
+    });
+
+    const result = await runContentStats(CONFIG, {groupId: 300, limit: 10}, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(result.mode).toBe('folders');
+    if (result.mode !== 'folders') return;
+    expect(result.folders[0]?.childFolderCount).toBe(2);
+    expect(result.folders[0]?.subtreeListItems).toBe(2);
+  });
+
   test('includes structure breakdowns in scoped mode when requested', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {
@@ -307,6 +346,41 @@ describe('liferay-content-stats', () => {
     expect(result.excludedSites).toEqual(['/site-b']);
     expect(result.sites).toHaveLength(1);
     expect(result.sites[0]?.siteFriendlyUrl).toBe('/site-a');
+  });
+
+  test('applies sort-by name in global content metrics', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
+          return paged([
+            {id: 100, friendlyUrlPath: '/z-site', nameCurrentValue: 'Zulu'},
+            {id: 200, friendlyUrlPath: '/a-site', nameCurrentValue: 'Alpha'},
+          ]);
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/100/structured-content-folders')) {
+          return paged([{id: 11, name: 'Folder Z', siteId: 100, numberOfStructuredContents: 50}]);
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/200/structured-content-folders')) {
+          return paged([{id: 21, name: 'Folder A', siteId: 200, numberOfStructuredContents: 10}]);
+        }
+        if (url.includes('/structured-content-folders/11/structured-content-folders')) {
+          return paged([]);
+        }
+        if (url.includes('/structured-content-folders/21/structured-content-folders')) {
+          return paged([]);
+        }
+
+        throw new Error(`Unexpected URL: ${url}`);
+      },
+    });
+
+    const result = await runContentStats(CONFIG, {limit: 10, sortBy: 'name'}, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(result.mode).toBe('sites');
+    if (result.mode !== 'sites') return;
+    expect(result.sites.map((site) => site.name)).toEqual(['Alpha', 'Zulu']);
   });
 
   test('formats site stats in text mode', () => {

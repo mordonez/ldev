@@ -19,6 +19,7 @@ export type ContentStatsOptions = {
   limit?: number;
   excludeSites?: string[];
   withStructures?: boolean;
+  sortBy?: 'site' | 'name' | 'content';
 };
 
 export type ContentStatsStructure = {
@@ -99,6 +100,7 @@ type JournalFolderNode = {
 const DEFAULT_LIMIT = 10;
 const PAGE_SIZE = 200;
 const SITE_CONCURRENCY = 2;
+const JOURNAL_FOLDER_CONCURRENCY = 2;
 
 export async function runContentStats(
   config: AppConfig,
@@ -113,7 +115,9 @@ export async function runContentStats(
     tokenClient,
   };
   const limit = options.limit ?? DEFAULT_LIMIT;
+  const sortBy = options.sortBy ?? 'content';
   const excludedSites = new Set((options.excludeSites ?? []).map((site) => site.trim()).filter(Boolean));
+  const runLimited = createConcurrencyLimiter(JOURNAL_FOLDER_CONCURRENCY);
 
   if (options.site || options.groupId !== undefined) {
     const site = options.site
@@ -121,9 +125,9 @@ export async function runContentStats(
       : {id: options.groupId!, friendlyUrlPath: undefined, name: ''};
 
     const selected = await runStep(printer, 'Collecting content folders', async () => {
-      const roots = await collectJournalFolderTree(config, apiClient, authState, site.id, 0);
-      const stats = await Promise.all(
-        roots.map((root) => buildJournalFolderStats(config, apiClient, authState, site.id, root)),
+      const roots = await collectJournalFolderTree(config, apiClient, authState, site.id, 0, runLimited);
+      const stats = await mapConcurrent(roots, JOURNAL_FOLDER_CONCURRENCY, (root) =>
+        buildJournalFolderStats(config, apiClient, authState, site.id, root, runLimited),
       );
       return stats.sort(compareFoldersByVolume).slice(0, limit);
     });
@@ -181,7 +185,7 @@ export async function runContentStats(
     return {
       sites: rows
         .filter((row): row is ContentStatsSite => row !== null)
-        .sort(compareSitesByVolume)
+        .sort((left, right) => compareSites(left, right, sortBy))
         .slice(0, limit),
       skippedSites,
     };
@@ -439,23 +443,17 @@ async function collectJournalFolderTree(
   authState: AuthState,
   groupId: number,
   parentFolderId: number,
+  runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<JournalFolderNode[]> {
-  const folders = await fetchJournalFoldersByParent(
-    config,
-    apiClient,
-    authState,
-    groupId,
-    parentFolderId,
-    'LIFERAY_CONTENT_STATS_ERROR',
+  const folders = await runLimited(() =>
+    fetchJournalFoldersByParent(config, apiClient, authState, groupId, parentFolderId, 'LIFERAY_CONTENT_STATS_ERROR'),
   );
 
-  return Promise.all(
-    folders.map(async (folder) => ({
-      folderId: folder.folderId,
-      name: folder.name,
-      children: await collectJournalFolderTree(config, apiClient, authState, groupId, folder.folderId),
-    })),
-  );
+  return mapConcurrent(folders, JOURNAL_FOLDER_CONCURRENCY, async (folder) => ({
+    folderId: folder.folderId,
+    name: folder.name,
+    children: await collectJournalFolderTree(config, apiClient, authState, groupId, folder.folderId, runLimited),
+  }));
 }
 
 async function buildJournalFolderStats(
@@ -464,18 +462,21 @@ async function buildJournalFolderStats(
   authState: AuthState,
   groupId: number,
   folder: JournalFolderNode,
+  runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<ComputedFolderStats> {
-  const rows = await fetchJournalArticleRowsInFolder(
-    config,
-    apiClient,
-    authState,
-    groupId,
-    folder.folderId,
-    'LIFERAY_CONTENT_STATS_ERROR',
+  const rows = await runLimited(() =>
+    fetchJournalArticleRowsInFolder(
+      config,
+      apiClient,
+      authState,
+      groupId,
+      folder.folderId,
+      'LIFERAY_CONTENT_STATS_ERROR',
+    ),
   );
 
-  const childStats = await Promise.all(
-    folder.children.map((child) => buildJournalFolderStats(config, apiClient, authState, groupId, child)),
+  const childStats = await mapConcurrent(folder.children, JOURNAL_FOLDER_CONCURRENCY, (child) =>
+    buildJournalFolderStats(config, apiClient, authState, groupId, child, runLimited),
   );
 
   return {
@@ -484,7 +485,7 @@ async function buildJournalFolderStats(
     directStructuredContents: rows.length,
     subtreeStructuredContents:
       rows.length + childStats.reduce((sum, child) => sum + child.subtreeStructuredContents, 0),
-    childFolderCount: folder.children.length,
+    childFolderCount: folder.children.length + childStats.reduce((sum, child) => sum + child.childFolderCount, 0),
     directListItems: rows.length + folder.children.length,
     subtreeListItems:
       rows.length + folder.children.length + childStats.reduce((sum, child) => sum + child.subtreeListItems, 0),
@@ -528,6 +529,50 @@ function compareSitesByVolume(left: ContentStatsSite, right: ContentStatsSite): 
   }
 
   return left.groupId - right.groupId;
+}
+
+function compareSites(left: ContentStatsSite, right: ContentStatsSite, sortBy: 'site' | 'name' | 'content'): number {
+  if (sortBy === 'name') {
+    return left.name.localeCompare(right.name) || left.groupId - right.groupId;
+  }
+
+  if (sortBy === 'site') {
+    return left.siteFriendlyUrl.localeCompare(right.siteFriendlyUrl) || left.groupId - right.groupId;
+  }
+
+  return compareSitesByVolume(left, right);
+}
+
+function createConcurrencyLimiter(concurrency: number): <T>(task: () => Promise<T>) => Promise<T> {
+  let active = 0;
+  const queue: Array<() => void> = [];
+
+  const runNext = (): void => {
+    if (active >= concurrency) {
+      return;
+    }
+
+    const next = queue.shift();
+    if (!next) {
+      return;
+    }
+
+    active += 1;
+    next();
+  };
+
+  return async <T>(task: () => Promise<T>): Promise<T> =>
+    new Promise<T>((resolve, reject) => {
+      queue.push(() => {
+        void task()
+          .then(resolve, reject)
+          .finally(() => {
+            active -= 1;
+            runNext();
+          });
+      });
+      runNext();
+    });
 }
 
 async function mapConcurrent<TInput, TOutput>(

@@ -127,6 +127,15 @@ export async function runContentPrune(
   options: ContentPruneOptions,
   dependencies?: PruneDependencies,
 ): Promise<ContentPruneResult> {
+  if (
+    (options.site === undefined && options.groupId === undefined) ||
+    (options.site && options.groupId !== undefined)
+  ) {
+    throw new CliError('Use exactly one of site or groupId.', {
+      code: 'LIFERAY_CONTENT_PRUNE_ERROR',
+    });
+  }
+
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const printer = dependencies?.printer;
@@ -610,19 +619,36 @@ function computeRemovableFolderIds(
   toDeleteByFolder: Map<number, number>,
 ): number[] {
   const result: number[] = [];
+  const removableCache = new Map<number, boolean>();
 
   function isRemovable(folderId: number): boolean {
+    const cached = removableCache.get(folderId);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const folder = allFolders.get(folderId);
-    if (!folder) return false;
+    if (!folder) {
+      removableCache.set(folderId, false);
+      return false;
+    }
 
     const totalArticles = folder.numberOfStructuredContents;
-    if (totalArticles === undefined) return false; // unknown total — be conservative
+    if (totalArticles === undefined) {
+      removableCache.set(folderId, false);
+      return false;
+    } // unknown total — be conservative
 
     const deletedCount = toDeleteByFolder.get(folderId) ?? 0;
-    if (deletedCount !== totalArticles) return false; // not all articles deleted
+    if (deletedCount !== totalArticles) {
+      removableCache.set(folderId, false);
+      return false;
+    } // not all articles deleted
 
     const children = childrenMap.get(folderId) ?? [];
-    return children.every((childId) => isRemovable(childId));
+    const removable = children.every((childId) => isRemovable(childId));
+    removableCache.set(folderId, removable);
+    return removable;
   }
 
   function collect(folderId: number): void {

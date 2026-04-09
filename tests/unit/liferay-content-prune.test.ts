@@ -109,6 +109,17 @@ describe('liferay-content-prune: argument validation', () => {
       runContentPrune(CONFIG, {rootFolders: [12345]}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow();
   });
+
+  test('throws when both --site and --group-id are given', async () => {
+    const apiClient = makeApiClient({});
+    await expect(
+      runContentPrune(
+        CONFIG,
+        {site: '/estudis', groupId: 20200, rootFolders: [12345]},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
+    ).rejects.toThrow();
+  });
 });
 
 describe('liferay-content-prune: dry-run', () => {

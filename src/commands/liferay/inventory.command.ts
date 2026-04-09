@@ -105,7 +105,7 @@ Notes:
       LiferayInventorySite[] | ContentStatsResult
     >(
       async (context, options): Promise<LiferayInventorySite[] | ContentStatsResult> => {
-        const sortBy = options.sortBy ?? 'site';
+        const sortBy = (options.sortBy ?? 'site') as 'site' | 'name' | 'content';
         if (!['site', 'name', 'content'].includes(sortBy)) {
           throw new CliError('--sort-by must be one of: site, name, content.', {
             code: 'LIFERAY_INVENTORY_ERROR',
@@ -134,6 +134,7 @@ Notes:
               site: options.site,
               groupId,
               limit,
+              sortBy,
               excludeSites: options.excludeSite,
               withStructures: Boolean(options.withStructures),
             },
