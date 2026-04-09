@@ -8,7 +8,8 @@ alwaysApply: false
 
 # `ldev` Portal Discovery
 
-For discovery tasks, prefer `ldev portal inventory` before constructing low-level API flows by hand.
+For discovery tasks, prefer `ldev portal inventory` before constructing
+low-level API flows by hand.
 
 Recommended sequence:
 
@@ -18,8 +19,15 @@ Recommended sequence:
 
 Why:
 
-- the output is already shaped for the task
-- the JSON contract is stable
-- it includes Liferay-specific enrichment that low-level APIs do not provide directly
+- task-shaped output
+- stable JSON contract
+- better page/context enrichment than low-level API assembly
 
-Use MCP or direct OpenAPI work only when you need an additional portal action that `ldev` does not already expose cleanly.
+For the full workflow, route to vendor skills such as:
+
+- `liferay-expert`
+- `developing-liferay`
+- `troubleshooting-liferay`
+
+Use MCP or direct OpenAPI work only when `ldev` does not already expose the
+needed portal action cleanly.

@@ -2,6 +2,9 @@
 
 Operational reference for preparing, inspecting, and cleaning the isolated environment of an issue.
 
+Use this reference only when the repository actually has `ldev-native`
+worktree capabilities available.
+
 ## Create and Start
 
 > **Never use `git worktree add` directly.** `ldev worktree setup` is required — it handles

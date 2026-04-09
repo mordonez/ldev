@@ -9,6 +9,11 @@ This package is intentionally split into three areas:
 - `skills/`: reusable domain skills that are safe to inherit across Liferay projects.
 - `docs/`: product rules, inventory and maintainer guidance.
 
+Design intent:
+
+- vendor skills are the canonical home for reusable `ldev` operational knowledge
+- project overlays are for repository-specific process and context only
+
 ## Installation (real examples)
 
 Use `ldev` as the canonical entrypoint (Option A).

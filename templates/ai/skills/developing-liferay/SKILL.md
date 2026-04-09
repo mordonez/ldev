@@ -39,6 +39,84 @@ ldev resource export-template --site /<site> --id <TEMPLATE_ID>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
+## Repository-backed resource workflow
+
+When structures, templates, ADTs, or fragments should be reviewed in Git, use
+the full file workflow instead of editing through the UI.
+
+### 1. Discover exact identifiers
+
+```bash
+ldev portal inventory structures --site /<site> --json
+ldev portal inventory templates --site /<site> --json
+ldev resource fragments --site /<site> --json
+```
+
+### 2. Export current portal state
+
+Use focused exports when changing one object:
+
+```bash
+ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
+ldev resource export-template --site /<site> --id <TEMPLATE_ID>
+ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
+```
+
+Use bulk exports when reviewing or normalizing the repository-backed source of
+truth:
+
+```bash
+ldev resource export-structures --site /<site>
+ldev resource export-templates --site /<site>
+ldev resource export-adts --site /<site>
+ldev resource export-fragments --site /<site>
+```
+
+### 3. Edit the exported files locally
+
+Review the exported resource files like any other source change.
+
+Use resource migrations instead of plain imports when existing Journal content
+makes the change risky:
+
+- switch to `migrating-journal-structures`
+
+### 4. Validate before mutating
+
+Preview the local repository state first:
+
+```bash
+ldev resource import-structures --check-only
+ldev resource import-templates --check-only
+ldev resource import-adts --check-only
+```
+
+Or validate one focused object:
+
+```bash
+ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
+ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
+ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
+```
+
+### 5. Apply the smallest safe import
+
+```bash
+ldev resource import-structure --site /<site> --key <STRUCTURE_KEY>
+ldev resource import-template --site /<site> --id <TEMPLATE_ID>
+ldev resource import-adt --site /<site> --file <path/to/adt.ftl>
+ldev resource import-fragment --site /<site> --fragment <fragment-key>
+```
+
+Or apply the repository directory contents directly when that is the intended
+workflow:
+
+```bash
+ldev resource import-structures --apply
+ldev resource import-templates --apply
+ldev resource import-adts --apply
+```
+
 ## Choose the smallest implementation path
 
 ### Theme and frontend source
@@ -124,3 +202,4 @@ that project-owned workflow instead of inventing custom commands.
 - `ldev logs --since 2m --no-follow` does not show new runtime errors caused by the change.
 - If the change affects an OSGi bundle, `ldev osgi status <bundle>` reports the expected state.
 - If the change affects portal resources, verify them again with `ldev portal inventory ...` or `ldev resource ...`.
+- If the change started from exported portal resources, verify that the repo now contains the intended source of truth.

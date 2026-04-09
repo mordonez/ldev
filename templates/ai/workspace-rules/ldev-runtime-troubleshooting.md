@@ -13,7 +13,7 @@ When a local Liferay runtime behaves unexpectedly, prefer this sequence:
 1. `ldev doctor --json`
 2. `ldev context --json`
 3. `ldev status --json`
-4. `ldev logs --no-follow`
+4. `ldev logs diagnose --json`
 
 Do not start by guessing. Establish:
 
@@ -27,4 +27,10 @@ Then use the active runtime-specific rule for paths and layout details:
 - `ldev-workspace-runtime` for `blade-workspace`
 - `ldev-native-runtime` for `ldev-native`
 
-Use `ldev` first for local operational context. Use MCP later for generic portal-facing operations if needed.
+For the full incident workflow, use the vendor skill:
+
+- `troubleshooting-liferay`
+
+Use this rule only as a short runtime reminder. Use `ldev` first for local
+operational context. Use MCP later for generic portal-facing operations if
+needed.

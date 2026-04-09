@@ -1,2 +1,3 @@
 # Workspace-specific project agent pack intentionally starts empty.
-# The current issue-resolver / PR flow assumes ldev-native worktree workflows.
+# The shared issue-engineering skill is installed, but these helper agents stay
+# off by default until they add real repository-specific value in Workspace too.

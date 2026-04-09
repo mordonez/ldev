@@ -57,14 +57,28 @@ ldev resource migration-pipeline \
 
 Use this to review the plan and catch obvious problems early.
 
-## 5. Run the migration
+## 5. Run the real pipeline deliberately
 
 ```bash
 ldev resource migration-pipeline \
   --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json
 ```
 
-The descriptor is the source of truth. If it says old fields should be removed, that cleanup is part of the migration plan itself.
+The descriptor is the source of truth for the migration plan, including any
+cleanup it defines.
+
+If you intend to execute the cleanup phase defined in that same descriptor as
+part of the real run, enable it explicitly:
+
+```bash
+ldev resource migration-pipeline \
+  --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json \
+  --run-cleanup
+```
+
+Do not read this as a default recommendation to run the pipeline twice in
+sequence. After validation, choose one approved real execution plan and run it
+deliberately with the flags that match that plan.
 
 ## 6. Verify
 

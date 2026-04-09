@@ -1,269 +1,125 @@
 ---
 name: issue-engineering
-description: 'Use when resolving any GitHub issue end-to-end: intake, isolated worktree, reproduction, fix, validation, PR, and cleanup. Single skill for issue resolution.'
+description: 'Use when a project wants a thin issue-process overlay on top of vendor ldev skills for intake, PR policy, evidence, and cleanup.'
 ---
 
 # Issue Engineering
 
-Single guide for the full issue lifecycle. These guardrails are **non-negotiable**.
+This skill is intentionally thin.
 
----
+It does not own the technical `ldev` playbooks. Vendor skills do.
 
-## Hard Guardrails
+Use this overlay only for project-specific issue process:
 
-| Rule                  | Do not do                                            | Do                                                                                                               |
-| --------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Isolation**         | Work from the repo root as the active issue checkout | `ldev worktree setup --name issue-NUM --with-env`                                                                |
-| **Worktree creation** | `git worktree add`                                   | `ldev worktree setup --name issue-NUM --with-env` — never use git directly; `ldev` adds env isolation on top     |
-| **Cleanup**           | `rm -rf .worktrees/NUM`                              | `ldev worktree clean issue-NUM --force`                                                                          |
-| **Discovery**         | Broad code search when the issue already has a URL   | `ldev portal inventory page --url <URL>` first                                                                   |
-| **Playwright**        | Connect to production without local verification     | Local first; production only on explicit request                                                                 |
-| **Closure**           | Clean the worktree before a PR exists                | PR first, cleanup second                                                                                         |
-| **Worktree state**    | Stop `main` without asking                           | If the guardrail says `main` is running without Btrfs, ask for confirmation before running `ldev stop` in `main` |
+- issue intake and scope notes
+- worktree naming conventions if the project wants them and the runtime supports them
+- temporary issue artifacts and handoff files
+- PR body expectations
+- GitHub comments, evidence, and closure policy
+- team-specific escalation and cleanup rules
 
----
+For technical execution, always route to vendor skills:
 
-## Setup Reference Sequence
+- `troubleshooting-liferay`
+- `developing-liferay`
+- `deploying-liferay`
+- `migrating-journal-structures`
+- `automating-browser-tests`
 
-Typical command sequence for issue-driven work:
+## Boundary
 
-```bash
-ldev doctor --json
-ldev context --json
-ldev worktree setup --name issue-NUM --with-env
-cd .worktrees/issue-NUM
-ldev start
-ldev status --json
-```
+This project skill must not become the canonical source for:
 
-If the current branch already contains the intended base work, `ldev worktree setup`
-can branch from that current HEAD by default. Use `--base <ref>` only when you want
-the new worktree to start from a different ref explicitly.
+- discovery with `ldev portal inventory ...`
+- runtime diagnosis with `ldev doctor`, `ldev context`, `ldev status`, or `ldev logs ...`
+- export/import resource workflows
+- deploy and runtime verification
+- production-to-local reproduction workflows
+- generic `ldev worktree` technical guidance
 
-## Phase 0 — Intake (Optional if the issue is already clear)
+If that knowledge is reusable across `ldev` projects, move it into vendor
+skills instead.
 
-Extended reference: `references/intake.md`
+## Recommended usage
 
-If the issue includes URLs but lacks technical context:
+### 1. Intake
 
-```bash
-gh issue view NUM --json title,body,labels,comments
-```
+Review the issue in the tracker and capture only project-specific process data:
 
-For each URL in the body:
+- issue number
+- expected branch or worktree naming convention
+- required reviewers or labels
+- project evidence requirements
+- project closure expectations
 
-```bash
-ldev portal inventory page --url <URL> --json
-```
+If technical discovery is required, switch immediately to the correct vendor
+skill instead of documenting the flow here.
 
-If there are no exact URLs:
+### 2. Optional isolation add-on
 
-```bash
-ldev portal inventory sites --json
-ldev portal inventory pages --site /<site> --json
-```
+If the repository runs on `ldev-native` and isolated worktrees are available,
+use the native add-on before mutating runtime state:
 
-Add only verified context back to the issue. Mark unresolvable URLs as `NOT_VERIFIED`.
+- prepare the isolated worktree with `ldev worktree setup --with-env`
+- use project worktree naming conventions if the repository has them
+- keep environment-specific cleanup tied to the actual worktree used
 
-Minimum intake checklist:
+If the repository is a `blade-workspace`, do not invent a fake worktree phase.
+Stay in the repository process flow and use vendor skills directly.
 
-- title, body, and labels reviewed
-- affected URLs verified with `ldev`
-- `displayStyle` or affected resource resolved if it appears in the issue
-- unverified scope explicitly marked as `NOT_VERIFIED`
+Native-only references such as `references/worktree-env.md` are optional add-ons,
+not the core workflow.
 
-Stop conditions during intake:
+### 3. Technical execution
 
-- If you have exact URLs and have not run `ldev portal inventory page --url <URL> --json`, stop broad discovery.
-- If you are comparing local and non-local environments without explicit user approval, stop and return to local verification.
-- If you cannot name the concrete resource owner for the affected surface, keep discovery going; do not jump into template or CSS edits.
+Route by task:
 
----
+- vague failure or incident:
+  - use `troubleshooting-liferay`
+- code, template, fragment, theme, or resource implementation:
+  - use `developing-liferay`
+- deploy, import, and runtime verification:
+  - use `deploying-liferay`
+- risky Journal schema migration:
+  - use `migrating-journal-structures`
+- browser-based verification or visual evidence:
+  - use `automating-browser-tests`
 
-## Phase 1 — Isolation (Required)
+### 4. Project handoff
 
-Extended reference: `references/worktree-env.md`
+After technical work is complete, apply the project process:
 
-**Never** work in `main` or in the repo root.
-Do not continue to discovery, code reading, editing, deploy, or import until you confirm
-that the current directory is the issue worktree.
+- write the PR body in the repository's expected format
+- include the verification steps the project wants reviewers to run
+- attach screenshots or evidence if the project requires them
+- comment back on the issue if the project expects a status update
 
-```bash
-ldev worktree setup --name issue-NUM --with-env
-cd .worktrees/issue-NUM
-pwd
-git rev-parse --show-toplevel
-ldev start
-ldev status --json
-```
+### 5. Cleanup
 
-Quick inspection of the isolated environment:
+Only apply cleanup rules that are specific to this repository's process.
 
-```bash
-ldev context --json
-ldev logs --since 5m --no-follow
-```
+If cleanup depends on technical `ldev` behavior, that guidance belongs in vendor
+skills or `AGENTS.md`, not here.
 
-Required gate:
+## Allowed project-specific references
 
-- If `pwd` or `git rev-parse --show-toplevel` does not point to `.worktrees/issue-NUM`, stop.
-- In that case: **ESCALATE**. Do not improvise work from the main checkout.
-- If `ldev status --json` is not healthy enough to reproduce locally, stop and fix runtime readiness before discovery.
-
-If the unsafe state-copy guardrail appears (`main` running without Btrfs), stop and ask the user before stopping `main`. Do not do it automatically.
-
-If the worktree database becomes inconsistent:
-
-```bash
-ldev stop
-ldev env restore
-ldev start
-```
-
-If you only need to prepare, inspect, or repair the worktree, this skill still covers that workflow.
-
-Required gate: do not run `ldev portal ...`, `playwright-cli`, or `curl` against the portal
-until you have run `ldev start` + `ldev status --json` from the worktree.
-
----
-
-## Phase 2 — Discovery and Reproduction
-
-Extended references:
-
-- `references/playwright-liferay.md`
-- `references/resource-origin.md` when the runtime URL, shared structure, and template source do not obviously belong to the same site
-
-**Before reading code**, reproduce the failure and understand the affected surface.
-
-```bash
-# If the issue has an exact URL, this is required first
-ldev portal inventory page --url <URL> --json
-
-# If there is a displayStyle: ddmTemplate_<ID>
-ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
-
-# Logs for backend errors
-ldev logs --since 10m --no-follow
-
-# Visual verification
-playwright-cli -s=runtime-NUM open "<portalUrl>/affected-path"
-playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/before.png
-playwright-cli -s=runtime-NUM close
-```
-
-If you cannot reproduce the issue, ask for more information. Do not fix what you have not seen broken.
-
-Discovery anti-patterns:
-
-- Do not start with broad code search when an exact portal URL already exists.
-- Do not infer the owning template from similar pages in other environments before inventorying the reported URL.
-- Do not compare against production or preproduction as a substitute for local reproduction.
-- Do not keep reading neighboring templates once `displayStyle`, structure, or resource ownership has been resolved.
-
----
-
-## Phase 3 — Resolution
-
-| Change type                   | Skill                          | Deploy                                                              |
-| ----------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| CSS / Theme                   | `developing-liferay`           | `ldev deploy theme`                                                 |
-| Structures / Templates / ADTs | `developing-liferay`           | `ldev resource import-structure` / `import-template` / `import-adt` |
-| Java / OSGi                   | `developing-liferay`           | `ldev deploy module <name>`                                         |
-| Data migration                | `migrating-journal-structures` | —                                                                   |
-
-Make surgical changes. Do not touch code outside the fix surface.
-If validation is blocked by an unrelated runtime failure, stop the functional fix there, open or link a separate runtime issue, and do not silently fold that stabilization work into the original issue.
-
-Minimum briefs by change type:
-
-- CSS/Theme: affected URL, affected selector, expected behavior, validation with `ldev deploy theme`
-- FTL/Resource: site, structure key, template id/key, verification source via `ldev portal inventory ...` or `ldev resource ...`
-- Java/OSGi: module, bundle symbolic name, validation with `ldev deploy module <name>` + `ldev osgi status <bundle> --json`
-
-Templates:
-
-- `templates/css-brief-template.md`
-- `templates/ftl-brief-template.md`
-- `templates/java-module-brief-template.md`
-
----
-
-## Phase 4 — Validation (Definition of Done)
-
-Extended reference: `references/validation.md`
-
-A fix is not done until:
-
-1. The original error no longer reproduces on the exact reported URL.
-2. There are no regressions in adjacent surfaces.
-3. `ldev osgi status <bundle> --json` reports `ACTIVE` when applicable.
-4. `ldev logs --since 2m --no-follow` shows no new errors.
-5. Playwright evidence is captured and attached in GitHub.
-
-Human checklist before closing:
-
-- the original symptom is gone
-- the change stayed scoped to the intended surface
-- runtime validation was done with `ldev`
-- no new errors appeared in recent logs
-
----
-
-## Phase 5 — PR and Closure
-
-Extended reference: `references/pr-and-cleanup.md`
-
-```bash
-# Commit (from the worktree)
-git add <specific-files>
-git commit -m "fix(scope): description (#NUM)"
-
-# PR
-git push origin fix/issue-NUM
-gh pr create --title "fix(scope): description (#NUM)" --body $'Closes #NUM\n\n...'
-
-# Comment back on the issue
-gh issue comment NUM --body "Fix in PR #<NUM>. [link to evidence]"
-```
-
-Required PR body:
-
-- First line: `Closes #NUM` or `Fixes #NUM`
-- What the fix does
-- How to verify it step by step
-- Deployment notes if `ldev resource ...` steps are needed in other environments
-- Visual evidence attached in GitHub
-
----
-
-## Phase 6 — Cleanup
-
-Only after a verifiable PR exists:
-
-```bash
-ldev stop
-cd ../..
-ldev worktree clean issue-NUM --force
-```
-
----
-
-## Pipeline Troubleshooting
-
-| Symptom                             | Action                                                                                  |
-| ----------------------------------- | --------------------------------------------------------------------------------------- |
-| Port already in use in `ldev start` | `ldev status --json` — another worktree is active                                       |
-| Unstable env / inconsistent DB      | `ldev stop` → `ldev env restore` → `ldev start`                                         |
-| Playwright: browser not installed   | `node "$(npm root -g)/@playwright/cli/node_modules/playwright/cli.js" install chromium` |
-| Playwright: session-busy            | Sequence commands, do not run them in parallel                                          |
-| Blocked and unable to close         | Comment on the issue with verified findings and what is still needed to unblock         |
-
-## Auxiliary Resources
-
+- `references/intake.md`
+- `references/pr-and-cleanup.md`
 - `references/human-review-checklist.md`
-- `references/resource-origin.md`
+- `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
 - `scripts/prepare_issue.py`
+- project brief templates under `templates/`
 
-Use these files as support material. Keep this `SKILL.md` as the high-level
-master flow, not as a dump of operational detail.
+## Disallowed drift
+
+Do not add large technical runbooks here for:
+
+- OSGi diagnosis
+- page discovery
+- resource ownership discovery
+- export/import commands
+- deploy command selection
+- migration pipeline execution
+- generic worktree troubleshooting
+
+Those are reusable and must live in vendor-managed skills.

@@ -91,6 +91,28 @@ Use logs after any deploy or import:
 ldev logs --since 2m --service liferay --no-follow
 ```
 
+Prefer the task-shaped diagnosis summary when checking for fresh regressions:
+
+```bash
+ldev logs diagnose --since 5m --json
+```
+
+Use portal reachability checks when the fix affects page rendering, portal
+availability, or resource-backed behavior:
+
+```bash
+ldev portal check --json
+ldev portal inventory page --url <fullUrl> --json
+```
+
+Minimum done criteria:
+
+- the smallest intended deploy or import completed successfully
+- the affected bundle is `ACTIVE` when applicable
+- `ldev portal check --json` succeeds when the fix affects portal behavior
+- fresh diagnosis output does not show the original error pattern
+- the original page or resource resolves through `ldev portal inventory ...` when applicable
+
 ## Guardrails
 
 - Do not use a wider deploy than necessary.

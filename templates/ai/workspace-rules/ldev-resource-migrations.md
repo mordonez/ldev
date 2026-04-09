@@ -8,13 +8,14 @@ alwaysApply: false
 
 # `ldev` Resource and Migration Workflows
 
-Use `ldev resource` for repository-backed content workflows that are not covered cleanly by generic portal tools.
+Use `ldev resource` for repository-backed content workflows that are not
+covered cleanly by generic portal tools.
 
 Typical entry points:
 
 - `ldev resource export-structures --site /my-site --json`
 - `ldev resource export-templates --site /my-site --json`
-- `ldev resource migration-pipeline --site /my-site`
+- `ldev resource migration-pipeline --migration-file <file>`
 
 When changing Journal structures with existing content:
 
@@ -22,4 +23,10 @@ When changing Journal structures with existing content:
 - avoid one-off manual edits without export and review
 - validate the affected content and follow-up imports explicitly
 
-These flows are a core reason to prefer `ldev` over raw low-level API calls.
+For the full workflow, route to vendor skills:
+
+- `developing-liferay`
+- `migrating-journal-structures`
+
+This rule is only a short reminder. The full reusable playbooks belong in the
+vendor skills above.

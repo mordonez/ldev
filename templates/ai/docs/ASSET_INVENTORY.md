@@ -21,7 +21,7 @@ existed in the original `tools/ai` tree.
 
 | Asset | Current location | Purpose | Reusable in `ldev` | Why not |
 |---|---|---|---|---|
-| Project skills overlay | `templates/ai/project/skills/` | Project-owned issue and project-memory workflows | No | Project-owned overlay installed only with `--project` |
+| Project skills overlay | `templates/ai/project/skills/` | Project-owned process and project-memory workflows | No | Project-owned overlay installed only with `--project`; should not be the main home of reusable `ldev` workflows |
 | Project agent overlay | `templates/ai/project/.claude/agents/` | Claude sub-agents for the project overlay | No | Optional pipeline, not needed in every project |
 
 ## Notes
@@ -34,4 +34,9 @@ existed in the original `tools/ai` tree.
   curated vendor skills and the vendor manifest.
 - `ldev ai install --project` additionally installs the project-owned skills
   and Claude agents overlay.
+- Project overlays should stay thin and process-specific. Reusable `ldev`
+  operational knowledge belongs in vendor skills, not in `project/`.
+- In `blade-workspace`, official AI Workspace folders remain the base layer and
+  `ldev` augments them with additional workflow guidance.
+- In `ldev-native`, `ldev` provides the full runtime-specific AI layer itself.
 - New reusable assets must satisfy the rules in `PRODUCT_RULES.md`.

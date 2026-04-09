@@ -591,7 +591,7 @@ function buildNextSteps(
   } else {
     steps.push(
       projectContext
-        ? 'Review AGENTS.md, CLAUDE.md, and docs/ai/project-context.md; use docs/ai/project-context.md.sample as a guide.'
+        ? 'Review AGENTS.md, CLAUDE.md, and docs/ai/project-context.md. Treat docs/ai/project-context.md.sample as a human template only.'
         : 'Review AGENTS.md and CLAUDE.md.',
     );
   }
@@ -732,12 +732,6 @@ function buildProjectOverlayWarnings(options: {
   projectAgentsInstalled: string[];
 }): string[] {
   const warnings: string[] = [];
-
-  if (options.projectType !== 'ldev-native' && !options.projectSkillsInstalled.includes('project-issue-engineering')) {
-    warnings.push(
-      'The full issue-engineering project overlay was not installed because it depends on native-only runtime capabilities such as isolated worktrees.',
-    );
-  }
 
   if (
     options.projectAgentsInstalled.length > 0 &&

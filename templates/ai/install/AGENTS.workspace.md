@@ -3,7 +3,8 @@
 Standard entrypoint for coding agents working in a **Liferay Workspace** that uses `ldev`.
 
 This file is intentionally small. In a Workspace, the official Liferay AI files
-are the base layer. `ldev` adds direct workflows and reusable skills on top.
+are the base layer. `ldev` augments that base with direct workflows, runtime
+guidance, and reusable skills on top.
 
 ## Base Context
 
@@ -15,6 +16,17 @@ Treat these files as the primary Workspace guidance:
 
 `ldev` installs complementary `ldev-*` rule files in those locations. Do not
 replace the official Workspace files with vendor-specific rewrites.
+
+Mental model:
+
+- official AI Workspace files explain the standard Liferay Workspace baseline
+- `ldev` adds task-shaped workflows, runtime diagnostics, deploy verification,
+  OAuth bootstrap, MCP checks, and agent-oriented shortcuts
+
+If both layers speak to the same topic:
+
+- keep the official Workspace files as the base source
+- treat `ldev-*` rules as the augmentation layer for direct operational work
 
 ## Required Bootstrap
 
@@ -42,6 +54,18 @@ Examples:
 Use the official Liferay MCP only when it provides something that a direct
 `ldev` command does not already provide.
 
+Use vendor skills for the full reusable workflow:
+
+- `liferay-expert`
+- `troubleshooting-liferay`
+- `developing-liferay`
+- `deploying-liferay`
+- `migrating-journal-structures`
+- `automating-browser-tests`
+
+Use `.workspace-rules/ldev-*.md` files to adapt those workflows to the
+Workspace runtime and to coexist cleanly with the official AI Workspace rules.
+
 Before using MCP:
 
 - verify it with `ldev mcp check --json`
@@ -54,10 +78,10 @@ Before using MCP:
 
 - Before using a `git`, `blade`, or ad hoc shell command to accomplish something,
   check `ldev --help` to verify no `ldev` equivalent exists.
-- Never use `git worktree add` directly. Use `ldev worktree setup --name <name> --with-env`
-  instead — it handles environment isolation, database copying, and Btrfs snapshots
-  on top of the git worktree. `git worktree add` alone is incomplete and unsafe for
-  this workflow.
+- If this repository uses isolated worktrees through `ldev`, never use `git worktree add`
+  directly. Use `ldev worktree setup --name <name> --with-env` instead — it handles
+  environment isolation, database copying, and Btrfs snapshots on top of the git
+  worktree. `git worktree add` alone is incomplete and unsafe for that workflow.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and
@@ -80,6 +104,10 @@ Recommended locations:
 - `.agents/skills/project-*`
 - repository docs that describe team-specific architecture or workflows
 
+If `.agents/skills/project-issue-engineering/` exists and the task is driven by
+a GitHub issue or project issue workflow, read that skill for repository
+process after bootstrap. Use vendor skills for the technical execution itself.
+
 ## Installed Skills
 
 Use these as the standard reusable entrypoints:
@@ -100,3 +128,4 @@ After installing or updating vendor AI assets:
 2. Review the tool-specific generated files under `.claude/`, `.cursor/`,
    `.gemini/`, `.github/`, and `.windsurf/`.
 3. Keep official Liferay Workspace files intact.
+4. Treat `ldev` as augmentation, not replacement, for the Workspace AI layer.

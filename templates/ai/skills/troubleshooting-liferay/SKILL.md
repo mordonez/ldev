@@ -7,6 +7,9 @@ description: "Use when the local Liferay runtime is failing, unhealthy or behavi
 
 Use this skill for diagnosis first, not for speculative fixes.
 
+It is also the reusable home for local reproduction workflows when the issue
+depends on production-like data or isolated worktree state.
+
 ## Required bootstrap
 
 ```bash
@@ -30,6 +33,13 @@ ldev start
 
 ```bash
 ldev status --json
+ldev logs diagnose --since 10m --json
+```
+
+Use raw logs only after the diagnosis report points to something that needs
+deeper inspection:
+
+```bash
 ldev logs --since 10m --service liferay --no-follow
 ```
 
@@ -55,6 +65,61 @@ ldev portal inventory page --url <fullUrl> --json
 ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
 ```
+
+### Production reproduction
+
+When the issue does not reproduce with clean local data, bring production-like
+state into the local environment before guessing:
+
+```bash
+ldev db sync --environment <env> --project <lcp-project> --force
+```
+
+If you already have a local backup file:
+
+```bash
+ldev db import --file /path/to/backup.sql.gz --force
+```
+
+When the issue depends on Document Library files:
+
+```bash
+ldev db files-download --environment <env> --project <lcp-project> --doclib-dest docker/doclib/<env>
+ldev db files-mount --path docker/doclib/<env>
+```
+
+If the files are not coming from Liferay Cloud, mount the prepared local path:
+
+```bash
+ldev db files-mount --path /path/to/manual/doclib
+```
+
+Then restart the local diagnosis loop:
+
+```bash
+ldev start
+ldev doctor --json
+ldev portal inventory sites --json
+ldev logs diagnose --since 15m --json
+```
+
+### Isolated worktree troubleshooting
+
+When a risky fix or a production-like reproduction should not share runtime
+state with the main checkout, isolate it:
+
+```bash
+ldev worktree setup --name incident-<id> --with-env
+cd .worktrees/incident-<id>
+ldev start
+ldev status --json
+```
+
+Use a worktree when:
+
+- one branch is reproducing an incident and another is active development
+- a migration or reproduction needs its own local DB or mounted file state
+- you need to compare behavior across branches without mixing runtime state
 
 ### Reindex issues
 
@@ -99,4 +164,7 @@ ldev worktree env --json
 - Do not jump straight to rebuild or clean unless logs and status suggest local state corruption.
 - Do not assume a portal API problem when the env is simply down; `ldev status --json` is the first check.
 - Do not parse human text if a stable JSON variant exists.
+- Prefer `ldev logs diagnose --json` as the first diagnosis surface; use raw logs as a follow-up tool.
+- If the issue depends on production data, reproduce that state locally before proposing fixes.
+- If isolation matters, prefer `ldev worktree setup --with-env` over ad hoc branch switching.
 - After finding the root cause, switch to `developing-liferay` or `deploying-liferay` for the actual fix path.
