@@ -19,10 +19,16 @@ ldev portal inventory sites --with-content --sort-by content
 
 Resolve the exact site and folder ids before deleting anything.
 
-To inspect the largest root folders in one site:
+Use the global content view as a radar:
 
 ```bash
-ldev portal inventory sites --with-content --group-id 2710030 --limit 20
+ldev portal inventory sites --with-content --sort-by content
+```
+
+Then switch to the exact scoped view for the site you are about to prune:
+
+```bash
+ldev portal inventory sites --group-id 2710030 --with-structures --limit 20
 ```
 
 ## 2. Preview the cleanup

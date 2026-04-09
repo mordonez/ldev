@@ -71,6 +71,8 @@ ldev portal inventory sites --site /facultat-farmacia-alimentacio --with-structu
 
 Without a site scope it lists the largest sites by estimated Journal volume. With `--site` or `--group-id` it lists the largest root folders in that site by subtree volume. Add `--with-structures` in scoped mode to include a per-folder Journal structure breakdown before deciding a prune.
 
+Treat the global `--with-content --sort-by content` view as a fast radar. Use the scoped `--site` or `--group-id` mode when you need the exact folder and structure counts that should drive a `content prune`.
+
 ## `ldev deploy module`
 
 Build and deploy one module or theme.
