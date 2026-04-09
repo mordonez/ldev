@@ -19,6 +19,10 @@ ldev start
 ldev status --json
 ```
 
+When you run `ldev worktree setup` from a non-`main` branch in the primary checkout,
+the new worktree branches from that current HEAD by default. Pass `--base <ref>` to
+override the starting ref when needed.
+
 `ldev start` returns as soon as Docker reports the container healthy (Tomcat up). Liferay still needs time to finish deploying bundles from the cache. Wait for the startup sequence to complete before using the portal:
 
 ```bash
