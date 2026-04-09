@@ -78,10 +78,10 @@ Before using MCP:
 
 - Before using a `git`, `blade`, or ad hoc shell command to accomplish something,
   check `ldev --help` to verify no `ldev` equivalent exists.
-- Never use `git worktree add` directly. Use `ldev worktree setup --name <name> --with-env`
-  instead — it handles environment isolation, database copying, and Btrfs snapshots
-  on top of the git worktree. `git worktree add` alone is incomplete and unsafe for
-  this workflow.
+- If this repository uses isolated worktrees through `ldev`, never use `git worktree add`
+  directly. Use `ldev worktree setup --name <name> --with-env` instead — it handles
+  environment isolation, database copying, and Btrfs snapshots on top of the git
+  worktree. `git worktree add` alone is incomplete and unsafe for that workflow.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and
@@ -103,6 +103,10 @@ Recommended locations:
 - `docs/ai/project-context.md`
 - `.agents/skills/project-*`
 - repository docs that describe team-specific architecture or workflows
+
+If `.agents/skills/project-issue-engineering/` exists and the task is driven by
+a GitHub issue or project issue workflow, read that skill for repository
+process after bootstrap. Use vendor skills for the technical execution itself.
 
 ## Installed Skills
 

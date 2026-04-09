@@ -27,10 +27,14 @@ gh issue comment NUM --body "Fix in PR #<NUM>. [link to evidence]"
 
 ## Cleanup
 
-Only after the PR:
+Only after the PR, and only if this repository actually used an isolated
+worktree for the issue:
 
 ```bash
 ldev stop
 cd ../..
 ldev worktree clean issue-NUM --force
 ```
+
+If no isolated worktree was used, apply only the repository's normal issue
+cleanup steps.

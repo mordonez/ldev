@@ -733,12 +733,6 @@ function buildProjectOverlayWarnings(options: {
 }): string[] {
   const warnings: string[] = [];
 
-  if (options.projectType !== 'ldev-native' && !options.projectSkillsInstalled.includes('project-issue-engineering')) {
-    warnings.push(
-      'The full issue-engineering project overlay was not installed because it depends on native-only runtime capabilities such as isolated worktrees.',
-    );
-  }
-
   if (
     options.projectAgentsInstalled.length > 0 &&
     !options.projectSkillsInstalled.includes('project-issue-engineering')

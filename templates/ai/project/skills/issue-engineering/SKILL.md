@@ -12,7 +12,7 @@ It does not own the technical `ldev` playbooks. Vendor skills do.
 Use this overlay only for project-specific issue process:
 
 - issue intake and scope notes
-- worktree naming conventions if the project wants them
+- worktree naming conventions if the project wants them and the runtime supports them
 - temporary issue artifacts and handoff files
 - PR body expectations
 - GitHub comments, evidence, and closure policy
@@ -55,7 +55,22 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
-### 2. Technical execution
+### 2. Optional isolation add-on
+
+If the repository runs on `ldev-native` and isolated worktrees are available,
+use the native add-on before mutating runtime state:
+
+- prepare the isolated worktree with `ldev worktree setup --with-env`
+- use project worktree naming conventions if the repository has them
+- keep environment-specific cleanup tied to the actual worktree used
+
+If the repository is a `blade-workspace`, do not invent a fake worktree phase.
+Stay in the repository process flow and use vendor skills directly.
+
+Native-only references such as `references/worktree-env.md` are optional add-ons,
+not the core workflow.
+
+### 3. Technical execution
 
 Route by task:
 
@@ -70,7 +85,7 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-### 3. Project handoff
+### 4. Project handoff
 
 After technical work is complete, apply the project process:
 
@@ -79,7 +94,7 @@ After technical work is complete, apply the project process:
 - attach screenshots or evidence if the project requires them
 - comment back on the issue if the project expects a status update
 
-### 4. Cleanup
+### 5. Cleanup
 
 Only apply cleanup rules that are specific to this repository's process.
 
@@ -91,6 +106,7 @@ skills or `AGENTS.md`, not here.
 - `references/intake.md`
 - `references/pr-and-cleanup.md`
 - `references/human-review-checklist.md`
+- `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
 - `scripts/prepare_issue.py`
 - project brief templates under `templates/`
 

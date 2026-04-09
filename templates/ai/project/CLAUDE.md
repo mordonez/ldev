@@ -20,8 +20,9 @@ reference when the project installs context scaffolding.
 
 **GitHub issue (any bug, feature request, or improvement):**
 Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything else**.
-It defines a non-negotiable 6-phase workflow: intake → isolation (worktree) → reproduction → fix → validation → PR.
-Do not edit files, search code, or read the issue body without first confirming you are in an isolated worktree.
+It defines the project issue workflow: intake → technical routing → validation → PR.
+If the repository has `ldev-native` capabilities available, follow its optional
+isolated worktree guidance before mutating runtime state.
 
 **Liferay technical work (not issue-driven):**
 Start with `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.

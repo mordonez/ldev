@@ -325,7 +325,7 @@ describe('ai integration', () => {
     }
   }, 30000);
 
-  test('install --project in blade-workspace skips worktree-oriented project assets', async () => {
+  test('install --project in blade-workspace keeps the shared issue workflow but skips native-only helper agents', async () => {
     const targetDir = createTempWorkspace();
 
     const result = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
@@ -337,7 +337,7 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-capturing-session-knowledge'))).toBe(
       true,
     );
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(false);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'build-verifier.md'))).toBe(false);
   }, 30000);
