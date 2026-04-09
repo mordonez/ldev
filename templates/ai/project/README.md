@@ -15,6 +15,8 @@ Rules for this folder:
   `docs/ai/project-context.md`, `docs/ai/project-context.md.sample`.
 - Project-owned skills and agents remain optional overlays installed only with
   `ldev ai install --project`.
+- Project-owned overlays should stay focused on repository-specific process and
+  context. Reusable `ldev` technical workflows belong in vendor-managed skills.
 - It must still use `ldev` as the official local tooling entrypoint.
 - Everything here should be safe to copy into a project and adapt in place.
 

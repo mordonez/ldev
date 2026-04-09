@@ -18,6 +18,7 @@ Typical examples:
 - domain routers such as `liferay-expert`
 - local deploy and troubleshooting playbooks
 - resource migration guidance based on stable `ldev portal ...` and `ldev resource ...` commands
+- production-to-local reproduction workflows based on `ldev db ...`, `ldev env ...`, and `ldev worktree ...`
 - generic agent bootstrap instructions that point to `ldev doctor` and `ldev context --json`
 - minimal bootstrap scaffolding such as `CLAUDE.md`
 
@@ -37,6 +38,7 @@ Typical examples:
 - concrete project knowledge filled with client, repo or environment specifics
 - browser automation tied to a project wrapper that `ldev` does not provide
 - Claude-only runbooks and hidden agent pipelines
+- full end-to-end issue resolution workflows that mix `ldev` execution with project GitHub process
 
 ## Installation Rules
 
@@ -64,3 +66,24 @@ When a new asset is proposed:
 3. If there is doubt, keep it out of `ldev`.
 4. Prefer small reusable skills over large multi-purpose runbooks.
 5. Prefer deletion over carrying a legacy wrapper forward.
+
+## Boundary Rule
+
+Use this question when deciding between vendor and project:
+
+- "Would this still be correct and useful in another project that also uses `ldev`?"
+
+If yes:
+
+- it belongs in vendor skills, `AGENTS.md`, or workspace rules
+
+If no:
+
+- it belongs in project context, project-owned skills, or project-owned agents
+
+Examples:
+
+- "How to reproduce a production issue locally with `ldev db sync`" -> vendor
+- "How this repository names issue branches and writes PR bodies" -> project
+- "How to discover a page and resolve its owning template with `ldev`" -> vendor
+- "Which site URLs and template IDs this project actually uses" -> project

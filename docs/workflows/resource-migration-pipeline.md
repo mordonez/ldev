@@ -57,16 +57,28 @@ ldev resource migration-pipeline \
 
 Use this to review the plan and catch obvious problems early.
 
-## 5. Run the migration
+## 5. Run the introduce phase
 
 ```bash
 ldev resource migration-pipeline \
   --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json
 ```
 
-The descriptor is the source of truth. If it says old fields should be removed, that cleanup is part of the migration plan itself.
+The descriptor is the source of truth for the introduced structure shape. Run
+the main pipeline first and validate the result before removing old fields.
 
-## 6. Verify
+## 6. Run cleanup only after validation
+
+```bash
+ldev resource migration-pipeline \
+  --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json \
+  --run-cleanup
+```
+
+Only run cleanup after you have confirmed that the introduced shape works
+correctly.
+
+## 7. Verify
 
 ```bash
 ldev portal inventory page --url /home --json
