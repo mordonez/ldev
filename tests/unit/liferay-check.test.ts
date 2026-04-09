@@ -34,8 +34,8 @@ describe('liferay check', () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {
         const url = String(input);
-        if (url.includes('/o/headless-admin-site/v1.0/sites?pageSize=1')) {
-          return new Response('{"items":[{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}],"lastPage":1}', {
+        if (url.includes('/o/headless-admin-user/v1.0/my-user-account')) {
+          return new Response('{"id":20123,"name":"Test User"}', {
             status: 200,
           });
         }
@@ -52,15 +52,16 @@ describe('liferay check', () => {
       clientId: 'client-id',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      checkedPath: '/o/headless-admin-site/v1.0/sites?pageSize=1',
+      checkedPath: '/o/headless-admin-user/v1.0/my-user-account',
       status: 200,
       permissionDenied: false,
+      probeUnavailable: false,
     });
     expect(formatLiferayHealth(result)).toContain('HEALTH_OK');
     expect(formatLiferayHealth(result)).toContain('status=200');
   });
 
-  test('reports partial health when the default probe is denied', async () => {
+  test('reports partial health when the user probe is denied', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async () => new Response('forbidden', {status: 403}),
     });
@@ -69,7 +70,22 @@ describe('liferay check', () => {
 
     expect(result.permissionDenied).toBe(true);
     expect(result.status).toBe(403);
+    expect(result.probeUnavailable).toBe(false);
     expect(formatLiferayHealth(result)).toContain('HEALTH_PARTIAL');
     expect(formatLiferayHealth(result)).toContain('status=403');
+  });
+
+  test('reports partial health when the user probe is unavailable on the runtime', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async () => new Response('not found', {status: 404}),
+    });
+
+    const result = await runLiferayHealth(CONFIG, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(result.permissionDenied).toBe(false);
+    expect(result.probeUnavailable).toBe(true);
+    expect(result.status).toBe(404);
+    expect(formatLiferayHealth(result)).toContain('HEALTH_PARTIAL');
+    expect(formatLiferayHealth(result)).toContain('status=404');
   });
 });

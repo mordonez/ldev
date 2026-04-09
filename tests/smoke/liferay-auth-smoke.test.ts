@@ -50,8 +50,8 @@ describe('liferay auth smoke', () => {
             status: 200,
           });
         }
-        if (url.includes('/o/headless-admin-site/v1.0/sites?pageSize=1')) {
-          return new Response('{"items":[{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}],"lastPage":1}', {
+        if (url.includes('/o/headless-admin-user/v1.0/my-user-account')) {
+          return new Response('{"id":20123,"name":"Test User"}', {
             status: 200,
           });
         }
