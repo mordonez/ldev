@@ -13,7 +13,7 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {buildComposeFilesEnv, resolveEnvContext} from '../env/env-files.js';
+import {buildComposeFilesEnv, ensureEnvDataLayout, resolveEnvContext} from '../env/env-files.js';
 
 export type DbImportResult = {
   ok: true;
@@ -39,6 +39,7 @@ export async function runDbImport(
   }
 
   const context = resolveEnvContext(config);
+  await ensureEnvDataLayout(context);
   const backupFile = await resolveBackupFile(context.dockerDir, options?.file);
   const postgresDataDir = path.join(context.dataRoot, 'postgres-data');
 

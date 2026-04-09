@@ -35,6 +35,7 @@ describe('db integration', () => {
     expect(parsed.postImportFiles).toHaveLength(2);
     expect(parsed.postImportFiles[0]).toContain('010-first.sql');
     expect(parsed.postImportFiles[1]).toContain('020-second.sql');
+    expect(await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache'))).toBe(true);
 
     const calls = await readFakeDockerCalls(fakeBinDir);
     expect(calls).toEqual(
