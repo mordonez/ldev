@@ -72,7 +72,7 @@ When the issue does not reproduce with clean local data, bring production-like
 state into the local environment before guessing:
 
 ```bash
-ldev db sync --environment production --project <lcp-project> --force
+ldev db sync --environment <env> --project <lcp-project> --force
 ```
 
 If you already have a local backup file:
@@ -84,8 +84,8 @@ ldev db import --file /path/to/backup.sql.gz --force
 When the issue depends on Document Library files:
 
 ```bash
-ldev db files-download --environment production --project <lcp-project> --doclib-dest docker/doclib/production
-ldev db files-mount --path docker/doclib/production
+ldev db files-download --environment <env> --project <lcp-project> --doclib-dest docker/doclib/<env>
+ldev db files-mount --path docker/doclib/<env>
 ```
 
 If the files are not coming from Liferay Cloud, mount the prepared local path:
