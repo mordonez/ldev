@@ -28,6 +28,7 @@ Main entry points:
 
 - `doctor`, `start`, `status`, `logs diagnose`
 - `context`, `portal check`, `portal inventory`
+- `portal content`
 - `resource`
 - `db`
 - `deploy`

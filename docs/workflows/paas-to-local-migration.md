@@ -60,6 +60,26 @@ ldev doctor
 ldev portal check
 ```
 
+If the imported dataset is too large for practical local work, inspect the site inventory first so you can decide what to prune:
+
+```bash
+ldev portal inventory sites --site /actualitat --with-structures --limit 20
+```
+
+This scoped inventory is the exact view to use before pruning:
+
+- `directListItems` matches what editors see in the Journal folder listing
+- `subtreeStructuredContents` shows the full subtree volume
+- `--with-structures` shows which Journal structures dominate the folder
+
+Once you know which folders are oversized, run a dry-run prune:
+
+```bash
+ldev portal content prune --group-id 2710030 --root-folder 15588732 --keep 100 --dry-run
+```
+
+Apply only after checking the dry-run summary.
+
 ## 5. Diagnose and fix locally
 
 ```bash
