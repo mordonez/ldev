@@ -66,11 +66,7 @@ If the imported dataset is too large for practical local work, inspect the site 
 ldev portal inventory sites --site /actualitat --with-structures --limit 20
 ```
 
-This scoped inventory is the exact view to use before pruning:
-
-- `directListItems` matches what editors see in the Journal folder listing
-- `subtreeStructuredContents` shows the full subtree volume
-- `--with-structures` shows which Journal structures dominate the folder
+This scoped inventory is the exact view to use before pruning. For the full command reference and output semantics, see [Data and Deploy Commands](/commands/data-and-deploy).
 
 Once you know which folders are oversized, run a dry-run prune:
 
