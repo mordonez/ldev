@@ -17,3 +17,4 @@ docs/.vitepress/cache/
 *.p12
 *.jks
 *.keystore
+.playwright-mcp/
