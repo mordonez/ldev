@@ -4,7 +4,7 @@ import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/aut
 import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
 import {authedGet} from './inventory/liferay-inventory-shared.js';
 
-const DEFAULT_HEALTH_PATH = '/o/headless-admin-site/v1.0/sites?pageSize=1';
+const HEALTH_PATH = '/o/headless-admin-user/v1.0/my-user-account';
 
 export type LiferayHealthResult = {
   ok: true;
@@ -15,6 +15,7 @@ export type LiferayHealthResult = {
   checkedPath: string;
   status: number;
   permissionDenied: boolean;
+  probeUnavailable: boolean;
 };
 
 type HealthDependencies = {
@@ -39,6 +40,7 @@ export async function runLiferayHealth(
     checkedPath: health.checkedPath,
     status: health.status,
     permissionDenied: health.permissionDenied,
+    probeUnavailable: health.probeUnavailable,
   };
 }
 
@@ -46,34 +48,45 @@ export async function performLiferayHealthCheck(
   config: AppConfig,
   accessToken: string,
   apiClient?: LiferayApiClient,
-): Promise<{status: number; checkedPath: string; permissionDenied: boolean}> {
+): Promise<{status: number; checkedPath: string; permissionDenied: boolean; probeUnavailable: boolean}> {
   const client = apiClient ?? createLiferayApiClient();
-  const response = await authedGet(config, client, accessToken, DEFAULT_HEALTH_PATH);
+  const response = await authedGet(config, client, accessToken, HEALTH_PATH);
+
+  if (response.ok) {
+    return {
+      status: response.status,
+      checkedPath: HEALTH_PATH,
+      permissionDenied: false,
+      probeUnavailable: false,
+    };
+  }
 
   if (response.status === 403) {
     return {
       status: response.status,
-      checkedPath: DEFAULT_HEALTH_PATH,
+      checkedPath: HEALTH_PATH,
       permissionDenied: true,
+      probeUnavailable: false,
     };
   }
 
-  if (!response.ok) {
-    throw new CliError(`health check failed with status=${response.status}.`, {
-      code: 'LIFERAY_HEALTH_ERROR',
-    });
+  if (response.status === 404) {
+    return {
+      status: response.status,
+      checkedPath: HEALTH_PATH,
+      permissionDenied: false,
+      probeUnavailable: true,
+    };
   }
 
-  return {
-    status: response.status,
-    checkedPath: DEFAULT_HEALTH_PATH,
-    permissionDenied: false,
-  };
+  throw new CliError(`health check failed with status=${response.status}.`, {
+    code: 'LIFERAY_HEALTH_ERROR',
+  });
 }
 
 export function formatLiferayHealth(result: LiferayHealthResult): string {
   const lines = [
-    result.permissionDenied ? 'HEALTH_PARTIAL' : 'HEALTH_OK',
+    result.permissionDenied || result.probeUnavailable ? 'HEALTH_PARTIAL' : 'HEALTH_OK',
     `baseUrl=${result.baseUrl}`,
     `clientId=${result.clientId}`,
     `checkedPath=${result.checkedPath}`,
@@ -84,7 +97,13 @@ export function formatLiferayHealth(result: LiferayHealthResult): string {
 
   if (result.permissionDenied) {
     lines.push(
-      'note=OAuth token retrieval succeeded, but the default site inventory probe was denied by this runtime. Portal auth is working; inventory and other API workflows may still require broader API scopes.',
+      'note=OAuth token retrieval succeeded, but the available health probes were denied by this runtime. Portal auth is working; inventory and other API workflows may still require broader API scopes.',
+    );
+  }
+
+  if (result.probeUnavailable) {
+    lines.push(
+      'note=OAuth token retrieval succeeded, but the health probe endpoints returned 404 on this runtime. Portal auth is working; this environment does not expose the default probe paths consistently.',
     );
   }
 
