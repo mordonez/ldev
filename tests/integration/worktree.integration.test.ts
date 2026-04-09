@@ -39,6 +39,36 @@ describe('worktree integration', () => {
     ).toBe(true);
   }, 15000);
 
+  test('worktree setup from a feature branch uses the current branch HEAD as default base', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+
+    await fs.writeFile(path.join(repoRoot, 'feature.txt'), 'from-feature-branch\n');
+    expect((await runProcess('git', ['checkout', '-b', 'feat/source-base'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect((await runProcess('git', ['add', 'feature.txt'], {cwd: repoRoot})).exitCode).toBe(0);
+    expect((await runProcess('git', ['commit', '-m', 'feat: add feature marker'], {cwd: repoRoot})).exitCode).toBe(0);
+
+    const featureHead = (await runProcess('git', ['rev-parse', 'HEAD'], {cwd: repoRoot})).stdout.trim();
+
+    const result = await runWorktreeSetup({
+      cwd: repoRoot,
+      name: 'issue-from-feature',
+      printer: silentPrinter,
+    });
+
+    expect(result.ok).toBe(true);
+    expect((await runProcess('git', ['branch', '--show-current'], {cwd: repoRoot})).stdout.trim()).toBe(
+      'feat/source-base',
+    );
+    expect(
+      (
+        await runProcess('git', ['rev-parse', 'HEAD'], {cwd: path.join(repoRoot, '.worktrees', 'issue-from-feature')})
+      ).stdout.trim(),
+    ).toBe(featureHead);
+    expect(await fs.readFile(path.join(repoRoot, '.worktrees', 'issue-from-feature', 'feature.txt'), 'utf8')).toBe(
+      'from-feature-branch\n',
+    );
+  }, 15000);
+
   test('worktree env derives isolated compose settings from the main env', async () => {
     const repoRoot = await createWorktreeRepoFixture();
     await runWorktreeSetup({
