@@ -40,7 +40,7 @@ describe('ai integration', () => {
     expect(manifest).toContain('# Skills installed by ldev');
     expect(manifest).toContain('# Do not edit manually');
     expect(manifest).toContain(vendorSkills[0]);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-core.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-client-extensions.md'))).toBe(
       true,
@@ -48,13 +48,16 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-mcp.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-setup.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-runtime.md'))).toBe(false);
+    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-agent-workflow.md'))).toBe(
+      false,
+    );
+    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'))).toBe(false);
 
     const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
     expect(rulesManifest.projectType).toBe('unknown');
     expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
-    expect(rulesManifest.rules).toHaveLength(8);
+    expect(rulesManifest.rules).toHaveLength(7);
     expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
-      'ldev-agent-workflow',
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',
@@ -420,14 +423,25 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'rules', 'ldev-agent-workflow.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.cursor', 'rules', 'ldev-agent-workflow.mdc'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.gemini', 'ldev-agent-workflow.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-agent-workflow.md'))).toBe(
+      true,
+    );
+    expect(await fs.pathExists(path.join(targetDir, '.claude', 'rules', 'ldev-workspace-agent-workflow.md'))).toBe(
+      true,
+    );
+    expect(await fs.pathExists(path.join(targetDir, '.cursor', 'rules', 'ldev-workspace-agent-workflow.mdc'))).toBe(
+      true,
+    );
+    expect(await fs.pathExists(path.join(targetDir, '.gemini', 'ldev-workspace-agent-workflow.md'))).toBe(true);
     expect(
-      await fs.pathExists(path.join(targetDir, '.github', 'instructions', 'ldev-agent-workflow.instructions.md')),
+      await fs.pathExists(
+        path.join(targetDir, '.github', 'instructions', 'ldev-workspace-agent-workflow.instructions.md'),
+      ),
     ).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.windsurf', 'rules', 'ldev-agent-workflow.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.windsurf', 'rules', 'ldev-workspace-agent-workflow.md'))).toBe(
+      true,
+    );
+    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(false);
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).toContain('Liferay Workspace');
@@ -443,7 +457,6 @@ describe('ai integration', () => {
     ]);
     expect(rulesManifest.rules).toHaveLength(11);
     expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
-      'ldev-agent-workflow',
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',
@@ -451,6 +464,7 @@ describe('ai integration', () => {
       'ldev-portal-discovery',
       'ldev-resource-migrations',
       'ldev-runtime-troubleshooting',
+      'ldev-workspace-agent-workflow',
       'ldev-workspace-deploy',
       'ldev-workspace-runtime',
       'ldev-workspace-setup',
@@ -497,11 +511,11 @@ describe('ai integration', () => {
     expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
     expect(rulesManifest.rules).toHaveLength(10);
     expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
-      'ldev-agent-workflow',
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',
       'ldev-liferay-mcp',
+      'ldev-native-agent-workflow',
       'ldev-native-deploy',
       'ldev-native-runtime',
       'ldev-portal-discovery',
