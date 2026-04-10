@@ -14,6 +14,27 @@ export type JournalAuthState = {
   tokenClient: OAuthTokenClient;
 };
 
+export async function authedGetWithRefresh<T>(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  authState: JournalAuthState,
+  path: string,
+) {
+  const response = await authedGet<T>(config, apiClient, authState.accessToken, path);
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  authState.accessToken = await fetchAccessToken(config, {
+    apiClient,
+    tokenClient: authState.tokenClient,
+    forceRefresh: true,
+  });
+
+  return authedGet<T>(config, apiClient, authState.accessToken, path);
+}
+
 export type JsonwsJournalArticleRow = {
   resourcePrimKey?: string;
   articleId?: string;
@@ -194,25 +215,4 @@ function dedupeJournalRows(rows: JsonwsJournalArticleRow[]): JsonwsJournalArticl
   }
 
   return [...unique.values()];
-}
-
-async function authedGetWithRefresh<T>(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: JournalAuthState,
-  path: string,
-) {
-  const response = await authedGet<T>(config, apiClient, authState.accessToken, path);
-
-  if (response.status !== 401) {
-    return response;
-  }
-
-  authState.accessToken = await fetchAccessToken(config, {
-    apiClient,
-    tokenClient: authState.tokenClient,
-    forceRefresh: true,
-  });
-
-  return authedGet<T>(config, apiClient, authState.accessToken, path);
 }
