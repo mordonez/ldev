@@ -180,6 +180,44 @@ async function fetchClassNameId(
   return classNameId;
 }
 
+export type GroupInfo = {
+  friendlyUrl: string;
+  name: string;
+  parentGroupId: number;
+};
+
+export async function fetchGroupInfo(
+  config: AppConfig,
+  groupId: number,
+  dependencies?: ResourceDependencies,
+): Promise<GroupInfo | null> {
+  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+  const accessToken = await fetchAccessToken(config, dependencies);
+  const response = await authedGet<{
+    friendlyURL?: string;
+    friendlyUrl?: string;
+    nameCurrentValue?: string;
+    name?: string;
+    parentGroupId?: number;
+  }>(config, apiClient, accessToken, `/api/jsonws/group/get-group?groupId=${groupId}`);
+
+  if (!response.ok || !response.data) {
+    return null;
+  }
+
+  const data = response.data;
+  const rawFriendlyUrl = data.friendlyURL ?? data.friendlyUrl ?? '';
+  if (!rawFriendlyUrl) {
+    return null;
+  }
+
+  return {
+    friendlyUrl: rawFriendlyUrl.startsWith('/') ? rawFriendlyUrl : `/${rawFriendlyUrl}`,
+    name: data.nameCurrentValue ?? data.name ?? '',
+    parentGroupId: data.parentGroupId ?? -1,
+  };
+}
+
 async function resolveCompanyId(
   config: AppConfig,
   apiClient: LiferayApiClient,

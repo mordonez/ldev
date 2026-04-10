@@ -5,7 +5,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {resolveResourceSite} from './liferay-resource-shared.js';
+import {fetchGroupInfo, resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -40,7 +40,50 @@ export async function runLiferayResourceGetAdt(
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceAdtResult> {
   const identifier = resolveIdentifier(options);
-  const searchedSites = await collectSearchSites(config, options.site, dependencies);
+
+  if (options.site?.trim()) {
+    // Walk up the site hierarchy: child → parent → … → root. Return the first match.
+    const siteChain = await buildSiteChain(config, options.site, dependencies);
+
+    for (const site of siteChain) {
+      const rows = await runLiferayResourceListAdts(
+        config,
+        {
+          site: site.siteFriendlyUrl,
+          widgetType: options.widgetType,
+          className: options.className,
+          includeScript: true,
+        },
+        dependencies,
+      );
+
+      for (const row of rows) {
+        if (!matchesAdt(row, identifier)) {
+          continue;
+        }
+        return {
+          siteFriendlyUrl: site.siteFriendlyUrl,
+          widgetType: row.widgetType,
+          directory: ADT_WIDGET_DIR_BY_TYPE[row.widgetType] ?? row.widgetType.replaceAll('-', '_'),
+          className: row.className,
+          templateId: String(row.templateId),
+          displayStyle: `ddmTemplate_${row.templateId}`,
+          templateKey: row.templateKey,
+          displayName: row.displayName,
+          adtName: row.adtName,
+          classNameId: row.classNameId,
+          script: row.script ?? '',
+        };
+      }
+    }
+
+    throw new CliError(`ADT not found: ${identifier}`, {
+      code: 'LIFERAY_RESOURCE_ERROR',
+    });
+  }
+
+  // No site specified: search across all accessible sites and detect ambiguity.
+  const searchedSites = await collectSearchSites(config, dependencies);
   const matches: Array<LiferayResourceAdtResult & {siteId?: number; siteName?: string}> = [];
 
   for (const site of searchedSites) {
@@ -177,18 +220,58 @@ function matchesAdt(
 
 async function collectSearchSites(
   config: AppConfig,
-  requestedSite: string | undefined,
   dependencies?: ResourceDependencies,
 ): Promise<Array<{siteId: number; siteFriendlyUrl: string; siteName: string}>> {
-  if (requestedSite?.trim()) {
-    const site = await resolveResourceSite(config, requestedSite, dependencies);
-    return [{siteId: site.id, siteFriendlyUrl: site.friendlyUrlPath, siteName: site.name}];
-  }
-
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
   return sites.map((site) => ({
     siteId: site.groupId,
     siteFriendlyUrl: site.siteFriendlyUrl,
     siteName: site.name,
   }));
+}
+
+async function buildSiteChain(
+  config: AppConfig,
+  startSite: string,
+  dependencies?: ResourceDependencies,
+): Promise<Array<{siteId: number; siteFriendlyUrl: string; siteName: string}>> {
+  const chain: Array<{siteId: number; siteFriendlyUrl: string; siteName: string}> = [];
+  const visited = new Set<number>();
+
+  const firstSite = await resolveResourceSite(config, startSite, dependencies);
+  chain.push({siteId: firstSite.id, siteFriendlyUrl: firstSite.friendlyUrlPath, siteName: firstSite.name});
+  visited.add(firstSite.id);
+
+  // Walk up the explicit parentGroupId chain (covers child-site relationships).
+  let currentGroupInfo = await fetchGroupInfo(config, firstSite.id, dependencies);
+
+  while (currentGroupInfo && currentGroupInfo.parentGroupId > 0 && !visited.has(currentGroupInfo.parentGroupId)) {
+    const parentId = currentGroupInfo.parentGroupId;
+    const parentGroupInfo = await fetchGroupInfo(config, parentId, dependencies);
+    if (!parentGroupInfo) {
+      break;
+    }
+
+    visited.add(parentId);
+    chain.push({
+      siteId: parentId,
+      siteFriendlyUrl: parentGroupInfo.friendlyUrl,
+      siteName: parentGroupInfo.name,
+    });
+    currentGroupInfo = parentGroupInfo;
+  }
+
+  // Always append /global as the final fallback: Liferay makes global ADTs available to
+  // every site regardless of parentGroupId, so top-level sites (parentGroupId=0) still
+  // inherit from /global.
+  try {
+    const globalSite = await resolveResourceSite(config, '/global', dependencies);
+    if (!visited.has(globalSite.id)) {
+      chain.push({siteId: globalSite.id, siteFriendlyUrl: globalSite.friendlyUrlPath, siteName: globalSite.name});
+    }
+  } catch {
+    // /global not resolvable — skip silently
+  }
+
+  return chain;
 }
