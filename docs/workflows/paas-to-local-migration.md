@@ -74,7 +74,7 @@ Once you know which folders are oversized, run a dry-run prune:
 ldev portal content prune --group-id 2710030 --root-folder 15588732 --keep 100 --dry-run
 ```
 
-Apply only after checking the dry-run summary.
+Apply only after checking the dry-run summary. If this becomes a repeated step in your local incident workflow, use the dedicated [Shrink Local Content](/workflows/shrink-local-content) guide.
 
 ## 5. Diagnose and fix locally
 
