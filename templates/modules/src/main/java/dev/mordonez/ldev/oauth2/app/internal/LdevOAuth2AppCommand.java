@@ -104,7 +104,7 @@ public class LdevOAuth2AppCommand {
         return formatAdminUnblockResult(unblockAdminUser(companyId, userId));
     }
 
-    public InstallResult installOAuth2Applications(Long configuredCompanyId, Long configuredUserId) throws PortalException {
+    public synchronized InstallResult installOAuth2Applications(Long configuredCompanyId, Long configuredUserId) throws PortalException {
         Company company = resolveCompany(configuredCompanyId);
         User adminUser = resolveAdminUser(company, configuredUserId);
 
