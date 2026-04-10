@@ -182,7 +182,7 @@ export function formatOAuthInstall(result: OAuthInstallResult): string {
   }
 
   if (result.verification.sanitized) {
-    lines.push('OSGi config sanitized after successful verification');
+    lines.push('OSGi config sanitized after the install attempt');
   }
 
   return lines.join('\n');
@@ -221,24 +221,16 @@ async function provisionOAuthViaOsgiConfig(
   });
 
   const localProfileFile = resolveOAuthLocalProfileFile(config);
-  const localProfileUpdated =
-    options?.writeEnv === true
-      ? await writeCredentialsToLocalProfile(
-          localProfileFile,
-          readWrite.clientId,
-          readWrite.clientSecret,
-          resolvedScopeAliases,
-        )
-      : false;
-
   const verification = await verifyProvisionedOAuthInstall(config, readWrite);
+  const sanitizeAfterProvision = shouldSanitizeProvisionedOAuthConfig(verification);
+  const persistLocalProfile = shouldPersistProvisionedOAuthCredentials(verification);
 
-  if (verification.verified) {
+  if (sanitizeAfterProvision) {
     await writeOAuthInstallerOsgiConfig(config, {
       enabled: false,
       externalReferenceCode: 'ldev',
       appName: 'ldev',
-      clientId: readWrite.clientId,
+      clientId: '',
       clientSecret: '',
       rotateClientSecret: false,
       scopeAliases: resolvedScopeAliases,
@@ -246,6 +238,16 @@ async function provisionOAuthViaOsgiConfig(
       userId: options?.userId,
     });
   }
+
+  const localProfileUpdated =
+    persistLocalProfile && options?.writeEnv === true
+      ? await writeCredentialsToLocalProfile(
+          localProfileFile,
+          readWrite.clientId,
+          readWrite.clientSecret,
+          resolvedScopeAliases,
+        )
+      : false;
 
   return {
     ok: true,
@@ -264,7 +266,7 @@ async function provisionOAuthViaOsgiConfig(
     readOnly: null,
     verification: {
       ...verification,
-      sanitized: verification.verified,
+      sanitized: sanitizeAfterProvision,
     },
     rawOutput: '',
   };
@@ -654,6 +656,28 @@ export function parseKeyValueOutput(output: string): Record<string, string> {
   }
 
   return values;
+}
+
+export function shouldSanitizeProvisionedOAuthConfig(verification: OAuthInstallResult['verification']): boolean {
+  if (verification.verified) {
+    return true;
+  }
+
+  if (!verification.attempted || !verification.error) {
+    return false;
+  }
+
+  const normalized = verification.error.toLowerCase();
+
+  return normalized.includes('token request failed (');
+}
+
+export function shouldPersistProvisionedOAuthCredentials(verification: OAuthInstallResult['verification']): boolean {
+  if (verification.verified || !verification.attempted) {
+    return true;
+  }
+
+  return Boolean(verification.error) && !shouldSanitizeProvisionedOAuthConfig(verification);
 }
 
 function findPackageRoot(fromFile: string): string {

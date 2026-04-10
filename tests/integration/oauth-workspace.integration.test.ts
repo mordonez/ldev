@@ -26,7 +26,10 @@ describe('oauth workspace integration', () => {
       ],
       {
         cwd: workspaceRoot,
-        env: process.env,
+        env: {
+          ...process.env,
+          LIFERAY_CLI_URL: 'http://127.0.0.1:9',
+        },
       },
     );
 
@@ -42,6 +45,7 @@ describe('oauth workspace integration', () => {
     expect(parsed.companyId).toBe('pending');
     expect(parsed.verification.attempted).toBe(true);
     expect(parsed.verification.verified).toBe(false);
+    expect(parsed.verification.sanitized).toBe(false);
 
     expect(
       await fs.pathExists(
