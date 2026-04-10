@@ -31,16 +31,12 @@ export async function runGogoCommand(
 
   const context = resolveOsgiContext(config);
   const normalizedEnv = normalizeProcessEnv(processEnv);
-  const child = spawn(
-    'docker',
-    ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311'],
-    {
-      cwd: context.dockerDir,
-      env: normalizedEnv,
-      shell: process.platform === 'win32',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    },
-  );
+  const child = spawn('docker', ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311'], {
+    cwd: context.dockerDir,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
 
   let stdout = '';
   let stderr = '';
