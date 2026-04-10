@@ -75,3 +75,7 @@ Create or refresh the OAuth app used by `ldev`.
 ```bash
 ldev oauth install --write-env
 ```
+
+Use this once after the portal is ready so API-backed commands can authenticate. The local credentials are written to `.liferay-cli.local.yml`.
+
+See [OAuth](/core-concepts/oauth) for the full model.
