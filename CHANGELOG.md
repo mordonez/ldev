@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.0](https://github.com/mordonez/ldev/compare/ldev-v0.2.2...ldev-v0.3.0) (2026-04-10)
+
+
+### Features
+
+* add Journal content prune and scoped content inventory ([95f8b27](https://github.com/mordonez/ldev/commit/95f8b2702ff3ce987319e8529bdfd639d1dc2884))
+* **ai:** add --local mode to ai install ([9090fbf](https://github.com/mordonez/ldev/commit/9090fbf22edb4f15710970063d88374d4e5362d3))
+* **ai:** add local install mode for agent tooling ([3175e22](https://github.com/mordonez/ldev/commit/3175e220cb366cfb1d5ed8c1a5e47e5efb8d2106))
+* **portal:** add content metrics to inventory sites ([1909d32](https://github.com/mordonez/ldev/commit/1909d3261652c7b8c2633ce4c66b6b64851e4391))
+* **portal:** add journal content prune command ([0bf9a44](https://github.com/mordonez/ldev/commit/0bf9a44a72f9bb2d39b6563abc0bd98b16dbd975))
+* **portal:** add ldev portal content prune command ([18478d2](https://github.com/mordonez/ldev/commit/18478d20201158aa50c5a3f60bddbf09d5f1a66c))
+
+
+### Bug Fixes
+
+* **ai:** normalize local gitignore handling ([313b687](https://github.com/mordonez/ldev/commit/313b6873ef1604852f6bdca5727b88a8418db5df))
+* allow worktree setup from current branch ([f1d5bc6](https://github.com/mordonez/ldev/commit/f1d5bc6aa8d7bb413915094f69f9ed48bc8602bd))
+* allow worktree setup from current branch ([23fe8e1](https://github.com/mordonez/ldev/commit/23fe8e1b7c9e5e23b833895e149b6f9f8ce22db0))
+* **db:** prepare env data layout before import ([5f6d01d](https://github.com/mordonez/ldev/commit/5f6d01d259269a2cdaac2a801bd824074b1300a4))
+* improve ADT lookup and docs consistency ([92aa9da](https://github.com/mordonez/ldev/commit/92aa9da70cf00361a62a73d320e60d3d3218ec44))
+* **liferay:** use user endpoint for portal check ([22e343e](https://github.com/mordonez/ldev/commit/22e343eacc5e56ac28283f81947929ffd58b77c1))
+* **oauth:** sync oauth install credentials and idempotency ([4603851](https://github.com/mordonez/ldev/commit/460385105c9152ca3d04edfb721df29d2332ebfc)), closes [#16](https://github.com/mordonez/ldev/issues/16)
+* **oauth:** sync oauth install credentials and idempotency ([0cb1c26](https://github.com/mordonez/ldev/commit/0cb1c2679f872d9e8e1466d4a6fe931c14b8dd4e)), closes [#16](https://github.com/mordonez/ldev/issues/16)
+* **portal:** address inventory and prune review feedback ([66823f3](https://github.com/mordonez/ldev/commit/66823f3c8a59a95add602b157f7893cb358d8d25))
+* **portal:** tighten content inventory and prune behavior ([158de51](https://github.com/mordonez/ldev/commit/158de5131ad9a7c8cba1f2abd9943508713c6511))
+* **resource:** search ADTs across accessible sites ([352dc13](https://github.com/mordonez/ldev/commit/352dc13b3ce1c8bdc774bdfff9bef35cb30a8e23))
+* use &lt;env&gt; placeholder instead of hardcoded 'production' in troubleshooting skill ([f04d20b](https://github.com/mordonez/ldev/commit/f04d20b6aa064bc1d7267736eca2a1657332ca25))
+* use user endpoint for portal check ([eea64f7](https://github.com/mordonez/ldev/commit/eea64f704d99b783a477e1fe07c6b0b0b9a7aa2e))
+
 ## [0.2.2](https://github.com/mordonez/ldev/compare/ldev-v0.2.1...ldev-v0.2.2) (2026-04-08)
 
 
