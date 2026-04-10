@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import {describe, expect, test} from 'vitest';
 
 import {
@@ -71,9 +73,9 @@ describe('rulesManifestPath', () => {
   test('resolves to .ldev/ai/rules-manifest.json inside targetDir', () => {
     const result = rulesManifestPath('/some/project');
 
-    expect(result).toContain('.ldev');
-    expect(result).toContain('rules-manifest.json');
-    expect(result).toMatch(/\/some\/project/);
+    expect(path.normalize(result)).toBe(
+      path.normalize(path.join('/some/project', '.ldev', 'ai', 'rules-manifest.json')),
+    );
   });
 });
 

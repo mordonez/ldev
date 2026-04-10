@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import {describe, expect, test} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
@@ -187,7 +189,9 @@ describe('capabilities', () => {
       },
     });
 
-    expect(report.environment.activationKeyFile).toBe('/repo/keys/not-an-activation-file.xml');
+    expect(path.normalize(report.environment.activationKeyFile ?? '')).toBe(
+      path.normalize(path.resolve('/repo/keys/not-an-activation-file.xml')),
+    );
     expect(report.checks.find((check) => check.id === 'host-memory')?.status).toBe('warn');
     expect(report.checks.find((check) => check.id === 'http-port')?.status).toBe('warn');
     expect(report.checks.find((check) => check.id === 'activation-key')?.status).toBe('fail');

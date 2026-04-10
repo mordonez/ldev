@@ -18,9 +18,15 @@ import {createTempDir} from '../../src/testing/temp-repo.js';
 
 describe('env-files', () => {
   test('resolveDataRoot keeps absolute paths and resolves relative ones from docker dir', () => {
-    expect(resolveDataRoot('/repo/docker', './data/default')).toBe('/repo/docker/data/default');
-    expect(resolveDataRoot('/repo/docker', '/var/lib/liferay')).toBe('/var/lib/liferay');
-    expect(resolveDataRoot('/repo/docker', undefined)).toBe('/repo/docker/data/default');
+    expect(path.normalize(resolveDataRoot('/repo/docker', './data/default'))).toBe(
+      path.normalize(path.join(path.resolve('/repo/docker'), 'data', 'default')),
+    );
+    expect(path.normalize(resolveDataRoot('/repo/docker', '/var/lib/liferay'))).toBe(
+      path.normalize('/var/lib/liferay'),
+    );
+    expect(path.normalize(resolveDataRoot('/repo/docker', undefined))).toBe(
+      path.normalize(path.join(path.resolve('/repo/docker'), 'data', 'default')),
+    );
   });
 
   test('resolveEnvContext reads compose project and portal url from docker env', () => {
@@ -52,7 +58,11 @@ describe('env-files', () => {
     await ensureEnvDataLayout(context);
 
     const mode = fs.statSync(path.join(context.dataRoot, 'elasticsearch-data')).mode & 0o777;
-    expect(mode).toBe(0o777);
+    if (process.platform === 'win32') {
+      expect(mode).toBeGreaterThan(0);
+    } else {
+      expect(mode).toBe(0o777);
+    }
   });
 
   test('ensureEnvDataLayout skips postgres-data directory when postgres uses a Docker volume', async () => {
@@ -89,7 +99,11 @@ describe('env-files', () => {
     expect(
       fs.existsSync(path.join(repoRoot, 'liferay', 'build', 'docker', 'configs', 'dockerenv', 'portal-ext.properties')),
     ).toBe(true);
-    expect(mode).toBe(0o775);
+    if (process.platform === 'win32') {
+      expect(mode).toBeGreaterThan(0);
+    } else {
+      expect(mode).toBe(0o775);
+    }
   });
 
   test('seedBuildDockerConfigs merges configs/common and configs/local into dockerenv when no explicit dockerenv exists', async () => {
