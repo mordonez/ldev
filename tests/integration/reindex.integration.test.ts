@@ -173,7 +173,7 @@ async function createReindexRepoFixture(esPort: number): Promise<string> {
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  postgres:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    `COMPOSE_FILE=docker-compose.yml:docker-compose.elasticsearch.yml\nBIND_IP=127.0.0.1\nES_HTTP_PORT=${esPort}\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n`,
+    `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}\nBIND_IP=127.0.0.1\nES_HTTP_PORT=${esPort}\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n`,
   );
   return repoRoot;
 }

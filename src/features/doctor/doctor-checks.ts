@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import type {DoctorCheck, DoctorContext} from './doctor-types.js';
 import {
   MIN_RECOMMENDED_MEMORY_BYTES,
@@ -224,7 +226,7 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
           : ctx.activationKeyExists && ctx.activationKeyValidName
             ? `activation key ready at ${ctx.activationKeyFile}`
             : ctx.activationKeyExists
-              ? `activation key file name is invalid: ${ctx.activationKeyFile.split('/').pop()}`
+              ? `activation key file name is invalid: ${path.basename(ctx.activationKeyFile)}`
               : `activation key file does not exist: ${ctx.activationKeyFile}`,
       details:
         ctx.activationKeyFile === null

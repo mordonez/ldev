@@ -39,6 +39,12 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
       path.join(targetDir, '.gitignore'),
     )),
   );
+  copied.push(
+    ...(await copyMissingFileFromCandidates(
+      [path.join(assets.scaffoldDir, '.gitattributes'), path.join(assets.scaffoldDir, 'gitattributes')],
+      path.join(targetDir, '.gitattributes'),
+    )),
+  );
 
   return copied;
 }
