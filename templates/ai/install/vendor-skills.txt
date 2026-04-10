@@ -1,4 +1,5 @@
 automating-browser-tests
+capturing-session-knowledge
 deploying-liferay
 developing-liferay
 liferay-expert

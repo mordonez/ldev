@@ -21,48 +21,7 @@ Priority meanings:
 
 ---
 
-### 1. Liferay Objects — completely absent
-
-The biggest gap. Objects is the core of modern DXP 7.4+ development. No guidance
-exists on:
-
-- Object definitions: fields (types, `DBType`, `required`, `indexed`, `objectFieldSettings`)
-- Relationships: `ONE_TO_MANY`, `MANY_TO_MANY`, lookup vs. relationship columns
-- Auto-generated REST API: `/o/c/<objectNamePlural>/v1.0/`
-- Object Actions, Validations, Workflows on Objects
-- The canonical modern pattern: `batch CX defines Object → headless OAuth → custom element CX writes entries`
-- When to use Object Entry vs. Asset vs. Journal Article
-
-**Where:** `developing-liferay/references/objects.md` + extend `ldev-liferay-client-extensions.md`
-
----
-
-### 2. `ldev context --json` fields — referenced but never documented
-
-Every skill says "run `ldev context --json` and inspect `commands.portal`,
-`liferay.oauth2Configured`, `env.portalUrl`, `paths.structures`" but no file
-documents what each field contains, its possible values, or what decision to
-make from each value. Same gap exists for `ldev status --json`.
-
-**Where:** `developing-liferay/references/ldev-context.md`
-
----
-
-### 3. OSGi bundle states — no reference explains the lifecycle
-
-`ldev osgi status` returns `ACTIVE`, `RESOLVED`, `INSTALLED`, `STARTING`,
-`FAILURE`. `osgi.md` only says "confirm ACTIVE". Missing:
-
-- What causes each state (RESOLVED = unsatisfied service dependency; INSTALLED = class loading problem)
-- How to read `ldev osgi diag` output — what "Unresolved requirement" means
-- When RESOLVED is not an error (lazy-activated bundle)
-- How to map a bundle name to the symbolic name ldev needs
-
-**Where:** extend `developing-liferay/references/osgi.md`
-
----
-
-### 4. Headless API — discovery without an operational contract
+### 1. Headless API — discovery without an operational contract
 
 `ldev mcp openapis --json` is mentioned but no guidance on what to do with it:
 
@@ -77,22 +36,7 @@ make from each value. Same gap exists for `ldev status --json`.
 
 ---
 
-### 5. OAuth2 — portal setup completely absent
-
-`ldev oauth install --write-env` appears in `AGENTS.md` and several skills but
-the portal side is never documented:
-
-- How to create the OAuth2 application in portal (Control Panel → OAuth 2 Administration)
-- Which scopes are required for which headless operations
-- Client Credentials grant vs. Authorization Code grant — when each
-- What variables `ldev oauth install --write-env` writes and how it uses them
-- What to do when the token expires or the OAuth2 client does not exist yet
-
-**Where:** `developing-liferay/references/oauth2-setup.md` + section in `ldev-liferay-mcp.md`
-
----
-
-### 6. FTL templates — no authoring guide
+### 2. FTL templates — no authoring guide
 
 Journal Article templates and ADTs are FreeMarker. `structures.md` covers the
 CLI but no file documents:
@@ -105,16 +49,13 @@ CLI but no file documents:
 
 **Where:** `developing-liferay/references/ftl-templates.md`
 
-Note: this is still a large gap, but it is more about depth and correctness of
-implementation guidance than bootstrap or routing failure.
-
 ---
 
 ## P1 — Coverage Gaps
 
 ---
 
-### 7. Permissions model — completely absent
+### 3. Permissions model — completely absent
 
 403s, invisible portlets, inaccessible resources: agents have no context to
 diagnose them:
@@ -128,16 +69,9 @@ diagnose them:
 
 **Where:** `troubleshooting-liferay/references/permissions.md` + entry in `liferay-expert/SKILL.md`
 
-### 6b. FTL templates — implementation depth gap
-
-FTL authoring is important enough to stay near the top of the roadmap, but it
-fits better as a coverage gap than as a bootstrap contract failure.
-
-**Where:** `developing-liferay/references/ftl-templates.md`
-
 ---
 
-### 8. Service Builder — mentioned without a contract
+### 4. Service Builder — mentioned without a contract
 
 `ldev deploy service` exists but no guidance on:
 
@@ -150,7 +84,7 @@ fits better as a coverage gap than as a bootstrap contract failure.
 
 ---
 
-### 9. Modern site building — Display Pages, Collections, Navigation Menus
+### 5. Modern site building — Display Pages, Collections, Navigation Menus
 
 `liferay-expert` says "ldev has no commands for this, use MCP" but does not give
 the alternative flow:
@@ -166,7 +100,7 @@ the alternative flow:
 
 ---
 
-### 10. OSGi `.config` files — how to create them, naming, where they live
+### 6. OSGi `.config` files — how to create them, naming, where they live
 
 Agents know OSGi configuration exists but not the contract:
 
@@ -182,7 +116,7 @@ Agents know OSGi configuration exists but not the contract:
 
 ---
 
-### 11. Localization / i18n — completely absent
+### 7. Localization / i18n — completely absent
 
 Multilingual is standard in Liferay projects. No guidance on:
 
@@ -197,7 +131,7 @@ Multilingual is standard in Liferay projects. No guidance on:
 
 ---
 
-### 12. Taxonomies / Vocabularies / Categories — completely absent
+### 8. Taxonomies / Vocabularies / Categories — completely absent
 
 Core content organization in Liferay. No guidance on:
 
@@ -211,7 +145,7 @@ Core content organization in Liferay. No guidance on:
 
 ---
 
-### 13. LCP (Liferay Cloud) workflow — mentioned without a contract
+### 9. LCP (Liferay Cloud) workflow — mentioned without a contract
 
 `ldev db sync` and `ldev db files-download` appear in `troubleshooting-liferay`
 without operational context:
@@ -226,7 +160,7 @@ without operational context:
 
 ---
 
-### 14. Content type selection guide
+### 10. Content type selection guide
 
 Agents receive "I need to store customer data" or "I want a custom detail page"
 and cannot choose:
@@ -241,7 +175,7 @@ and cannot choose:
 
 ---
 
-### 15. `extending-liferay.md` — too thin to be useful
+### 11. `extending-liferay.md` — too thin to be useful
 
 Currently lists 8 extension points with no examples, no failure causes, no
 practical guardrails:
@@ -257,7 +191,7 @@ practical guardrails:
 
 ---
 
-### 16. `theme.md` — thin and references a hardcoded project path
+### 12. `theme.md` — thin and references a hardcoded project path
 
 `liferay/themes/` is a project-specific path, not a vendor contract. Also missing:
 
@@ -271,7 +205,7 @@ practical guardrails:
 
 ---
 
-### 17. `fragments.md` — thin and references a hardcoded project path
+### 13. `fragments.md` — thin and references a hardcoded project path
 
 `liferay/ub-fragments/` is a project-specific path, not a vendor contract.
 Also missing:
@@ -286,82 +220,13 @@ Also missing:
 
 ---
 
-## P2 — Precision And Ergonomics
-
----
-
-### 18. Worktree reference for ldev-native
-
-`ldev worktree setup --with-env` is powerful but undocumented internally:
-
-- When to create a worktree vs. working on the main checkout
-- What `--with-env` includes and what it does not (e.g. Document Library)
-- Recommended naming conventions (`incident-<id>`, `feat-<id>`)
-- Cleanup after resolution: `ldev worktree remove`, what it cleans and what it leaves
-
-**Where:** `troubleshooting-liferay/references/worktree-flow.md`
-
----
-
-### 19. Workflow / Process Builder
-
-Approval workflows block content publishing. Agents do not know:
-
-- When a Journal Article is in workflow vs. ready to publish
-- How to inspect workflow state from headless API
-- How to assign or remove a workflow from an Asset
-- Why an article does not appear published even though the import succeeded
-
-**Where:** section in `developing-liferay/references/objects.md` or separate reference if it grows
-
----
-
-### 20. `capturing-session-knowledge` — promote to vendor skill
-
-Currently only in project overlay. Useful for any ldev project: capturing
-verified structure keys, symbolic names, site URLs so the next agent does not
-repeat the same discovery bootstrap.
-
-The skill is already well-written. It only needs to move.
-
-**Where:** `templates/ai/skills/capturing-session-knowledge/`
-
----
-
-### 21. `automating-browser-tests` — credentials should reference `ldev-liferay-core`
-
-The skill hardcodes `test@liferay.com` / `test` in the login block. Those
-credentials are now documented in `ldev-liferay-core.md` as the default local
-portal credentials. The skill should reference that source instead of
-duplicating it.
-
-**Where:** reference note in `automating-browser-tests/SKILL.md`
-
----
-
-### 22. `project-context.md.sample` — guidance for teams on what to document
-
-The sample is a good scaffold but does not guide teams on:
-
-- Which kinds of knowledge benefit agents most
-- When to move knowledge from `project-context` into a vendor skill
-- What not to put in it (anything derivable from `ldev context --json` at any time)
-
-**Where:** extend the sample with inline guidance comments
-
----
-
 ## Recommended Next Batch
 
-If this roadmap is executed incrementally, the highest-signal first batch is:
+If this roadmap is executed incrementally, the highest-signal next items are:
 
-1. `ldev context --json` and `ldev status --json` reference
-2. OAuth2 portal setup and `ldev oauth install --write-env` contract
-3. Liferay Objects reference
-4. OSGi bundle states and `ldev osgi diag` interpretation
-
-These four items improve bootstrap, routing, and implementation quality across
-the rest of the AI layer.
+1. Headless API discovery contract (`headless-api.md`)
+2. FTL templates authoring guide (`ftl-templates.md`)
+3. Permissions model (`permissions.md`)
 
 ---
 
@@ -369,25 +234,16 @@ the rest of the AI layer.
 
 | # | Gap | Type | Priority |
 |---|---|---|---|
-| 1 | Liferay Objects | New reference + extend CX rule | P0 |
-| 2 | `ldev context --json` fields | New reference | P0 |
-| 3 | OSGi bundle states | Extend existing reference | P0 |
-| 4 | Headless API flow | New reference | P0 |
-| 5 | OAuth2 portal setup | New reference + MCP rule section | P0 |
-| 6 | FTL templates authoring | New reference | P0 |
-| 7 | Permissions model | New reference + routing | P1 |
-| 8 | Service Builder | New reference | P1 |
-| 9 | Modern site building | New reference + complete skill | P1 |
-| 10 | OSGi `.config` files | New reference | P1 |
-| 11 | Localization / i18n | New reference | P1 |
-| 12 | Taxonomies / Categories | New reference | P1 |
-| 13 | LCP sync workflow | New reference | P1 |
-| 14 | Content type selection guide | New reference + routing | P1 |
-| 15 | `extending-liferay` — too thin | Extend existing reference | P1 |
-| 16 | `theme.md` — thin + hardcoded path | Extend + parametrize | P1 |
-| 17 | `fragments.md` — thin + hardcoded path | Extend + parametrize | P1 |
-| 18 | Worktree reference ldev-native | New reference | P2 |
-| 19 | Workflow / Process Builder | Section in reference | P2 |
-| 20 | `capturing-session-knowledge` vendor | Promote skill | P2 |
-| 21 | Browser tests → reference core credentials | Cross-reference | P2 |
-| 22 | `project-context.md.sample` guidance | Extend sample | P2 |
+| 1 | Headless API flow | New reference | P0 |
+| 2 | FTL templates authoring | New reference | P0 |
+| 3 | Permissions model | New reference + routing | P1 |
+| 4 | Service Builder | New reference | P1 |
+| 5 | Modern site building | New reference + complete skill | P1 |
+| 6 | OSGi `.config` files | New reference | P1 |
+| 7 | Localization / i18n | New reference | P1 |
+| 8 | Taxonomies / Categories | New reference | P1 |
+| 9 | LCP sync workflow | New reference | P1 |
+| 10 | Content type selection guide | New reference + routing | P1 |
+| 11 | `extending-liferay` — too thin | Extend existing reference | P1 |
+| 12 | `theme.md` — thin + hardcoded path | Extend + parametrize | P1 |
+| 13 | `fragments.md` — thin + hardcoded path | Extend + parametrize | P1 |
