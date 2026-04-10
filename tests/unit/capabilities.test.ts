@@ -15,6 +15,7 @@ const BASE_CAPABILITIES: PlatformCapabilities = {
   hasJava: false,
   hasNode: true,
   hasLcp: false,
+  hasPlaywrightCli: false,
   supportsWorktrees: true,
   supportsBtrfsSnapshots: true,
 };

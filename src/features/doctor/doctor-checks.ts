@@ -258,5 +258,18 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
         ? summarizeTool('lcp', tools.lcp)
         : 'lcp is not available; this only affects specific legacy/local workflows',
     },
+    {
+      id: 'playwright-cli',
+      label: 'playwright-cli (optional)',
+      status: capabilities.hasPlaywrightCli ? 'pass' : 'warn',
+      summary: capabilities.hasPlaywrightCli
+        ? summarizeTool('playwright-cli', tools.playwrightCli)
+        : 'playwright-cli is not available; visual validation will fall back to npx playwright screenshot',
+      details: capabilities.hasPlaywrightCli
+        ? undefined
+        : [
+            'Install with: npm install -g @playwright/cli@latest — required for session-based browser flows and before/after screenshot evidence.',
+          ],
+    },
   ];
 }

@@ -28,6 +28,7 @@ describe('detectCapabilities', () => {
     expect(capabilities.hasJava).toBe(true);
     expect(capabilities.hasNode).toBe(true);
     expect(capabilities.hasLcp).toBe(true);
+    expect(capabilities.hasPlaywrightCli).toBe(true);
     expect(capabilities.supportsWorktrees).toBe(true);
   });
 
@@ -52,6 +53,7 @@ describe('detectCapabilities', () => {
     expect(capabilities.hasJava).toBe(false);
     expect(capabilities.hasNode).toBe(true); // Always true by design
     expect(capabilities.hasLcp).toBe(false);
+    expect(capabilities.hasPlaywrightCli).toBe(false);
     expect(capabilities.supportsWorktrees).toBe(false);
   });
 

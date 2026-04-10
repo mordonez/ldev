@@ -15,6 +15,7 @@ export type PlatformCapabilities = {
   hasJava: boolean;
   hasNode: boolean;
   hasLcp: boolean;
+  hasPlaywrightCli: boolean;
   supportsWorktrees: boolean;
   supportsBtrfsSnapshots: boolean;
 };
@@ -31,6 +32,7 @@ export async function detectCapabilities(
   const hasJava = (await runProcess('java', ['-version'])).ok;
   const hasNode = true;
   const hasLcp = (await runProcess('lcp', ['version'])).ok;
+  const hasPlaywrightCli = (await runProcess('playwright-cli', ['--version'])).ok;
   const repoRoot = await getRepoRoot(cwd);
 
   return {
@@ -42,6 +44,7 @@ export async function detectCapabilities(
     hasJava,
     hasNode,
     hasLcp,
+    hasPlaywrightCli,
     supportsWorktrees: Boolean(repoRoot && hasGit),
     supportsBtrfsSnapshots: detectedOs === 'linux',
   };

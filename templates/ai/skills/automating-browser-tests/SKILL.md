@@ -13,8 +13,20 @@ Use `ldev` for portal discovery and runtime state, `playwright-cli` for browser 
 ```bash
 ldev context --json
 ldev status --json
+ldev doctor --json
 ldev portal inventory page --url <fullUrl> --json
 ```
+
+Check `ldev doctor --json` → `tools.playwrightCli.available` before starting any browser flow.
+
+If `tools.playwrightCli.available` is `false`, install it first and do not proceed until it is available:
+
+```bash
+npm install -g @playwright/cli@latest
+```
+
+Then re-run `ldev doctor --json` to confirm `tools.playwrightCli.available` is `true` before continuing.
+All browser flows in this skill require `playwright-cli`. There is no fallback path.
 
 Known wrapper caveats and safe shell patterns live in `REFERENCE.md` next to this skill. Read it when the browser flow starts failing for reasons that look tooling-related rather than product-related.
 
@@ -33,11 +45,6 @@ If that path does not exist, or if `playwright-cli install-browser chromium` loo
 
 ```bash
 npx playwright install chromium
-```
-
-For simple screenshots without the wrapper:
-```bash
-npx playwright screenshot <url> output.png
 ```
 
 Do not spend time repeating `playwright-cli install-browser chromium` if it keeps failing —

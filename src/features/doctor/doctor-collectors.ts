@@ -98,6 +98,7 @@ export async function collectDoctorContext(
     node: await detectTool(runProcessFn, capabilities.hasNode, 'node', ['--version']),
     java: await detectTool(runProcessFn, capabilities.hasJava, 'java', ['-version']),
     lcp: await detectTool(runProcessFn, capabilities.hasLcp, 'lcp', ['version']),
+    playwrightCli: await detectTool(runProcessFn, capabilities.hasPlaywrightCli, 'playwright-cli', ['--version']),
   };
 
   const configSources = {

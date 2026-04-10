@@ -20,6 +20,7 @@ describe('doctor integration', () => {
     expect(parsed.ai).toHaveProperty('manifestPresent');
     expect(parsed.tools).toHaveProperty('git');
     expect(parsed.tools).toHaveProperty('dockerDaemon');
+    expect(parsed.tools).toHaveProperty('playwrightCli');
     expect(parsed.capabilities).toBeTypeOf('object');
   }, 30000);
 });
