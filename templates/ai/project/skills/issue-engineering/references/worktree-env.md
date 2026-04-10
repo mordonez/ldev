@@ -64,8 +64,54 @@ cd ../..
 ldev worktree clean issue-NUM --force
 ```
 
+## WORKTREE_MAIN_ENV_RUNNING — Recovery Decision
+
+When `ldev worktree setup --name <name> --with-env` exits with
+`WORKTREE_MAIN_ENV_RUNNING`, the worktree was **not created**.
+Do not proceed as if a partial setup succeeded.
+
+Choose exactly one path and follow it completely:
+
+### Path A — Stop main, then retry with `--with-env` (preferred)
+
+Use this when you need portal commands (`ldev portal ...`, `ldev resource ...`,
+deploy, browser validation) as part of the issue workflow.
+
+```bash
+ldev stop                                    # from the main checkout
+ldev worktree setup --name issue-NUM --with-env
+cd .worktrees/issue-NUM
+ldev start
+ldev status --json
+```
+
+Do not continue past `ldev start` until `ldev status --json` confirms the
+container is healthy and logs confirm Liferay finished its startup sequence.
+
+### Path B — Git-only worktree, no runtime
+
+Use this only when the task is **purely code or file edits** with no portal
+interaction required.
+
+```bash
+ldev worktree setup --name issue-NUM        # no --with-env
+cd .worktrees/issue-NUM
+git rev-parse --show-toplevel               # confirm you are inside the worktree
+```
+
+**Hard stop after this.** A git-only worktree has no runtime. Do NOT run:
+- `ldev resource ...`
+- `ldev portal ...`
+- `ldev deploy ...`
+- `ldev logs ...`
+- any browser validation
+
+If the task later requires portal access, exit Path B, go back to the main
+checkout, stop the main env, and restart from Path A.
+
+---
+
 ## Notes
 
 - `ldev worktree clean` is destructive; do not replace it with `rm -rf`
-- If the guardrail warns that `main` is still running without Btrfs, ask for confirmation before touching it
-- If `ldev worktree setup --with-env` fails in preflight before creating the worktree, treat that as expected safety behavior, not as a partial success
+- If `ldev worktree setup --with-env` fails in preflight before creating the worktree, treat that as expected safety behavior, not as a partial success — pick Path A or Path B above, do not improvise a hybrid
