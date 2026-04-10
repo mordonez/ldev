@@ -37,9 +37,10 @@ ldev portal inventory page --url <fullUrl> --json
 ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
-5. If you need a structured issue enrichment draft:
+5. If the project has created a structured issue enrichment script, use it:
 
 ```bash
+# Only run if the project has created this script
 python3 .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
 ```
 

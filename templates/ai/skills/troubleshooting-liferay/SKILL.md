@@ -103,6 +103,40 @@ ldev portal inventory sites --json
 ldev logs diagnose --since 15m --json
 ```
 
+### Post-import content volume
+
+After importing a production database, Journal content volume may be too large
+for practical local reindexing or day-to-day use.
+
+Check content volume per site before reindexing:
+
+```bash
+ldev portal inventory sites --with-content --sort-by content
+```
+
+Scope to one site for folder-level detail:
+
+```bash
+ldev portal inventory sites --site /<site> --with-structures --limit 20
+```
+
+If volume is too high, preview a prune first:
+
+```bash
+ldev portal content prune \
+  --group-id <groupId> \
+  --root-folder <folderId> \
+  --keep 100 \
+  --dry-run
+```
+
+Review the dry-run output (`articleCount`, `keptCount`, `deletedCount`,
+`Breakdown by structure`) before applying. Run without `--dry-run` only when
+the plan is correct.
+
+Use `--keep-scope structure` when you want to retain N most recent articles per
+structure type across all selected folders instead of per folder.
+
 ### Isolated worktree troubleshooting
 
 When a risky fix or a production-like reproduction should not share runtime

@@ -16,7 +16,8 @@ Before changing code or runtime state:
 
 1. Run `ldev doctor`.
 2. Run `ldev context --json`.
-3. Run `ldev mcp check --json`.
+3. Run `ldev mcp check --json` to check MCP availability. This step is
+   informational — continue even if MCP is not available or not configured.
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 

@@ -15,6 +15,31 @@ field type catalog to get the correct shape for each field:
 
 Reference: `references/structure-field-catalog.md`
 
+## Resolving the owning site
+
+The structure or template owner is not always the site shown in the browser URL.
+Shared structures often live in `/global` or a shared site even when the
+visible content URL belongs to a concrete site.
+
+Always verify before exporting or importing:
+
+```bash
+# Identify the page and its portlet context
+ldev portal inventory page --url <fullUrl> --json
+
+# Check global site first for shared resources
+ldev portal inventory structures --site /global --json
+ldev portal inventory templates --site /global --json
+
+# Then check the concrete site
+ldev portal inventory structures --site /<site> --json
+ldev portal inventory templates --site /<site> --json
+```
+
+Do not assume the browser URL site owns the structure or template source files.
+Export from the site that actually owns the object — importing to the wrong site
+will create a duplicate instead of updating the intended one.
+
 ## Recommended flow
 
 1. Discover first in portal:
