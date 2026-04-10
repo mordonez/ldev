@@ -672,7 +672,7 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
     resource
       .command('adt')
       .description('Inspect one ADT in detail')
-      .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
+      .option('--site <site>', 'Site friendly URL or numeric ID; omit to search accessible sites')
       .option('--display-style <displayStyle>', 'Runtime display style like ddmTemplate_19690804')
       .option('--id <id>', 'Numeric template id')
       .option('--key <key>', 'ADT template key')

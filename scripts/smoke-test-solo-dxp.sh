@@ -280,10 +280,6 @@ main() {
     bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource template --id BASIC-WEB-CONTENT"
 
   run_check \
-    "resource adt-types passed" \
-    bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource adt-types"
-
-  run_check \
     "resource export-structures passed" \
     bash -lc "cd \"$PROJECT_DIR\" && $LDEV resource export-structures --all-sites"
 

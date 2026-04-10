@@ -27,7 +27,7 @@ Real text-mode example:
 ```text
 HEALTH_OK
 baseUrl=http://localhost:8081
-checkedPath=/o/headless-admin-site/v1.0/sites?pageSize=1
+checkedPath=/o/headless-admin-user/v1.0/my-user-account
 status=200
 tokenType=Bearer
 expiresIn=600

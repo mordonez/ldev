@@ -9,7 +9,7 @@ description: Minimal reference for exporting, importing, and migrating Liferay r
 
 ```bash
 ldev resource structure --site /global --key MY_STRUCTURE
-ldev resource template --site /global --key MY_TEMPLATE
+ldev resource template --site /global --id MY_TEMPLATE
 ldev resource adts --site /global
 ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
@@ -19,7 +19,7 @@ Real examples:
 
 ```bash
 ldev resource structure --key BASIC-WEB-CONTENT
-ldev resource template --id BASIC-WEB-CONTENT
+ldev resource template --site /global --id MY_TEMPLATE
 ```
 
 ## Export

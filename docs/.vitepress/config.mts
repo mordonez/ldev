@@ -41,6 +41,7 @@ export default defineConfig({
           {text: 'Fix an OSGi Bundle', link: '/workflows/fix-osgi-bundle'},
           {text: 'Reproduce a Production Issue', link: '/workflows/reproduce-production-issue'},
           {text: 'PaaS to Local Migration', link: '/workflows/paas-to-local-migration'},
+          {text: 'Shrink Local Content', link: '/workflows/shrink-local-content'},
           {text: 'Explore a Portal', link: '/workflows/explore-portal'},
           {text: 'Export and Import Resources', link: '/workflows/export-import-resources'},
           {text: 'Resource Migration Pipeline', link: '/workflows/resource-migration-pipeline'},
