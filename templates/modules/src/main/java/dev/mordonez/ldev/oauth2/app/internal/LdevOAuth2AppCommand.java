@@ -210,7 +210,11 @@ public class LdevOAuth2AppCommand {
 
         String clientId;
         if (existed) {
-            clientId = Validator.isNotNull(configuredClientId) ? configuredClientId : oAuth2Application.getClientId();
+            // Always preserve the existing clientId to avoid desynchronising the portal DB
+            // from the local credentials file. A configuredClientId is only honoured for
+            // new app creation; changing the ID of an existing app would invalidate any
+            // previously issued tokens and break callers that cached the old ID.
+            clientId = oAuth2Application.getClientId();
             if (!rotateSecret && Validator.isNotNull(oAuth2Application.getClientSecret())) {
                 clientSecret = oAuth2Application.getClientSecret();
             }
@@ -254,17 +258,6 @@ public class LdevOAuth2AppCommand {
 
                 oAuth2Application = _oAuth2ApplicationLocalService.fetchOAuth2ApplicationByExternalReferenceCode(
                     externalReferenceCode, company.getCompanyId());
-
-                if (oAuth2Application != null) {
-                    oAuth2Application.setName(appName);
-                    if (Validator.isNotNull(clientId)) {
-                        oAuth2Application.setClientId(clientId);
-                    }
-                    if (existed && (rotateSecret || Validator.isBlank(oAuth2Application.getClientSecret()))) {
-                        oAuth2Application.setClientSecret(clientSecret);
-                    }
-                    _oAuth2ApplicationLocalService.updateOAuth2Application(oAuth2Application);
-                }
 
                 _log.info(String.format(
                     "OAuth2 app '%s' %s (clientId=%s, authMethod=%s).",

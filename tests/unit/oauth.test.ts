@@ -4,6 +4,8 @@ import {
   buildOAuthInstallGogoCommand,
   formatOAuthInstall,
   parseKeyValueOutput,
+  shouldPersistProvisionedOAuthCredentials,
+  shouldSanitizeProvisionedOAuthConfig,
   type OAuthInstallResult,
 } from '../../src/features/oauth/oauth-install.js';
 import {formatOAuthAdminUnblock} from '../../src/features/oauth/oauth-admin-unblock.js';
@@ -233,6 +235,54 @@ describe('formatOAuthInstall', () => {
 
     expect(result).toContain('Bearer');
     expect(result).toContain('3600');
+  });
+
+  test('mentions config sanitization generically when flagged', () => {
+    const result = formatOAuthInstall(
+      makeOAuthInstallResult({
+        verification: {
+          attempted: true,
+          verified: false,
+          sanitized: true,
+          tokenType: null,
+          expiresIn: null,
+          error: 'Token request failed (401) for clientId=ldev-bad: {"error":"invalid_client"}',
+        },
+      }),
+    );
+
+    expect(result).toContain('OSGi config sanitized after the install attempt');
+    expect(result).not.toContain('successful verification');
+  });
+});
+
+describe('provisioned OAuth verification policy', () => {
+  test('sanitizes config after a terminal portal-side token error', () => {
+    const verification = {
+      attempted: true,
+      verified: false,
+      sanitized: false,
+      tokenType: null,
+      expiresIn: null,
+      error: 'Token request failed (401) for clientId=ldev-bad: {"error":"invalid_client"}',
+    } satisfies OAuthInstallResult['verification'];
+
+    expect(shouldSanitizeProvisionedOAuthConfig(verification)).toBe(true);
+    expect(shouldPersistProvisionedOAuthCredentials(verification)).toBe(false);
+  });
+
+  test('keeps config enabled and persists credentials for offline workspace staging', () => {
+    const verification = {
+      attempted: true,
+      verified: false,
+      sanitized: false,
+      tokenType: null,
+      expiresIn: null,
+      error: 'connect ECONNREFUSED 127.0.0.1:8080',
+    } satisfies OAuthInstallResult['verification'];
+
+    expect(shouldSanitizeProvisionedOAuthConfig(verification)).toBe(false);
+    expect(shouldPersistProvisionedOAuthCredentials(verification)).toBe(true);
   });
 });
 
