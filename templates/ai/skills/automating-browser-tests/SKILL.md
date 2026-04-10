@@ -105,6 +105,9 @@ rg --files . | rg '(^|/)cli\\.config\\.json$|playwright\\.config\\.'
 
 Before attempting Page Editor actions, determine whether you need an authenticated admin session.
 
+Default local portal credentials are documented in `ldev-liferay-core.md`. Use those values
+in the login script below rather than assuming them from memory.
+
 Manual `playwright-cli` fallback:
 
 ```bash

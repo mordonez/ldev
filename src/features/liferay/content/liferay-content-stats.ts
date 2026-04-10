@@ -4,9 +4,10 @@ import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
-import {authedGet, fetchAccessToken, normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
+import {fetchAccessToken, normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {runLiferayInventorySites} from '../inventory/liferay-inventory-sites.js';
 import {
+  authedGetWithRefresh,
   fetchJournalFoldersByParent,
   fetchJournalArticleRowsInFolder,
   hydrateMissingJournalStructureDefinitions,
@@ -486,28 +487,6 @@ async function buildJournalFolderStats(
       rows.length + folder.children.length + childStats.reduce((sum, child) => sum + child.subtreeListItems, 0),
     subtreeFolderIds: [folder.folderId, ...childStats.flatMap((child) => child.subtreeFolderIds)],
   };
-}
-
-async function authedGetWithRefresh<T>(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
-  path: string,
-) {
-  let response = await authedGet<T>(config, apiClient, authState.accessToken, path);
-
-  if (response.status !== 401) {
-    return response;
-  }
-
-  authState.accessToken = await fetchAccessToken(config, {
-    apiClient,
-    tokenClient: authState.tokenClient,
-    forceRefresh: true,
-  });
-  response = await authedGet<T>(config, apiClient, authState.accessToken, path);
-
-  return response;
 }
 
 function compareFoldersByVolume(left: ContentStatsFolder, right: ContentStatsFolder): number {

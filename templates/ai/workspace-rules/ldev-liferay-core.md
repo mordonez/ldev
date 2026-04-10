@@ -19,4 +19,24 @@ Reference sources:
 - `liferay-portal` for implementation patterns
 - official Liferay sample workspaces for current conventions
 
+Common `liferay-learn` documentation paths:
+
+| Topic | Path |
+|---|---|
+| Client Extensions overview | `docs/dxp/latest/en/liferay-development/client-extensions.md` |
+| Custom Element Client Extensions | `docs/dxp/latest/en/liferay-development/customizing-liferays-look-and-feel/using-a-custom-element-client-extension.md` |
+| Objects | `docs/dxp/latest/en/liferay-development/objects.md` |
+| Fragments | `docs/dxp/latest/en/site-building/developer-guide/developing-page-fragments.md` |
+| Installation and upgrades | `docs/dxp/latest/en/installation-and-upgrades/` |
+
+When the topic is not listed above, query GitHub directly:
+`site:github.com/liferay/liferay-learn [topic]`
+
+Common default local portal credentials for a fresh Liferay bundle are:
+- Email: `test@liferay.com`
+- Password: `test`
+
+In an `ldev` project, do not assume the portal URL. Resolve it from
+`ldev context --json` and use `env.portalUrl`.
+
 Do not assume a Blade Workspace layout unless the project type is explicitly `blade-workspace`.

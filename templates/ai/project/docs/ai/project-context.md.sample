@@ -3,6 +3,52 @@
 Example filled using the `web` repository as a reference. Copy the structure,
 not the literal values, into your real `docs/ai/project-context.md`.
 
+<!-- GUIDANCE FOR TEAMS ────────────────────────────────────────────────────────
+
+## What to put here
+
+Document facts an agent cannot derive on its own at runtime:
+
+- Verified portal entity keys: site friendly URLs, structure/template keys,
+  vocabulary IDs, navigation menu names discovered in a previous session.
+- Project-specific conventions that differ from the ldev defaults: custom deploy
+  sequences, non-standard module paths, monorepo quirks.
+- Confirmed OSGi bundle symbolic names for in-repo modules.
+- Playwright or browser-automation patterns that work for this project's specific
+  login/admin flows (project-specific credential overrides, MFA, SSO).
+- Runbooks that were non-obvious or required troubleshooting to produce.
+
+## What NOT to put here
+
+Do not document anything an agent can derive from `ldev context --json` or
+`ldev status --json` at any time:
+
+- Portal URL, OAuth2 configuration flags, available `ldev` commands, runtime env
+  type — all of these are live fields in `ldev context --json`.
+- Docker image or Java version if `ldev context --json` already exposes them.
+- Step-by-step reproduction of a single bug fix (that belongs in the PR/commit).
+- Temporary workaround steps that should become permanent fixes.
+
+Rule of thumb: if an agent can run one `ldev` command and get the answer, it
+does not belong here. Reserve this file for stable project knowledge that is
+expensive to re-discover.
+
+## When to promote to a vendor or project skill instead
+
+Promote a section to a proper skill when:
+
+- The same procedure applies to more than one project — move it to a vendor skill
+  under `templates/ai/skills/`.
+- The procedure is long enough to warrant its own `SKILL.md` with step-by-step
+  guidance and guardrails — keeping it here makes this file unwieldy.
+- The knowledge is a reusable workflow (deploy sequence, migration pattern,
+  browser test flow) rather than a stable fact about this specific project.
+
+Keep it here when it is a stable fact unique to this project: a confirmed site
+URL, a known structure key, a project-specific path convention.
+
+──────────────────────────────────────────────────────────────────────────── -->
+
 ## Stack
 
 | Component | Version / detail |
@@ -79,5 +125,7 @@ ldev logs --since 10m --service liferay --no-follow
 ## Maintenance Notes
 
 - Keep this file factual and updated as the project evolves.
-- If a section becomes generally reusable across projects, move it to a skill
-  or reusable `ldev` doc instead of expanding the sample.
+- Remove any section that `ldev context --json` can now answer — it has become
+  redundant and will drift.
+- If a section becomes generally reusable across projects, move it to a vendor
+  skill under `templates/ai/skills/` instead of expanding this file.

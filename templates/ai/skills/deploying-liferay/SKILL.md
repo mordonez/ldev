@@ -66,8 +66,13 @@ ldev resource import-fragments --site /<site>
 > `import-fragments` has no `--check-only` flag. Validate fragment source files
 > manually before running this command.
 
-If the preview is correct, re-run the specific import without `--check-only`
-(where applicable).
+If the preview is correct, re-run without `--check-only`:
+
+```bash
+ldev resource import-structures --site /<site> --apply
+ldev resource import-templates --site /<site> --apply
+ldev resource import-adts --site /<site> --apply
+```
 
 For Journal migrations, prefer the dedicated pipeline:
 

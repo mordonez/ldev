@@ -60,10 +60,75 @@ ldev portal inventory templates --site /<site> --json
 - If the task changes Journal structures with data migration risk:
   - use `migrating-journal-structures`
 
+## Site-level objects
+
+When the task involves site configuration or site-level objects beyond
+structures, templates, and fragments, resolve the affected site first:
+
+```bash
+ldev portal inventory sites --json
+ldev portal inventory pages --site /<site> --json
+ldev portal inventory page --url <fullUrl> --json
+```
+
+### Display Page Templates
+
+`ldev` does not expose dedicated Display Page Template commands yet.
+Verify MCP availability and use it for inspection:
+
+```bash
+ldev mcp check --json
+```
+
+If MCP is available, use OpenAPI discovery to find the relevant endpoint.
+Without MCP, `ldev portal inventory page --url <url> --json` can still confirm
+whether the URL resolves as a display page (`pageType: displayPage`) and which
+article/structure it serves, but it does not expose dedicated Display Page
+Template metadata yet.
+
+### Navigation Menus
+
+`ldev` does not expose dedicated Navigation Menu commands yet.
+Use `ldev mcp check --json` to verify MCP availability and route through
+the headless delivery API (`/o/headless-delivery/v2.0/navigation-menus`).
+
+### Multi-site resource origin
+
+Structures and templates are not always owned by the site visible in the
+browser URL. Shared or global structures live in `/global` or a shared site.
+
+Always verify the owning site before editing or importing:
+
+```bash
+ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory structures --site /global --json
+ldev portal inventory structures --site /<site> --json
+```
+
+Do not assume the browser URL site is the source of truth. Export from the
+site that actually owns the object.
+
+See also: `developing-liferay/references/structures.md` for the full
+export/import workflow.
+
+### Content volume per site
+
+When investigating large datasets after a production import:
+
+```bash
+ldev portal inventory sites --with-content --sort-by content
+ldev portal inventory sites --site /<site> --with-structures --limit 20
+```
+
+If volume is too high for local work, route to `troubleshooting-liferay`
+for the post-import content prune workflow.
+
 ## Shared guardrails
 
 - Use `ldev` as the official interface.
 - Prefer `ldev context --json`, `ldev doctor --json` and `ldev status --json` for automation and agents.
 - Prefer the smallest deploy or import that proves the change.
 - Do not invent portal mutations if an `ldev resource ...` workflow already exists.
+- For site-level objects without dedicated `ldev` commands, verify MCP with
+  `ldev mcp check --json` before assembling low-level API calls manually.
 - Keep deep guidance in the specialist skill references; do not duplicate it here.

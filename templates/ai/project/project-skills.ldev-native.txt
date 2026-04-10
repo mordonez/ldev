@@ -1,4 +1,3 @@
 # ldev-native gets the full project-owned pack. Native-only capabilities such as
 # isolated worktrees are used as optional add-ons inside the shared issue flow.
-capturing-session-knowledge
 issue-engineering

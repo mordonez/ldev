@@ -10,6 +10,7 @@ import {
   detectOfficialWorkspaceFiles,
   detectRuleLayer,
   listVendorSkills,
+  readRulesManifest,
   readManifestSkills,
   rulesManifestPath,
   resolveAiAssets,
@@ -181,7 +182,9 @@ async function applyAiInstall(options: {
     await fs.remove(path.join(skillsDestinationDir, skillName));
   }
 
+  const previousRulesManifest = await readRulesManifest(aiRulesManifestPath);
   const workspaceRuleResult = await installManagedAiRules(options.targetDir, options.assets, options.projectType);
+  await cleanupRetiredManagedAiRules(options.targetDir, workspaceRuleResult.installedRules, previousRulesManifest);
 
   const officialWorkspaceFilesDetected =
     options.projectType === 'blade-workspace' ? await detectOfficialWorkspaceFiles(options.targetDir) : [];
@@ -301,6 +304,8 @@ type WorkspaceRuleInstallResult = {
   manifestRules: AiRulesManifestRule[];
 };
 
+const LEGACY_RETIRED_RULE_IDS = ['ldev-agent-workflow'];
+
 async function installManagedAiRules(
   targetDir: string,
   assets: AiAssets,
@@ -366,6 +371,33 @@ async function installManagedAiRules(
     touchedTargets: [...touchedTargets].sort(),
     manifestRules,
   };
+}
+
+async function cleanupRetiredManagedAiRules(
+  targetDir: string,
+  installedRules: string[],
+  previousManifest: AiRulesManifest | null,
+): Promise<void> {
+  const activeRuleIds = new Set(installedRules);
+  const retiredRuleIds = new Set<string>();
+
+  for (const rule of previousManifest?.rules ?? []) {
+    if (!activeRuleIds.has(rule.id)) {
+      retiredRuleIds.add(rule.id);
+    }
+  }
+
+  for (const legacyRuleId of LEGACY_RETIRED_RULE_IDS) {
+    if (!activeRuleIds.has(legacyRuleId)) {
+      retiredRuleIds.add(legacyRuleId);
+    }
+  }
+
+  for (const retiredRuleId of retiredRuleIds) {
+    for (const target of workspaceRuleTargets(targetDir, retiredRuleId)) {
+      await fs.remove(target.path);
+    }
+  }
 }
 
 function workspaceRuleTargets(
@@ -459,8 +491,14 @@ function managedRuleMetadata(baseName: string): {
       };
     case 'ldev-native-runtime':
     case 'ldev-native-deploy':
+    case 'ldev-native-agent-workflow':
       return {
         sourceKind: 'custom',
+      };
+    case 'ldev-workspace-agent-workflow':
+      return {
+        sourceKind: 'derived',
+        sourceReferences: ['ai-workspace:.workspace-rules/liferay-rules.md'],
       };
     default:
       return {

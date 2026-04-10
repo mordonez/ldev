@@ -31,6 +31,17 @@ For the full incident workflow, use the vendor skill:
 
 - `troubleshooting-liferay`
 
+When `ldev logs diagnose` points to a Liferay-specific behaviour and the cause
+is unclear, supplement with documentation search before guessing:
+
+```
+site:github.com/liferay/liferay-learn [error message or topic]
+```
+
+Common search targets: `docs/dxp/latest/en/installation-and-upgrades/` for
+startup failures, `docs/dxp/latest/en/liferay-development/` for runtime
+extension issues.
+
 Use this rule only as a short runtime reminder. Use `ldev` first for local
 operational context. Use MCP later for generic portal-facing operations if
 needed.
