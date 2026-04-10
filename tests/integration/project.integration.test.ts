@@ -174,6 +174,7 @@ async function createProjectRepoFixture(): Promise<string> {
     'liferay:\n  oauth2:\n    clientId: ""\n    clientSecret: ""\n    timeoutSeconds: 30\n',
   );
   await fs.writeFile(path.join(repoRoot, 'templates', '.gitignore'), 'node_modules/\n');
+  await fs.writeFile(path.join(repoRoot, 'templates', '.gitattributes'), '*.sh text eol=lf\n');
 
   const tpl = path.join(repoRoot, 'templates');
 
@@ -182,7 +183,10 @@ async function createProjectRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(tpl, 'docker', '.env'), 'COMPOSE_PROJECT_NAME=ignored\n');
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.yml'), 'services:\n');
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.elasticsearch.yml'), 'services:\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.elasticsearch.volume.yml'), 'services:\n');
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.postgres.yml'), 'services:\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
   await fs.ensureDir(path.join(tpl, 'docker', 'elasticsearch'));
   await fs.writeFile(path.join(tpl, 'docker', 'elasticsearch', 'Dockerfile'), 'FROM elasticsearch:7.17.26\n');
   await fs.ensureDir(path.join(tpl, 'docker', 'liferay-configs-full'));

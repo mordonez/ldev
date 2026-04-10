@@ -26,11 +26,14 @@ export function resolveDeployContext(config: AppConfig): DeployContext {
     });
   }
 
+  const gradlewBatPath = path.join(config.liferayDir, 'gradlew.bat');
+  const gradlewShellPath = path.join(config.liferayDir, 'gradlew');
+
   return {
     repoRoot: config.repoRoot,
     liferayDir: config.liferayDir,
     dockerDir: config.dockerDir,
-    gradlewPath: path.join(config.liferayDir, 'gradlew'),
+    gradlewPath: process.platform === 'win32' && fs.existsSync(gradlewBatPath) ? gradlewBatPath : gradlewShellPath,
     buildDir: path.join(config.liferayDir, 'build', 'docker'),
     buildDeployDir: path.join(config.liferayDir, 'build', 'docker', 'deploy'),
   };

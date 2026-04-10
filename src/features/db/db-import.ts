@@ -13,6 +13,7 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
+import {normalizeProcessEnv} from '../../core/platform/process.js';
 import {buildComposeEnv, ensureEnvDataLayout, resolveEnvContext, resolvePostgresStorage} from '../env/env-files.js';
 
 export type DbImportResult = {
@@ -270,9 +271,11 @@ async function streamSqlIntoPostgres(
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
     cwd: dockerDir,
-    env: processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 

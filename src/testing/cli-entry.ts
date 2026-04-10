@@ -10,15 +10,23 @@ import type {ChildProcess} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import {runProcess} from '../core/platform/process.js';
+import {normalizeProcessEnv, runProcess} from '../core/platform/process.js';
 
 export const CLI_CWD = process.cwd();
 
 const distEntry = path.join(CLI_CWD, 'dist', 'index.js');
 const srcEntry = path.join(CLI_CWD, 'src', 'index.ts');
-const useCompiled = fs.existsSync(distEntry);
 
-export const CLI_ENTRY = useCompiled ? distEntry : srcEntry;
+function resolveCliEntry() {
+  const useCompiled = fs.existsSync(distEntry);
+
+  return {
+    useCompiled,
+    entry: useCompiled ? distEntry : srcEntry,
+  };
+}
+
+export const CLI_ENTRY = resolveCliEntry().entry;
 
 export type CliResult = {exitCode: number; stdout: string; stderr: string};
 
@@ -27,10 +35,11 @@ export type CliResult = {exitCode: number; stdout: string; stderr: string};
  * Uses `node dist/index.js` when built, `npx tsx src/index.ts` otherwise.
  */
 export async function runCli(args: string[], options?: {cwd?: string; env?: NodeJS.ProcessEnv}): Promise<CliResult> {
+  const {useCompiled, entry} = resolveCliEntry();
   if (useCompiled) {
-    return runProcess('node', [distEntry, ...args], options);
+    return runProcess('node', [entry, ...args], options);
   }
-  return runProcess('npx', ['tsx', srcEntry, ...args], options);
+  return runProcess('npx', ['tsx', entry, ...args], options);
 }
 
 /**
@@ -38,16 +47,17 @@ export async function runCli(args: string[], options?: {cwd?: string; env?: Node
  * Uses `node dist/index.js` when built, `npx tsx src/index.ts` otherwise.
  */
 export function spawnCli(args: string[], options?: {cwd?: string; env?: NodeJS.ProcessEnv}): ChildProcess {
+  const {useCompiled, entry} = resolveCliEntry();
   if (useCompiled) {
-    return spawn('node', [distEntry, ...args], {
+    return spawn('node', [entry, ...args], {
       cwd: options?.cwd,
-      env: options?.env,
+      env: normalizeProcessEnv(options?.env),
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   }
-  return spawn('npx', ['tsx', srcEntry, ...args], {
+  return spawn('npx', ['tsx', entry, ...args], {
     cwd: options?.cwd,
-    env: options?.env,
+    env: normalizeProcessEnv(options?.env),
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 }

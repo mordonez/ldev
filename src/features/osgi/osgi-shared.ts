@@ -5,7 +5,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {runProcess} from '../../core/platform/process.js';
+import {normalizeProcessEnv, runProcess} from '../../core/platform/process.js';
 import {resolveEnvContext} from '../env/env-files.js';
 
 export function resolveOsgiContext(config: AppConfig) {
@@ -30,12 +30,14 @@ export async function runGogoCommand(
   }
 
   const context = resolveOsgiContext(config);
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn(
     'docker',
-    ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311 2>/dev/null'],
+    ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311'],
     {
       cwd: context.dockerDir,
-      env: processEnv,
+      env: normalizedEnv,
+      shell: process.platform === 'win32',
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   );
@@ -123,9 +125,11 @@ async function runLocalGogoCommand(command: string): Promise<string> {
 
 export async function openInteractiveGogo(config: AppConfig, processEnv?: NodeJS.ProcessEnv): Promise<void> {
   const context = resolveOsgiContext(config);
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn('docker', ['compose', 'exec', 'liferay', 'telnet', 'localhost', '11311'], {
     cwd: context.dockerDir,
-    env: processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: 'inherit',
   });
 

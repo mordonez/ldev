@@ -10,212 +10,288 @@ export async function createFakeDockerBin(options?: {
 }): Promise<string> {
   const binDir = createTempDir('dev-cli-fake-docker-bin-');
   const dockerPath = path.join(binDir, 'docker');
+  const dockerCmdPath = path.join(binDir, 'docker.cmd');
+  const dockerScriptPath = path.join(binDir, 'docker.mjs');
   const services = options?.services ?? ['liferay', 'postgres'];
   const stateStatus = options?.stateStatus ?? 'running';
   const healthStatus = options?.healthStatus ?? 'healthy';
 
   await fs.writeFile(
-    dockerPath,
-    `#!/usr/bin/env bash
-set -euo pipefail
-STATE_FILE="${binDir}/docker-calls.log"
-VOLUME_DIR="${binDir}/docker-volumes"
-mkdir -p "$VOLUME_DIR"
-printf '%s\\n' "$*" >> "$STATE_FILE"
-if [[ "$1" == "compose" ]]; then
-  printf '%s\\n' "\${COMPOSE_FILE:-}" >> "${binDir}/docker-compose-files.log"
-fi
-if [[ "$1" == "version" ]]; then
-  if [[ "\${2:-}" == "--format" ]]; then
-    printf '{}\\n'
-  else
-    printf 'Docker version\\n'
-  fi
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "version" ]]; then
-  printf 'Docker Compose version v2\\n'
-  exit 0
-fi
-if [[ "$1" == "compose" && ("\${2:-}" == "pull" || "\${2:-}" == "up" || "\${2:-}" == "stop" || "\${2:-}" == "down" || "\${2:-}" == "restart" || "\${2:-}" == "logs") ]]; then
-  if [[ "\${2:-}" == "logs" && -n "\${FAKE_DOCKER_LOGS_OUTPUT:-}" ]]; then
-    printf '%b' "\${FAKE_DOCKER_LOGS_OUTPUT}"
-  fi
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "exec" && "\${3:-}" == "-T" && "\${4:-}" == "postgres" && "\${5:-}" == "psql" ]]; then
-  if [[ -n "\${FAKE_DOCKER_PSQL_OUTPUT:-}" ]]; then
-    printf '%b' "\${FAKE_DOCKER_PSQL_OUTPUT}"
-    exit 0
-  fi
-  if [[ "$*" == *"OAuth2Application"* ]]; then
-    if [[ "$*" == *"ldev-readonly"* ]]; then
-      printf 'readonly-id|readonly-secret\\n'
-      exit 0
-    fi
-    printf 'client-id|client-secret\\n'
-    exit 0
-  fi
-  if [[ "$*" == *"backgroundtask"* && "$*" == *"Reindex"* ]]; then
-    printf '-[ RECORD 1 ]---------\\n'
-    printf 'backgroundtaskid     | 123\\n'
-    printf 'status               | RUNNING\\n'
-    printf 'taskexecutorclassname| com.liferay.portal.search.internal.background.task.ReindexPortalBackgroundTaskExecutor\\n'
-    exit 0
-  fi
-  cat >/dev/null || true
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "exec" && "\${3:-}" == "-T" && "\${4:-}" == "postgres" && "\${5:-}" == "pg_dump" ]]; then
-  printf '%b' "\${FAKE_DOCKER_PG_DUMP_OUTPUT:-SELECT 1;\\n}"
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "exec" && "\${3:-}" == "-T" && "\${4:-}" == "liferay" && "\${5:-}" == "sh" && "\${6:-}" == "-lc" ]]; then
-  payload="\${7:-}"
-  if [[ "$payload" == *"lb -s"* ]]; then
-    if [[ -n "\${FAKE_DOCKER_LB_OUTPUT:-}" ]]; then
-      printf '%b' "\${FAKE_DOCKER_LB_OUTPUT}"
-    else
-      printf '42|Active|    1|com.test.bundle\\n'
-    fi
-    exit 0
-  fi
-  input="$(cat || true)"
-  if [[ "$input" == *"lb | grep"* ]]; then
-    printf '42|Active|    1|com.test.bundle\\n'
-    exit 0
-  fi
-  if [[ "$input" == *"help ldev:oauthInstall"* || "$input" == *"help ldev:adminUnblock"* ]]; then
-    printf 'oauthInstall\\nadminUnblock\\n'
-    exit 0
-  fi
-  if [[ "$input" == *"diag 42"* ]]; then
-    printf 'No unresolved constraints\\n'
-    exit 0
-  fi
-  if [[ "$input" == *"ldev:oauthInstall"* ]]; then
-    printf 'companyId=20116\\n'
-    printf 'companyWebId=liferay.com\\n'
-    printf 'userId=20123\\n'
-    printf 'userEmail=test@liferay.com\\n'
-    printf 'externalReferenceCode=ldev\\n'
-    printf 'LIFERAY_CLI_OAUTH2_CLIENT_ID=client-id\\n'
-    printf 'LIFERAY_CLI_OAUTH2_CLIENT_SECRET=client-secret\\n'
-    printf 'LIFERAY_CLI_OAUTH2_READONLY_CLIENT_ID=readonly-id\\n'
-    printf 'LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET=readonly-secret\\n'
-    exit 0
-  fi
-  if [[ "$input" == *"ldev:adminUnblock"* ]]; then
-    printf 'companyId=20116\\n'
-    printf 'companyWebId=liferay.com\\n'
-    printf 'userId=20123\\n'
-    printf 'userEmail=admin@liferay.com\\n'
-    printf 'passwordReset=false\\n'
-    exit 0
-  fi
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "exec" && "\${3:-}" == "liferay" && ("\${4:-}" == "generate_thread_dump.sh" || "\${4:-}" == "generate_heap_dump.sh") ]]; then
-  exit 0
-fi
-if [[ "$1" == "run" && "\${2:-}" == "--rm" ]]; then
-  target=""
-  args=("$@")
-  for arg in "\${args[@]}"; do
-    case "$arg" in
-      *:/target:ro) target="\${arg%:/target:ro}" ;;
-      *:/target) target="\${arg%:/target}" ;;
-    esac
-  done
-  if [[ "\${FAKE_DOCKER_TARGET_LIST_RESULT:-}" == "nonempty" ]]; then
-    printf '/target/file\\n'
-    exit 0
-  fi
-  if [[ "\${FAKE_DOCKER_TARGET_LIST_RESULT:-}" == "empty" ]]; then
-    exit 0
-  fi
-  if [[ -n "$target" ]] && find "$target" -mindepth 1 -maxdepth 1 -print -quit >/dev/null 2>&1; then
-    find "$target" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null | sed "s|$target|/target|"
-  fi
-  exit 0
-fi
-if [[ "$1" == "volume" && "\${2:-}" == "rm" ]]; then
-  rm -f "$VOLUME_DIR/\${3:-}.device" "$VOLUME_DIR/\${3:-}.type"
-  exit 0
-fi
-if [[ "$1" == "volume" && "\${2:-}" == "inspect" ]]; then
-  volume="\${3:-}"
-  format="\${5:-}"
-  device_file="$VOLUME_DIR/$volume.device"
-  type_file="$VOLUME_DIR/$volume.type"
-  if [[ ! -f "$device_file" ]]; then
-    exit 1
-  fi
-  if [[ "$format" == "{{index .Options \\"type\\"}}" ]]; then
-    cat "$type_file"
-    exit 0
-  fi
-  if [[ "$format" == "{{index .Options \\"device\\"}}" ]]; then
-    cat "$device_file"
-    exit 0
-  fi
-  exit 0
-fi
-if [[ "$1" == "volume" && "\${2:-}" == "create" ]]; then
-  args=("$@")
-  volume="\${args[\${#args[@]}-1]}"
-  device=""
-  type="none"
-  for arg in "\${args[@]}"; do
-    case "$arg" in
-      device=*) device="\${arg#device=}" ;;
-      type=*) type="\${arg#type=}" ;;
-    esac
-  done
-  printf '%s\\n' "$device" > "$VOLUME_DIR/$volume.device"
-  printf '%s\\n' "$type" > "$VOLUME_DIR/$volume.type"
-  printf '%s\\n' "$volume"
-  exit 0
-fi
-if [[ "$1" == "rm" && "\${2:-}" == "-f" ]]; then
-  exit 0
-fi
-if [[ "$1" == "ps" && "\${2:-}" == "--format" ]]; then
-  exit 0
-fi
-if [[ "$1" == "ps" && "\${2:-}" == "-aq" ]]; then
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "config" && "\${3:-}" == "--services" ]]; then
-  printf '${services.join('\\n')}\\n'
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "ps" && "\${3:-}" == "-q" ]]; then
-  if [[ "\${4:-}" == "liferay" ]]; then
-    printf 'liferay-container\\n'
-  elif [[ "\${4:-}" == "postgres" ]]; then
-    printf 'postgres-container\\n'
-  fi
-  exit 0
-fi
-if [[ "$1" == "inspect" && "\${2:-}" == "-f" ]]; then
-  format="\${3:-}"
-  container="\${4:-}"
-  if [[ "$format" == "{{.State.Status}}" ]]; then
-    printf '${stateStatus}\\n'
-    exit 0
-  fi
-  if [[ "$format" == "{{if .State.Health}}{{.State.Health.Status}}{{end}}" ]]; then
-    if [[ "$container" == "liferay-container" ]]; then
-      ${healthStatus === null ? "printf '\\n'" : `printf '${healthStatus}\\n'`}
-    fi
-    exit 0
-  fi
-fi
-printf 'unsupported docker call: %s\\n' "$*" >&2
-exit 1
+    dockerScriptPath,
+    `import fs from 'node:fs';
+import path from 'node:path';
+
+const args = process.argv.slice(2);
+const stateFile = ${JSON.stringify(path.join(binDir, 'docker-calls.log'))};
+const composeFilesLog = ${JSON.stringify(path.join(binDir, 'docker-compose-files.log'))};
+const volumeDir = ${JSON.stringify(path.join(binDir, 'docker-volumes'))};
+const services = ${JSON.stringify(services)};
+const stateStatus = ${JSON.stringify(stateStatus)};
+const healthStatus = ${JSON.stringify(healthStatus)};
+
+fs.mkdirSync(volumeDir, {recursive: true});
+fs.appendFileSync(stateFile, args.join(' ') + '\\n');
+if (args[0] === 'compose') {
+  fs.appendFileSync(composeFilesLog, (process.env.COMPOSE_FILE ?? '') + '\\n');
+}
+
+const input = await new Promise((resolve) => {
+  if (process.stdin.isTTY) {
+    resolve('');
+    return;
+  }
+  let data = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => {
+    data += chunk;
+  });
+  process.stdin.on('end', () => resolve(data));
+  process.stdin.on('error', () => resolve(''));
+});
+
+function print(text = '') {
+  process.stdout.write(text);
+}
+
+function println(text = '') {
+  process.stdout.write(text + '\\n');
+}
+
+function fail(message) {
+  process.stderr.write(message + '\\n');
+  process.exit(1);
+}
+
+function decodeEscapes(text) {
+  return text
+    .replace(/\\\\n/g, '\\n')
+    .replace(/\\\\r/g, '\\r')
+    .replace(/\\\\t/g, '\\t')
+    .replace(/\\\\b/g, '\\b');
+}
+
+if (args[0] === 'version') {
+  if (args[1] === '--format') {
+    println('{}');
+  } else {
+    println('Docker version');
+  }
+  process.exit(0);
+}
+
+if (args[0] === 'compose' && args[1] === 'version') {
+  println('Docker Compose version v2');
+  process.exit(0);
+}
+
+if (
+  args[0] === 'compose' &&
+  ['pull', 'up', 'stop', 'down', 'restart', 'logs'].includes(args[1] ?? '')
+) {
+  if (args[1] === 'logs' && process.env.FAKE_DOCKER_LOGS_OUTPUT) {
+    print(decodeEscapes(process.env.FAKE_DOCKER_LOGS_OUTPUT));
+  }
+  process.exit(0);
+}
+
+if (
+  args[0] === 'compose' &&
+  args[1] === 'exec' &&
+  args[2] === '-T' &&
+  args[3] === 'postgres' &&
+  args[4] === 'psql'
+) {
+  const joined = args.join(' ');
+  if (process.env.FAKE_DOCKER_PSQL_OUTPUT) {
+    print(decodeEscapes(process.env.FAKE_DOCKER_PSQL_OUTPUT));
+    process.exit(0);
+  }
+  if (joined.includes('OAuth2Application')) {
+    println(joined.includes('ldev-readonly') ? 'readonly-id|readonly-secret' : 'client-id|client-secret');
+    process.exit(0);
+  }
+  if (joined.includes('backgroundtask')) {
+    println('-[ RECORD 1 ]---------');
+    println('backgroundtaskid     | 123');
+    println('status               | RUNNING');
+    println('taskexecutorclassname| com.liferay.portal.search.internal.background.task.ReindexPortalBackgroundTaskExecutor');
+    process.exit(0);
+  }
+  process.exit(0);
+}
+
+if (
+  args[0] === 'compose' &&
+  args[1] === 'exec' &&
+  args[2] === '-T' &&
+  args[3] === 'postgres' &&
+  args[4] === 'pg_dump'
+) {
+  print(decodeEscapes(process.env.FAKE_DOCKER_PG_DUMP_OUTPUT ?? 'SELECT 1;\\n'));
+  process.exit(0);
+}
+
+if (
+  args[0] === 'compose' &&
+  args[1] === 'exec' &&
+  args[2] === '-T' &&
+  args[3] === 'liferay' &&
+  args[4] === 'sh' &&
+  args[5] === '-lc'
+) {
+  const payload = args[6] ?? '';
+  if (payload.includes('lb -s')) {
+    print(decodeEscapes(process.env.FAKE_DOCKER_LB_OUTPUT ?? '42|Active|    1|com.test.bundle\\n'));
+    process.exit(0);
+  }
+  if (input.includes('lb | grep')) {
+    println('42|Active|    1|com.test.bundle');
+    process.exit(0);
+  }
+  if (input.includes('help ldev:oauthInstall') || input.includes('help ldev:adminUnblock')) {
+    println('oauthInstall');
+    println('adminUnblock');
+    process.exit(0);
+  }
+  if (input.includes('diag 42')) {
+    println('No unresolved constraints');
+    process.exit(0);
+  }
+  if (input.includes('ldev:oauthInstall')) {
+    println('companyId=20116');
+    println('companyWebId=liferay.com');
+    println('userId=20123');
+    println('userEmail=test@liferay.com');
+    println('externalReferenceCode=ldev');
+    println('LIFERAY_CLI_OAUTH2_CLIENT_ID=client-id');
+    println('LIFERAY_CLI_OAUTH2_CLIENT_SECRET=client-secret');
+    println('LIFERAY_CLI_OAUTH2_READONLY_CLIENT_ID=readonly-id');
+    println('LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET=readonly-secret');
+    process.exit(0);
+  }
+  if (input.includes('ldev:adminUnblock')) {
+    println('companyId=20116');
+    println('companyWebId=liferay.com');
+    println('userId=20123');
+    println('userEmail=admin@liferay.com');
+    println('passwordReset=false');
+    process.exit(0);
+  }
+  process.exit(0);
+}
+
+if (args[0] === 'compose' && args[1] === 'exec' && args[2] === 'liferay' && ['generate_thread_dump.sh', 'generate_heap_dump.sh'].includes(args[3] ?? '')) {
+  process.exit(0);
+}
+
+if (args[0] === 'run' && args[1] === '--rm') {
+  let target = '';
+  for (const arg of args) {
+    if (arg.endsWith(':/target:ro')) target = arg.slice(0, -':/target:ro'.length);
+    if (arg.endsWith(':/target')) target = arg.slice(0, -':/target'.length);
+  }
+  if (process.env.FAKE_DOCKER_TARGET_LIST_RESULT === 'nonempty') {
+    println('/target/file');
+    process.exit(0);
+  }
+  if (process.env.FAKE_DOCKER_TARGET_LIST_RESULT === 'empty') {
+    process.exit(0);
+  }
+  if (target && fs.existsSync(target)) {
+    const first = fs.readdirSync(target)[0];
+    if (first) {
+      println('/target/' + first);
+    }
+  }
+  process.exit(0);
+}
+
+if (args[0] === 'volume' && args[1] === 'rm') {
+  fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.device'), {force: true});
+  fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.type'), {force: true});
+  process.exit(0);
+}
+
+if (args[0] === 'volume' && args[1] === 'inspect') {
+  const volume = args[2] ?? '';
+  const format = args[4] ?? '';
+  const deviceFile = path.join(volumeDir, volume + '.device');
+  const typeFile = path.join(volumeDir, volume + '.type');
+  if (!fs.existsSync(deviceFile)) {
+    process.exit(1);
+  }
+  if (format === '{{index .Options "type"}}') {
+    print(fs.readFileSync(typeFile, 'utf8'));
+    process.exit(0);
+  }
+  if (format === '{{index .Options "device"}}') {
+    print(fs.readFileSync(deviceFile, 'utf8'));
+    process.exit(0);
+  }
+  process.exit(0);
+}
+
+if (args[0] === 'volume' && args[1] === 'create') {
+  const volume = args[args.length - 1] ?? '';
+  let device = '';
+  let type = 'none';
+  for (const arg of args) {
+    if (arg.startsWith('device=')) device = arg.slice('device='.length);
+    if (arg.startsWith('type=')) type = arg.slice('type='.length);
+  }
+  fs.writeFileSync(path.join(volumeDir, volume + '.device'), device + '\\n');
+  fs.writeFileSync(path.join(volumeDir, volume + '.type'), type + '\\n');
+  println(volume);
+  process.exit(0);
+}
+
+if (args[0] === 'rm' && args[1] === '-f') process.exit(0);
+if (args[0] === 'ps' && ['--format', '-aq'].includes(args[1] ?? '')) process.exit(0);
+
+if (args[0] === 'compose' && args[1] === 'config' && args[2] === '--services') {
+  println(services.join('\\n'));
+  process.exit(0);
+}
+
+if (args[0] === 'compose' && args[1] === 'ps' && args[2] === '-q') {
+  if (args[3] === 'liferay') println('liferay-container');
+  else if (args[3] === 'postgres') println('postgres-container');
+  process.exit(0);
+}
+
+if (args[0] === 'inspect' && args[1] === '-f') {
+  const format = args[2] ?? '';
+  const container = args[3] ?? '';
+  if (format === '{{.State.Status}}') {
+    println(stateStatus);
+    process.exit(0);
+  }
+  if (format === '{{if .State.Health}}{{.State.Health.Status}}{{end}}') {
+    if (container === 'liferay-container') {
+      println(healthStatus ?? '');
+    }
+    process.exit(0);
+  }
+}
+
+fail('unsupported docker call: ' + args.join(' '));
 `,
     {mode: 0o755},
+  );
+
+  await fs.writeFile(
+    dockerPath,
+    `#!/usr/bin/env bash
+exec node "$(dirname "$0")/docker.mjs" "$@"
+`,
+    {mode: 0o755},
+  );
+
+  await fs.writeFile(
+    dockerCmdPath,
+    `@echo off
+node "%~dp0docker.mjs" %*
+`,
   );
 
   return binDir;

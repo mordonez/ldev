@@ -65,7 +65,7 @@ describe('worktree integration', () => {
       ).stdout.trim(),
     ).toBe(featureHead);
     expect(await fs.readFile(path.join(repoRoot, '.worktrees', 'issue-from-feature', 'feature.txt'), 'utf8')).toBe(
-      'from-feature-branch\n',
+      process.platform === 'win32' ? 'from-feature-branch\r\n' : 'from-feature-branch\n',
     );
   }, 15000);
 
@@ -251,7 +251,7 @@ describe('worktree integration', () => {
       printer: silentPrinter,
     });
 
-    process.env.PATH = `${fakeBinDir}:${process.env.PATH ?? ''}`;
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
 
     try {
       await expect(
@@ -277,7 +277,7 @@ describe('worktree integration', () => {
     await fs.ensureDir(path.join(mainDataRoot, 'postgres-data'));
     await fs.writeFile(path.join(mainDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
 
-    process.env.PATH = `${fakeBinDir}:${process.env.PATH ?? ''}`;
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`;
 
     try {
       await expect(
@@ -379,7 +379,7 @@ describe('worktree integration', () => {
   test('worktree start reuses env setup/start with fake docker', async () => {
     const repoRoot = await createWorktreeRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     await runWorktreeSetup({
       cwd: repoRoot,
@@ -401,7 +401,7 @@ describe('worktree integration', () => {
   test('env start inside a worktree prepares isolated compose settings before docker compose up', async () => {
     const repoRoot = await createWorktreeRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     await runWorktreeSetup({
       cwd: repoRoot,
@@ -438,11 +438,11 @@ async function createWorktreeRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env.example'),
-    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nBIND_IP=127.0.0.1\n',
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nBIND_IP=127.0.0.1\nLDEV_STORAGE_PLATFORM=other\n',
   );
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nBIND_IP=127.0.0.1\nENV_DATA_ROOT=./data/default\nLIFERAY_CLI_OAUTH2_CLIENT_ID=shared-id\nLIFERAY_CLI_OAUTH2_CLIENT_SECRET=shared-secret\n',
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nBIND_IP=127.0.0.1\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nLIFERAY_CLI_OAUTH2_CLIENT_ID=shared-id\nLIFERAY_CLI_OAUTH2_CLIENT_SECRET=shared-secret\n',
   );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));

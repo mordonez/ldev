@@ -11,7 +11,7 @@ describe('db integration', () => {
   test('db import autodetects the newest backup and applies post-import sql files by default', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const backupsDir = path.join(repoRoot, 'docker', 'backups');
     const older = path.join(backupsDir, 'older.sql');
@@ -50,7 +50,7 @@ describe('db integration', () => {
   test('db import fails when postgres-data is not empty', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const backupFile = path.join(repoRoot, 'docker', 'backups', 'backup.sql');
     const pgData = path.join(repoRoot, 'docker', 'data', 'default', 'postgres-data');
@@ -72,7 +72,7 @@ describe('db integration', () => {
   test('db import --force replaces an existing postgres-data directory before importing', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const backupFile = path.join(repoRoot, 'docker', 'backups', 'backup.sql');
     const pgData = path.join(repoRoot, 'docker', 'data', 'default', 'postgres-data');
@@ -98,7 +98,7 @@ describe('db integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {
       ...process.env,
-      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
       FAKE_DOCKER_TARGET_LIST_RESULT: 'empty',
     };
 
@@ -117,7 +117,10 @@ describe('db integration', () => {
       expect(parsed.backupFile).toBe(backupFile);
 
       const calls = await readFakeDockerCalls(fakeBinDir);
-      expect(calls).toEqual(expect.arrayContaining([expect.stringContaining('run --rm -v'), 'compose up -d postgres']));
+      expect(calls).toEqual(expect.arrayContaining(['compose up -d postgres']));
+      if (process.platform !== 'win32') {
+        expect(calls).toEqual(expect.arrayContaining([expect.stringContaining('run --rm -v')]));
+      }
     } finally {
       await fs.chmod(pgData, 0o755);
     }
@@ -127,7 +130,10 @@ describe('db integration', () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
     const fakeLcpDir = await createFakeLcpBin();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {
+      ...process.env,
+      PATH: `${fakeLcpDir}${path.delimiter}${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    };
 
     const result = await runCli(['db', 'download', '--environment', 'uat', '--project', 'demo', '--format', 'json'], {
       cwd: repoRoot,
@@ -147,7 +153,10 @@ describe('db integration', () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
     const fakeLcpDir = await createFakeLcpBinWithoutBackupIdInFilename();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {
+      ...process.env,
+      PATH: `${fakeLcpDir}${path.delimiter}${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    };
 
     const result = await runCli(['db', 'download', '--environment', 'uat', '--project', 'demo', '--format', 'json'], {
       cwd: repoRoot,
@@ -164,7 +173,7 @@ describe('db integration', () => {
   test('db files-download stores DOCLIB_PATH in docker/.env', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeLcpDir = await createFakeLcpBin();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeLcpDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const result = await runCli(['db', 'files-download', '--format', 'json'], {
       cwd: repoRoot,
@@ -182,7 +191,10 @@ describe('db integration', () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
     const fakeLcpDir = await createFakeLcpBin();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {
+      ...process.env,
+      PATH: `${fakeLcpDir}${path.delimiter}${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    };
 
     const result = await runCli(['db', 'sync', '--project', 'demo', '--environment', 'uat', '--format', 'json'], {
       cwd: repoRoot,
@@ -198,7 +210,7 @@ describe('db integration', () => {
   test('db files-mount recreates the doclib volume from a local path', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
     const localDoclib = path.join(repoRoot, 'tmp', 'document_library');
     await fs.ensureDir(localDoclib);
 
@@ -220,7 +232,7 @@ describe('db integration', () => {
   test('db files-download supports doclib-only downloads', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeLcpDir = await createFakeLcpBin();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeLcpDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const result = await runCli(['db', 'files-download', '--format', 'json'], {
       cwd: repoRoot,
@@ -235,7 +247,7 @@ describe('db integration', () => {
   test('db files-download --background ignores unreadable directories under doclib destination', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeLcpDir = await createFakeLcpBin();
-    const env = {...process.env, PATH: `${fakeLcpDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeLcpDir}${path.delimiter}${process.env.PATH ?? ''}`};
     const doclibDest = path.join(repoRoot, 'tmp', 'doclib-dest');
     const blockedDir = path.join(doclibDest, '.blocked');
     await fs.ensureDir(blockedDir);
@@ -265,7 +277,7 @@ async function createDbRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  postgres:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n',
+    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n',
   );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.writeFile(path.join(repoRoot, 'docker', 'sql', 'post-import.d', '020-second.sql'), 'update test set x=2;\n');
@@ -276,47 +288,63 @@ async function createDbRepoFixture(): Promise<string> {
 async function createFakeLcpBin(): Promise<string> {
   const binDir = createTempDir('dev-cli-fake-lcp-');
   const lcpPath = path.join(binDir, 'lcp');
+  const lcpCmdPath = path.join(binDir, 'lcp.cmd');
+  const lcpScriptPath = path.join(binDir, 'lcp.mjs');
+  await fs.writeFile(
+    lcpScriptPath,
+    `import fs from 'node:fs';
+import path from 'node:path';
+import {gzipSync} from 'node:zlib';
+
+const args = process.argv.slice(2);
+if (args[0] === 'version') {
+  process.stdout.write('lcp version 1\\n');
+  process.exit(0);
+}
+if (args[0] === 'backup' && args[1] === 'list') {
+  process.stdout.write('ID STATUS\\n');
+  process.stdout.write('bkp-123 success\\n');
+  process.exit(0);
+}
+if (args[0] === 'backup' && args[1] === 'download') {
+  let dest = '';
+  let backupId = '';
+  let database = false;
+  let doclib = false;
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === '--dest') dest = args[i + 1] ?? '';
+    if (args[i] === '--backupId') backupId = args[i + 1] ?? '';
+    if (args[i] === '--database') database = true;
+    if (args[i] === '--doclib') doclib = true;
+  }
+  fs.mkdirSync(dest, {recursive: true});
+  if (database) {
+    fs.writeFileSync(path.join(dest, \`\${backupId}-database.sql.gz\`), gzipSync(Buffer.from('select 1;\\n')));
+  }
+  if (doclib) {
+    const doclibDir = path.join(dest, 'dxpcloud-sample', 'doclib', 'uuid', '20098');
+    fs.mkdirSync(doclibDir, {recursive: true});
+    fs.writeFileSync(path.join(doclibDir, 'file.txt'), 'doclib\\n');
+  }
+  process.exit(0);
+}
+process.stderr.write(\`unsupported lcp call: \${args.join(' ')}\\n\`);
+process.exit(1);
+`,
+    {mode: 0o755},
+  );
   await fs.writeFile(
     lcpPath,
     `#!/usr/bin/env bash
-set -euo pipefail
-if [[ "$1" == "version" ]]; then
-  printf 'lcp version 1\\n'
-  exit 0
-fi
-if [[ "$1" == "backup" && "$2" == "list" ]]; then
-  printf 'ID STATUS\\n'
-  printf 'bkp-123 success\\n'
-  exit 0
-fi
-if [[ "$1" == "backup" && "$2" == "download" ]]; then
-  dest=""
-  backup_id=""
-  database=0
-  doclib=0
-  args=("$@")
-  for ((i=0; i<\${#args[@]}; i++)); do
-    case "\${args[$i]}" in
-      --dest) dest="\${args[$((i+1))]}" ;;
-      --backupId) backup_id="\${args[$((i+1))]}" ;;
-      --database) database=1 ;;
-      --doclib) doclib=1 ;;
-    esac
-  done
-  mkdir -p "$dest"
-  if [[ "$database" == "1" ]]; then
-    printf 'select 1;\\n' | gzip > "$dest/$backup_id-database.sql.gz"
-  fi
-  if [[ "$doclib" == "1" ]]; then
-    mkdir -p "$dest/dxpcloud-sample/doclib/uuid/20098"
-    printf 'doclib\\n' > "$dest/dxpcloud-sample/doclib/uuid/20098/file.txt"
-  fi
-  exit 0
-fi
-printf 'unsupported lcp call: %s\\n' "$*" >&2
-exit 1
+exec node "$(dirname "$0")/lcp.mjs" "$@"
 `,
     {mode: 0o755},
+  );
+  await fs.writeFile(
+    lcpCmdPath,
+    `@echo off
+node "%~dp0lcp.mjs" %*
+`,
   );
 
   return binDir;
@@ -325,39 +353,55 @@ exit 1
 async function createFakeLcpBinWithoutBackupIdInFilename(): Promise<string> {
   const binDir = createTempDir('dev-cli-fake-lcp-no-id-');
   const lcpPath = path.join(binDir, 'lcp');
+  const lcpCmdPath = path.join(binDir, 'lcp.cmd');
+  const lcpScriptPath = path.join(binDir, 'lcp.mjs');
+  await fs.writeFile(
+    lcpScriptPath,
+    `import fs from 'node:fs';
+import path from 'node:path';
+import {gzipSync} from 'node:zlib';
+
+const args = process.argv.slice(2);
+if (args[0] === 'version') {
+  process.stdout.write('lcp version 1\\n');
+  process.exit(0);
+}
+if (args[0] === 'backup' && args[1] === 'list') {
+  process.stdout.write('ID STATUS\\n');
+  process.stdout.write('bkp-123 success\\n');
+  process.exit(0);
+}
+if (args[0] === 'backup' && args[1] === 'download') {
+  let dest = '';
+  let database = false;
+  for (let i = 0; i < args.length; i += 1) {
+    if (args[i] === '--dest') dest = args[i + 1] ?? '';
+    if (args[i] === '--database') database = true;
+  }
+  const sampleDir = path.join(dest, 'dxpcloud-sample');
+  fs.mkdirSync(sampleDir, {recursive: true});
+  if (database) {
+    fs.writeFileSync(path.join(sampleDir, 'database.sql.gz'), gzipSync(Buffer.from('select 1;\\n')));
+  }
+  process.exit(0);
+}
+process.stderr.write(\`unsupported lcp call: \${args.join(' ')}\\n\`);
+process.exit(1);
+`,
+    {mode: 0o755},
+  );
   await fs.writeFile(
     lcpPath,
     `#!/usr/bin/env bash
-set -euo pipefail
-if [[ "$1" == "version" ]]; then
-  printf 'lcp version 1\\n'
-  exit 0
-fi
-if [[ "$1" == "backup" && "$2" == "list" ]]; then
-  printf 'ID STATUS\\n'
-  printf 'bkp-123 success\\n'
-  exit 0
-fi
-if [[ "$1" == "backup" && "$2" == "download" ]]; then
-  dest=""
-  database=0
-  args=("$@")
-  for ((i=0; i<\${#args[@]}; i++)); do
-    case "\${args[$i]}" in
-      --dest) dest="\${args[$((i+1))]}" ;;
-      --database) database=1 ;;
-    esac
-  done
-  mkdir -p "$dest/dxpcloud-sample"
-  if [[ "$database" == "1" ]]; then
-    printf 'select 1;\\n' | gzip > "$dest/dxpcloud-sample/database.sql.gz"
-  fi
-  exit 0
-fi
-printf 'unsupported lcp call: %s\\n' "$*" >&2
-exit 1
+exec node "$(dirname "$0")/lcp.mjs" "$@"
 `,
     {mode: 0o755},
+  );
+  await fs.writeFile(
+    lcpCmdPath,
+    `@echo off
+node "%~dp0lcp.mjs" %*
+`,
   );
 
   return binDir;

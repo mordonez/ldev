@@ -2,6 +2,7 @@ import {spawn} from 'node:child_process';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
+import {normalizeProcessEnv} from '../../core/platform/process.js';
 import {resolveEnvContext} from './env-files.js';
 
 export type EnvShellResult = {
@@ -13,9 +14,11 @@ export async function runEnvShell(
   options?: {processEnv?: NodeJS.ProcessEnv},
 ): Promise<EnvShellResult> {
   const context = resolveEnvContext(config);
+  const normalizedEnv = normalizeProcessEnv(options?.processEnv);
   const child = spawn('docker', ['compose', 'exec', 'liferay', 'bash'], {
     cwd: context.dockerDir,
-    env: options?.processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: 'inherit',
   });
 

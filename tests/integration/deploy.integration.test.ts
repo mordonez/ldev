@@ -52,21 +52,21 @@ describe('deploy integration', () => {
       `${expectedCommit}\n`,
     );
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
-    expect(gradleCalls).toContain('--console=plain dockerDeploy -Pliferay.workspace.environment=dockerenv -q');
+    expect(gradleCalls).toContain('"--console=plain" "dockerDeploy" "-Pliferay.workspace.environment=dockerenv" "-q"');
     expect(gradleCalls).not.toContain('buildService');
   }, 45000);
 
   test('deploy prepare is blocked while liferay is running unless explicitly overridden', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
     const fakeBinDir = await createFakeDockerBin({stateStatus: 'running', healthStatus: 'healthy'});
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const blocked = await runCli(['deploy', 'prepare', '--format', 'json'], {
       cwd: repoRoot,
       env,
     });
 
-    expect(blocked.exitCode).toBe(1);
+    expect(blocked.exitCode).not.toBe(0);
     expect(blocked.stderr).toContain('DEPLOY_RUNNING_ENV_BLOCKED');
 
     const forced = await runCli(['deploy', 'prepare', '--allow-running-env', '--format', 'json'], {
@@ -91,11 +91,14 @@ describe('deploy integration', () => {
     expect(parsed.buildServiceExecuted).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
-    expect(gradleCalls).toContain('--console=plain buildService -q');
-    expect(gradleCalls).toContain('--console=plain dockerDeploy -Pliferay.workspace.environment=dockerenv -q');
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe(
-      'release.info.version=1\n',
-    );
+    expect(gradleCalls).toContain('"--console=plain" "buildService" "-q"');
+    expect(gradleCalls).toContain('"--console=plain" "dockerDeploy" "-Pliferay.workspace.environment=dockerenv" "-q"');
+    expect(
+      (await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).replaceAll(
+        '\r\n',
+        '\n',
+      ),
+    ).toBe('release.info.version=1\n');
     expect(
       await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
     ).toBe(true);
@@ -121,7 +124,7 @@ describe('deploy integration', () => {
   test('deploy theme syncs theme artifacts to build/docker/deploy and deploy cache', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const result = await runCli(['deploy', 'theme', '--theme', 'ub-theme', '--format', 'json'], {cwd: repoRoot, env});
 
@@ -153,9 +156,12 @@ describe('deploy integration', () => {
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.restoredTrackedFiles).toBe(true);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).toBe(
-      'release.info.version=1\n',
-    );
+    expect(
+      (await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).replaceAll(
+        '\r\n',
+        '\n',
+      ),
+    ).toBe('release.info.version=1\n');
   }, 45000);
 
   test('deploy cache-update refreshes cache artifacts and supports --clean', async () => {
@@ -192,7 +198,7 @@ async function createDeployRepoFixture(options: {withServiceXml: boolean}): Prom
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\n',
+    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\n',
   );
   await fs.writeFile(path.join(liferayDir, 'build.gradle'), 'plugins {}\n');
   await fs.writeFile(
@@ -230,6 +236,36 @@ fi
 exit 0
 `,
     {mode: 0o755},
+  );
+  await fs.writeFile(
+    path.join(liferayDir, 'gradlew.bat'),
+    `@echo off\r
+echo %*>> "${liferayDir.replaceAll('\\', '\\\\')}\\\\.gradle-calls.log"\r
+echo %* | findstr /C:"buildService" >nul\r
+if not errorlevel 1 (\r
+  echo release.info.version=generated> "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\foo\\\\service.properties"\r
+  exit /b 0\r
+)\r
+echo %* | findstr /C:":modules:foo:dockerDeploy" >nul\r
+if not errorlevel 1 (\r
+  mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\foo\\\\build\\\\libs" >nul 2>&1\r
+  echo foo> "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\foo\\\\build\\\\libs\\\\foo.jar"\r
+  exit /b 0\r
+)\r
+echo %* | findstr /C:":themes:ub-theme:dockerDeploy" >nul\r
+if not errorlevel 1 (\r
+  mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\themes\\\\ub-theme\\\\dist" >nul 2>&1\r
+  echo theme> "${liferayDir.replaceAll('\\', '\\\\')}\\\\themes\\\\ub-theme\\\\dist\\\\ub-theme.war"\r
+  exit /b 0\r
+)\r
+echo %* | findstr /C:"dockerDeploy" >nul\r
+if not errorlevel 1 (\r
+  mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy" >nul 2>&1\r
+  echo jar> "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy\\\\demo.jar"\r
+  exit /b 0\r
+)\r
+exit /b 0\r
+`,
   );
 
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});

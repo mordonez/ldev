@@ -9,7 +9,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
-import {runProcess} from '../../core/platform/process.js';
+import {normalizeProcessEnv, runProcess} from '../../core/platform/process.js';
 
 export type DbFilesDownloadResult = {
   ok: true;
@@ -205,6 +205,7 @@ async function ensureDoclibBackupBackground(options: {
   }
 
   const outFd = await fs.open(logFile, 'a');
+  const normalizedEnv = normalizeProcessEnv(process.env);
   const child = spawn(
     'lcp',
     [
@@ -222,6 +223,8 @@ async function ensureDoclibBackupBackground(options: {
     ],
     {
       detached: true,
+      env: normalizedEnv,
+      shell: process.platform === 'win32',
       stdio: ['ignore', outFd, outFd],
     },
   );

@@ -11,6 +11,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import {normalizeProcessEnv} from '../../core/platform/process.js';
 import {buildComposeEnv, resolveEnvContext} from '../env/env-files.js';
 import {
   resolveAdtsBaseDir,
@@ -136,9 +137,11 @@ async function writePostgresDump(
 ): Promise<void> {
   const user = envContext.envValues.POSTGRES_USER || 'liferay';
   const db = envContext.envValues.POSTGRES_DB || 'liferay';
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', user, '-d', db], {
     cwd: envContext.dockerDir,
-    env: processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

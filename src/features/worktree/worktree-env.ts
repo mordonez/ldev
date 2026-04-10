@@ -75,6 +75,8 @@ export async function runWorktreeEnv(options: {
     ? path.join(btrfs.envsDir ?? path.join(mainEnvContext.dockerDir, 'btrfs', 'envs'), target.name)
     : path.join(target.dockerDir, 'data', 'envs', target.name);
   const nextValues = {
+    ...mainValues,
+    ...currentValues,
     BIND_IP: bindIp,
     LIFERAY_CLI_URL: `http://${bindIp}:${ports.httpPort}`,
     COMPOSE_PROJECT_NAME: `${mainComposeProject}-${target.name}`,

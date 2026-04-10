@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import {afterEach, describe, expect, test} from 'vitest';
 
-import {readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli, spawnCli} from '../../src/testing/cli-entry.js';
 
@@ -62,8 +62,8 @@ describe('reindex integration', () => {
   test('reindex tasks queries backgroundtask from postgres', async () => {
     const server = await createEsServer();
     const repoRoot = await createReindexRepoFixture(getServerPort(server));
-    const fakeBinDir = await createReindexTasksDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const result = await runCli(['liferay', 'reindex', 'tasks', '--format', 'json'], {
       cwd: repoRoot,
@@ -176,40 +176,6 @@ async function createReindexRepoFixture(esPort: number): Promise<string> {
     `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}\nBIND_IP=127.0.0.1\nES_HTTP_PORT=${esPort}\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n`,
   );
   return repoRoot;
-}
-
-async function createReindexTasksDockerBin(): Promise<string> {
-  const binDir = createTempDir('dev-cli-reindex-tasks-bin-');
-  const dockerPath = path.join(binDir, 'docker');
-  await fs.writeFile(
-    dockerPath,
-    `#!/usr/bin/env bash
-set -euo pipefail
-STATE_FILE="${binDir}/docker-calls.log"
-printf '%s\\n' "$*" >> "$STATE_FILE"
-if [[ "$1" == "version" ]]; then
-  if [[ "\${2:-}" == "--format" ]]; then
-    printf '{}\\n'
-  else
-    printf 'Docker version\\n'
-  fi
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "version" ]]; then
-  printf 'Docker Compose version v2\\n'
-  exit 0
-fi
-if [[ "$1" == "compose" && "\${2:-}" == "exec" && "\${3:-}" == "-T" && "\${4:-}" == "postgres" && "\${5:-}" == "psql" ]]; then
-  printf '%s\\n' '-[ RECORD 1 ]---------' 'backgroundtaskid     | 123' 'status               | RUNNING' 'taskexecutorclassname| com.liferay.portal.search.internal.background.task.ReindexPortalBackgroundTaskExecutor'
-  exit 0
-fi
-printf 'unsupported docker call: %s\\n' "$*" >&2
-exit 1
-`,
-    {mode: 0o755},
-  );
-
-  return binDir;
 }
 
 async function waitFor(check: () => boolean, timeoutMs: number, message: string): Promise<void> {
