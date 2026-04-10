@@ -51,6 +51,7 @@ export default defineConfig({
         text: 'Core Concepts',
         items: [
           {text: 'Environments', link: '/core-concepts/environments'},
+          {text: 'OAuth', link: '/core-concepts/oauth'},
           {text: 'Discovery', link: '/core-concepts/discovery'},
           {text: 'Operations Model', link: '/core-concepts/operations'},
           {text: 'Structured Output', link: '/core-concepts/structured-output'},

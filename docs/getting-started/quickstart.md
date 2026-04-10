@@ -90,6 +90,10 @@ ldev oauth install --write-env
 ldev portal check
 ```
 
+`ldev` uses OAuth2 for portal discovery, resource operations, and other API-backed commands. `--write-env` writes the local credentials into `.liferay-cli.local.yml`.
+
+See [OAuth](/core-concepts/oauth) for the model and [Configuration](/reference/configuration) for precedence.
+
 ## 6. Prepare the repo for agents
 
 If you want coding agents to work through `ldev`, bootstrap the managed AI assets:
