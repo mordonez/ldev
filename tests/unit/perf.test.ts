@@ -44,7 +44,7 @@ describe('perf', () => {
 
     await fs.writeFile(
       path.join(repoRoot, 'docker', '.env'),
-      `COMPOSE_PROJECT_NAME=demo\nCOMPOSE_FILE=docker-compose.yml:docker-compose.elasticsearch.yml\nENV_DATA_ROOT=./data/default\nBIND_IP=127.0.0.1\nLIFERAY_HTTP_PORT=${port}\nES_HTTP_PORT=${port}\n`,
+      `COMPOSE_PROJECT_NAME=demo\nCOMPOSE_FILE=${['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}\nENV_DATA_ROOT=./data/default\nBIND_IP=127.0.0.1\nLIFERAY_HTTP_PORT=${port}\nES_HTTP_PORT=${port}\n`,
     );
 
     const config = {

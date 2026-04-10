@@ -27,7 +27,7 @@ describe('liferay-search', () => {
     ) as typeof fetch;
 
     const result = await runLiferaySearchIndices(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
     );
     expect(result.rows[0]?.index).toBe('liferay-1');
   });
@@ -38,7 +38,7 @@ describe('liferay-search', () => {
       .mockResolvedValue(new Response(JSON.stringify({foo: {mappings: {}}}), {status: 200})) as typeof fetch;
 
     const result = await runLiferaySearchMappings(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
       {index: 'foo'},
     );
     expect(result.index).toBe('foo');
@@ -53,7 +53,7 @@ describe('liferay-search', () => {
       ) as typeof fetch;
 
     const result = await runLiferaySearchQuery(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
       {index: 'foo', query: 'bar'},
     );
     expect((result.hits.hits as {total: {value: number}}).total.value).toBe(2);
