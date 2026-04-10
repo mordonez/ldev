@@ -35,9 +35,10 @@ describe('env compose profiles (ldev setup --with)', () => {
       processEnv,
     });
 
-    expect(result.composeFileWritten).toBe('docker-compose.yml:docker-compose.elasticsearch.yml');
+    const esComposeFile = ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter);
+    expect(result.composeFileWritten).toBe(esComposeFile);
     const envContent = await fs.readFile(path.join(repoRoot, 'docker', '.env'), 'utf8');
-    expect(envContent).toContain('COMPOSE_FILE=docker-compose.yml:docker-compose.elasticsearch.yml');
+    expect(envContent).toContain(`COMPOSE_FILE=${esComposeFile}`);
     expect(
       await fs.pathExists(
         path.join(
@@ -64,13 +65,14 @@ describe('env compose profiles (ldev setup --with)', () => {
       processEnv,
     });
 
-    expect(result.composeFileWritten).toBe(
-      'docker-compose.yml:docker-compose.elasticsearch.yml:docker-compose.postgres.yml',
-    );
+    const fullComposeFile = [
+      'docker-compose.yml',
+      'docker-compose.elasticsearch.yml',
+      'docker-compose.postgres.yml',
+    ].join(path.delimiter);
+    expect(result.composeFileWritten).toBe(fullComposeFile);
     const envContent = await fs.readFile(path.join(repoRoot, 'docker', '.env'), 'utf8');
-    expect(envContent).toContain(
-      'COMPOSE_FILE=docker-compose.yml:docker-compose.elasticsearch.yml:docker-compose.postgres.yml',
-    );
+    expect(envContent).toContain(`COMPOSE_FILE=${fullComposeFile}`);
   }, 20_000);
 });
 

@@ -4,7 +4,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 
 import {collectEnvStatus, waitForServiceHealthy, type EnvStatusReport} from './env-health.js';
-import {resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, resolveEnvContext} from './env-files.js';
 
 export type EnvWaitResult = EnvStatusReport;
 
@@ -13,13 +13,14 @@ export async function runEnvWait(
   options?: {timeoutSeconds?: number; pollIntervalSeconds?: number; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
 ): Promise<EnvWaitResult> {
   const context = resolveEnvContext(config);
+  const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
 
   const waitTask = async () => {
     try {
       await waitForServiceHealthy(context, 'liferay', {
         timeoutSeconds: options?.timeoutSeconds ?? 600,
         pollIntervalSeconds: options?.pollIntervalSeconds ?? 10,
-        processEnv: options?.processEnv,
+        processEnv: composeEnv,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Timed out while waiting for Liferay to become healthy.';
@@ -33,7 +34,7 @@ export async function runEnvWait(
     await waitTask();
   }
 
-  return collectEnvStatus(context, {processEnv: options?.processEnv});
+  return collectEnvStatus(context, {processEnv: composeEnv});
 }
 
 export function formatEnvWait(result: EnvWaitResult): string {

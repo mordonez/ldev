@@ -5,10 +5,13 @@ import {describe, expect, test} from 'vitest';
 
 import {loadConfig} from '../../src/core/config/load-config.js';
 import {
+  buildComposeEnv,
   buildComposeFilesEnv,
   ensureEnvDataLayout,
   resolveDataRoot,
   resolveEnvContext,
+  resolvePostgresStorage,
+  resolveRuntimeStorage,
   seedBuildDockerConfigs,
 } from '../../src/features/env/env-files.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
@@ -50,6 +53,23 @@ describe('env-files', () => {
 
     const mode = fs.statSync(path.join(context.dataRoot, 'elasticsearch-data')).mode & 0o777;
     expect(mode).toBe(0o777);
+  });
+
+  test('ensureEnvDataLayout skips postgres-data directory when postgres uses a Docker volume', async () => {
+    const repoRoot = createTempDir('dev-cli-env-layout-volume-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      'ENV_DATA_ROOT=./data/custom\nPOSTGRES_DATA_MODE=volume\nPOSTGRES_DATA_VOLUME_NAME=demo-postgres\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+
+    await ensureEnvDataLayout(context);
+
+    expect(fs.existsSync(path.join(context.dataRoot, 'postgres-data'))).toBe(false);
   });
 
   test('seedBuildDockerConfigs precreates build docker deploy with writable permissions', async () => {
@@ -137,14 +157,281 @@ describe('env-files', () => {
 
     test('with elasticsearch: injects COMPOSE_FILE with ES add-on', () => {
       const result = buildComposeFilesEnv(['elasticsearch'], {});
-      expect(result.COMPOSE_FILE).toBe('docker-compose.yml:docker-compose.elasticsearch.yml');
+      expect(result.COMPOSE_FILE).toBe(['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter));
     });
 
     test('with elasticsearch and postgres: injects COMPOSE_FILE with full stack', () => {
       const result = buildComposeFilesEnv(['elasticsearch', 'postgres'], {});
       expect(result.COMPOSE_FILE).toBe(
-        'docker-compose.yml:docker-compose.elasticsearch.yml:docker-compose.postgres.yml',
+        ['docker-compose.yml', 'docker-compose.elasticsearch.yml', 'docker-compose.postgres.yml'].join(path.delimiter),
       );
     });
+  });
+
+  test('resolvePostgresStorage uses explicit Docker volume mode when configured', () => {
+    const repoRoot = createTempDir('dev-cli-env-postgres-storage-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nPOSTGRES_DATA_MODE=volume\nPOSTGRES_DATA_VOLUME_NAME=demo-postgres\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const storage = resolvePostgresStorage(context);
+
+    expect(storage.mode).toBe('volume');
+    expect(storage.volumeName).toBe('demo-postgres');
+    expect(storage.bindPath).toBe(path.join(repoRoot, 'docker', 'data', 'default', 'postgres-data'));
+  });
+
+  test('buildComposeEnv adds postgres volume override when volume mode is enabled', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-volume-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nPOSTGRES_DATA_MODE=volume\nPOSTGRES_DATA_VOLUME_NAME=demo-postgres\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBe('demo-postgres');
+    expect(composeEnv.COMPOSE_FILE).toBe(
+      ['docker-compose.yml', 'docker-compose.postgres.yml', 'docker-compose.postgres.volume.yml'].join(path.delimiter),
+    );
+  });
+
+  test('buildComposeEnv adds liferay volume override when runtime state uses Docker volumes', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-liferay-volume-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'LIFERAY_DATA_MODE=volume',
+        'LIFERAY_DATA_VOLUME_NAME=demo-liferay-data',
+        'LIFERAY_OSGI_STATE_MODE=volume',
+        'LIFERAY_OSGI_STATE_VOLUME_NAME=demo-liferay-osgi-state',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.LIFERAY_DATA_VOLUME_NAME).toBe('demo-liferay-data');
+    expect(composeEnv.LIFERAY_OSGI_STATE_VOLUME_NAME).toBe('demo-liferay-osgi-state');
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.COMPOSE_FILE).toBe(
+      ['docker-compose.yml', 'docker-compose.liferay.volume.yml'].join(path.delimiter),
+    );
+  });
+
+  test('buildComposeEnv does not add volume overrides when runtime storage is forced to bind', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-bind-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'POSTGRES_DATA_MODE=bind',
+        'LIFERAY_DATA_MODE=bind',
+        'LIFERAY_OSGI_STATE_MODE=bind',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_DATA_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_OSGI_STATE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.COMPOSE_FILE).toBe(['docker-compose.yml', 'docker-compose.postgres.yml'].join(path.delimiter));
+  });
+
+  test('buildComposeEnv does not add volume overrides for auto mode on non-Windows', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-auto-other-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'LDEV_STORAGE_PLATFORM=linux',
+        'POSTGRES_DATA_MODE=auto',
+        'LIFERAY_DATA_MODE=auto',
+        'LIFERAY_OSGI_STATE_MODE=auto',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_DATA_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_OSGI_STATE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.COMPOSE_FILE).toBe(['docker-compose.yml', 'docker-compose.postgres.yml'].join(path.delimiter));
+  });
+
+  test('buildComposeEnv keeps deploy cache on bind in auto mode on Windows', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-auto-windows-deploy-cache-bind-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'LDEV_STORAGE_PLATFORM=windows',
+        'POSTGRES_DATA_MODE=auto',
+        'LIFERAY_DATA_MODE=auto',
+        'LIFERAY_OSGI_STATE_MODE=auto',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBe('demo-postgres-data');
+    expect(composeEnv.LIFERAY_DATA_VOLUME_NAME).toBe('demo-liferay-data');
+    expect(composeEnv.LIFERAY_OSGI_STATE_VOLUME_NAME).toBe('demo-liferay-osgi-state');
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.COMPOSE_FILE).toBe(
+      [
+        'docker-compose.yml',
+        'docker-compose.postgres.yml',
+        'docker-compose.postgres.volume.yml',
+        'docker-compose.liferay.volume.yml',
+      ].join(path.delimiter),
+    );
+  });
+
+  test('buildComposeEnv adds volume overrides for explicit volume mode on non-Windows', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-explicit-volume-other-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'LDEV_STORAGE_PLATFORM=linux',
+        'POSTGRES_DATA_MODE=volume',
+        'POSTGRES_DATA_VOLUME_NAME=demo-postgres',
+        'LIFERAY_DATA_MODE=volume',
+        'LIFERAY_DATA_VOLUME_NAME=demo-liferay-data',
+        'LIFERAY_OSGI_STATE_MODE=volume',
+        'LIFERAY_OSGI_STATE_VOLUME_NAME=demo-liferay-osgi-state',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBe('demo-postgres');
+    expect(composeEnv.LIFERAY_DATA_VOLUME_NAME).toBe('demo-liferay-data');
+    expect(composeEnv.LIFERAY_OSGI_STATE_VOLUME_NAME).toBe('demo-liferay-osgi-state');
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+    expect(composeEnv.COMPOSE_FILE).toBe(
+      [
+        'docker-compose.yml',
+        'docker-compose.postgres.yml',
+        'docker-compose.postgres.volume.yml',
+        'docker-compose.liferay.volume.yml',
+      ].join(path.delimiter),
+    );
+  });
+
+  test('resolveRuntimeStorage always keeps deploy cache on bind mounts', () => {
+    const repoRoot = createTempDir('dev-cli-env-deploy-cache-bind-only-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'LDEV_STORAGE_PLATFORM=windows',
+        'LIFERAY_DEPLOY_CACHE_MODE=volume',
+        'LIFERAY_DEPLOY_CACHE_VOLUME_NAME=demo-liferay-deploy-cache',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const storage = resolveRuntimeStorage(context, 'liferay-deploy-cache');
+    const composeEnv = buildComposeEnv(context, {baseEnv: {FOO: 'bar'}});
+
+    expect(storage.mode).toBe('bind');
+    expect(storage.bindPath).toBe(path.join(context.dataRoot, 'liferay-deploy-cache'));
+    expect(composeEnv.LIFERAY_DEPLOY_CACHE_VOLUME_NAME).toBeUndefined();
+  });
+
+  test('buildComposeEnv adds elasticsearch volume override when data storage uses Docker volumes', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-es-volume-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', 'docker-compose.elasticsearch.yml'),
+      'services:\n  elasticsearch:\n',
+    );
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.elasticsearch.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        'ELASTICSEARCH_DATA_MODE=volume',
+        'ELASTICSEARCH_DATA_VOLUME_NAME=demo-elasticsearch-data',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['elasticsearch'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.ELASTICSEARCH_DATA_VOLUME_NAME).toBe('demo-elasticsearch-data');
+    expect(composeEnv.COMPOSE_FILE).toBe(
+      ['docker-compose.yml', 'docker-compose.elasticsearch.yml', 'docker-compose.elasticsearch.volume.yml'].join(
+        path.delimiter,
+      ),
+    );
   });
 });

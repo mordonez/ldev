@@ -7,7 +7,7 @@ import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDockerOrThrow, runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, resolveEnvContext, resolveManagedStorages} from './env-files.js';
 
 export type EnvCleanResult = {
   ok: true;
@@ -34,7 +34,9 @@ export async function runEnvClean(
   }
 
   const cleanTask = async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['down', '-v'], {env: options?.processEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['down', '-v'], {
+      env: buildComposeEnv(context, {baseEnv: options?.processEnv}),
+    });
   };
 
   if (options?.printer) {
@@ -50,6 +52,16 @@ export async function runEnvClean(
     reject: false,
   });
   doclibVolumeRemoved = volumeResult.ok;
+
+  for (const storage of resolveManagedStorages(context)) {
+    if (storage.mode !== 'volume') {
+      continue;
+    }
+    await runDockerOrThrow(['volume', 'rm', storage.volumeName], {
+      env: options?.processEnv,
+      reject: false,
+    });
+  }
 
   let dataRootDeleted = false;
   let dataRootSkipped: string | null = null;

@@ -21,6 +21,18 @@ ldev start
 - compare fixes across branches
 - avoid mixing runtime state between unrelated tasks
 
+## Runtime Note
+
+Worktrees inherit the files that exist in the branch or commit used as their base.
+
+If your project uses runtime storage overrides such as:
+
+- `docker-compose.postgres.volume.yml`
+- `docker-compose.liferay.volume.yml`
+- `docker-compose.elasticsearch.volume.yml`
+
+make sure those files already exist in the branch history before you create the worktree. A local copy in the main checkout is not enough if it has not been committed into the branch the worktree uses.
+
 ## Clean up
 
 ```bash

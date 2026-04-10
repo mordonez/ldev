@@ -7,6 +7,7 @@ import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
+import {resolveManagedStorages} from '../env/env-files.js';
 import {resolveWorktreeContext, resolveWorktreeTarget, resolvePortSet, type WorktreeTarget} from './worktree-paths.js';
 import {syncWorktreeLocalArtifacts} from './worktree-local-artifacts.js';
 import {cloneInitialWorktreeState, resolveBtrfsConfig, worktreeEnvHasState} from './worktree-state.js';
@@ -98,10 +99,26 @@ export async function runWorktreeEnv(options: {
   const updated = upsertEnvFileValues(currentContent, nextValues);
   await fs.writeFile(target.envFile, updated === '' ? '' : `${updated}\n`);
 
-  const clonedState = !(await worktreeEnvHasState(envDataRoot))
+  const targetEnvContext = {
+    ...mainEnvContext,
+    repoRoot: target.worktreeDir,
+    liferayDir: path.join(target.worktreeDir, 'liferay'),
+    dockerDir: target.dockerDir,
+    dockerComposeFile: path.join(target.dockerDir, 'docker-compose.yml'),
+    dockerEnvFile: target.envFile,
+    envValues: nextValues,
+    dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
+    bindIp,
+    httpPort: ports.httpPort,
+    portalUrl: `http://${bindIp}:${ports.httpPort}`,
+    composeProjectName: `${mainComposeProject}-${target.name}`,
+  };
+
+  const clonedState = !(await worktreeEnvHasState(envDataRoot, targetEnvContext))
     ? await cloneInitialWorktreeState({
         mainEnvContext,
         targetDataRoot: envDataRoot,
+        targetEnvContext,
         btrfs,
       })
     : false;
@@ -221,15 +238,29 @@ function resolveLocalDataRoot(dockerDir: string, configured: string | undefined)
 }
 
 async function ensureLocalEnvDataLayout(dataRoot: string): Promise<void> {
+  const storages = resolveManagedStorages({
+    repoRoot: '',
+    liferayDir: '',
+    dockerDir: path.dirname(dataRoot),
+    dockerComposeFile: '',
+    dockerEnvFile: '',
+    dockerEnvExampleFile: null,
+    envValues: {},
+    dataRoot,
+    bindIp: '',
+    httpPort: '',
+    portalUrl: '',
+    composeProjectName: 'liferay',
+  });
+  const managedBindPaths = storages.filter((storage) => storage.mode === 'bind').map((storage) => storage.bindPath);
+
   for (const directory of [
     dataRoot,
-    path.join(dataRoot, 'liferay-data'),
-    path.join(dataRoot, 'liferay-osgi-state'),
     path.join(dataRoot, 'liferay-deploy-cache'),
     path.join(dataRoot, 'elasticsearch-data'),
     path.join(dataRoot, 'patching'),
     path.join(dataRoot, 'dumps'),
-    path.join(dataRoot, 'postgres-data'),
+    ...managedBindPaths,
   ]) {
     await fs.ensureDir(directory);
   }

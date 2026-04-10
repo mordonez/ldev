@@ -5,7 +5,7 @@ import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 
-import {resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, resolveEnvContext} from './env-files.js';
 
 export type EnvStopResult = {
   ok: true;
@@ -25,8 +25,9 @@ export async function runEnvStop(
   }
 
   const stopTask = async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['stop'], {env: options?.processEnv});
-    await runDockerComposeOrThrow(context.dockerDir, ['down'], {env: options?.processEnv});
+    const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['stop'], {env: composeEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['down'], {env: composeEnv});
   };
 
   if (options?.printer) {

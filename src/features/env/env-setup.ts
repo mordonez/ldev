@@ -14,7 +14,7 @@ import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
 
-import {buildComposeFilesEnv, ensureEnvDataLayout, ensureEnvFile, resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, ensureEnvDataLayout, ensureEnvFile, resolveEnvContext} from './env-files.js';
 
 export type EnvSetupResult = {
   ok: true;
@@ -46,7 +46,7 @@ export async function runEnvSetup(
   const warmedDeployCache = await warmDeployCacheIfNeeded(config, options?.printer);
   const composeFileWritten = await persistComposeProfile(context.dockerDir, config.liferayDir, options?.with ?? []);
 
-  const composeEnv = buildComposeFilesEnv(options?.with ?? [], options?.processEnv);
+  const composeEnv = buildComposeEnv(context, {withServices: options?.with ?? [], baseEnv: options?.processEnv});
 
   if (!(options?.skipPull ?? false)) {
     if (options?.printer) {
@@ -94,7 +94,7 @@ async function persistComposeProfile(
   if (withServices.length === 0) return null;
 
   const composeFiles = ['docker-compose.yml', ...withServices.map((s) => `docker-compose.${s}.yml`)];
-  const composeFileValue = composeFiles.join(':');
+  const composeFileValue = composeFiles.join(path.delimiter);
 
   const envFile = path.join(dockerDir, '.env');
   const current = (await fs.pathExists(envFile)) ? await fs.readFile(envFile, 'utf8') : '';

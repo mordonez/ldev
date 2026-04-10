@@ -2,14 +2,14 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 
 import {collectEnvStatus, type EnvStatusReport} from './env-health.js';
-import {resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, resolveEnvContext} from './env-files.js';
 
 export async function runEnvStatus(
   config: AppConfig,
   options?: {processEnv?: NodeJS.ProcessEnv},
 ): Promise<EnvStatusReport> {
   const context = resolveEnvContext(config);
-  return collectEnvStatus(context, options);
+  return collectEnvStatus(context, {processEnv: buildComposeEnv(context, {baseEnv: options?.processEnv})});
 }
 
 export function formatEnvStatus(report: EnvStatusReport): string {
