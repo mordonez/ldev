@@ -139,6 +139,8 @@ structure type across all selected folders instead of per folder.
 
 ### Isolated worktree troubleshooting
 
+Reference: `references/worktree-flow.md`
+
 When a risky fix or a production-like reproduction should not share runtime
 state with the main checkout, isolate it:
 

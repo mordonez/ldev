@@ -301,7 +301,7 @@ describe('ai integration', () => {
     expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain(`.agents/skills/project-*`);
   }, 30000);
 
-  test('install --project in a generic repo installs only the capability-safe project-owned skill', async () => {
+  test('install --project in a generic repo adds project context but no project-owned skills', async () => {
     const targetDir = createTempDir('My Project.ai.project-');
 
     const result = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
@@ -311,8 +311,9 @@ describe('ai integration', () => {
     expect(result.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
 
-    const projectSkills = ['capturing-session-knowledge'].map((skill) => `project-${skill}`);
+    const projectSkills: string[] = [];
 
     for (const skill of projectSkills) {
       expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', skill, 'SKILL.md'))).toBe(true);
@@ -321,8 +322,7 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(false);
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
-    expect(agents).toContain('## Project-Owned Skills Installed By `--project`');
-    expect(agents).toContain(`.agents/skills/project-*`);
+    expect(agents).not.toContain('## Project-Owned Skills Installed By `--project`');
     for (const skill of projectSkills) {
       expect(agents).toContain(`\`${skill}\``);
     }
@@ -337,8 +337,9 @@ describe('ai integration', () => {
 
     expect(result.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-capturing-session-knowledge'))).toBe(
-      true,
+      false,
     );
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(false);
@@ -354,8 +355,9 @@ describe('ai integration', () => {
 
     expect(result.exitCode).toBe(0);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-capturing-session-knowledge'))).toBe(
-      true,
+      false,
     );
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(true);

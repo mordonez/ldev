@@ -29,3 +29,13 @@ Prefer direct `ldev` workflows when:
 - you need local runtime context
 - you need task-shaped portal discovery such as `portal inventory`
 - you need diagnostics that combine local state and portal state
+
+## OAuth2 and MCP authentication
+
+MCP endpoints that require authentication use the same OAuth2 credentials as
+headless API calls. Before using MCP with authenticated endpoints:
+
+1. Verify OAuth2 is configured: `ldev context --json` → `liferay.oauth2Configured`
+2. If `false`, run `ldev oauth install --write-env` and re-check.
+3. For OAuth2 portal setup and scope requirements, see the `oauth2-setup.md`
+   reference in the `developing-liferay` skill.

@@ -18,6 +18,7 @@ clear.
 > `liferay.oauth2Configured` and `commands.*` (which namespaces are ready — includes
 > `commands.portal` and `commands.resource`). Use these values to resolve paths and
 > verify auth before running any portal command.
+> Full field reference: `references/ldev-context.md`
 
 ## Discovery first
 
@@ -86,9 +87,9 @@ makes the change risky:
 Preview the local repository state first:
 
 ```bash
-ldev resource import-structures --check-only
-ldev resource import-templates --check-only
-ldev resource import-adts --check-only
+ldev resource import-structures --site /<site> --apply --check-only
+ldev resource import-templates --site /<site> --apply --check-only
+ldev resource import-adts --site /<site> --apply --check-only
 ```
 
 Or validate one focused object:
@@ -112,9 +113,9 @@ Or apply the repository directory contents directly when that is the intended
 workflow:
 
 ```bash
-ldev resource import-structures --apply
-ldev resource import-templates --apply
-ldev resource import-adts --apply
+ldev resource import-structures --site /<site> --apply
+ldev resource import-templates --site /<site> --apply
+ldev resource import-adts --site /<site> --apply
 ```
 
 ## Choose the smallest implementation path
@@ -153,6 +154,15 @@ Run after any change to `service.xml` or portlet service layer.
 ldev deploy service
 ```
 
+### Liferay Objects
+
+Use for custom data models on DXP 7.4+ that need their own headless REST API
+without traditional OSGi modules.
+
+References:
+- `references/objects.md` — field types, relationships, auto-generated API, Actions, Validations
+- `references/oauth2-setup.md` — OAuth2 portal setup and `ldev oauth install --write-env`
+
 ### Journal structures, templates and ADTs
 
 Use the stable file-based resource workflows instead of ad hoc API calls.
@@ -162,6 +172,7 @@ mutating.
 References:
 - `references/structures.md` — CLI workflow (export, validate, import)
 - `references/structure-field-catalog.md` — field type JSON catalog (use when authoring or editing structure JSON directly)
+- `references/workflow.md` — approval workflow states, inspection, and publish failures
 
 ```bash
 ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
