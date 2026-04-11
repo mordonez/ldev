@@ -94,6 +94,25 @@ playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/after.png
 playwright-cli -s=<session-name> close
 ```
 
+When the browser flow starts from an issue URL, do not jump from `open` straight
+to grep or code edits. Use the browser and `ldev portal inventory page --url`
+together to inspect the actual loaded page first:
+
+```bash
+playwright-cli -s=<session-name> open "<localUrl>"
+playwright-cli -s=<session-name> snapshot
+ldev portal inventory page --url <localUrl> --json
+```
+
+Use that inspection to answer:
+
+- did the expected local page load?
+- which page/resource/component is actually backing the visible UI?
+- which exact symptom is still present in `Red`?
+
+Do not treat "screenshot command succeeded" as evidence that the right page or
+component was validated.
+
 If the project provides a `.playwright/cli.config.json`, pass it:
 
 ```bash
@@ -190,5 +209,6 @@ playwright-cli kill-all || true
 - Store evidence under `.tmp/<issue>/` before uploading anywhere
 - For flaky failures, use `tracing-start`/`tracing-stop` before guessing
 - Never validate against production; always reproduce locally first
+- For issue work, inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url` before deciding what code/resource to edit
 - If browser navigation lands on the wrong local site because of virtual host routing, treat browser evidence as blocked for that URL and use `curl`, `ldev portal inventory ...`, and runtime logs instead of forcing a misleading screenshot
 - If Chrome is unavailable but Firefox/WebKit works, report that explicitly instead of treating the whole validation as blocked

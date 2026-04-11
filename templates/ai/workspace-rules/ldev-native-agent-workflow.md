@@ -31,6 +31,12 @@ Prefer atomic commands. Do not use plural resource commands or a broad deploy
 unless a human explicitly asks for a bulk operation and the risk is written down
 first.
 
+When an issue starts from a URL, do not reproduce or validate against the
+production host. Resolve the page through `ldev portal inventory page --url`,
+switch to the local runtime URL, and inspect that page before searching code.
+Use page inspection to identify the concrete ADT, template, fragment, module,
+or theme surface first; broad grep comes after that.
+
 Deploy commands are only for deployable artifacts. Use `ldev deploy theme`
 when the theme changed, and `ldev deploy module <module-name>` when modules or
 deployable Gradle units changed. For Journal templates, ADTs, fragments, and

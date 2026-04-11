@@ -52,6 +52,15 @@ ldev logs --since 5m --no-follow
 ldev worktree env --json
 ```
 
+For issue work that starts from a URL, this inspection must be followed by:
+
+```bash
+ldev portal inventory page --url <localUrl> --json
+```
+
+Do not start repo-wide grep or code edits until the worktree runtime has loaded
+the target page and you have identified the concrete page/resource to change.
+
 ## Recover Broken State
 
 ```bash
