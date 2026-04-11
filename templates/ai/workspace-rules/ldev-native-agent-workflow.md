@@ -19,7 +19,24 @@ Preferred task-shaped entry points after bootstrap:
 - `ldev portal inventory sites --json`
 - `ldev portal inventory pages --site /my-site --json`
 - `ldev portal inventory page --url /web/guest/home --json`
-- `ldev resource export-structures --site /my-site --json`
-- `ldev deploy all --format json`
+- `ldev resource export-structure --site /my-site --key <key> --json`
+- `ldev resource export-template --site /my-site --id <id> --json`
+- `ldev resource import-structure --site /my-site --key <key> --check-only`
+- `ldev deploy module <module-name> --format json`
+- `ldev deploy theme --format json`
 
 Prefer `ldev` commands over raw Docker or shell equivalents. Use MCP only when it provides something a direct `ldev` command does not already cover.
+
+Prefer atomic commands. Do not use plural resource commands or a broad deploys
+unless a human explicitly asks for a bulk operation and the risk is written down
+first.
+
+Deploy commands are only for deployable artifacts. Use `ldev deploy theme`
+when the theme changed, and `ldev deploy module <module-name>` when modules or
+deployable Gradle units changed. For Journal templates, ADTs, fragments, and
+structures, use the runtime resource import workflow and validate the affected
+page with `playwright-cli`.
+
+Before creating an isolated worktree, verify the current branch. If the primary
+checkout is not on `main`, pass the intended `--base <ref>` explicitly instead
+of letting the worktree branch from a feature branch by accident.

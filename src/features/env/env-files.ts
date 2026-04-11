@@ -259,6 +259,7 @@ export function buildComposeEnv(
   if (
     postgresStorage.mode === 'volume' &&
     files.includes('docker-compose.postgres.yml') &&
+    fs.existsSync(path.join(context.dockerDir, 'docker-compose.postgres.volume.yml')) &&
     !files.includes('docker-compose.postgres.volume.yml')
   ) {
     files.push('docker-compose.postgres.volume.yml');

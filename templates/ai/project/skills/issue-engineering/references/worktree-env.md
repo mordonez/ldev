@@ -11,7 +11,9 @@ worktree capabilities available.
 > environment isolation, database copying, and Btrfs snapshots beyond what git provides alone.
 
 ```bash
-ldev worktree setup --name issue-NUM --with-env
+git branch --show-current
+git rev-parse --abbrev-ref origin/HEAD
+ldev worktree setup --name issue-NUM --with-env --base main
 cd .worktrees/issue-NUM
 pwd
 git rev-parse --show-toplevel
@@ -20,16 +22,20 @@ ldev status --json
 ```
 
 When you run `ldev worktree setup` from a non-`main` branch in the primary checkout,
-the new worktree branches from that current HEAD by default. Pass `--base <ref>` to
-override the starting ref when needed.
+the new worktree branches from that current HEAD by default. Do not rely on that
+implicit behavior. If the primary checkout is not on `main`, pass the intended
+`--base <ref>` explicitly or stop and ask for the validated base branch.
 
 `ldev start` returns as soon as Docker reports the container healthy (Tomcat up). Liferay still needs time to finish deploying bundles from the cache. Wait for the startup sequence to complete before using the portal:
 
 ```bash
-ldev logs --since 2m --no-follow | grep -i "startup\|Server startup\|STARTED"
+ldev logs --since 2m --no-follow
 ```
 
-Do not run `ldev portal ...`, `playwright-cli`, or any portal-facing tool until that output confirms Liferay has finished its startup sequence.
+Do not run `ldev portal ...`, `playwright-cli`, or any portal-facing tool until
+the output confirms Liferay has finished its startup sequence. Look for startup
+markers such as `Server startup` or `STARTED`. On Windows, use `Select-String`
+if you need to filter the output.
 
 ## Isolation Gate
 
@@ -56,7 +62,7 @@ ldev start
 
 ## Cleanup
 
-Only after a verifiable PR exists:
+Only after a human has validated the work and explicitly approved cleanup:
 
 ```bash
 ldev stop

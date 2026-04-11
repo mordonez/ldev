@@ -50,10 +50,15 @@ Examples:
 
 - `ldev portal inventory sites --json`
 - `ldev portal inventory page --url /web/guest/home --json`
-- `ldev resource export-structures --site /my-site --json`
+- `ldev resource export-structure --site /my-site --key <key> --json`
+- `ldev resource export-template --site /my-site --id <id> --json`
 
 Use the official Liferay MCP only when it provides something that a direct
 `ldev` command does not already provide.
+
+Prefer atomic commands. Do not use plural resource commands or a broad deploys
+unless a human explicitly asks for a bulk operation and the risk is written down
+first.
 
 Use vendor skills for the full reusable workflow:
 
@@ -87,6 +92,11 @@ Before using MCP:
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and
   agent-friendly workflows.
+- Prefer singular resource commands (`export-structure`, `export-template`,
+  `export-adt`, `export-fragment`, `import-structure`, `import-template`,
+  `import-adt`, `import-fragment`) over plural commands.
+- Prefer `ldev deploy module <module-name>` or `ldev deploy theme` over broader
+  deploy commands. Do not use a broad deploy as a default validation step.
 - Prefer the task-shaped public contract first:
   - `ldev doctor --json`
   - `ldev context --json`

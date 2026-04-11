@@ -41,8 +41,10 @@ ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 
 ```bash
 # Only run if the project has created this script
-python3 .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
+python .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
 ```
+
+On Windows, use `py` if `python` is not registered on `PATH`.
 
 ## What to Add to the Issue
 

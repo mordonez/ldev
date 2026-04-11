@@ -222,6 +222,24 @@ describe('env-files', () => {
     );
   });
 
+  test('buildComposeEnv skips missing postgres volume override for upgraded projects', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-volume-missing-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.postgres.yml'), 'services:\n  postgres:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nPOSTGRES_DATA_MODE=volume\nPOSTGRES_DATA_VOLUME_NAME=demo-postgres\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBe('demo-postgres');
+    expect(composeEnv.COMPOSE_FILE).toBe(['docker-compose.yml', 'docker-compose.postgres.yml'].join(path.delimiter));
+  });
+
   test('buildComposeEnv adds liferay volume override when runtime state uses Docker volumes', () => {
     const repoRoot = createTempDir('dev-cli-env-compose-liferay-volume-');
     fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});

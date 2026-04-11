@@ -26,13 +26,14 @@ technical layer.
 - gather project issue context
 - prepare short issue/process artifacts if the repository wants them
 - route technical work to the correct vendor skill
-- hand off to project-specific wrappers such as `pr-creator` if needed
+- prepare a human-review handoff after technical validation
 
 ## Must not do
 
 - redefine the incident diagnosis workflow
 - redefine the deploy workflow
 - redefine runtime verification
+- open pull requests or comment that a PR exists before human validation
 - become a second full playbook parallel to vendor skills
 
 ## Output

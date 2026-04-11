@@ -12,10 +12,18 @@ Use this rule only when the project type is `ldev-native`.
 
 Primary deploy model:
 
-- `ldev deploy all` for the main rebuild/deploy loop
-- `ldev deploy module <name>` for focused rebuilds
-- `ldev deploy theme` for theme-specific rebuilds
+- `ldev deploy module <name>` when modules or deployable Gradle units changed
+- `ldev deploy theme` when the theme changed
+- a broad deploy only when a human explicitly asks for a full deploy and the
+  change cannot be proved with a narrower deploy
 - `ldev deploy status` to verify what the runtime observed
+
+Prefer atomic deploys. Do not use a broad deploys as a default validation step.
+
+Do not use deploy commands for Journal templates, ADTs, fragments, or
+structures. Those live in the portal runtime; apply them with
+`ldev resource import-*` and validate the affected portal flow with
+`playwright-cli`.
 
 The native runtime is built around the `docker/` + `liferay/` layout, so deploy behavior is more tightly coupled to the local runtime than in a standard Blade Workspace.
 

@@ -71,6 +71,7 @@ export async function runWorktreeEnv(options: {
   const ports = resolvePortSet(target.name);
   const bindIp = currentValues.BIND_IP || mainValues.BIND_IP || '127.0.0.1';
   const mainComposeProject = mainValues.COMPOSE_PROJECT_NAME || 'liferay';
+  const worktreeComposeProject = `${mainComposeProject}-${target.name}`;
   const envDataRoot = btrfs.enabled
     ? path.join(btrfs.envsDir ?? path.join(mainEnvContext.dockerDir, 'btrfs', 'envs'), target.name)
     : path.join(target.dockerDir, 'data', 'envs', target.name);
@@ -79,9 +80,13 @@ export async function runWorktreeEnv(options: {
     ...currentValues,
     BIND_IP: bindIp,
     LIFERAY_CLI_URL: `http://${bindIp}:${ports.httpPort}`,
-    COMPOSE_PROJECT_NAME: `${mainComposeProject}-${target.name}`,
-    VOLUME_PREFIX: `${mainComposeProject}-${target.name}`,
+    COMPOSE_PROJECT_NAME: worktreeComposeProject,
+    VOLUME_PREFIX: worktreeComposeProject,
     DOCLIB_VOLUME_NAME: mainValues.DOCLIB_VOLUME_NAME || `${mainComposeProject}-doclib`,
+    POSTGRES_DATA_VOLUME_NAME: `${worktreeComposeProject}-postgres-data`,
+    LIFERAY_DATA_VOLUME_NAME: `${worktreeComposeProject}-liferay-data`,
+    LIFERAY_OSGI_STATE_VOLUME_NAME: `${worktreeComposeProject}-liferay-osgi-state`,
+    ELASTICSEARCH_DATA_VOLUME_NAME: `${worktreeComposeProject}-elasticsearch-data`,
     LIFERAY_HTTP_PORT: ports.httpPort,
     LIFERAY_DEBUG_PORT: ports.debugPort,
     GOGO_PORT: ports.gogoPort,
@@ -113,7 +118,7 @@ export async function runWorktreeEnv(options: {
     bindIp,
     httpPort: ports.httpPort,
     portalUrl: `http://${bindIp}:${ports.httpPort}`,
-    composeProjectName: `${mainComposeProject}-${target.name}`,
+    composeProjectName: worktreeComposeProject,
   };
 
   const clonedState = !(await worktreeEnvHasState(envDataRoot, targetEnvContext))
@@ -146,7 +151,7 @@ export async function runWorktreeEnv(options: {
     worktreeDir: target.worktreeDir,
     dockerDir: target.dockerDir,
     envFile: target.envFile,
-    composeProjectName: `${mainComposeProject}-${target.name}`,
+    composeProjectName: worktreeComposeProject,
     portalUrl: `http://${bindIp}:${ports.httpPort}`,
     dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
     ports,

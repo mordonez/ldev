@@ -4,5 +4,5 @@
 - affected selector: [TODO]
 - expected visual behavior: [TODO]
 - verification:
-  - `ldev deploy theme`
-  - inspect affected URL
+  - `ldev deploy theme` only if the packaged theme changed
+  - inspect affected URL with `playwright-cli`

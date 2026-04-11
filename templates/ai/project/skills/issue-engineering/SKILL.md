@@ -1,6 +1,6 @@
 ---
 name: issue-engineering
-description: 'Use when a project wants a thin issue-process overlay on top of vendor ldev skills for intake, PR policy, evidence, and cleanup.'
+description: 'Use when a project wants a thin issue-process overlay on top of vendor ldev skills for intake, human review handoff, evidence, and cleanup.'
 ---
 
 # Issue Engineering
@@ -14,7 +14,7 @@ Use this overlay only for project-specific issue process:
 - issue intake and scope notes
 - worktree naming conventions if the project wants them and the runtime supports them
 - temporary issue artifacts and handoff files
-- PR body expectations
+- human-review handoff expectations
 - GitHub comments, evidence, and closure policy
 - team-specific escalation and cleanup rules
 
@@ -115,10 +115,10 @@ omitting it.
 
 After technical work is complete, apply the project process:
 
-- write the PR body in the repository's expected format
+- write a human-review handoff in the repository's expected format
 - include the verification steps the project wants reviewers to run
 - attach screenshots or evidence if the project requires them
-- comment back on the issue if the project expects a status update
+- wait for explicit human validation before opening a pull request or posting PR-related issue comments
 
 ### 6. Cleanup
 
@@ -130,7 +130,7 @@ skills or `AGENTS.md`, not here.
 ## Allowed project-specific references
 
 - `references/intake.md`
-- `references/pr-and-cleanup.md`
+- `references/human-review-and-cleanup.md`
 - `references/human-review-checklist.md`
 - `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
 - `scripts/prepare_issue.py`

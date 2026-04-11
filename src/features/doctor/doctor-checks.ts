@@ -264,11 +264,11 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
       status: capabilities.hasPlaywrightCli ? 'pass' : 'warn',
       summary: capabilities.hasPlaywrightCli
         ? summarizeTool('playwright-cli', tools.playwrightCli)
-        : 'playwright-cli is not available; visual validation will fall back to npx playwright screenshot',
+        : 'playwright-cli is not available; browser validation requires installing it first',
       details: capabilities.hasPlaywrightCli
         ? undefined
         : [
-            'Install with: npm install -g @playwright/cli@latest — required for session-based browser flows and before/after screenshot evidence.',
+            'Install with: npm install -g @playwright/cli@latest - required for session-based browser flows and before/after screenshot evidence.',
           ],
     },
   ];

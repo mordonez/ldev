@@ -71,6 +71,15 @@ describe('worktree integration', () => {
 
   test('worktree env derives isolated compose settings from the main env', async () => {
     const repoRoot = await createWorktreeRepoFixture();
+    await fs.appendFile(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'POSTGRES_DATA_VOLUME_NAME=demo-postgres-data',
+        'LIFERAY_DATA_VOLUME_NAME=demo-liferay-data',
+        'LIFERAY_OSGI_STATE_VOLUME_NAME=demo-liferay-osgi-state',
+        'ELASTICSEARCH_DATA_VOLUME_NAME=demo-elasticsearch-data',
+      ].join('\n') + '\n',
+    );
     await runWorktreeSetup({
       cwd: repoRoot,
       name: 'issue-561',
@@ -86,6 +95,14 @@ describe('worktree integration', () => {
     const envFile = await fs.readFile(path.join(repoRoot, '.worktrees', 'issue-561', 'docker', '.env'), 'utf8');
     expect(envFile).toContain('COMPOSE_PROJECT_NAME=demo-issue-561');
     expect(envFile).toContain('DOCLIB_VOLUME_NAME=demo-doclib');
+    expect(envFile).toContain('POSTGRES_DATA_VOLUME_NAME=demo-issue-561-postgres-data');
+    expect(envFile).toContain('LIFERAY_DATA_VOLUME_NAME=demo-issue-561-liferay-data');
+    expect(envFile).toContain('LIFERAY_OSGI_STATE_VOLUME_NAME=demo-issue-561-liferay-osgi-state');
+    expect(envFile).toContain('ELASTICSEARCH_DATA_VOLUME_NAME=demo-issue-561-elasticsearch-data');
+    expect(envFile).not.toContain('POSTGRES_DATA_VOLUME_NAME=demo-postgres-data');
+    expect(envFile).not.toContain('LIFERAY_DATA_VOLUME_NAME=demo-liferay-data');
+    expect(envFile).not.toContain('LIFERAY_OSGI_STATE_VOLUME_NAME=demo-liferay-osgi-state');
+    expect(envFile).not.toContain('ELASTICSEARCH_DATA_VOLUME_NAME=demo-elasticsearch-data');
     expect(
       await fs.pathExists(
         path.join(

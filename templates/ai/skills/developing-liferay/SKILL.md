@@ -37,6 +37,7 @@ Use file exports when you need the current source of truth from the portal:
 ```bash
 ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
 ldev resource export-template --site /<site> --id <TEMPLATE_ID>
+ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
@@ -44,6 +45,12 @@ ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 
 When structures, templates, ADTs, or fragments should be reviewed in Git, use
 the full file workflow instead of editing through the UI.
+
+These resources live in the portal runtime. Do not run `ldev deploy theme`,
+`ldev deploy module`, or a broad deploy for them; those commands will not
+apply Journal templates, ADTs, fragments, or structures. Use
+`ldev resource import-*` against a prepared runtime and verify with browser
+automation when the change affects rendered pages.
 
 ### 1. Discover exact identifiers
 
@@ -60,18 +67,13 @@ Use focused exports when changing one object:
 ```bash
 ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
 ldev resource export-template --site /<site> --id <TEMPLATE_ID>
+ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
-Use bulk exports when reviewing or normalizing the repository-backed source of
-truth:
-
-```bash
-ldev resource export-structures --site /<site>
-ldev resource export-templates --site /<site>
-ldev resource export-adts --site /<site>
-ldev resource export-fragments --site /<site>
-```
+If you intentionally need several resources, repeat the singular export command
+per resource. Do not use plural export commands unless a human explicitly asked
+for a bulk refresh and accepted the larger diff.
 
 ### 3. Edit the exported files locally
 
@@ -87,18 +89,13 @@ makes the change risky:
 Preview the local repository state first:
 
 ```bash
-ldev resource import-structures --site /<site> --apply --check-only
-ldev resource import-templates --site /<site> --apply --check-only
-ldev resource import-adts --site /<site> --apply --check-only
-```
-
-Or validate one focused object:
-
-```bash
 ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
 ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ```
+
+If you intentionally need to validate multiple files, repeat the singular
+import command per changed resource so failures stay attributable.
 
 ### 5. Apply the smallest safe import
 
@@ -107,15 +104,6 @@ ldev resource import-structure --site /<site> --key <STRUCTURE_KEY>
 ldev resource import-template --site /<site> --id <TEMPLATE_ID>
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl>
 ldev resource import-fragment --site /<site> --fragment <fragment-key>
-```
-
-Or apply the repository directory contents directly when that is the intended
-workflow:
-
-```bash
-ldev resource import-structures --site /<site> --apply
-ldev resource import-templates --site /<site> --apply
-ldev resource import-adts --site /<site> --apply
 ```
 
 ## Choose the smallest implementation path
@@ -148,11 +136,10 @@ ldev osgi diag <bundle-symbolic-name> --json
 
 ### Service Builder
 
-Run after any change to `service.xml` or portlet service layer.
-
-```bash
-ldev deploy service
-```
+Run only after a confirmed Service Builder change to `service.xml` or the
+generated service layer. This is broader than a module deploy, so do not use it
+as a generic fix-up step. If a single generated module can prove the change, use
+`ldev deploy module <module-name>` instead.
 
 ### Liferay Objects
 
@@ -203,6 +190,12 @@ that project-owned workflow instead of inventing custom commands.
 
 - Use `ldev` as the entrypoint.
 - Prefer the smallest deploy or import that proves the change.
+- Use `ldev deploy theme` only for theme changes.
+- Use `ldev deploy module <module-name>` only for modules or deployable Gradle units.
+- Use singular `ldev resource import-*` and `ldev resource export-*` commands for
+  Journal templates, ADTs, fragments, and structures.
+- Do not use plural resource commands or a broad deploy unless a human
+  explicitly asks for a bulk operation and the risk is written down first.
 - Do not guess IDs, keys or site names when `ldev portal inventory ...` can resolve them.
 - For scripts and agents, prefer `--json` on all discovery and verification commands.
 - If a command fails because the portal is not reachable, re-check with `ldev status --json` and start the env before deeper debugging.
@@ -214,3 +207,4 @@ that project-owned workflow instead of inventing custom commands.
 - If the change affects an OSGi bundle, `ldev osgi status <bundle>` reports the expected state.
 - If the change affects portal resources, verify them again with `ldev portal inventory ...` or `ldev resource ...`.
 - If the change started from exported portal resources, verify that the repo now contains the intended source of truth.
+- If the change affects rendered portal behavior, validate it with `playwright-cli` in the prepared runtime before calling it done.

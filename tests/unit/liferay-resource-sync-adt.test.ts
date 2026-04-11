@@ -120,4 +120,72 @@ describe('liferay resource adt-sync', () => {
     expect(result.widgetType).toBe('search-result-summary');
     expect(formatLiferayResourceSyncAdt(result)).toContain('created\tsearch-result-summary\tUB_ADT\tUB_ADT');
   });
+
+  test('falls back to global when an ADT is missing in the requested site', async () => {
+    const {config, adtFile} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":301,"friendlyUrlPath":"/guest","name":"Guest","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (
+          url.includes('/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')
+        ) {
+          return new Response('{"classNameId":777}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
+          return new Response('{"classNameId":888}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates')) {
+          if (url.includes('groupId=301')) {
+            return new Response('[]', {status: 200});
+          }
+          if (url.includes('groupId=20121')) {
+            return new Response(
+              '[{"templateId":"991","templateKey":"UB_ADT","nameCurrentValue":"UB_ADT","script":"ADT local script"}]',
+              {status: 200},
+            );
+          }
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?templateId=991')) {
+          return new Response('{"classPK":0}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
+          const form = new URLSearchParams(String(init?.body ?? ''));
+          expect(form.get('templateId')).toBe('991');
+          expect(form.get('script')).toBe('ADT local script');
+          return new Response('{"templateId":"991","templateKey":"UB_ADT"}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncAdt(
+      config,
+      {site: '/guest', file: adtFile},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('updated');
+    expect(result.id).toBe('UB_ADT');
+    expect(result.siteFriendlyUrl).toBe('/global');
+    expect(result.siteId).toBe(20121);
+  });
 });

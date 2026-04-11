@@ -41,7 +41,8 @@ playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/before.png
 playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/after.png
 ```
 
-If browser routing is wrong for the target virtual host, do not count an unrelated screenshot as evidence. Record visual validation as blocked and fall back to:
+If browser routing is wrong for the target virtual host, do not count an unrelated
+screenshot as evidence. Record visual validation as blocked and use:
 
 ```bash
 curl -I "<fullUrl>"
