@@ -55,7 +55,24 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
-### 2. Worktree isolation
+### 2. Reproduce
+
+**This step is a hard gate. Do not proceed to worktree setup or code changes without it.**
+
+Before writing any code, confirm the symptom exists in this environment:
+
+- Use `playwright-cli` to open the affected URL and capture the failing state
+- Save the screenshot as `.tmp/issue-NUM/before.png`
+- If the symptom does not appear, stop and report to the user — the issue may already
+  be fixed, may require specific data, or may not affect this environment
+
+If the runtime is not available, explicitly block this step and tell the user
+reproduction is pending. Do not proceed silently.
+
+This is distinct from intake. Intake resolves the surface; reproduction confirms
+the actual failure in the running environment.
+
+### 3. Worktree isolation
 
 **For `ldev-native` projects this step is mandatory, not optional.**
 If the project defines agent invariants in `docs/ai/project-context.md`, those
@@ -80,7 +97,7 @@ If isolated worktrees are available:
 If the repository is a `blade-workspace`, do not invent a fake worktree phase.
 Stay in the repository process flow and use vendor skills directly.
 
-### 3. Technical execution
+### 4. Technical execution
 
 Route by task:
 
@@ -95,7 +112,7 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-### 4. Validation is not optional
+### 5. Validation is not optional
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
 validation with Playwright is required before handoff — regardless of whether
@@ -111,7 +128,7 @@ If worktree isolation was skipped or the runtime is not available, explicitly
 block this step and tell the user validation is pending rather than silently
 omitting it.
 
-### 5. Project handoff
+### 6. Project handoff
 
 After technical work is complete, apply the project process:
 
@@ -120,7 +137,7 @@ After technical work is complete, apply the project process:
 - attach screenshots or evidence if the project requires them
 - wait for explicit human validation before opening a pull request or posting PR-related issue comments
 
-### 6. Cleanup
+### 7. Cleanup
 
 Only apply cleanup rules that are specific to this repository's process.
 

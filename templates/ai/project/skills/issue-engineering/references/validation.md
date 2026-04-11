@@ -33,12 +33,16 @@ ldev resource template --site /<site> --id <TEMPLATE_ID>
 ```
 
 If the change affects a template, ADT, structure, or fragment — visual validation
-is **required**, not optional. Import success alone is not sufficient evidence:
+is **required**, not optional. Import success alone is not sufficient evidence.
+
+`before.png` must already exist from the reproduction step in intake. Do not
+re-capture it here — that would overwrite the baseline taken before the fix.
 
 ```bash
-playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/before.png
-# (apply fix and import)
-playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/after.png
+# before.png already captured during intake/reproduction
+# After applying the fix and importing:
+playwright-cli -s=issue-NUM screenshot --filename=.tmp/issue-NUM/after.png
+# Compare after.png with before.png to confirm the symptom is gone
 ```
 
 If browser routing is wrong for the target virtual host, do not count an unrelated

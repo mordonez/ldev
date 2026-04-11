@@ -57,3 +57,22 @@ On Windows, use `py` if `python` is not registered on `PATH`.
 - Conclusions based only on file names
 - IDs guessed
 - Unreproduced diagnoses
+
+## Reproduce the Symptom
+
+After confirming the URL and surface, capture the failing state **before any code change**.
+This screenshot is the definition of the problem — not the issue description, not a
+hypothesis. If the symptom is not visible here, the issue may not affect this environment.
+
+```bash
+playwright-cli -s=issue-NUM open "<fullUrl>"
+playwright-cli -s=issue-NUM screenshot --filename=.tmp/issue-NUM/before.png
+```
+
+If the symptom does not appear:
+
+- Record that the bug was not reproduced in this environment
+- Stop and report to the user before proceeding
+- Do not infer the bug is present or already fixed without evidence
+
+Save `before.png` before creating a worktree or editing any file.
