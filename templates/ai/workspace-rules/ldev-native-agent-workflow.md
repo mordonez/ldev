@@ -46,3 +46,17 @@ page with `playwright-cli`.
 Before creating an isolated worktree, verify the current branch. If the primary
 checkout is not on `main`, pass the intended `--base <ref>` explicitly instead
 of letting the worktree branch from a feature branch by accident.
+
+After creating a worktree, immediately enter it and prove the editing root
+before touching files:
+
+```bash
+cd .worktrees/<name>
+git rev-parse --show-toplevel
+git status --short
+```
+
+Creating the worktree does not mean later tool writes are automatically scoped
+to it. Before the first edit, confirm every file path you will edit starts with
+the worktree root. If a path points at the primary checkout, stop and correct the
+working directory before writing.

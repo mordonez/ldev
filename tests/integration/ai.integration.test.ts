@@ -73,6 +73,8 @@ describe('ai integration', () => {
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).toContain('Read order:');
     expect(agents).toContain('docs/ai/project-context.md');
+    expect(agents).toContain('confirm the');
+    expect(agents).toContain('editing root');
     expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
     const claude = await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8');
     expect(claude).toContain('if it exists');
@@ -546,6 +548,12 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-deploy.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-setup.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-runtime.md'))).toBe(false);
+    const nativeAgentWorkflow = await fs.readFile(
+      path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'),
+      'utf8',
+    );
+    expect(nativeAgentWorkflow).toContain('Before the first edit, confirm every file path you will edit starts with');
+    expect(nativeAgentWorkflow).toContain('the worktree root');
 
     const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
     expect(rulesManifest.projectType).toBe('ldev-native');

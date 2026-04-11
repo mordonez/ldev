@@ -33,6 +33,10 @@ Use `ldev --help` as the source of truth for the public CLI surface.
   instead — it handles environment isolation, database copying, and Btrfs snapshots
   on top of the git worktree. `git worktree add` alone is incomplete and unsafe for
   this workflow.
+- After creating an isolated worktree, immediately `cd` into it and confirm the
+  editing root with `git rev-parse --show-toplevel`. Do not edit files whose
+  absolute path belongs to the primary checkout when the task requires a
+  worktree.
 - Prefer the task-shaped public contract first:
   - `ldev doctor --json`
   - `ldev context --json`

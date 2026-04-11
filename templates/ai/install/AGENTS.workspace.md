@@ -88,6 +88,10 @@ Before using MCP:
   directly. Use `ldev worktree setup --name <name> --with-env` instead — it handles
   environment isolation, database copying, and Btrfs snapshots on top of the git
   worktree. `git worktree add` alone is incomplete and unsafe for that workflow.
+- After creating an isolated worktree, immediately `cd` into it and confirm the
+  editing root with `git rev-parse --show-toplevel`. Do not edit files whose
+  absolute path belongs to the primary checkout when the task requires a
+  worktree.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and

@@ -24,5 +24,12 @@ Before changing code or runtime state:
 ```bash
 ldev worktree setup --name <name> --with-env
 cd .worktrees/<name>
+git rev-parse --show-toplevel
+git status --short
 ldev start
 ```
+
+Creating the worktree is not enough. Before editing any file, confirm the file
+path is under the `.worktrees/<name>` root returned by
+`git rev-parse --show-toplevel`. Do not write issue changes into the primary
+checkout.

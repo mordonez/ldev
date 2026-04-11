@@ -8,10 +8,13 @@ Short contract for issue work in `ldev` projects.
 2. Reproduce the bug locally before creating code changes.
 3. If the project uses isolated worktrees, reproduce again in the worktree
    runtime before the first edit or runtime mutation.
-4. Inspect the loaded page and resolve the owning resource before broad grep.
-5. Define `Green` as a checklist of observable symptoms, not as a successful
+4. Before the first edit, prove the current editing root is the isolated
+   worktree with `git rev-parse --show-toplevel`; edited paths must be under
+   that root, never the primary checkout.
+5. Inspect the loaded page and resolve the owning resource before broad grep.
+6. Define `Green` as a checklist of observable symptoms, not as a successful
    command or a screenshot existing on disk.
-6. If the symptom is still present, stay in `Red`.
+7. If the symptom is still present, stay in `Red`.
 
 ## Minimum Issue Record
 
@@ -21,12 +24,14 @@ Before editing, record:
 - local URL used for `Red`
 - page/layout/site resolved by `ldev`
 - owning surface: ADT, template, fragment, theme, module, or `UNKNOWN`
+- editing root from `git rev-parse --show-toplevel`
 - symptom checklist to verify in `Green`
 
 ## Invalid Shortcuts
 
 - production screenshot counted as local reproduction
 - grep first, inspect later
+- worktree created but edits still written under the primary checkout
 - import/deploy success counted as validation
 - "I found a likely fix in another branch" counted as completion
 - "before/after screenshots exist" counted as proof without checking symptoms

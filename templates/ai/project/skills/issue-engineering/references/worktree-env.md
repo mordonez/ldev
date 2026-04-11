@@ -17,6 +17,7 @@ ldev worktree setup --name issue-NUM --with-env --base main
 cd .worktrees/issue-NUM
 pwd
 git rev-parse --show-toplevel
+git status --short
 ldev start
 ldev status --json
 ```
@@ -39,7 +40,11 @@ if you need to filter the output.
 
 ## Isolation Gate
 
-- Do not continue if `pwd` or `git rev-parse --show-toplevel` does not point to the expected worktree
+- Creating the worktree is not enough. You must be operating from inside it.
+- Do not continue if `pwd` or `git rev-parse --show-toplevel` does not point to the expected `.worktrees/<name>` directory.
+- Before the first file edit, run `git rev-parse --show-toplevel` and `git status --short` from the same shell/session that will edit files.
+- If using an editor or agent tool with absolute paths, every edited path must start with the worktree root returned by `git rev-parse --show-toplevel`. Paths under the primary checkout are forbidden for the task.
+- If any tracked file changes appear in the primary checkout after a worktree was required, stop immediately. Do not continue editing, do not move changes silently, and report the exact paths for human recovery.
 - Do not run `ldev portal ...`, `ldev resource ...`, or `playwright-cli` until:
   1. `ldev status --json` confirms the container is healthy, AND
   2. logs confirm Liferay finished its startup sequence (see above)
@@ -112,6 +117,7 @@ interaction required.
 ldev worktree setup --name issue-NUM        # no --with-env
 cd .worktrees/issue-NUM
 git rev-parse --show-toplevel               # confirm you are inside the worktree
+git status --short
 ```
 
 **Hard stop after this.** A git-only worktree has no runtime. Do NOT run:
