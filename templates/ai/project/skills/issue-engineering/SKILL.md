@@ -55,10 +55,23 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
-### 2. Optional isolation add-on
+### 2. Worktree isolation
 
-If the repository runs on `ldev-native` and isolated worktrees are available,
-use the native add-on before mutating runtime state:
+**For `ldev-native` projects this step is mandatory, not optional.**
+If the project defines agent invariants in `docs/ai/project-context.md`, those
+invariants require a worktree before any code change or runtime mutation.
+Do not skip this step regardless of whether the user asks to skip commits or
+work in a lightweight mode.
+
+**These justifications are invalid and must not be used to skip this step:**
+- "We are already on a feature branch, not main" — branch isolation is not runtime isolation.
+- "The change is small" — size does not waive the invariant.
+- "The runtime is already running" — that is the main environment; it must not be mutated.
+- "The user did not ask for a worktree" — the invariant applies regardless of user phrasing.
+
+If you find yourself reasoning toward any of these, stop and create the worktree.
+
+If isolated worktrees are available:
 
 - prepare the isolated worktree with `ldev worktree setup --with-env`
 - use project worktree naming conventions if the repository has them
@@ -66,9 +79,6 @@ use the native add-on before mutating runtime state:
 
 If the repository is a `blade-workspace`, do not invent a fake worktree phase.
 Stay in the repository process flow and use vendor skills directly.
-
-Native-only references such as `references/worktree-env.md` are optional add-ons,
-not the core workflow.
 
 ### 3. Technical execution
 
@@ -85,7 +95,23 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-### 4. Project handoff
+### 4. Validation is not optional
+
+For runtime-backed resources (ADTs, templates, structures, fragments), browser
+validation with Playwright is required before handoff — regardless of whether
+the user asks to skip commits or work in a lightweight mode.
+
+"No commit" only affects the final git step. It does not waive:
+
+- import: `ldev resource import-*` for the changed resource
+- runtime verification: `ldev portal check --json`, `ldev logs diagnose --json`
+- browser validation: Playwright against the affected URL
+
+If worktree isolation was skipped or the runtime is not available, explicitly
+block this step and tell the user validation is pending rather than silently
+omitting it.
+
+### 5. Project handoff
 
 After technical work is complete, apply the project process:
 
@@ -94,7 +120,7 @@ After technical work is complete, apply the project process:
 - attach screenshots or evidence if the project requires them
 - comment back on the issue if the project expects a status update
 
-### 5. Cleanup
+### 6. Cleanup
 
 Only apply cleanup rules that are specific to this repository's process.
 
