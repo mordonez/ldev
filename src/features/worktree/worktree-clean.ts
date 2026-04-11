@@ -124,10 +124,14 @@ export async function runWorktreeClean(options: {
       reject: false,
     });
     if (isRegistered) {
-      const removeResult = await removeGitWorktree(context.mainRepoRoot, target.worktreeDir).catch(async () => {
-        await removePathRobust(target.worktreeDir, {processEnv: options.processEnv});
-        return false;
-      });
+      // Remove the directory first (with EBUSY retries), then let git prune the
+      // stale reference — avoids git's own rmdir attempt racing with Docker handle release.
+      if (await fs.pathExists(target.worktreeDir)) {
+        await removePathRobust(target.worktreeDir, {processEnv: options.processEnv}).catch(async () => {
+          // Fallback: let git try its own force-remove
+          await removeGitWorktree(context.mainRepoRoot, target.worktreeDir).catch(() => undefined);
+        });
+      }
 
       await pruneGitWorktrees(context.mainRepoRoot).catch(() => undefined);
       const stillRegistered = (await listGitWorktrees(context.mainRepoRoot)).includes(target.worktreeDir);
@@ -138,7 +142,7 @@ export async function runWorktreeClean(options: {
         );
       }
 
-      if (removeResult === false && (await fs.pathExists(target.worktreeDir))) {
+      if (await fs.pathExists(target.worktreeDir)) {
         throw new CliError(`Could not fully remove the worktree directory: ${target.worktreeDir}`, {
           code: 'WORKTREE_CLEAN_FAILED',
         });

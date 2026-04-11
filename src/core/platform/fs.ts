@@ -1,4 +1,5 @@
 import path from 'node:path';
+import {rm, access} from 'node:fs/promises';
 
 import fs from 'fs-extra';
 
@@ -11,24 +12,39 @@ export const fileSystem = {
 };
 
 export async function removePathRobust(targetPath: string, options?: {processEnv?: NodeJS.ProcessEnv}): Promise<void> {
+  // Use fs.promises.rm with native maxRetries — Node.js handles EBUSY/ENOTEMPTY
+  // retry internally (important for Windows where rmdir can race with open readdir handles
+  // or Docker Desktop releasing bind-mount locks after docker compose down).
   try {
-    await fs.remove(targetPath);
+    await rm(targetPath, {recursive: true, force: true, maxRetries: 15, retryDelay: 1000});
     return;
   } catch (error) {
-    if (!isPermissionError(error) || !(await fs.pathExists(targetPath))) {
+    if (!isPermissionOrBusyError(error) || !(await pathExists(targetPath))) {
       throw error;
     }
   }
 
+  // Fallback: Docker helper handles paths that native rm can't (e.g. Windows MAX_PATH
+  // exceeded in deeply nested node_modules or Java source trees).
   await removePathWithDockerHelper(targetPath, options?.processEnv);
 
-  if (await fs.pathExists(targetPath)) {
-    await fs.remove(targetPath);
+  if (await pathExists(targetPath)) {
+    await rm(targetPath, {recursive: true, force: true, maxRetries: 5, retryDelay: 500});
   }
 }
 
-function isPermissionError(error: unknown): boolean {
-  return error instanceof Error && 'code' in error && (error.code === 'EACCES' || error.code === 'EPERM');
+async function pathExists(targetPath: string): Promise<boolean> {
+  return access(targetPath)
+    .then(() => true)
+    .catch(() => false);
+}
+
+function isPermissionOrBusyError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'EBUSY')
+  );
 }
 
 async function removePathWithDockerHelper(targetPath: string, processEnv?: NodeJS.ProcessEnv): Promise<void> {
