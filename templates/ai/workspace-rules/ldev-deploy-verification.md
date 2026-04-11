@@ -22,7 +22,7 @@ Use deploy commands only for deployable artifacts:
 - a broad deploy only when a human explicitly asks for a full deploy and
   the change cannot be proved with a narrower deploy
 
-Prefer atomic deploys. Do not use a broad deploys as a default validation step.
+Prefer atomic deploys. Do not use a broad deploy as a default validation step.
 
 Do not use deploy commands for Journal templates, ADTs, fragments, or
 structures. Those require a prepared runtime and `ldev resource import-*`, then

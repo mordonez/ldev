@@ -173,9 +173,13 @@ async function applyAiInstall(options: {
   const skillsToUpdate = managedVendorSkills;
 
   for (const skillName of skillsToUpdate) {
-    await fs.copy(path.join(options.assets.skillsSourceDir, skillName), path.join(skillsDestinationDir, skillName), {
-      overwrite: true,
-    });
+    await copyAiTemplatePath(
+      path.join(options.assets.skillsSourceDir, skillName),
+      path.join(skillsDestinationDir, skillName),
+      {
+        overwrite: true,
+      },
+    );
   }
 
   for (const skillName of retiredVendorSkills) {
@@ -343,7 +347,7 @@ async function installManagedAiRules(
 
     for (const target of targets) {
       await fs.ensureDir(path.dirname(target.path));
-      await fs.writeFile(target.path, target.transform(content));
+      await writeTextFileLf(target.path, target.transform(content));
       touchedTargets.add(target.label);
     }
 
@@ -571,7 +575,7 @@ async function installAgentsFile(
   }
 
   const content = await renderAgentsFile(assets, options);
-  await fs.writeFile(destination, content);
+  await writeTextFileLf(destination, content);
   return exists ? 'overwritten' : 'installed';
 }
 
@@ -691,7 +695,7 @@ async function installProjectFile(targetDir: string, assets: AiAssets, relativeP
   }
 
   await fs.ensureDir(path.dirname(destination));
-  await fs.copy(source, destination);
+  await copyAiTemplatePath(source, destination);
   return true;
 }
 
@@ -725,7 +729,7 @@ async function installProjectOwnedSkills(
     if (await fs.pathExists(destination)) {
       continue;
     }
-    await fs.copy(source, destination, {overwrite: false});
+    await copyAiTemplatePath(source, destination, {overwrite: false});
     installed.push(destinationName);
   }
 
@@ -757,7 +761,7 @@ async function installProjectAgents(targetDir: string, assets: AiAssets, project
     if (await fs.pathExists(destination)) {
       continue;
     }
-    await fs.copy(path.join(agentsDir, entry.name), destination);
+    await copyAiTemplatePath(path.join(agentsDir, entry.name), destination);
     installed.push(entry.name.replace('.md', ''));
   }
 
@@ -884,6 +888,57 @@ async function ensureLocalAiGitignoreEntries(targetDir: string): Promise<string[
 
   await fs.writeFile(gitignorePath, `${lines.join('\n')}\n`);
   return missingEntries;
+}
+
+async function copyAiTemplatePath(
+  source: string,
+  destination: string,
+  options: {overwrite?: boolean} = {},
+): Promise<void> {
+  if ((await fs.pathExists(destination)) && options.overwrite === false) {
+    return;
+  }
+
+  const stat = await fs.stat(source);
+  if (stat.isDirectory()) {
+    await copyAiTemplateDirectory(source, destination, options);
+    return;
+  }
+
+  await fs.ensureDir(path.dirname(destination));
+  const buffer = await fs.readFile(source);
+  if (isProbablyBinary(buffer)) {
+    await fs.copy(source, destination, {overwrite: options.overwrite ?? true});
+    return;
+  }
+
+  await fs.writeFile(destination, normalizeTextLineEndings(buffer.toString('utf8')));
+  await fs.chmod(destination, stat.mode);
+}
+
+async function copyAiTemplateDirectory(
+  sourceDir: string,
+  destinationDir: string,
+  options: {overwrite?: boolean},
+): Promise<void> {
+  await fs.ensureDir(destinationDir);
+  const entries = await fs.readdir(sourceDir, {withFileTypes: true});
+
+  for (const entry of entries) {
+    await copyAiTemplatePath(path.join(sourceDir, entry.name), path.join(destinationDir, entry.name), options);
+  }
+}
+
+async function writeTextFileLf(filePath: string, content: string): Promise<void> {
+  await fs.writeFile(filePath, normalizeTextLineEndings(content));
+}
+
+function normalizeTextLineEndings(content: string): string {
+  return content.replace(/\r\n?/g, '\n');
+}
+
+function isProbablyBinary(buffer: Buffer): boolean {
+  return buffer.includes(0);
 }
 
 function normalizeGitignoreEntryForComparison(line: string): string {

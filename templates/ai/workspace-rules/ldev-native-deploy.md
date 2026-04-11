@@ -18,7 +18,7 @@ Primary deploy model:
   change cannot be proved with a narrower deploy
 - `ldev deploy status` to verify what the runtime observed
 
-Prefer atomic deploys. Do not use a broad deploys as a default validation step.
+Prefer atomic deploys. Do not use a broad deploy as a default validation step.
 
 Do not use deploy commands for Journal templates, ADTs, fragments, or
 structures. Those live in the portal runtime; apply them with

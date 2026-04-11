@@ -27,7 +27,7 @@ Preferred task-shaped entry points after bootstrap:
 
 Prefer `ldev` commands over raw Docker or shell equivalents. Use MCP only when it provides something a direct `ldev` command does not already cover.
 
-Prefer atomic commands. Do not use plural resource commands or a broad deploys
+Prefer atomic commands. Do not use plural resource commands or a broad deploy
 unless a human explicitly asks for a bulk operation and the risk is written down
 first.
 

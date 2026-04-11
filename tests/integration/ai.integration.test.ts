@@ -111,6 +111,32 @@ describe('ai integration', () => {
     expect(secondGitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
   }, 30000);
 
+  test('install --project --project-context writes managed AI files with LF endings', async () => {
+    const targetDir = createTempDir('dev-cli-ai-install-lf-');
+
+    const result = await runCli(['ai', 'install', '--force', '--target', targetDir, '--project', '--project-context'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+
+    const managedFiles = await collectFiles([
+      path.join(targetDir, '.agents'),
+      path.join(targetDir, '.claude'),
+      path.join(targetDir, '.github'),
+      path.join(targetDir, '.workspace-rules'),
+      path.join(targetDir, 'docs', 'ai'),
+      path.join(targetDir, 'AGENTS.md'),
+      path.join(targetDir, 'CLAUDE.md'),
+    ]);
+
+    expect(managedFiles.length).toBeGreaterThan(0);
+    for (const file of managedFiles) {
+      const content = await fs.readFile(file);
+      expect(content.includes(Buffer.from('\r\n')), file).toBe(false);
+    }
+  }, 30000);
+
   test('install --local adds marker when equivalent gitignore entries already exist', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-local-marker-');
 
@@ -559,3 +585,23 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-runtime-troubleshooting.md'))).toBe(true);
   }, 40000);
 });
+
+async function collectFiles(pathsToCollect: string[]): Promise<string[]> {
+  const files: string[] = [];
+
+  for (const pathToCollect of pathsToCollect) {
+    if (!(await fs.pathExists(pathToCollect))) {
+      continue;
+    }
+
+    const stat = await fs.stat(pathToCollect);
+    if (stat.isDirectory()) {
+      const entries = await fs.readdir(pathToCollect);
+      files.push(...(await collectFiles(entries.map((entry) => path.join(pathToCollect, entry)))));
+    } else {
+      files.push(pathToCollect);
+    }
+  }
+
+  return files;
+}
