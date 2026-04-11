@@ -25,6 +25,10 @@ structures. Those live in the portal runtime; apply them with
 `ldev resource import-*` and validate the affected portal flow with
 `playwright-cli`.
 
+If you reused a fix from another branch or commit, that does not waive local
+validation. Re-run the same `Red -> Green` flow in the current runtime before
+claiming success.
+
 The native runtime is built around the `docker/` + `liferay/` layout, so deploy behavior is more tightly coupled to the local runtime than in a standard Blade Workspace.
 
 Useful verification steps after deploy:

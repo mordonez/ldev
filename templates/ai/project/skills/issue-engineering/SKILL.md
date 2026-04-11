@@ -170,6 +170,7 @@ skills or `AGENTS.md`, not here.
 
 ## Allowed project-specific references
 
+- `references/issue-workflow-contract.md`
 - `references/intake.md`
 - `references/human-review-and-cleanup.md`
 - `references/human-review-checklist.md`

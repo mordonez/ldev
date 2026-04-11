@@ -38,6 +38,10 @@ When changing Journal structures with existing content:
 - validate the affected content and follow-up imports explicitly
 - verify browser-visible behavior with `playwright-cli` after the runtime import
 
+If the post-import page still shows any reported symptom, the issue is not
+green yet. Continue diagnosis; do not handoff as resolved just because the
+import command succeeded.
+
 For the full workflow, route to vendor skills:
 
 - `developing-liferay`

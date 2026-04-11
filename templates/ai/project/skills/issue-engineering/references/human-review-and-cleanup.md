@@ -19,6 +19,19 @@ validated the work and explicitly asked you to do that.
 - How to verify it step by step
 - Deployment notes if the change requires import or migration outside local
 - Visual evidence if the issue was UI
+- `Validated`
+- `Not validated`
+- `Unknowns`
+
+`Validated` should contain only checks you actually executed.
+
+`Not validated` should contain anything you expected to verify but could not.
+
+`Unknowns` should contain remaining doubts, alternative ownership hypotheses, or
+risks that still need a human eye.
+
+Do not write a resolved-sounding handoff if `Not validated` or `Unknowns`
+contains anything material to the issue.
 
 ## Human Approval Gate
 
