@@ -11,7 +11,9 @@ Do not commit PNG, JPG, or SVG evidence files to the repository or issue branch.
   safe to share with everyone who can read the GitHub comment.
 - `gh gist create` and `gh gist edit` should receive text SVG files, not raw
   PNG/JPG uploads.
-- Generate SVG text files that embed PNG screenshots as base64.
+- Generate SVG text files with `scripts/png_to_evidence_svg.mjs`; do not hand-roll
+  the wrapper. The SVG root `width`, `height`, and `viewBox` must match the real
+  PNG dimensions or the raw URL may render as a cropped icon in browsers.
 - Use versioned gist `raw_url` values from `gh api gists/<id>` to avoid stale
   cache links.
 - Store the reusable gist ID in `.liferay-cli.local.yml`, not in tracked repo
@@ -33,6 +35,14 @@ ai:
 
    - `issue-NUM-before.svg`
    - `issue-NUM-after.svg`
+
+   ```bash
+   node .agents/skills/project-issue-engineering/scripts/png_to_evidence_svg.mjs .tmp/issue-NUM/before.png .tmp/issue-NUM/issue-NUM-before.svg
+   node .agents/skills/project-issue-engineering/scripts/png_to_evidence_svg.mjs .tmp/issue-NUM/after.png .tmp/issue-NUM/issue-NUM-after.svg
+   ```
+
+   The helper reads the PNG dimensions and writes a standalone SVG with matching
+   `width`, `height`, `viewBox`, and `<image>` dimensions.
 
 2. Read the reusable gist ID from `.liferay-cli.local.yml`.
 
