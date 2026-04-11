@@ -16,8 +16,10 @@ Do not commit PNG, JPG, or SVG evidence files to the repository or issue branch.
   PNG dimensions or the raw URL may render as a cropped icon in browsers.
 - Use versioned gist `raw_url` values from `gh api gists/<id>` to avoid stale
   cache links.
-- Store the reusable gist ID in `.liferay-cli.local.yml`, not in tracked repo
-  files.
+- Store the reusable gist ID in the primary checkout `.liferay-cli.local.yml`,
+  not in tracked repo files and not in a worktree-local copy. Worktrees are
+  disposable; config written under `.worktrees/<name>` will be lost when the
+  worktree is cleaned.
 
 Local config key:
 
@@ -44,9 +46,21 @@ ai:
    The helper reads the PNG dimensions and writes a standalone SVG with matching
    `width`, `height`, `viewBox`, and `<image>` dimensions.
 
-2. Read the reusable gist ID from `.liferay-cli.local.yml`.
+2. Read the reusable gist ID from the primary checkout `.liferay-cli.local.yml`.
 
    Key: `ai.evidence.gistId`
+
+   If you are currently inside `.worktrees/<name>`, resolve the primary checkout
+   before reading or writing the file. PowerShell:
+
+   ```powershell
+   $repoRoot = (git rev-parse --show-toplevel).Trim()
+   $mainRoot = if ($repoRoot -match '\\.worktrees\\[^\\]+$') { Split-Path (Split-Path $repoRoot -Parent) -Parent } else { $repoRoot }
+   $localConfig = Join-Path $mainRoot '.liferay-cli.local.yml'
+   ```
+
+   Use `$localConfig` for `ai.evidence.gistId`. Do not create or update
+   `.liferay-cli.local.yml` inside the worktree root.
 
 3. Add files the first time they are published to the reusable gist.
 
