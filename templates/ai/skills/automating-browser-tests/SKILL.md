@@ -27,6 +27,17 @@ npm install -g @playwright/cli@latest
 Then re-run `ldev doctor --json` to confirm `tools.playwrightCli.available` is `true` before continuing.
 All browser flows in this skill require `playwright-cli`.
 
+Install the official `playwright-cli` agent skills before using ad-hoc command
+syntax from memory:
+
+```bash
+playwright-cli install --skills
+```
+
+If this command fails, stop and report the tool-skills install failure instead of
+guessing unsupported flags. Then use `playwright-cli <command> --help` and this
+skill's `REFERENCE.md` for the current session.
+
 Known wrapper caveats and safe shell patterns live in `REFERENCE.md` next to this skill. Read it when the browser flow starts failing for reasons that look tooling-related rather than product-related.
 
 ## Install Playwright Chromium (run first if browser is missing)
@@ -71,6 +82,27 @@ playwright-cli -s=<session-name> open --browser webkit "<url>"
 3. Do not burn time retrying browser installs without privileges. Move to `firefox` or `webkit` and continue validating the flow.
 
 Use `--browser chrome` only when Chrome is genuinely required. For generic runtime or editor validation, `firefox` is an acceptable alternate browser if it launches and reproduces the page.
+
+## Mobile viewport
+
+Do not pass viewport flags to `playwright-cli screenshot`; the screenshot command
+does not own navigation or viewport setup. Open the URL first, set the viewport
+on the existing page with `run-code`, then capture the screenshot.
+
+PowerShell:
+
+```powershell
+playwright-cli -s=mobile-<issue> open "<url>"
+$CODE = @'
+async function (page) {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+}
+'@
+playwright-cli -s=mobile-<issue> run-code "$CODE"
+playwright-cli -s=mobile-<issue> screenshot --filename=.tmp/<issue>/mobile.png
+playwright-cli -s=mobile-<issue> close
+```
 
 ## Typical flow
 

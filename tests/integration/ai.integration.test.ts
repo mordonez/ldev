@@ -18,6 +18,7 @@ describe('ai integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Run playwright-cli install --skills');
     expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);

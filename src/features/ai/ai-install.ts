@@ -641,6 +641,7 @@ function buildNextSteps(
     steps.push('Review the ldev AI block in .gitignore and keep docs/ai tracked if you want shared project context.');
   }
   steps.push('Review .agents/skills/.');
+  steps.push('Run playwright-cli install --skills so agents have the official playwright-cli command reference.');
   if (project) {
     steps.push('Project skills are project-owned: ldev ai update will not overwrite them.');
   }
