@@ -387,6 +387,18 @@ describe('ai integration', () => {
       false,
     );
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(
+          targetDir,
+          '.agents',
+          'skills',
+          'project-issue-engineering',
+          'references',
+          'github-visual-evidence.md',
+        ),
+      ),
+    ).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'build-verifier.md'))).toBe(true);
   }, 30000);

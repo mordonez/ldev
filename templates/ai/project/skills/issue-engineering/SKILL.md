@@ -138,6 +138,10 @@ the user asks to skip commits or work in a lightweight mode.
 - runtime verification: `ldev portal check --json`, `ldev logs diagnose --json`
 - browser validation: Playwright against the affected URL
 
+When reviewers need visual evidence directly in a GitHub issue or PR comment
+without committing branch artifacts, read
+`references/github-visual-evidence.md` before posting anything.
+
 Validation must follow a visible `Red -> Green` loop:
 
 - `Red`: capture the failing local state before the fix
@@ -172,6 +176,7 @@ skills or `AGENTS.md`, not here.
 
 - `references/issue-workflow-contract.md`
 - `references/intake.md`
+- `references/github-visual-evidence.md`
 - `references/human-review-and-cleanup.md`
 - `references/human-review-checklist.md`
 - `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
