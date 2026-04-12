@@ -706,6 +706,15 @@ describe('liferay inventory page', () => {
           ddmTemplateKey: 'NEWS_TEMPLATE',
           ddmStructureSiteFriendlyUrl: '/guest',
           ddmTemplateSiteFriendlyUrl: '/guest',
+          contentFields: [
+            {
+              path: 'Headline',
+              label: 'Headline',
+              name: 'headline',
+              type: 'string',
+              value: 'News title',
+            },
+          ],
         },
       ],
       contentStructures: [
@@ -719,15 +728,7 @@ describe('liferay inventory page', () => {
     if (result.pageType !== 'displayPage') {
       throw new Error('Expected display page');
     }
-    expect(result.articleProperties?.contentFields).toEqual([
-      {
-        path: 'Headline',
-        label: 'Headline',
-        name: 'headline',
-        type: 'string',
-        value: 'News title',
-      },
-    ]);
+    expect('articleProperties' in result).toBe(false);
     expect(formatLiferayInventoryPage(result)).toContain('DISPLAY PAGE');
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=News title');
   });

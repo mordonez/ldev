@@ -12,7 +12,6 @@ import {
   resolveRegularLayoutPageData,
 } from './liferay-inventory-page-fetch.js';
 import type {
-  ContentFieldSummary,
   ContentStructureSummary,
   JournalArticleSummary,
   PageFragmentEntry,
@@ -48,9 +47,6 @@ export type LiferayInventoryPageResult =
         title: string;
         friendlyUrlPath: string;
         contentStructureId: number;
-      };
-      articleProperties?: {
-        contentFields?: ContentFieldSummary[];
       };
       journalArticles?: JournalArticleSummary[];
       contentStructures?: ContentStructureSummary[];
@@ -281,9 +277,6 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
     ];
     appendJournalArticleLines(lines, result.journalArticles);
     appendContentStructureLines(lines, result.contentStructures);
-    for (const field of result.articleProperties?.contentFields ?? []) {
-      lines.push(`contentField ${field.path}=${field.value}`);
-    }
     return lines.join('\n');
   }
 

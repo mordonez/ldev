@@ -136,13 +136,6 @@ export async function fetchDisplayPageInventory(
     },
     journalArticles: [journalArticle],
     contentStructures,
-    ...(structuredContent
-      ? {
-          articleProperties: {
-            contentFields: summarizeContentFields(structuredContent.contentFields),
-          },
-        }
-      : {}),
   };
 }
 
