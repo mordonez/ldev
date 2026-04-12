@@ -125,15 +125,16 @@ export async function runLiferayInventoryPage(
   dependencies?: InventoryPageDependencies,
 ): Promise<LiferayInventoryPageResult> {
   const request = resolveInventoryPageRequest(options);
+  const effectiveConfig = resolveAbsoluteUrlConfig(config, options.url);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const accessToken = await fetchAccessToken(effectiveConfig, dependencies);
 
   if (request.route === 'portalHome') {
-    const homeRequest = await resolvePortalHomeRequest(config);
+    const homeRequest = await resolvePortalHomeRequest(effectiveConfig);
     if (homeRequest) {
-      const site = await resolveSite(config, homeRequest.siteSlug, dependencies);
+      const site = await resolveSite(effectiveConfig, homeRequest.siteSlug, dependencies);
       return fetchRegularPageInventory(
-        config,
+        effectiveConfig,
         apiClient,
         accessToken,
         site,
@@ -142,22 +143,22 @@ export async function runLiferayInventoryPage(
         homeRequest.localeHint,
       );
     }
-    const site = await resolveSite(config, 'global', dependencies);
-    return fetchSiteRootInventory(config, apiClient, accessToken, site, false);
+    const site = await resolveSite(effectiveConfig, 'global', dependencies);
+    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, false);
   }
 
-  const site = await resolveSite(config, request.siteSlug, dependencies);
+  const site = await resolveSite(effectiveConfig, request.siteSlug, dependencies);
 
   if (request.route === 'siteRoot') {
-    return fetchSiteRootInventory(config, apiClient, accessToken, site, request.privateLayout);
+    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, request.privateLayout);
   }
 
   if (request.route === 'displayPage') {
-    return fetchDisplayPageInventory(config, apiClient, accessToken, site, request.displayPageUrlTitle ?? '');
+    return fetchDisplayPageInventory(effectiveConfig, apiClient, accessToken, site, request.displayPageUrlTitle ?? '');
   }
 
   return fetchRegularPageInventory(
-    config,
+    effectiveConfig,
     apiClient,
     accessToken,
     site,
@@ -165,6 +166,29 @@ export async function runLiferayInventoryPage(
     request.privateLayout,
     request.localeHint,
   );
+}
+
+function resolveAbsoluteUrlConfig(config: AppConfig, rawUrl?: string): AppConfig {
+  if (!rawUrl) {
+    return config;
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    const current = new URL(config.liferay.url);
+    if (parsed.origin === current.origin || !['http:', 'https:'].includes(parsed.protocol)) {
+      return config;
+    }
+    return {
+      ...config,
+      liferay: {
+        ...config.liferay,
+        url: parsed.origin,
+      },
+    };
+  } catch {
+    return config;
+  }
 }
 
 async function resolvePortalHomeRequest(config: AppConfig) {

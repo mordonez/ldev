@@ -69,6 +69,46 @@ describe('liferay inventory page', () => {
     });
   });
 
+  test('uses absolute URL origin as the effective portal URL', async () => {
+    const seenUrls: string[] = [];
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        seenUrls.push(url);
+
+        if (!url.startsWith('http://127.0.0.1:8240/')) {
+          throw new Error(`Unexpected portal origin ${url}`);
+        }
+
+        if (url.includes('/by-friendly-url-path/facultat-economia-empresa')) {
+          return new Response(
+            '{"id":15503412,"friendlyUrlPath":"/facultat-economia-empresa","name":"Facultat d’Economia i Empresa"}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(
+      CONFIG,
+      {url: 'http://127.0.0.1:8240/web/facultat-economia-empresa'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toMatchObject({
+      pageType: 'siteRoot',
+      siteFriendlyUrl: '/facultat-economia-empresa',
+      url: '/web/facultat-economia-empresa/',
+    });
+    expect(seenUrls.every((url) => url.startsWith('http://127.0.0.1:8240/'))).toBe(true);
+  });
+
   test('returns regular page inventory for a resolved layout', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {
