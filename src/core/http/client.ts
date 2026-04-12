@@ -192,7 +192,7 @@ async function sendWithRetry<T>(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'HTTP request failed';
-    throw new CliError(message, {code: 'LIFERAY_HTTP_ERROR'});
+    throw new CliError(`${message}: ${url}`, {code: 'LIFERAY_HTTP_ERROR'});
   }
 }
 

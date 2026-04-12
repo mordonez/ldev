@@ -19,6 +19,10 @@ export async function isGitRepository(cwd: string): Promise<boolean> {
 }
 
 export async function isWorktree(cwd: string): Promise<boolean> {
+  if (path.normalize(cwd).includes(`${path.sep}.worktrees${path.sep}`)) {
+    return true;
+  }
+
   const repoRoot = await getRepoRoot(cwd);
   if (!repoRoot) {
     return false;
