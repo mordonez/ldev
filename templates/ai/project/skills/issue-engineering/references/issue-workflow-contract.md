@@ -11,10 +11,13 @@ Short contract for issue work in `ldev` projects.
 4. Before the first edit, prove the current editing root is the isolated
    worktree with `git rev-parse --show-toplevel`; edited paths must be under
    that root, never the primary checkout.
-5. Inspect the loaded page and resolve the owning resource before broad grep.
-6. Define `Green` as a checklist of observable symptoms, not as a successful
+5. Keep the editing root proof current. If the session is interrupted, resumed,
+   moved to another terminal, or any command may have changed directories, prove
+   the root again before the next edit.
+6. Inspect the loaded page and resolve the owning resource before broad grep.
+7. Define `Green` as a checklist of observable symptoms, not as a successful
    command or a screenshot existing on disk.
-7. If the symptom is still present, stay in `Red`.
+8. If the symptom is still present, stay in `Red`.
 
 ## Minimum Issue Record
 

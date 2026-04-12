@@ -104,6 +104,8 @@ If isolated worktrees are available:
 
 - prepare the isolated worktree with `ldev worktree setup --with-env`
 - use project worktree naming conventions if the repository has them
+- read `references/worktree-env.md` and apply its Isolation Gate as an
+  always-on edit boundary, not only during worktree creation
 - keep environment-specific cleanup tied to the actual worktree used
 - after `ldev start`, reproduce the bug again in the worktree runtime before the
   first code change

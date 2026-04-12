@@ -52,6 +52,7 @@ before touching files:
 
 ```bash
 cd .worktrees/<name>
+pwd
 git rev-parse --show-toplevel
 git status --short
 ```
@@ -60,3 +61,9 @@ Creating the worktree does not mean later tool writes are automatically scoped
 to it. Before the first edit, confirm every file path you will edit starts with
 the worktree root. If a path points at the primary checkout, stop and correct the
 working directory before writing.
+
+Keep that boundary active for the whole task. After any interruption, context
+resume, shell change, terminal tab change, or command that may have changed the
+current directory, re-run the root check before editing. For editor or agent
+tools that accept a `workdir`, set it to the confirmed worktree root or a
+subdirectory under it; do not rely on a previous terminal prompt.

@@ -92,6 +92,10 @@ Before using MCP:
   editing root with `git rev-parse --show-toplevel`. Do not edit files whose
   absolute path belongs to the primary checkout when the task requires a
   worktree.
+- Treat the confirmed worktree root as an edit boundary, not a one-time check.
+  Before any file edit, make sure the tool `workdir` and every target path are
+  under that root. Re-run the check after interruptions, context resumes, shell
+  changes, or any step that may have changed directories.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and

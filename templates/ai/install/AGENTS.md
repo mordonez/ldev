@@ -37,6 +37,10 @@ Use `ldev --help` as the source of truth for the public CLI surface.
   editing root with `git rev-parse --show-toplevel`. Do not edit files whose
   absolute path belongs to the primary checkout when the task requires a
   worktree.
+- Treat the confirmed worktree root as an edit boundary, not a one-time check.
+  Before any file edit, make sure the tool `workdir` and every target path are
+  under that root. Re-run the check after interruptions, context resumes, shell
+  changes, or any step that may have changed directories.
 - Prefer the task-shaped public contract first:
   - `ldev doctor --json`
   - `ldev context --json`

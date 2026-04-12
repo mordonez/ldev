@@ -43,6 +43,11 @@ if you need to filter the output.
 - Creating the worktree is not enough. You must be operating from inside it.
 - Do not continue if `pwd` or `git rev-parse --show-toplevel` does not point to the expected `.worktrees/<name>` directory.
 - Before the first file edit, run `git rev-parse --show-toplevel` and `git status --short` from the same shell/session that will edit files.
+- Treat the result as an active edit boundary. For every file-editing tool call,
+  the tool `workdir` and every target path must be the confirmed worktree root
+  or a path below it.
+- Re-run the root check after interruptions, context resumes, shell changes,
+  terminal tab changes, or commands that may have changed the current directory.
 - If using an editor or agent tool with absolute paths, every edited path must start with the worktree root returned by `git rev-parse --show-toplevel`. Paths under the primary checkout are forbidden for the task.
 - If any tracked file changes appear in the primary checkout after a worktree was required, stop immediately. Do not continue editing, do not move changes silently, and report the exact paths for human recovery.
 - Do not run `ldev portal ...`, `ldev resource ...`, or `playwright-cli` until:
