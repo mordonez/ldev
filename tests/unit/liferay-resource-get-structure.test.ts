@@ -128,4 +128,63 @@ describe('liferay resource get-structure', () => {
     expect(result.id).toBe(31801);
     expect(result.key).toBe('BASIC-WEB-CONTENT');
   });
+
+  test('falls back to global when a structure is not found in the specified site', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":30100,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=30100')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/guest","nameCurrentValue":"Guest"}',
+            {
+              status: 200,
+            },
+          );
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/global","nameCurrentValue":"Global"}',
+            {
+              status: 200,
+            },
+          );
+        }
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/30100/data-definitions/by-content-type/journal/by-data-definition-key/BASIC-WEB-CONTENT',
+          )
+        ) {
+          return new Response('not-found', {status: 404});
+        }
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/BASIC-WEB-CONTENT',
+          )
+        ) {
+          return new Response(
+            '{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceGetStructure(
+      CONFIG,
+      {site: '/guest', key: 'BASIC-WEB-CONTENT'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.siteFriendlyUrl).toBe('/global');
+    expect(result.key).toBe('BASIC-WEB-CONTENT');
+  });
 });

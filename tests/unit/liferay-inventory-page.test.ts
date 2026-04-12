@@ -1,4 +1,4 @@
-import {describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
@@ -32,6 +32,10 @@ const TOKEN_CLIENT = {
     expiresIn: 3600,
   }),
 };
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('liferay inventory page', () => {
   test('resolves requests from full URLs and explicit site/friendly-url', () => {
@@ -207,6 +211,7 @@ describe('liferay inventory page', () => {
     ]);
     expect(result.journalArticles).toEqual([
       {
+        groupId: 20121,
         articleId: 'ART-001',
         title: 'Home article',
         ddmStructureKey: 'BASIC',
@@ -226,11 +231,60 @@ describe('liferay inventory page', () => {
     expect(result.contentStructures).toEqual([
       {
         contentStructureId: 301,
+        key: 'BASIC',
         name: 'Basic Web Content',
       },
     ]);
     expect(formatLiferayInventoryPage(result)).toContain('REGULAR PAGE');
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=Hello');
+  });
+
+  test('resolves portal root through the runtime redirect', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('', {
+        status: 302,
+        headers: {location: 'http://localhost:8080/web/ub/inici'},
+      }),
+    );
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/ub')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/ub","name":"UB"}', {status: 200});
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return new Response(
+            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Inici","friendlyURL":"/inici","hidden":false}]',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/site-pages/inici?fields=pageDefinition')) {
+          return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements: []}}}), {
+            status: 200,
+          });
+        }
+
+        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(CONFIG, {url: '/'}, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(result).toMatchObject({
+      pageType: 'regularPage',
+      siteFriendlyUrl: '/ub',
+      url: '/web/ub/inici',
+      friendlyUrl: '/inici',
+      pageName: 'Inici',
+    });
   });
 
   test('resolves localized friendly URLs via headless site-pages fallback', async () => {
@@ -549,6 +603,61 @@ describe('liferay inventory page', () => {
           );
         }
 
+        if (url.includes('/journal.journalarticle/get-article-by-url-title')) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              resourcePrimKey: 41001,
+              articleId: 'ART-001',
+              titleCurrentValue: 'News article',
+              ddmStructureKey: 'NEWS',
+              ddmTemplateKey: 'NEWS_TEMPLATE',
+              contentStructureId: 301,
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/guest","nameCurrentValue":"Guest"}',
+            {
+              status: 200,
+            },
+          );
+        }
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20122,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/NEWS',
+          )
+        ) {
+          return new Response('{"id":301,"dataDefinitionKey":"NEWS","name":{"en_US":"News"}}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
+          return new Response('{"classNameId":1001}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
+          return new Response(
+            '[{"templateId":"40801","templateKey":"NEWS_TEMPLATE","externalReferenceCode":"NEWS_TEMPLATE","nameCurrentValue":"News Template","classPK":301,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
+        }
+
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
           return new Response(
             JSON.stringify({
@@ -565,6 +674,10 @@ describe('liferay inventory page', () => {
             }),
             {status: 200},
           );
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
+          return new Response('{"id":301,"dataDefinitionKey":"NEWS","name":"News"}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -585,6 +698,23 @@ describe('liferay inventory page', () => {
         key: 'ART-001',
         title: 'News article',
       },
+      journalArticles: [
+        {
+          articleId: 'ART-001',
+          siteFriendlyUrl: '/guest',
+          ddmStructureKey: 'NEWS',
+          ddmTemplateKey: 'NEWS_TEMPLATE',
+          ddmStructureSiteFriendlyUrl: '/guest',
+          ddmTemplateSiteFriendlyUrl: '/guest',
+        },
+      ],
+      contentStructures: [
+        {
+          contentStructureId: 301,
+          key: 'NEWS',
+          siteFriendlyUrl: '/guest',
+        },
+      ],
     });
     if (result.pageType !== 'displayPage') {
       throw new Error('Expected display page');

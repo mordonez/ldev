@@ -131,6 +131,8 @@ describe('deploy integration', () => {
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.stdout);
     expect(parsed.theme).toBe('ub-theme');
+    expect(parsed.hotDeployed).toBe(true);
+    expect(parsed.artifactsHotDeployed).toBe(1);
     expect(parsed.runtimeRefreshed).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'ub-theme.war'))).toBe(true);
     expect(
@@ -138,11 +140,7 @@ describe('deploy integration', () => {
     ).toBe(true);
     const calls = await readFakeDockerCalls(fakeBinDir);
     expect(calls).toEqual(
-      expect.arrayContaining([
-        'compose ps -q liferay',
-        'compose stop liferay',
-        'compose up -d --force-recreate liferay',
-      ]),
+      expect.arrayContaining(['compose ps -q liferay', expect.stringContaining('compose exec -T liferay sh -lc')]),
     );
   }, 45000);
 

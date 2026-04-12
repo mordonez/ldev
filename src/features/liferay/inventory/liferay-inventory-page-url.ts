@@ -1,6 +1,6 @@
 import {CliError} from '../../../core/errors.js';
 
-export type InventoryPageRoute = 'siteRoot' | 'displayPage' | 'regularPage';
+export type InventoryPageRoute = 'portalHome' | 'siteRoot' | 'displayPage' | 'regularPage';
 
 export type InventoryPageRequest = {
   siteSlug: string;
@@ -42,7 +42,7 @@ export function resolveInventoryPageRequest(options: {
       return buildUrlRequest(sanitizedUrl, '/group/', true);
     }
 
-    return buildRequest('global', ensureLeadingSlash(sanitizedUrl), false);
+    return buildRequest('', ensureLeadingSlash(sanitizedUrl), false);
   }
 
   if (options.site && options.friendlyUrl) {
@@ -64,7 +64,7 @@ function buildRequest(siteSlug: string, friendlyUrl: string, privateLayout: bool
       siteSlug,
       friendlyUrl,
       privateLayout,
-      route: 'siteRoot',
+      route: siteSlug === '' ? 'portalHome' : 'siteRoot',
       displayPageUrlTitle: null,
     };
   }

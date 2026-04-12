@@ -5,7 +5,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {fetchGroupInfo, resolveResourceSite} from './liferay-resource-shared.js';
+import {buildResourceSiteChain} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -43,7 +43,7 @@ export async function runLiferayResourceGetAdt(
 
   if (options.site?.trim()) {
     // Walk up the site hierarchy: child → parent → … → root. Return the first match.
-    const siteChain = await buildSiteChain(config, options.site, dependencies);
+    const siteChain = await buildResourceSiteChain(config, options.site, dependencies);
 
     for (const site of siteChain) {
       const rows = await runLiferayResourceListAdts(
@@ -228,50 +228,4 @@ async function collectSearchSites(
     siteFriendlyUrl: site.siteFriendlyUrl,
     siteName: site.name,
   }));
-}
-
-async function buildSiteChain(
-  config: AppConfig,
-  startSite: string,
-  dependencies?: ResourceDependencies,
-): Promise<Array<{siteId: number; siteFriendlyUrl: string; siteName: string}>> {
-  const chain: Array<{siteId: number; siteFriendlyUrl: string; siteName: string}> = [];
-  const visited = new Set<number>();
-
-  const firstSite = await resolveResourceSite(config, startSite, dependencies);
-  chain.push({siteId: firstSite.id, siteFriendlyUrl: firstSite.friendlyUrlPath, siteName: firstSite.name});
-  visited.add(firstSite.id);
-
-  // Walk up the explicit parentGroupId chain (covers child-site relationships).
-  let currentGroupInfo = await fetchGroupInfo(config, firstSite.id, dependencies);
-
-  while (currentGroupInfo && currentGroupInfo.parentGroupId > 0 && !visited.has(currentGroupInfo.parentGroupId)) {
-    const parentId = currentGroupInfo.parentGroupId;
-    const parentGroupInfo = await fetchGroupInfo(config, parentId, dependencies);
-    if (!parentGroupInfo) {
-      break;
-    }
-
-    visited.add(parentId);
-    chain.push({
-      siteId: parentId,
-      siteFriendlyUrl: parentGroupInfo.friendlyUrl,
-      siteName: parentGroupInfo.name,
-    });
-    currentGroupInfo = parentGroupInfo;
-  }
-
-  // Always append /global as the final fallback: Liferay makes global ADTs available to
-  // every site regardless of parentGroupId, so top-level sites (parentGroupId=0) still
-  // inherit from /global.
-  try {
-    const globalSite = await resolveResourceSite(config, '/global', dependencies);
-    if (!visited.has(globalSite.id)) {
-      chain.push({siteId: globalSite.id, siteFriendlyUrl: globalSite.friendlyUrlPath, siteName: globalSite.name});
-    }
-  } catch {
-    // /global not resolvable — skip silently
-  }
-
-  return chain;
 }

@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
-import {resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
+import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -29,26 +29,47 @@ export async function runLiferayResourceGetTemplate(
   options: {site?: string; id: string},
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceTemplateResult> {
-  const site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
-  const templates = await listDdmTemplates(config, site, dependencies);
-  let match = templates.find((item) => matchesTemplate(item, options.id));
+  const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
+  let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
+  let match: Record<string, unknown> | undefined;
+
+  for (const candidate of siteChain) {
+    const candidateSite = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
+    const templates = await listDdmTemplates(config, candidateSite, dependencies, {
+      includeCompanyFallback: candidate.siteFriendlyUrl === '/global',
+    });
+    match = templates.find((item) => matchesTemplate(item, options.id));
+    if (match) {
+      site = candidateSite;
+      break;
+    }
+  }
 
   if (!match) {
-    const inventoryTemplates = await runLiferayInventoryTemplates(config, {site: site.friendlyUrlPath}, dependencies);
-    const inventoryMatch = inventoryTemplates.find(
-      (item) => options.id === item.id || options.id === item.externalReferenceCode || options.id === item.name,
-    );
+    for (const candidate of siteChain) {
+      const candidateSite = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
+      const inventoryTemplates = await runLiferayInventoryTemplates(
+        config,
+        {site: candidateSite.friendlyUrlPath},
+        dependencies,
+      );
+      const inventoryMatch = inventoryTemplates.find(
+        (item) => options.id === item.id || options.id === item.externalReferenceCode || options.id === item.name,
+      );
 
-    if (inventoryMatch) {
-      match = {
-        templateId: inventoryMatch.id,
-        templateKey: inventoryMatch.externalReferenceCode || inventoryMatch.id,
-        externalReferenceCode: inventoryMatch.externalReferenceCode || inventoryMatch.id,
-        nameCurrentValue: inventoryMatch.name,
-        name: inventoryMatch.name,
-        script: inventoryMatch.templateScript ?? '',
-        classPK: inventoryMatch.contentStructureId,
-      };
+      if (inventoryMatch) {
+        site = candidateSite;
+        match = {
+          templateId: inventoryMatch.id,
+          templateKey: inventoryMatch.externalReferenceCode || inventoryMatch.id,
+          externalReferenceCode: inventoryMatch.externalReferenceCode || inventoryMatch.id,
+          nameCurrentValue: inventoryMatch.name,
+          name: inventoryMatch.name,
+          script: inventoryMatch.templateScript ?? '',
+          classPK: inventoryMatch.contentStructureId,
+        };
+        break;
+      }
     }
   }
 

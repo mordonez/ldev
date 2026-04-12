@@ -6,9 +6,9 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {runDocker} from '../../core/platform/docker.js';
+import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {runProcess} from '../../core/platform/process.js';
-import {resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-files.js';
+import {buildComposeEnv, resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-files.js';
 
 export type DeployContext = {
   repoRoot: string;
@@ -214,6 +214,86 @@ export async function syncArtifactsToDeployCache(
   await writeCachedPrepareCommit(cacheStorage, commit);
 
   return {cacheDir, copied, commit};
+}
+
+export async function hotDeployArtifactsToRunningLiferay(
+  config: AppConfig,
+  artifacts: string[],
+): Promise<{hotDeployed: boolean; copied: number; reason: string | null; target: string | null}> {
+  const envContext = resolveEnvContext(config);
+  const composeEnv = buildComposeEnv(envContext, {baseEnv: process.env});
+  const liferayTarget = await resolveRunningLiferayTarget(
+    envContext.dockerDir,
+    envContext.composeProjectName,
+    composeEnv,
+  );
+
+  if (!liferayTarget) {
+    return {hotDeployed: false, copied: 0, reason: 'running liferay container was not found', target: null};
+  }
+
+  let copied = 0;
+  const failures: string[] = [];
+  for (const artifact of uniquePaths(artifacts)) {
+    const fileName = path.basename(artifact);
+    const escapedFileName = escapeShellArg(fileName);
+    const command = `mkdir -p /opt/liferay/deploy && if [ /mnt/liferay/deploy/${escapedFileName} -ef /opt/liferay/deploy/${escapedFileName} ] 2>/dev/null; then true; else cp -f /mnt/liferay/deploy/${escapedFileName} /opt/liferay/deploy/; fi`;
+    const result =
+      liferayTarget.kind === 'compose'
+        ? await runDockerCompose(envContext.dockerDir, ['exec', '-T', 'liferay', 'sh', '-lc', command], {
+            env: composeEnv,
+            reject: false,
+          })
+        : await runDocker(['exec', liferayTarget.containerId, 'sh', '-lc', command], {
+            env: process.env,
+            reject: false,
+          });
+    if (result.ok) {
+      copied += 1;
+    } else {
+      failures.push(result.stderr.trim() || result.stdout.trim() || `could not copy ${fileName}`);
+    }
+  }
+
+  return {
+    hotDeployed: copied > 0,
+    copied,
+    reason: copied > 0 ? null : (failures[0] ?? 'copy to /opt/liferay/deploy did not complete'),
+    target: liferayTarget.containerId,
+  };
+}
+
+async function resolveRunningLiferayTarget(
+  dockerDir: string,
+  composeProjectName: string,
+  composeEnv: NodeJS.ProcessEnv,
+): Promise<{kind: 'compose' | 'docker'; containerId: string} | null> {
+  const composePs = await runDockerCompose(dockerDir, ['ps', '-q', 'liferay'], {
+    env: composeEnv,
+    reject: false,
+  });
+
+  if (composePs.ok && composePs.stdout.trim() !== '') {
+    const containerId = composePs.stdout.trim().split(/\s+/)[0] ?? '';
+    if (containerId !== '') {
+      return {kind: 'compose', containerId};
+    }
+  }
+
+  for (const candidateName of [`${composeProjectName}-liferay`, 'liferay']) {
+    const dockerPs = await runDocker(
+      ['ps', '-q', '--filter', `name=^/${candidateName}$`, '--filter', 'status=running'],
+      {env: process.env, reject: false},
+    );
+    if (dockerPs.ok && dockerPs.stdout.trim() !== '') {
+      const containerId = dockerPs.stdout.trim().split(/\s+/)[0] ?? '';
+      if (containerId !== '') {
+        return {kind: 'docker', containerId};
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function collectModuleArtifacts(context: DeployContext, module: string): Promise<string[]> {
@@ -445,6 +525,10 @@ async function ensureStorageVolume(storage: RuntimeStorage): Promise<void> {
 
 function escapeSingleQuotes(value: string): string {
   return value.replaceAll("'", "'\"'\"'");
+}
+
+function escapeShellArg(value: string): string {
+  return `'${escapeSingleQuotes(value)}'`;
 }
 
 async function syncArtifactsToDirectory(targetDir: string, artifacts: string[]): Promise<number> {

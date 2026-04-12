@@ -149,6 +149,7 @@ without traditional OSGi modules.
 References:
 - `references/objects.md` — field types, relationships, auto-generated API, Actions, Validations
 - `references/oauth2-setup.md` — OAuth2 portal setup and `ldev oauth install --write-env`
+- `references/headless-openapi.md` — local OpenAPI spec URLs for headless REST discovery
 
 ### Journal structures, templates and ADTs
 

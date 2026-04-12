@@ -246,6 +246,10 @@ if (args[0] === 'volume' && args[1] === 'create') {
 }
 
 if (args[0] === 'rm' && args[1] === '-f') process.exit(0);
+if (args[0] === 'ps' && args[1] === '-q') {
+  println('liferay-container');
+  process.exit(0);
+}
 if (args[0] === 'ps' && ['--format', '-aq'].includes(args[1] ?? '')) process.exit(0);
 
 if (args[0] === 'compose' && args[1] === 'config' && args[2] === '--services') {

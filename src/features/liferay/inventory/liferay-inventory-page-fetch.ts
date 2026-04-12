@@ -1,5 +1,7 @@
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import path from 'node:path';
+import fs from 'fs-extra';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {authedGet, type ResolvedSite} from './liferay-inventory-shared.js';
 import {
@@ -21,8 +23,21 @@ import {
 } from './liferay-inventory-page-assemble.js';
 import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
 import type {LiferayInventoryPageResult, ResolvedRegularLayoutPage} from './liferay-inventory-page.js';
+import {
+  resolveSiteToken,
+  resolveStructuresBaseDir,
+  resolveTemplatesBaseDir,
+  resolveFragmentsBaseDir,
+} from '../resource/liferay-resource-paths.js';
+import {
+  buildResourceSiteChain,
+  fetchGroupInfo,
+  listDdmTemplates,
+  resolveResourceSite,
+} from '../resource/liferay-resource-shared.js';
 
 type LayoutMatch = {layout: Layout; locale: string | null};
+type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
 
 export async function fetchSiteRootInventory(
   config: AppConfig,
@@ -63,25 +78,17 @@ export async function fetchDisplayPageInventory(
     `/o/headless-delivery/v1.0/sites/${site.id}/structured-contents?filter=${filter}&pageSize=1`,
   );
   let article: StructuredContent | undefined = response.ok ? response.data?.items?.[0] : undefined;
+  let jsonwsArticle = await fetchJournalArticleByUrlTitle(config, apiClient, accessToken, site.id, urlTitle);
 
   // Fallback: try JSONWS get-article-by-url-title when headless delivery returns nothing.
-  if (!article) {
-    const jsonwsResponse = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
-      `/api/jsonws/journal.journalarticle/get-article-by-url-title?groupId=${site.id}&urlTitle=${encodeURIComponent(urlTitle)}`,
-    );
-    if (jsonwsResponse.ok && !hasJsonWsException(jsonwsResponse.data)) {
-      const jw = jsonwsResponse.data ?? {};
-      article = {
-        id: Number(jw['resourcePrimKey'] ?? jw['id'] ?? -1) || undefined,
-        key: String(jw['articleId'] ?? ''),
-        title: String(jw['titleCurrentValue'] ?? jw['title'] ?? ''),
-        friendlyUrlPath: urlTitle,
-        contentStructureId: Number(jw['contentStructureId'] ?? -1) || undefined,
-      };
-    }
+  if (!article && jsonwsArticle) {
+    article = {
+      id: Number(jsonwsArticle.resourcePrimKey ?? jsonwsArticle.id ?? -1) || undefined,
+      key: String(jsonwsArticle.articleId ?? ''),
+      title: String(jsonwsArticle.titleCurrentValue ?? jsonwsArticle.title ?? ''),
+      friendlyUrlPath: urlTitle,
+      contentStructureId: Number(jsonwsArticle.contentStructureId ?? -1) || undefined,
+    };
   }
 
   if (!article) {
@@ -95,6 +102,22 @@ export async function fetchDisplayPageInventory(
     structuredContentId > 0
       ? await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId)
       : null;
+  const articleRef: ArticleRef = {
+    articleId: String(article.key ?? jsonwsArticle?.articleId ?? ''),
+    groupId: site.id,
+    ...(firstString(jsonwsArticle?.ddmTemplateKey) ? {ddmTemplateKey: firstString(jsonwsArticle?.ddmTemplateKey)} : {}),
+  };
+  if (!jsonwsArticle && articleRef.articleId) {
+    jsonwsArticle = await fetchLatestJournalArticle(config, apiClient, accessToken, site.id, articleRef.articleId);
+  }
+  const journalArticle = await buildJournalArticleSummary(config, apiClient, accessToken, articleRef, {
+    article: jsonwsArticle,
+    structuredContent,
+    fallbackSite: site,
+    fallbackTitle: article.title,
+    fallbackContentStructureId: article.contentStructureId,
+  });
+  const contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, [journalArticle]);
 
   return {
     pageType: 'displayPage',
@@ -111,6 +134,8 @@ export async function fetchDisplayPageInventory(
       friendlyUrlPath: article.friendlyUrlPath ?? urlTitle,
       contentStructureId: article.contentStructureId ?? -1,
     },
+    journalArticles: [journalArticle],
+    contentStructures,
     ...(structuredContent
       ? {
           articleProperties: {
@@ -165,6 +190,7 @@ export async function fetchRegularPageInventory(
       layout.plid ?? -1,
     );
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
+    await enrichFragmentEntryExportPaths(config, accessToken, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
     widgets = fragmentEntryLinks
       .filter((entry) => entry.type === 'widget' && entry.widgetName)
       .map((entry) => ({
@@ -497,30 +523,115 @@ async function collectLayoutJournalArticles(
   const result: JournalArticleSummary[] = [];
 
   for (const ref of refs.values()) {
-    const article = await fetchLatestJournalArticle(config, apiClient, accessToken, ref.groupId, ref.articleId);
-    const summary: JournalArticleSummary = {
-      articleId: ref.articleId,
-      title: String(article?.titleCurrentValue ?? ref.articleId),
-      ddmStructureKey: String(article?.ddmStructureKey ?? ''),
-      ...(ref.ddmTemplateKey ? {ddmTemplateKey: ref.ddmTemplateKey} : {}),
-    };
-
-    const structuredContentId = Number(article?.id ?? -1);
-    if (structuredContentId > 0) {
-      const structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
-      if (structuredContent?.contentStructureId) {
-        summary.contentStructureId = Number(structuredContent.contentStructureId);
-      }
-      const contentFields = summarizeContentFields(structuredContent?.contentFields);
-      if (contentFields.length > 0) {
-        summary.contentFields = contentFields;
-      }
-    }
-
-    result.push(summary);
+    result.push(await buildJournalArticleSummary(config, apiClient, accessToken, ref));
   }
 
   return result;
+}
+
+async function buildJournalArticleSummary(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  ref: ArticleRef,
+  options?: {
+    article?: Record<string, unknown> | null;
+    structuredContent?: StructuredContent | null;
+    fallbackSite?: ResolvedSite;
+    fallbackTitle?: string;
+    fallbackContentStructureId?: number;
+  },
+): Promise<JournalArticleSummary> {
+  const article =
+    options?.article ?? (await fetchLatestJournalArticle(config, apiClient, accessToken, ref.groupId, ref.articleId));
+  const articleSite =
+    (await safeFetchGroupInfo(config, ref.groupId, {apiClient, accessToken})) ??
+    (options?.fallbackSite
+      ? {
+          friendlyUrl: options.fallbackSite.friendlyUrlPath,
+          name: options.fallbackSite.name,
+          parentGroupId: -1,
+        }
+      : null);
+  const ddmTemplateKey = ref.ddmTemplateKey ?? firstString(article?.ddmTemplateKey);
+  const summary: JournalArticleSummary = {
+    groupId: ref.groupId,
+    ...(articleSite?.friendlyUrl ? {siteFriendlyUrl: articleSite.friendlyUrl} : {}),
+    ...(articleSite?.name ? {siteName: articleSite.name} : {}),
+    articleId: ref.articleId,
+    title: String(article?.titleCurrentValue ?? article?.title ?? options?.fallbackTitle ?? ref.articleId),
+    ddmStructureKey: String(article?.ddmStructureKey ?? ''),
+    ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
+    ...(options?.fallbackContentStructureId ? {contentStructureId: Number(options.fallbackContentStructureId)} : {}),
+  };
+
+  if (articleSite?.friendlyUrl && summary.ddmStructureKey) {
+    const structureSite = await resolveStructureSiteByKey(
+      config,
+      apiClient,
+      accessToken,
+      articleSite.friendlyUrl,
+      summary.ddmStructureKey,
+    );
+    if (structureSite) {
+      summary.ddmStructureSiteFriendlyUrl = structureSite.siteFriendlyUrl;
+      summary.structureExportPath = buildStructureExportPath(
+        config,
+        structureSite.siteFriendlyUrl,
+        summary.ddmStructureKey,
+      );
+    }
+  }
+  if (articleSite?.friendlyUrl && ddmTemplateKey) {
+    const templateSite = await resolveTemplateSiteByKey(config, articleSite.friendlyUrl, ddmTemplateKey, {
+      apiClient,
+      accessToken,
+    });
+    if (templateSite) {
+      summary.ddmTemplateSiteFriendlyUrl = templateSite;
+      summary.templateExportPath = buildTemplateExportPath(config, templateSite, ddmTemplateKey);
+    }
+  }
+
+  const structuredContentId = Number(options?.structuredContent?.id ?? article?.id ?? article?.resourcePrimKey ?? -1);
+  if (structuredContentId > 0) {
+    const structuredContent =
+      options?.structuredContent ??
+      (await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId));
+    if (structuredContent?.contentStructureId) {
+      summary.contentStructureId = Number(structuredContent.contentStructureId);
+    }
+    if (!summary.ddmStructureKey && summary.contentStructureId) {
+      const contentStructure = await fetchContentStructureById(
+        config,
+        apiClient,
+        accessToken,
+        summary.contentStructureId,
+      );
+      const contentStructureKey = inferContentStructureKey(contentStructure);
+      if (contentStructureKey) {
+        summary.ddmStructureKey = contentStructureKey;
+        if (articleSite?.friendlyUrl) {
+          const structureSite = await resolveStructureSiteByKey(
+            config,
+            apiClient,
+            accessToken,
+            articleSite.friendlyUrl,
+            summary.ddmStructureKey,
+          );
+          const siteFriendlyUrl = structureSite?.siteFriendlyUrl ?? articleSite.friendlyUrl;
+          summary.ddmStructureSiteFriendlyUrl = siteFriendlyUrl;
+          summary.structureExportPath = buildStructureExportPath(config, siteFriendlyUrl, summary.ddmStructureKey);
+        }
+      }
+    }
+    const contentFields = summarizeContentFields(structuredContent?.contentFields);
+    if (contentFields.length > 0) {
+      summary.contentFields = contentFields;
+    }
+  }
+
+  return summary;
 }
 
 async function collectLayoutContentStructures(
@@ -538,7 +649,7 @@ async function collectLayoutContentStructures(
       continue;
     }
     seen.add(contentStructureId);
-    const response = await authedGet<Record<string, unknown>>(
+    const response = await safeAuthedGet<Record<string, unknown>>(
       config,
       apiClient,
       accessToken,
@@ -547,9 +658,14 @@ async function collectLayoutContentStructures(
     if (!response.ok) {
       continue;
     }
+    const key = inferContentStructureKey(response.data) || article.ddmStructureKey;
+    const siteFriendlyUrl = article.ddmStructureSiteFriendlyUrl ?? article.siteFriendlyUrl;
     result.push({
       contentStructureId,
+      ...(key ? {key} : {}),
       name: String(response.data?.name ?? ''),
+      ...(siteFriendlyUrl ? {siteFriendlyUrl} : {}),
+      ...(siteFriendlyUrl && key ? {exportPath: buildStructureExportPath(config, siteFriendlyUrl, key)} : {}),
     });
   }
 
@@ -559,8 +675,8 @@ async function collectLayoutContentStructures(
 function extractArticleRefs(
   fragmentEntryLinks: Array<Record<string, unknown>>,
   defaultGroupId: number,
-): Map<string, {articleId: string; groupId: number; ddmTemplateKey?: string}> {
-  const refs = new Map<string, {articleId: string; groupId: number; ddmTemplateKey?: string}>();
+): Map<string, ArticleRef> {
+  const refs = new Map<string, ArticleRef>();
 
   for (const link of fragmentEntryLinks) {
     const editableValues = String(link.editableValues ?? '').trim();
@@ -568,32 +684,78 @@ function extractArticleRefs(
       continue;
     }
     try {
-      const parsed = JSON.parse(editableValues) as Record<string, unknown>;
-      for (const [key, value] of Object.entries(parsed)) {
-        if (!key.includes('journal_content') && !key.includes('JournalContent')) {
-          continue;
-        }
-        const prefsMap = asRecord(
-          asRecord(value).portletPreferencesMap ?? asRecord(asRecord(value).configuration).portletPreferencesMap,
-        );
-        const articleId = firstString(prefsMap.articleId);
-        if (!articleId) {
-          continue;
-        }
-        const groupId = Number(firstString(prefsMap.groupId) ?? defaultGroupId) || defaultGroupId;
-        const ddmTemplateKey = firstString(prefsMap.ddmTemplateKey);
-        refs.set(articleId, {
-          articleId,
-          groupId,
-          ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
-        });
-      }
+      collectArticleRefsFromValue(JSON.parse(editableValues), refs, defaultGroupId);
     } catch {
       // Ignore invalid fragment editable values.
     }
   }
 
   return refs;
+}
+
+function collectArticleRefsFromValue(value: unknown, refs: Map<string, ArticleRef>, defaultGroupId: number): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectArticleRefsFromValue(item, refs, defaultGroupId);
+    }
+    return;
+  }
+
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return;
+  }
+
+  const directPrefsMap = asRecord(record.portletPreferencesMap);
+  const nestedPrefsMap = asRecord(asRecord(record.configuration).portletPreferencesMap);
+  collectArticleRefFromPreferences(directPrefsMap, refs, defaultGroupId);
+  collectArticleRefFromPreferences(nestedPrefsMap, refs, defaultGroupId);
+
+  for (const item of Object.values(record)) {
+    collectArticleRefsFromValue(item, refs, defaultGroupId);
+  }
+}
+
+function collectArticleRefFromPreferences(
+  prefsMap: Record<string, unknown>,
+  refs: Map<string, ArticleRef>,
+  defaultGroupId: number,
+): void {
+  const articleId = firstString(prefsMap.articleId);
+  if (!articleId) {
+    return;
+  }
+
+  const groupId = Number(firstString(prefsMap.groupId) ?? defaultGroupId) || defaultGroupId;
+  const ddmTemplateKey = firstString(prefsMap.ddmTemplateKey);
+  refs.set(articleId, {
+    articleId,
+    groupId,
+    ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
+  });
+}
+
+async function fetchJournalArticleByUrlTitle(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  groupId: number,
+  urlTitle: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await authedGet<Record<string, unknown>>(
+      config,
+      apiClient,
+      accessToken,
+      `/api/jsonws/journal.journalarticle/get-article-by-url-title?groupId=${groupId}&urlTitle=${encodeURIComponent(urlTitle)}`,
+    );
+    if (!response.ok || hasJsonWsException(response.data)) {
+      return null;
+    }
+    return response.data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchLatestJournalArticle(
@@ -603,16 +765,20 @@ async function fetchLatestJournalArticle(
   groupId: number,
   articleId: string,
 ): Promise<Record<string, unknown> | null> {
-  const response = await authedGet<Record<string, unknown>>(
-    config,
-    apiClient,
-    accessToken,
-    `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${groupId}&articleId=${encodeURIComponent(articleId)}&status=0`,
-  );
-  if (!response.ok || hasJsonWsException(response.data)) {
+  try {
+    const response = await authedGet<Record<string, unknown>>(
+      config,
+      apiClient,
+      accessToken,
+      `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${groupId}&articleId=${encodeURIComponent(articleId)}&status=0`,
+    );
+    if (!response.ok || hasJsonWsException(response.data)) {
+      return null;
+    }
+    return response.data ?? null;
+  } catch {
     return null;
   }
-  return response.data ?? null;
 }
 
 async function fetchStructuredContentById(
@@ -631,4 +797,228 @@ async function fetchStructuredContentById(
     `/o/headless-delivery/v1.0/structured-contents/${id}`,
   );
   return response.ok ? (response.data ?? null) : null;
+}
+
+async function fetchContentStructureById(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  id: number,
+): Promise<Record<string, unknown> | null> {
+  if (id <= 0) {
+    return null;
+  }
+  const response = await safeAuthedGet<Record<string, unknown>>(
+    config,
+    apiClient,
+    accessToken,
+    `/o/headless-delivery/v1.0/content-structures/${id}`,
+  );
+  return response.ok ? (response.data ?? null) : null;
+}
+
+async function safeAuthedGet<T>(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  requestPath: string,
+) {
+  try {
+    return await authedGet<T>(config, apiClient, accessToken, requestPath);
+  } catch {
+    return {ok: false, status: -1, headers: new Headers(), body: '', data: null};
+  }
+}
+
+async function resolveStructureSiteByKey(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  startSite: string,
+  structureKey: string,
+): Promise<{siteFriendlyUrl: string} | null> {
+  const siteChain = await buildResourceSiteChain(config, startSite, {apiClient, accessToken});
+  for (const site of siteChain) {
+    const response = await authedGet<Record<string, unknown>>(
+      config,
+      apiClient,
+      accessToken,
+      `/o/data-engine/v2.0/sites/${site.siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(structureKey)}`,
+    );
+    if (response.ok) {
+      return {siteFriendlyUrl: site.siteFriendlyUrl};
+    }
+  }
+  return null;
+}
+
+async function safeFetchGroupInfo(
+  config: AppConfig,
+  groupId: number,
+  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+) {
+  try {
+    return await fetchGroupInfo(config, groupId, dependencies);
+  } catch {
+    return null;
+  }
+}
+
+async function resolveTemplateSiteByKey(
+  config: AppConfig,
+  startSite: string,
+  templateKey: string,
+  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+): Promise<string | null> {
+  const siteChain = await buildResourceSiteChain(config, startSite, dependencies);
+  for (const candidate of siteChain) {
+    const site = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
+    const templates = await listDdmTemplates(config, site, dependencies, {
+      includeCompanyFallback: candidate.siteFriendlyUrl === '/global',
+    });
+    if (templates.some((item) => matchesTemplateKey(item, templateKey))) {
+      return candidate.siteFriendlyUrl;
+    }
+  }
+  return null;
+}
+
+function matchesTemplateKey(item: Record<string, unknown>, templateKey: string): boolean {
+  return (
+    templateKey === String(item.templateKey ?? '') ||
+    templateKey === String(item.templateId ?? '') ||
+    templateKey === String(item.externalReferenceCode ?? '') ||
+    templateKey === String(item.nameCurrentValue ?? '') ||
+    templateKey === String(item.name ?? '')
+  );
+}
+
+function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
+  try {
+    return path.join(resolveStructuresBaseDir(config), resolveSiteToken(siteFriendlyUrl), `${key}.json`);
+  } catch {
+    return undefined;
+  }
+}
+
+function buildTemplateExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
+  try {
+    return path.join(resolveTemplatesBaseDir(config), resolveSiteToken(siteFriendlyUrl), `${key}.ftl`);
+  } catch {
+    return undefined;
+  }
+}
+
+async function enrichFragmentEntryExportPaths(
+  config: AppConfig,
+  accessToken: string,
+  startSite: string,
+  entries: PageFragmentEntry[],
+  apiClient: LiferayApiClient,
+): Promise<void> {
+  const fragmentEntries = entries.filter((entry) => entry.type === 'fragment' && entry.fragmentKey);
+  if (fragmentEntries.length === 0) {
+    return;
+  }
+
+  const cache = new Map<string, {siteFriendlyUrl: string; exportPath: string} | null>();
+  for (const entry of fragmentEntries) {
+    const fragmentKey = entry.fragmentKey!;
+    if (!cache.has(fragmentKey)) {
+      cache.set(
+        fragmentKey,
+        await findFragmentExportPath(config, startSite, fragmentKey, {
+          apiClient,
+          accessToken,
+        }),
+      );
+    }
+    const match = cache.get(fragmentKey);
+    if (match) {
+      entry.fragmentSiteFriendlyUrl = match.siteFriendlyUrl;
+      entry.fragmentExportPath = match.exportPath;
+    }
+  }
+}
+
+async function findFragmentExportPath(
+  config: AppConfig,
+  startSite: string,
+  fragmentKey: string,
+  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+): Promise<{siteFriendlyUrl: string; exportPath: string} | null> {
+  const baseDirs = await resolveFragmentSearchBaseDirs(config);
+  const siteChain = await safeBuildFragmentSiteChain(config, startSite, dependencies);
+  for (const site of siteChain) {
+    for (const baseDir of baseDirs) {
+      const siteDir = path.join(baseDir, 'sites', resolveSiteToken(site.siteFriendlyUrl));
+      const exportPath = await findFragmentDir(siteDir, fragmentKey);
+      if (exportPath) {
+        return {siteFriendlyUrl: site.siteFriendlyUrl, exportPath};
+      }
+    }
+  }
+  return null;
+}
+
+async function resolveFragmentSearchBaseDirs(config: AppConfig): Promise<string[]> {
+  const configured = resolveFragmentsBaseDir(config);
+  const candidates = [configured];
+  if (config.liferayDir && (await fs.pathExists(config.liferayDir))) {
+    const entries = await fs.readdir(config.liferayDir, {withFileTypes: true});
+    for (const entry of entries) {
+      if (entry.isDirectory() && /fragments$/i.test(entry.name)) {
+        candidates.push(path.join(config.liferayDir, entry.name));
+      }
+    }
+  }
+  return [...new Set(candidates)];
+}
+
+async function safeBuildFragmentSiteChain(
+  config: AppConfig,
+  startSite: string,
+  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+): Promise<Array<{siteFriendlyUrl: string}>> {
+  try {
+    return await buildResourceSiteChain(config, startSite, dependencies);
+  } catch {
+    return startSite === '/global'
+      ? [{siteFriendlyUrl: '/global'}]
+      : [{siteFriendlyUrl: startSite}, {siteFriendlyUrl: '/global'}];
+  }
+}
+
+async function findFragmentDir(root: string, fragmentKey: string): Promise<string | null> {
+  if (!(await fs.pathExists(root))) {
+    return null;
+  }
+  const queue = [root];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+    const entries = await fs.readdir(current, {withFileTypes: true});
+    for (const entry of entries) {
+      const entryPath = path.join(current, entry.name);
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (entry.name === fragmentKey && path.basename(path.dirname(entryPath)) === 'fragments') {
+        return entryPath;
+      }
+      queue.push(entryPath);
+    }
+  }
+  return null;
+}
+
+function inferContentStructureKey(value: Record<string, unknown> | null | undefined): string {
+  const explicit = String(value?.dataDefinitionKey ?? value?.key ?? '').trim();
+  if (explicit) {
+    return explicit;
+  }
+  const name = String(value?.name ?? '').trim();
+  return /^[A-Z0-9_]+$/.test(name) ? name : '';
 }
