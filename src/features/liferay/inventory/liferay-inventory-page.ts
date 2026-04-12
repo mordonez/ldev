@@ -80,11 +80,21 @@ export type LiferayInventoryPageResult =
         translate: string;
       };
       componentInspectionSupported?: boolean;
+      portlets?: PagePortletSummary[];
       fragmentEntryLinks?: PageFragmentEntry[];
       widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>;
       journalArticles?: JournalArticleSummary[];
       contentStructures?: ContentStructureSummary[];
     };
+
+export type PagePortletSummary = {
+  columnId: string;
+  position: number;
+  portletId: string;
+  portletName: string;
+  instanceId?: string;
+  configuration?: Record<string, string>;
+};
 
 export type ResolvedRegularLayoutPage = {
   siteName: string;
@@ -303,6 +313,7 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
   if (result.layoutDetails.targetUrl) {
     lines.push(`targetUrl=${result.layoutDetails.targetUrl}`);
   }
+  appendPortletLines(lines, result.portlets);
   if (result.fragmentEntryLinks && result.fragmentEntryLinks.length > 0) {
     lines.push(`FRAGMENTS (${result.fragmentEntryLinks.length})`);
     let i = 1;
@@ -346,6 +357,25 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
   appendContentStructureLines(lines, result.contentStructures);
 
   return lines.join('\n');
+}
+
+function appendPortletLines(lines: string[], portlets?: PagePortletSummary[]): void {
+  if (!portlets || portlets.length === 0) {
+    return;
+  }
+
+  lines.push(`PORTLETS (${portlets.length})`);
+  let i = 1;
+  for (const portlet of portlets) {
+    lines.push(`${i++}. ${portlet.portletName}`);
+    lines.push(`   portletId=${portlet.portletId}`);
+    if (portlet.instanceId) {
+      lines.push(`   instanceId=${portlet.instanceId}`);
+    }
+    for (const [key, value] of Object.entries(portlet.configuration ?? {})) {
+      lines.push(`   ${key}=${value}`);
+    }
+  }
 }
 
 function appendJournalArticleLines(lines: string[], journalArticles?: JournalArticleSummary[]): void {

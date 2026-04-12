@@ -239,6 +239,74 @@ describe('liferay inventory page', () => {
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=Hello');
   });
 
+  test('returns classic portlet layout composition from type settings', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return new Response(
+            JSON.stringify([
+              {
+                layoutId: 11,
+                plid: 1011,
+                type: 'portlet',
+                nameCurrentValue: 'Home',
+                friendlyURL: '/home',
+                hidden: false,
+                typeSettings:
+                  'layout-template-id=home\ncolumn-top=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top\ncolumn-fluid=com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_main\ncolumn-fluid-customizable=false\n',
+              },
+            ]),
+            {status: 200},
+          );
+        }
+
+        if (url.includes('parentLayoutId=11')) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(
+      CONFIG,
+      {url: '/web/guest/home'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toMatchObject({
+      pageType: 'regularPage',
+      pageSubtype: 'portlet',
+      portlets: [
+        {
+          columnId: 'column-top',
+          position: 0,
+          portletName: 'com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet',
+          instanceId: 'top',
+          configuration: {
+            columnId: 'column-top',
+            position: '0',
+            layoutTemplateId: 'home',
+          },
+        },
+        {
+          columnId: 'column-fluid',
+          position: 0,
+          portletName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+          instanceId: 'main',
+        },
+      ],
+    });
+    expect(formatLiferayInventoryPage(result)).toContain('PORTLETS (2)');
+    expect(formatLiferayInventoryPage(result)).toContain('columnId=column-fluid');
+  });
+
   test('resolves portal root through the runtime redirect', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response('', {

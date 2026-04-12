@@ -22,7 +22,11 @@ import {
   type StructuredContent,
 } from './liferay-inventory-page-assemble.js';
 import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
-import type {LiferayInventoryPageResult, ResolvedRegularLayoutPage} from './liferay-inventory-page.js';
+import type {
+  LiferayInventoryPageResult,
+  PagePortletSummary,
+  ResolvedRegularLayoutPage,
+} from './liferay-inventory-page.js';
 import {
   resolveSiteToken,
   resolveStructuresBaseDir,
@@ -165,6 +169,7 @@ export async function fetchRegularPageInventory(
   const {layout, locale: matchedLocale} = match;
 
   const layoutDetails = buildLayoutDetails(layout.typeSettings ?? '');
+  const portlets = collectPortletPagePortlets(layout.typeSettings ?? '', layoutDetails.layoutTemplateId);
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
   const componentInspectionSupported = String(layout.type ?? '').toLowerCase() === 'content';
@@ -219,6 +224,7 @@ export async function fetchRegularPageInventory(
       configure: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
       translate: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=translation&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
     },
+    ...(portlets.length > 0 ? {portlets} : {}),
     ...(componentInspectionSupported
       ? {
           componentInspectionSupported,
@@ -229,6 +235,49 @@ export async function fetchRegularPageInventory(
         }
       : {}),
   };
+}
+
+function collectPortletPagePortlets(typeSettings: string, layoutTemplateId?: string): PagePortletSummary[] {
+  const result: PagePortletSummary[] = [];
+  for (const line of typeSettings.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex <= 0) {
+      continue;
+    }
+    const columnId = line.slice(0, separatorIndex).trim();
+    if (!/^column-[\w-]+$/.test(columnId) || columnId.endsWith('-customizable')) {
+      continue;
+    }
+    const portletIds = line
+      .slice(separatorIndex + 1)
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    for (const [index, portletId] of portletIds.entries()) {
+      result.push({
+        columnId,
+        position: index,
+        portletId,
+        portletName: extractPortletName(portletId),
+        ...extractPortletInstance(portletId),
+        configuration: {
+          columnId,
+          position: String(index),
+          ...(layoutTemplateId ? {layoutTemplateId} : {}),
+        },
+      });
+    }
+  }
+  return result;
+}
+
+function extractPortletName(portletId: string): string {
+  return portletId.split('_INSTANCE_')[0] ?? portletId;
+}
+
+function extractPortletInstance(portletId: string): {instanceId?: string} {
+  const instanceId = portletId.split('_INSTANCE_')[1]?.trim();
+  return instanceId ? {instanceId} : {};
 }
 
 export async function resolveRegularLayoutPageData(
