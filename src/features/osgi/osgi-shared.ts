@@ -29,23 +29,19 @@ export async function runGogoCommand(
   }
 
   const context = resolveOsgiContext(config);
-  const gogoHost = context.envValues.BIND_IP || '127.0.0.1';
-  const gogoPort = Number(context.envValues.GOGO_PORT || '11311');
-
-  if (Number.isFinite(gogoPort) && gogoPort > 0) {
-    try {
-      return await runLocalGogoCommand(command, gogoHost, gogoPort);
-    } catch {
-      // Fallback to docker-exec telnet for environments where host port is not reachable.
-    }
-  }
 
   const result = await runDockerCompose(
     context.dockerDir,
-    ['exec', '-T', 'liferay', 'sh', '-lc', 'telnet localhost 11311'],
+    [
+      'exec',
+      '-T',
+      'liferay',
+      'sh',
+      '-lc',
+      `(printf '%s\\n' ${shellSingleQuote(command)} 'disconnect') | telnet localhost 11311`,
+    ],
     {
       env: processEnv,
-      input: `${command}\ndisconnect\n`,
       reject: false,
       timeoutMs: 20_000,
     },
@@ -57,39 +53,7 @@ export async function runGogoCommand(
     });
   }
 
-  const cleaned = sanitizeGogoOutput(result.stdout);
-  if (!looksLikeTelnetBannerOnly(cleaned)) {
-    return cleaned;
-  }
-
-  // Some telnet clients print only the banner unless commands are piped from within the shell.
-  const retryResult = await runDockerCompose(
-    context.dockerDir,
-    [
-      'exec',
-      '-T',
-      'liferay',
-      'sh',
-      '-lc',
-      `(printf '%s\\n' ${shellSingleQuote(command)}; sleep 1; printf '%s\\n' disconnect) | telnet localhost 11311`,
-    ],
-    {
-      env: processEnv,
-      reject: false,
-      timeoutMs: 20_000,
-    },
-  );
-
-  if (!retryResult.ok) {
-    throw new CliError(
-      retryResult.stderr.trim() || retryResult.stdout.trim() || `Could not execute Gogo command: ${command}`,
-      {
-        code: 'OSGI_GOGO_ERROR',
-      },
-    );
-  }
-
-  return sanitizeGogoOutput(retryResult.stdout);
+  return sanitizeGogoOutput(result.stdout);
 }
 
 async function runWorkspaceGogoCommand(
