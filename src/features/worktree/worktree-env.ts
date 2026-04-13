@@ -134,7 +134,7 @@ export async function runWorktreeEnv(options: {
 
   const worktreeConfig = loadConfig({cwd: target.worktreeDir, env: process.env});
   const worktreeEnvContext = resolveLocalEnvContext(worktreeConfig);
-  await ensureLocalEnvDataLayout(worktreeEnvContext.dataRoot);
+  await ensureLocalEnvDataLayout(targetEnvContext);
   await seedLocalBuildDockerConfigs(worktreeEnvContext.liferayDir);
   if (worktreeConfig.repoRoot && worktreeConfig.liferayDir && worktreeConfig.dockerDir) {
     await restoreLocalArtifactsFromDeployCache(worktreeConfig);
@@ -244,35 +244,40 @@ function resolveLocalDataRoot(dockerDir: string, configured: string | undefined)
   return path.isAbsolute(dataRoot) ? dataRoot : path.resolve(dockerDir, dataRoot);
 }
 
-async function ensureLocalEnvDataLayout(dataRoot: string): Promise<void> {
+async function ensureLocalEnvDataLayout(context: {
+  dataRoot: string;
+  envValues: Record<string, string>;
+  composeProjectName: string;
+  dockerDir: string;
+}): Promise<void> {
   const storages = resolveManagedStorages({
     repoRoot: '',
     liferayDir: '',
-    dockerDir: path.dirname(dataRoot),
+    dockerDir: context.dockerDir,
     dockerComposeFile: '',
     dockerEnvFile: '',
     dockerEnvExampleFile: null,
-    envValues: {},
-    dataRoot,
+    envValues: context.envValues,
+    dataRoot: context.dataRoot,
     bindIp: '',
     httpPort: '',
     portalUrl: '',
-    composeProjectName: 'liferay',
+    composeProjectName: context.composeProjectName,
   });
   const managedBindPaths = storages.filter((storage) => storage.mode === 'bind').map((storage) => storage.bindPath);
 
   for (const directory of [
-    dataRoot,
-    path.join(dataRoot, 'liferay-deploy-cache'),
-    path.join(dataRoot, 'elasticsearch-data'),
-    path.join(dataRoot, 'patching'),
-    path.join(dataRoot, 'dumps'),
+    context.dataRoot,
+    path.join(context.dataRoot, 'liferay-deploy-cache'),
+    path.join(context.dataRoot, 'elasticsearch-data'),
+    path.join(context.dataRoot, 'patching'),
+    path.join(context.dataRoot, 'dumps'),
     ...managedBindPaths,
   ]) {
     await fs.ensureDir(directory);
   }
 
-  const elasticsearchDataDir = path.join(dataRoot, 'elasticsearch-data');
+  const elasticsearchDataDir = path.join(context.dataRoot, 'elasticsearch-data');
   if (await fs.pathExists(elasticsearchDataDir)) {
     await fs.chmod(elasticsearchDataDir, 0o777);
   }

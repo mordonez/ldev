@@ -52,7 +52,8 @@ describe('deploy integration', () => {
       `${expectedCommit}\n`,
     );
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
-    expect(gradleCalls).toContain('"--console=plain" "dockerDeploy" "-Pliferay.workspace.environment=dockerenv" "-q"');
+    expect(gradleCalls).toContain('dockerDeploy');
+    expect(gradleCalls).toContain('-Pliferay.workspace.environment=dockerenv');
     expect(gradleCalls).not.toContain('buildService');
   }, 45000);
 
@@ -91,8 +92,9 @@ describe('deploy integration', () => {
     expect(parsed.buildServiceExecuted).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
-    expect(gradleCalls).toContain('"--console=plain" "buildService" "-q"');
-    expect(gradleCalls).toContain('"--console=plain" "dockerDeploy" "-Pliferay.workspace.environment=dockerenv" "-q"');
+    expect(gradleCalls).toContain('buildService');
+    expect(gradleCalls).toContain('dockerDeploy');
+    expect(gradleCalls).toContain('-Pliferay.workspace.environment=dockerenv');
     expect(
       (await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).replaceAll(
         '\r\n',

@@ -38,7 +38,7 @@ export async function runGogoCommand(
       'liferay',
       'sh',
       '-lc',
-      `{ printf '%s\\n' ${shellSingleQuote(command)} 'disconnect' 'y'; sleep 30; } | telnet localhost 11311 2>/dev/null`,
+      `{ printf '%s\\n' ${shellSingleQuote(command)} 'disconnect' 'y'; sleep 2; } | telnet localhost 11311 2>/dev/null`,
     ],
     {
       env: processEnv,

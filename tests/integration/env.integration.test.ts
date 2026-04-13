@@ -373,11 +373,11 @@ describe('env integration', () => {
     await fs.writeFile(path.join(worktreeRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
     await fs.writeFile(
       path.join(repoRoot, 'docker', '.env'),
-      `COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./btrfs/main\nLDEV_STORAGE_PLATFORM=other\nBTRFS_ROOT=./btrfs\nBTRFS_BASE=./btrfs/base\nBTRFS_ENVS=./btrfs/envs\nUSE_BTRFS_SNAPSHOTS=true\n`,
+      `COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./btrfs/main\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\nBTRFS_ROOT=./btrfs\nBTRFS_BASE=./btrfs/base\nBTRFS_ENVS=./btrfs/envs\nUSE_BTRFS_SNAPSHOTS=true\n`,
     );
     await fs.writeFile(
       path.join(worktreeRoot, 'docker', '.env'),
-      `COMPOSE_PROJECT_NAME=demo-issue-1\nENV_DATA_ROOT=${worktreeDataRoot}\nLDEV_STORAGE_PLATFORM=other\nBTRFS_ROOT=${path.join(repoRoot, 'docker', 'btrfs')}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${path.join(repoRoot, 'docker', 'btrfs', 'envs')}\nUSE_BTRFS_SNAPSHOTS=true\n`,
+      `COMPOSE_PROJECT_NAME=demo-issue-1\nENV_DATA_ROOT=${worktreeDataRoot}\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\nBTRFS_ROOT=${path.join(repoRoot, 'docker', 'btrfs')}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${path.join(repoRoot, 'docker', 'btrfs', 'envs')}\nUSE_BTRFS_SNAPSHOTS=true\n`,
     );
 
     const restoreSourceDataRoot = process.platform === 'linux' ? btrfsBase : mainDataRoot;
