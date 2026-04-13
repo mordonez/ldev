@@ -27,3 +27,6 @@ yarn.lock
 
 # Local DXP activation keys must never be committed
 configs/dockerenv/osgi/modules/activation-key-*.xml
+
+# Workspace OAuth bootstrap config is generated locally by ldev oauth install
+configs/dockerenv/osgi/configs/dev.mordonez.ldev.oauth2.app.configuration.LdevOAuth2AppConfiguration.config
