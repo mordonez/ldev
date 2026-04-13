@@ -41,12 +41,32 @@ const input = await new Promise((resolve) => {
     return;
   }
   let data = '';
+  let resolved = false;
+  const timeoutId = setTimeout(() => {
+    if (!resolved) {
+      resolved = true;
+      resolve(data);
+    }
+  }, 75);
+  
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => {
     data += chunk;
   });
-  process.stdin.on('end', () => resolve(data));
-  process.stdin.on('error', () => resolve(''));
+  process.stdin.on('end', () => {
+    if (!resolved) {
+      resolved = true;
+      clearTimeout(timeoutId);
+      resolve(data);
+    }
+  });
+  process.stdin.on('error', () => {
+    if (!resolved) {
+      resolved = true;
+      clearTimeout(timeoutId);
+      resolve(data);
+    }
+  });
 });
 
 function print(text = '') {
@@ -140,24 +160,33 @@ if (
   args[5] === '-lc'
 ) {
   const payload = args[6] ?? '';
+  const failExecMatch = process.env.FAKE_DOCKER_FAIL_EXEC_MATCH ?? '';
+  if (failExecMatch !== '' && payload.includes(failExecMatch)) {
+    fail('simulated compose exec failure for ' + failExecMatch);
+  }
+  const commandText = payload + '\\n' + input;
   if (payload.includes('lb -s')) {
     print(decodeEscapes(process.env.FAKE_DOCKER_LB_OUTPUT ?? '42|Active|    1|com.test.bundle\\n'));
     process.exit(0);
   }
-  if (input.includes('lb | grep') || input.trim() === 'lb' || input.includes('\\nlb\\n')) {
+  if (
+    commandText.includes('lb | grep') ||
+    input.trim() === 'lb' ||
+    commandText.includes('\\nlb\\n')
+  ) {
     println('42|Active|    1|com.test.bundle');
     process.exit(0);
   }
-  if (input.includes('help ldev:oauthInstall') || input.includes('help ldev:adminUnblock')) {
+  if (commandText.includes('help ldev:oauthInstall') || commandText.includes('help ldev:adminUnblock')) {
     println('oauthInstall');
     println('adminUnblock');
     process.exit(0);
   }
-  if (input.includes('diag 42')) {
+  if (commandText.includes('diag 42')) {
     println('No unresolved constraints');
     process.exit(0);
   }
-  if (input.includes('ldev:oauthInstall')) {
+  if (commandText.includes('ldev:oauthInstall')) {
     println('companyId=20116');
     println('companyWebId=liferay.com');
     println('userId=20123');
@@ -169,7 +198,7 @@ if (
     println('LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET=readonly-secret');
     process.exit(0);
   }
-  if (input.includes('ldev:adminUnblock')) {
+  if (commandText.includes('ldev:adminUnblock')) {
     println('companyId=20116');
     println('companyWebId=liferay.com');
     println('userId=20123');
@@ -233,6 +262,9 @@ if (args[0] === 'volume' && args[1] === 'inspect') {
 
 if (args[0] === 'volume' && args[1] === 'create') {
   const volume = args[args.length - 1] ?? '';
+  if (process.env.FAKE_DOCKER_VOLUME_CREATE_FAIL === '1') {
+    fail('simulated volume create failure');
+  }
   let device = '';
   let type = 'none';
   for (const arg of args) {

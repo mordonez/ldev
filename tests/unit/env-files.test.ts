@@ -466,4 +466,50 @@ describe('env-files', () => {
       ),
     );
   });
+
+  test('buildComposeEnv detects postgres compose files by basename when COMPOSE_FILE uses absolute paths', () => {
+    const repoRoot = createTempDir('dev-cli-env-compose-absolute-postgres-');
+    const dockerDir = path.join(repoRoot, 'docker');
+    fs.mkdirSync(dockerDir, {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+
+    const composeMain = path.join(dockerDir, 'docker-compose.yml');
+    const composePostgres = path.join(dockerDir, 'docker-compose.postgres.yml');
+    fs.writeFileSync(composeMain, 'services:\n');
+    fs.writeFileSync(composePostgres, 'services:\n  postgres:\n');
+    fs.writeFileSync(path.join(dockerDir, 'docker-compose.postgres.volume.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(dockerDir, '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'ENV_DATA_ROOT=./data/default',
+        `COMPOSE_FILE=${composeMain}${path.delimiter}${composePostgres}`,
+        'POSTGRES_DATA_MODE=volume',
+        'POSTGRES_DATA_VOLUME_NAME=demo-postgres',
+      ].join('\n') + '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+    const composeEnv = buildComposeEnv(context, {baseEnv: {FOO: 'bar'}});
+
+    expect(composeEnv.FOO).toBe('bar');
+    expect(composeEnv.POSTGRES_DATA_VOLUME_NAME).toBe('demo-postgres');
+    expect(composeEnv.COMPOSE_FILE).toContain('docker-compose.postgres.volume.yml');
+  });
+
+  test('resolveRuntimeStorage throws on invalid storage mode value', () => {
+    const repoRoot = createTempDir('dev-cli-env-invalid-storage-mode-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      ['COMPOSE_PROJECT_NAME=demo', 'ENV_DATA_ROOT=./data/default', 'POSTGRES_DATA_MODE=invalid-mode'].join('\n') +
+        '\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+
+    expect(() => resolveRuntimeStorage(context, 'postgres-data')).toThrowError(/Invalid POSTGRES_DATA_MODE value/);
+  });
 });

@@ -144,6 +144,30 @@ describe('deploy integration', () => {
     );
   }, 45000);
 
+  test('deploy theme reports partial hot deploy failures and does not mark runtime as refreshed', async () => {
+    const repoRoot = await createDeployRepoFixture({withServiceXml: false});
+    const legacyModuleDistDir = path.join(repoRoot, 'liferay', 'modules', 'ub-theme', 'build', 'libs');
+    await fs.ensureDir(legacyModuleDistDir);
+    await fs.writeFile(path.join(legacyModuleDistDir, 'legacy.war'), 'legacy\n');
+
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {
+      ...process.env,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_FAIL_EXEC_MATCH: 'legacy.war',
+    };
+
+    const result = await runCli(['deploy', 'theme', '--theme', 'ub-theme', '--format', 'json'], {cwd: repoRoot, env});
+
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.stdout);
+    expect(parsed.hotDeployed).toBe(false);
+    expect(parsed.artifactsHotDeployed).toBe(1);
+    expect(parsed.runtimeRefreshed).toBe(false);
+    expect(parsed.hotDeployReason).toContain('1/2 artifacts failed to hot deploy');
+    expect(parsed.hotDeployReason).toContain('legacy.war');
+  }, 45000);
+
   test('deploy service runs buildService and restores tracked service.properties', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: true});
 
