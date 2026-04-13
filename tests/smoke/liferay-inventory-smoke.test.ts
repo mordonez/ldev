@@ -362,7 +362,7 @@ describe('liferay inventory smoke', () => {
     const parsed = JSON.parse(output.stdout());
     expect(parsed.pageType).toBe('displayPage');
     expect(parsed.article.key).toBe('ART-001');
-    expect(parsed.articleProperties.contentFields[0].value).toBe('News title');
+    expect(parsed.journalArticles[0].contentFields[0].value).toBe('News title');
     expect(output.stderr()).toBe('');
   });
 });
