@@ -113,7 +113,12 @@ export async function runWorktreeClean(options: {
     .filter((storage) => storage.mode === 'volume')
     .flatMap((storage) => [storage.volumeName, `${composeProjectName}-${storage.key}`]);
 
+  const doclibVolumesRemoved: string[] = [];
+
   const cleanTask = async () => {
+    // === Docker cleanup first: containers → volumes → images ===
+    // Must run before any filesystem operations so that Docker resources are
+    // always freed even if a later git/file removal throws EBUSY.
     if (await fs.pathExists(target.dockerDir)) {
       await runDockerCompose(target.dockerDir, ['down', '--remove-orphans'], {
         env: buildComposeEnv(worktreeEnvContext, {baseEnv: options.processEnv}),
@@ -123,6 +128,15 @@ export async function runWorktreeClean(options: {
       env: options.processEnv,
       reject: false,
     });
+    for (const volume of unique([...doclibCandidates, ...runtimeVolumeCandidates])) {
+      const result = await runDocker(['volume', 'rm', volume], {env: options.processEnv, reject: false});
+      if (result.ok) {
+        doclibVolumesRemoved.push(volume);
+      }
+    }
+    await removeWorktreeImages(composeProjectName, options.processEnv);
+
+    // === Filesystem cleanup ===
     if (isRegistered) {
       // Remove the directory first (with EBUSY retries), then let git prune the
       // stale reference — avoids git's own rmdir attempt racing with Docker handle release.
@@ -183,15 +197,7 @@ export async function runWorktreeClean(options: {
     }
   }
 
-  const doclibVolumesRemoved: string[] = [];
   const attemptedVolumes = unique([...doclibCandidates, ...runtimeVolumeCandidates]);
-  for (const volume of attemptedVolumes) {
-    const result = await runDocker(['volume', 'rm', volume], {env: options.processEnv, reject: false});
-    if (result.ok) {
-      doclibVolumesRemoved.push(volume);
-    }
-  }
-
   const fallbackRuntimePrefixes = runtimeStorageKeys().map((key) => `${composeProjectName}-${key}`);
   const remainingOwnedVolumes: string[] = [];
   for (const volume of unique([...attemptedVolumes, ...fallbackRuntimePrefixes])) {
@@ -285,6 +291,20 @@ function unique(values: string[]): string[] {
 
 function runtimeStorageKeys(): RuntimeStorageKey[] {
   return ['postgres-data', 'liferay-data', 'liferay-osgi-state', 'elasticsearch-data'];
+}
+
+async function removeWorktreeImages(composeProjectName: string, processEnv?: NodeJS.ProcessEnv): Promise<void> {
+  const result = await runDocker(
+    ['images', '--filter', `reference=${composeProjectName}-elasticsearch`, '--format', '{{.ID}}'],
+    {env: processEnv, reject: false},
+  );
+  if (!result.ok) return;
+  const imageIds = result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+  if (imageIds.length === 0) return;
+  await runDocker(['rmi', '-f', ...imageIds], {env: processEnv, reject: false});
 }
 
 function isOwnedBtrfsWorktreeDataRoot(candidate: string, worktreeName: string, btrfsEnvsDir: string | null): boolean {

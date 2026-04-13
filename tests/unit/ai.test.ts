@@ -159,6 +159,8 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     warnings: [],
     nextSteps: [],
     gitignoreEntriesAdded: [],
+    claudeSkillCommandsInstalled: [],
+    projectWorkspaceRulesSynced: [],
     ...overrides,
   };
 }

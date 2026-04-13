@@ -13,7 +13,8 @@ as a human template when creating the real project context file.
 
 1. `AGENTS.md`
 2. `docs/ai/project-context.md` if it exists
-3. Any task-specific skill under `.agents/skills/`
+3. `docs/ai/project-learnings.md` if it exists
+4. Any task-specific skill under `.agents/skills/`
 
 ## Task Routing
 

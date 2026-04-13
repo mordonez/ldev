@@ -92,7 +92,9 @@ Read order:
 1. `AGENTS.md`
 2. `CLAUDE.md`
 3. `docs/ai/project-context.md` if it exists
-4. task-specific skills under `.agents/skills/`
+4. `docs/ai/project-learnings.md` if it exists
+5. All files under `.workspace-rules/` if that directory exists
+6. task-specific skills under `.agents/skills/`
 
 ## Installed Skills
 
