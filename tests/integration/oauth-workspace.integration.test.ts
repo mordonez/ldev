@@ -82,6 +82,8 @@ describe('oauth workspace integration', () => {
     );
     expect(osgiConfig).toContain('enabled=B"true"');
     expect(osgiConfig).toContain('externalReferenceCode="ldev"');
+    expect(osgiConfig).toContain('clientId=');
+    expect(osgiConfig).toContain('clientSecret=');
     expect(osgiConfig).toContain('scopeAliases=[');
     expect(osgiConfig).toContain('"custom.scope.everything.write"');
     expect(osgiConfig).toContain('"Liferay.Object.Admin.REST.everything.write"');

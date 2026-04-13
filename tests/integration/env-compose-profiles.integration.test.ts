@@ -52,6 +52,21 @@ describe('env compose profiles (ldev setup --with)', () => {
         ),
       ),
     ).toBe(true);
+    const copiedConfig = await fs.readFile(
+      path.join(
+        repoRoot,
+        'liferay',
+        'configs',
+        'dockerenv',
+        'osgi',
+        'configs',
+        'com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
+      ),
+      'utf8',
+    );
+    expect(copiedConfig).toContain('networkHostAddresses=["http://elasticsearch:9200"]');
+    expect(copiedConfig).toContain('authenticationEnabled=B"false"');
+    expect(copiedConfig).toContain('httpSSLEnabled=B"false"');
   }, 20_000);
 
   test('DXP + ES + PostgreSQL: setup --with elasticsearch --with postgres persists COMPOSE_FILE with full stack', async () => {
@@ -94,7 +109,13 @@ async function createEnvRepoFixture(): Promise<string> {
       'configs',
       'com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
     ),
-    'operationMode="REMOTE"\nnetworkHostAddresses=["http://elasticsearch:9200"]\n',
+    [
+      'operationMode="REMOTE"',
+      'networkHostAddresses=["http://elasticsearch:9200"]',
+      'authenticationEnabled=B"false"',
+      'httpSSLEnabled=B"false"',
+      '',
+    ].join('\n'),
   );
   await fs.writeFile(
     path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'),
