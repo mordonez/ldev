@@ -38,7 +38,7 @@ export async function runGogoCommand(
       'liferay',
       'sh',
       '-lc',
-      `(printf '%s\\n' ${shellSingleQuote(command)} 'disconnect') | telnet localhost 11311`,
+      `{ printf '%s\\n' ${shellSingleQuote(command)} 'disconnect' 'y'; sleep 30; } | telnet localhost 11311 2>/dev/null`,
     ],
     {
       env: processEnv,
@@ -47,13 +47,15 @@ export async function runGogoCommand(
     },
   );
 
-  if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not execute Gogo command: ${command}`, {
+  const output = sanitizeGogoOutput(result.stdout);
+
+  if (!result.ok && !output) {
+    throw new CliError(result.stderr.trim() || `Could not execute Gogo command: ${command}`, {
       code: 'OSGI_GOGO_ERROR',
     });
   }
 
-  return sanitizeGogoOutput(result.stdout);
+  return output;
 }
 
 async function runWorkspaceGogoCommand(

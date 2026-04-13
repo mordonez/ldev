@@ -43,14 +43,21 @@ export async function withProgress<T>(printer: Printer, message: string, task: (
     return task();
   }
 
+  const startedAt = Date.now();
+
   if (!process.stderr.isTTY) {
     printer.info(`${message}...`);
+    const heartbeat = setInterval(() => {
+      printer.info(`${message}: still running (${formatElapsed(Date.now() - startedAt)})`);
+    }, 30_000);
     try {
       const result = await task();
-      printer.info(`${message}: ok`);
+      clearInterval(heartbeat);
+      printer.info(`${message}: ok (${formatElapsed(Date.now() - startedAt)})`);
       return result;
     } catch (error) {
-      printer.error(`${message}: error`);
+      clearInterval(heartbeat);
+      printer.error(`${message}: error (${formatElapsed(Date.now() - startedAt)})`);
       throw error;
     }
   }
@@ -58,7 +65,8 @@ export async function withProgress<T>(printer: Printer, message: string, task: (
   const frames = ['-', '\\', '|', '/'];
   let index = 0;
   const render = () => {
-    process.stderr.write(`\r${pc.cyan(frames[index % frames.length])} ${message}`);
+    const elapsed = formatElapsed(Date.now() - startedAt);
+    process.stderr.write(`\r${pc.cyan(frames[index % frames.length])} ${message} ${pc.dim(`(${elapsed})`)}`);
     index += 1;
   };
 
@@ -69,14 +77,22 @@ export async function withProgress<T>(printer: Printer, message: string, task: (
     const result = await task();
     clearInterval(timer);
     clearCurrentLine();
-    printer.info(`${message}: ok`);
+    printer.info(`${message}: ok (${formatElapsed(Date.now() - startedAt)})`);
     return result;
   } catch (error) {
     clearInterval(timer);
     clearCurrentLine();
-    printer.error(`${message}: error`);
+    printer.error(`${message}: error (${formatElapsed(Date.now() - startedAt)})`);
     throw error;
   }
+}
+
+function formatElapsed(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
 function clearCurrentLine(): void {

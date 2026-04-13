@@ -196,7 +196,8 @@ if (
     println('LIFERAY_CLI_OAUTH2_CLIENT_SECRET=client-secret');
     println('LIFERAY_CLI_OAUTH2_READONLY_CLIENT_ID=readonly-id');
     println('LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET=readonly-secret');
-    process.exit(0);
+    const execExitCode = parseInt(process.env.FAKE_DOCKER_EXEC_SH_EXIT_CODE ?? '0', 10);
+    process.exit(execExitCode);
   }
   if (commandText.includes('ldev:adminUnblock')) {
     println('companyId=20116');
