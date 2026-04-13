@@ -74,7 +74,7 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('Recommended first steps for this Workspace:');
     expect(result.stdout).toContain('ldev deploy all');
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
-    expect(result.stdout).toContain('ldev mcp check --json');
+    expect(result.stdout).toContain('ldev portal check --json');
   }, 30000);
 
   test('root help adapts to ldev-native', async () => {

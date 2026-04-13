@@ -109,6 +109,65 @@ describe('liferay inventory page', () => {
     expect(seenUrls.every((url) => url.startsWith('http://127.0.0.1:8240/'))).toBe(true);
   });
 
+  test('resolves site root URLs through the runtime redirect when --url points to the site home', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('', {
+        status: 302,
+        headers: {location: 'http://localhost:8080/web/projecte-recerca-foodcircuits/inici'},
+      }),
+    );
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/projecte-recerca-foodcircuits')) {
+          return new Response(
+            '{"id":20117,"friendlyUrlPath":"/projecte-recerca-foodcircuits","name":"Projecte Recerca Foodcircuits"}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return new Response(
+            '[{"layoutId":7144,"plid":7143,"type":"content","nameCurrentValue":"Inici","friendlyURL":"/inici","hidden":false}]',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/site-pages/inici?fields=pageDefinition')) {
+          return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements: []}}}), {
+            status: 200,
+          });
+        }
+
+        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(
+      CONFIG,
+      {url: '/web/projecte-recerca-foodcircuits/'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toMatchObject({
+      pageType: 'regularPage',
+      siteFriendlyUrl: '/projecte-recerca-foodcircuits',
+      url: '/web/projecte-recerca-foodcircuits/inici',
+      friendlyUrl: '/inici',
+      pageName: 'Inici',
+    });
+  });
+
   test('returns regular page inventory for a resolved layout', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {
@@ -212,6 +271,10 @@ describe('liferay inventory page', () => {
           return new Response('{"id":301,"name":"Basic Web Content"}', {status: 200});
         }
 
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
         throw new Error(`Unexpected URL ${url}`);
       },
     });
@@ -235,6 +298,13 @@ describe('liferay inventory page', () => {
       layoutDetails: {
         layoutTemplateId: '2_columns',
         targetUrl: 'https://example.test',
+      },
+      adminUrls: {
+        edit: 'http://localhost:8080/web/guest/home?p_l_mode=edit',
+        configure:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=general',
+        translate:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_translation_web_internal_portlet_TranslationPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_translation_web_internal_portlet_TranslationPortlet_mvcRenderCommandName=%2Ftranslation%2Ftranslate&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classNameId=20006&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classPK=1011&_com_liferay_translation_web_internal_portlet_TranslationPortlet_portletResource=com_liferay_layout_admin_web_portlet_GroupPagesPortlet',
       },
       componentInspectionSupported: true,
     });
@@ -759,6 +829,10 @@ describe('liferay inventory page', () => {
           return new Response('{"classNameId":1002}', {status: 200});
         }
 
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
           return new Response(
             '[{"templateId":"40801","templateKey":"NEWS_TEMPLATE","externalReferenceCode":"NEWS_TEMPLATE","nameCurrentValue":"News Template","classPK":301,"script":"<#-- ftl -->"}]',
@@ -805,6 +879,11 @@ describe('liferay inventory page', () => {
         id: 41001,
         key: 'ART-001',
         title: 'News article',
+      },
+      adminUrls: {
+        edit: 'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_journal_web_portlet_JournalPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_com_liferay_journal_web_portlet_JournalPortlet_mvcRenderCommandName=/journal/edit_article&_com_liferay_journal_web_portlet_JournalPortlet_articleId=ART-001&_com_liferay_journal_web_portlet_JournalPortlet_groupId=20121',
+        translate:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_translation_web_internal_portlet_TranslationPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_translation_web_internal_portlet_TranslationPortlet_mvcRenderCommandName=%2Ftranslation%2Ftranslate&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classNameId=1002&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classPK=41001&_com_liferay_translation_web_internal_portlet_TranslationPortlet_portletResource=com_liferay_journal_web_portlet_JournalPortlet',
       },
       journalArticles: [
         {

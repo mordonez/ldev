@@ -118,7 +118,10 @@ async function fetchText(
 ): Promise<string> {
   const response = await apiClient.get<string>('', url, {timeoutSeconds});
   if (!response.ok) {
-    throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_THEME_ERROR'});
+    throw new CliError(
+      `${label} failed with status=${response.status} at ${url}. Verify that the theme is deployed and the portal URL is reachable.`,
+      {code: 'LIFERAY_THEME_ERROR'},
+    );
   }
 
   return response.body;
@@ -132,7 +135,10 @@ async function requireHttp200(
 ): Promise<void> {
   const response = await apiClient.get('', url, {timeoutSeconds});
   if (!response.ok) {
-    throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_THEME_ERROR'});
+    throw new CliError(
+      `${label} failed with status=${response.status} at ${url}. Verify that the theme is deployed and the portal URL is reachable.`,
+      {code: 'LIFERAY_THEME_ERROR'},
+    );
   }
 }
 

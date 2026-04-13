@@ -8,6 +8,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {authedGet, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
+import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
 
 const EXPORT_KIND = 'liferay-page-layout-export';
 const EXPORT_SCHEMA_VERSION = 1;
@@ -104,9 +105,30 @@ export async function runLiferayPageLayoutExport(
     adminUrls: {
       edit: regularPage.adminUrls.edit,
       translate: regularPage.adminUrls.translate,
-      configureGeneral: buildConfigureUrl(config.liferay.url, regularPage.siteFriendlyUrl, regularPage.plid, 'general'),
-      configureDesign: buildConfigureUrl(config.liferay.url, regularPage.siteFriendlyUrl, regularPage.plid, 'design'),
-      configureSeo: buildConfigureUrl(config.liferay.url, regularPage.siteFriendlyUrl, regularPage.plid, 'seo'),
+      configureGeneral: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'general',
+        regularPage.privateLayout,
+      ),
+      configureDesign: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'design',
+        regularPage.privateLayout,
+      ),
+      configureSeo: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'seo',
+        regularPage.privateLayout,
+      ),
     },
     headlessSitePage,
     ...(experiences === null ? {} : {experiences}),
@@ -187,22 +209,4 @@ async function fetchSitePageExperiences(
   );
 
   return response.ok ? response.data : null;
-}
-
-function buildConfigureUrl(
-  baseUrl: string,
-  siteFriendlyUrl: string,
-  plid: number,
-  screenNavigationEntryKey: string,
-): string {
-  const siteSlug = siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl;
-  const prefix = '&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_';
-  return (
-    `${baseUrl}/ca/group/${siteSlug}/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet` +
-    '&p_p_lifecycle=0&p_p_state=maximized' +
-    `${prefix}mvcRenderCommandName=%2Flayout_admin%2Fedit_layout` +
-    `${prefix}selPlid=${plid}` +
-    `${prefix}backURL=` +
-    `${prefix}screenNavigationEntryKey=${screenNavigationEntryKey}`
-  );
 }

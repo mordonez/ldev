@@ -292,6 +292,10 @@ describe('liferay inventory smoke', () => {
           return new Response('{"id":301,"name":"Basic Web Content"}', {status: 200});
         }
 
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
         throw new Error(`Unexpected URL ${url}`);
       }),
     );
@@ -340,6 +344,10 @@ describe('liferay inventory smoke', () => {
             '{"id":41001,"contentStructureId":301,"contentFields":[{"label":"Headline","name":"headline","dataType":"string","contentFieldValue":{"data":"News title"}}]}',
             {status: 200},
           );
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);

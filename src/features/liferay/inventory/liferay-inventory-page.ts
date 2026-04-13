@@ -5,6 +5,7 @@ import {createLiferayApiClient} from '../../../core/http/client.js';
 import {CliError} from '../../../core/errors.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
+import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
 import {
   fetchDisplayPageInventory,
   fetchRegularPageInventory,
@@ -47,6 +48,10 @@ export type LiferayInventoryPageResult =
         title: string;
         friendlyUrlPath: string;
         contentStructureId: number;
+      };
+      adminUrls?: {
+        edit: string;
+        translate: string;
       };
       journalArticles?: JournalArticleSummary[];
       contentStructures?: ContentStructureSummary[];
@@ -150,6 +155,20 @@ export async function runLiferayInventoryPage(
   const site = await resolveSite(effectiveConfig, request.siteSlug, dependencies);
 
   if (request.route === 'siteRoot') {
+    if (options.url) {
+      const redirectedRequest = await resolveSiteHomeRequest(effectiveConfig, request);
+      if (redirectedRequest) {
+        return fetchRegularPageInventory(
+          effectiveConfig,
+          apiClient,
+          accessToken,
+          site,
+          redirectedRequest.friendlyUrl,
+          redirectedRequest.privateLayout,
+          redirectedRequest.localeHint,
+        );
+      }
+    }
     return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, request.privateLayout);
   }
 
@@ -192,7 +211,7 @@ function resolveAbsoluteUrlConfig(config: AppConfig, rawUrl?: string): AppConfig
 }
 
 async function resolvePortalHomeRequest(config: AppConfig) {
-  const redirectedUrl = await detectPortalHomeRedirect(config);
+  const redirectedUrl = await detectPathRedirect(config, '/');
   if (!redirectedUrl) {
     return null;
   }
@@ -201,8 +220,21 @@ async function resolvePortalHomeRequest(config: AppConfig) {
   return resolved.route === 'regularPage' ? resolved : null;
 }
 
-async function detectPortalHomeRedirect(config: AppConfig): Promise<string | null> {
-  const rootUrl = `${config.liferay.url}/`;
+async function resolveSiteHomeRequest(config: AppConfig, request: ReturnType<typeof resolveInventoryPageRequest>) {
+  const redirectedUrl = await detectPathRedirect(
+    config,
+    buildPageUrl(`/${request.siteSlug}`, '/', request.privateLayout),
+  );
+  if (!redirectedUrl) {
+    return null;
+  }
+
+  const resolved = resolveInventoryPageRequest({url: redirectedUrl});
+  return resolved.route === 'regularPage' && resolved.siteSlug === request.siteSlug ? resolved : null;
+}
+
+async function detectPathRedirect(config: AppConfig, path: string): Promise<string | null> {
+  const rootUrl = `${config.liferay.url}${path}`;
 
   try {
     const manual = await fetch(rootUrl, {
@@ -308,6 +340,8 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
       `articleKey=${result.article.key}`,
       `articleTitle=${result.article.title}`,
       `contentStructureId=${result.article.contentStructureId}`,
+      ...(result.adminUrls ? [`editUrl=${result.adminUrls.edit}`] : []),
+      ...(result.adminUrls ? [`translateUrl=${result.adminUrls.translate}`] : []),
     ];
     appendJournalArticleLines(lines, result.journalArticles);
     appendContentStructureLines(lines, result.contentStructures);

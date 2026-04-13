@@ -10,6 +10,7 @@ import {
   fetchLayoutsByParent,
   type Layout,
 } from '../page-layout/liferay-layout-shared.js';
+import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
   asRecord,
   collectPageElements,
@@ -42,6 +43,10 @@ import {
 
 type LayoutMatch = {layout: Layout; locale: string | null};
 type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
+
+const CLASS_NAME_LAYOUT = 'com.liferay.portal.kernel.model.Layout';
+const CLASS_NAME_JOURNAL_ARTICLE = 'com.liferay.journal.model.JournalArticle';
+const classNameIdCache = new Map<string, number>();
 
 export async function fetchSiteRootInventory(
   config: AppConfig,
@@ -96,9 +101,12 @@ export async function fetchDisplayPageInventory(
   }
 
   if (!article) {
-    throw new CliError(`No structured content found with friendlyUrlPath=${urlTitle}.`, {
-      code: 'LIFERAY_INVENTORY_ERROR',
-    });
+    throw new CliError(
+      `No structured content found with friendlyUrlPath=${urlTitle}. Verify the article URL title and site visibility, or confirm JSONWS/headless permissions for this OAuth client.`,
+      {
+        code: 'LIFERAY_INVENTORY_ERROR',
+      },
+    );
   }
 
   const structuredContentId = article.id && article.id > 0 ? article.id : -1;
@@ -122,6 +130,19 @@ export async function fetchDisplayPageInventory(
     fallbackContentStructureId: article.contentStructureId,
   });
   const contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, [journalArticle]);
+  const articleClassPK = Number(article.id ?? jsonwsArticle?.resourcePrimKey ?? jsonwsArticle?.id ?? -1);
+  const articleClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_JOURNAL_ARTICLE);
+  const articleAdminUrls =
+    articleRef.articleId && articleClassPK > 0
+      ? buildJournalArticleAdminUrls(
+          config.liferay.url,
+          site.friendlyUrlPath,
+          site.id,
+          articleRef.articleId,
+          articleClassPK,
+          articleClassNameId,
+        )
+      : undefined;
 
   return {
     pageType: 'displayPage',
@@ -138,6 +159,7 @@ export async function fetchDisplayPageInventory(
       friendlyUrlPath: article.friendlyUrlPath ?? urlTitle,
       contentStructureId: article.contentStructureId ?? -1,
     },
+    ...(articleAdminUrls ? {adminUrls: articleAdminUrls} : {}),
     journalArticles: [journalArticle],
     contentStructures,
   };
@@ -173,6 +195,7 @@ export async function fetchRegularPageInventory(
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
   const componentInspectionSupported = String(layout.type ?? '').toLowerCase() === 'content';
+  const layoutClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_LAYOUT);
   let fragmentEntryLinks: PageFragmentEntry[] | undefined;
   let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> | undefined;
   let journalArticles: JournalArticleSummary[] | undefined;
@@ -219,11 +242,15 @@ export async function fetchRegularPageInventory(
       hidden: layout.hidden ?? false,
     },
     layoutDetails,
-    adminUrls: {
-      edit: `${config.liferay.url}${pageUrl}?p_l_mode=edit`,
-      configure: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
-      translate: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=translation&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
-    },
+    adminUrls: buildLayoutAdminUrls(
+      config.liferay.url,
+      site.friendlyUrlPath,
+      site.id,
+      layout.plid ?? -1,
+      pageUrl,
+      layoutClassNameId,
+      privateLayout,
+    ),
     ...(portlets.length > 0 ? {portlets} : {}),
     ...(componentInspectionSupported
       ? {
@@ -299,6 +326,7 @@ export async function resolveRegularLayoutPageData(
   const layoutDetails = buildLayoutDetails(layout.typeSettings ?? '');
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
+  const layoutClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_LAYOUT);
 
   return {
     siteName: site.name,
@@ -313,12 +341,48 @@ export async function resolveRegularLayoutPageData(
     plid: layout.plid ?? -1,
     hidden: layout.hidden ?? false,
     layoutDetails,
-    adminUrls: {
-      edit: `${config.liferay.url}${pageUrl}?p_l_mode=edit`,
-      configure: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
-      translate: `${config.liferay.url}/group/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_tabs1=translation&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_redirect=${encodeURIComponent(pageUrl)}&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=${layout.plid ?? -1}`,
-    },
+    adminUrls: buildLayoutAdminUrls(
+      config.liferay.url,
+      site.friendlyUrlPath,
+      site.id,
+      layout.plid ?? -1,
+      pageUrl,
+      layoutClassNameId,
+      privateLayout,
+    ),
   };
+}
+
+async function resolveClassNameId(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  className: string,
+): Promise<number> {
+  const cacheKey = `${config.liferay.url}|${className}`;
+  const cached = classNameIdCache.get(cacheKey);
+  if (cached && cached > 0) {
+    return cached;
+  }
+
+  const response = await safeAuthedGet<Record<string, unknown>>(
+    config,
+    apiClient,
+    accessToken,
+    `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
+  );
+  const resolved = Number(response.data?.classNameId ?? -1);
+  if (!response.ok || resolved <= 0) {
+    throw new CliError(
+      `Unable to resolve classNameId for ${className}. Verify JSONWS access to /api/jsonws/classname/fetch-class-name and portal credentials/permissions.`,
+      {
+        code: 'LIFERAY_INVENTORY_ERROR',
+      },
+    );
+  }
+
+  classNameIdCache.set(cacheKey, resolved);
+  return resolved;
 }
 
 async function findLayoutByFriendlyUrl(
