@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.4.0](https://github.com/mordonez/ldev/compare/ldev-v0.3.0...ldev-v0.4.0) (2026-04-13)
+
+
+### Features
+
+* add runtime storage modes for Docker state ([3f6dd95](https://github.com/mordonez/ldev/commit/3f6dd951cd574a270c530fc1d207d970f0970a3b))
+* enhance AI installation and workspace synchronization features ([c5bd45f](https://github.com/mordonez/ldev/commit/c5bd45f07e1a69decc31f53a581269f1273aef94))
+* enhance Gogo command execution and output handling in OSGi features ([2866c7d](https://github.com/mordonez/ldev/commit/2866c7d6d8134659aff6d01d61081ac89eda8ce1))
+* implement admin URL builders and enhance error messages for Liferay inventory and layout features ([b6c3352](https://github.com/mordonez/ldev/commit/b6c33528931a1890be922ed99ceef223c6b1aded))
+* improve portal inventory and hot deploy ([87ee816](https://github.com/mordonez/ldev/commit/87ee816a5a4f144425b5f8e85a80f37f95d8af9e))
+* runtime storage modes, deploy reliability, and portal inventory hardening ([fb4adf8](https://github.com/mordonez/ldev/commit/fb4adf8fd913ab1700a69a259ca3d488d001243d))
+* simplify inventory page configuration and update related tests for consistent URL handling ([b7d4eee](https://github.com/mordonez/ldev/commit/b7d4eee5b2455902ce0d796541af5324fdeffa77))
+* update contextual help and agent workflow documentation for improved clarity on command usage ([39e4a55](https://github.com/mordonez/ldev/commit/39e4a5506136744ab2f239425a509cb2b821a81a))
+
+
+### Bug Fixes
+
+* add playwright-cli support to doctor checks and capabilities detection ([31db3e7](https://github.com/mordonez/ldev/commit/31db3e7ad810eb5a88c156fa51370638a83d2641))
+* address PR comments and Windows restore test ([0a726df](https://github.com/mordonez/ldev/commit/0a726dfea8d98bbfd528bdd3e6e3f2d3301f91ab))
+* align env restore fixture with main postgres path ([d74c98e](https://github.com/mordonez/ldev/commit/d74c98e808cb7a209e70cd7c114b330d618d4aa9))
+* align gogo timeout with local profile generation ([1da9223](https://github.com/mordonez/ldev/commit/1da9223156a0a026fdf942a965eba96c12a4c1d8))
+* align workspace elasticsearch and oauth scaffold behavior ([d9390e6](https://github.com/mordonez/ldev/commit/d9390e6020216a02a0a7bbff466dc524815e9ba3))
+* align workspace elasticsearch and oauth scaffold behavior ([f6f3055](https://github.com/mordonez/ldev/commit/f6f3055e66260a28ac07ca939884e8df862fbeb0))
+* avoid duplicate display page fields ([3d20cef](https://github.com/mordonez/ldev/commit/3d20cefd3b2a0f11eebba6b3176fc077300b0809))
+* enforce mandatory worktree isolation and validation for ldev-native projects ([9c84d84](https://github.com/mordonez/ldev/commit/9c84d845a9e2e7f6773d107536fe7c169d1856cc))
+* enhance issue reproduction and validation steps in documentation ([58c801e](https://github.com/mordonez/ldev/commit/58c801e00e653282371c532c349c17881d575f2b))
+* enhance path removal robustness with retries and fallback for worktree clean ([d2b8c63](https://github.com/mordonez/ldev/commit/d2b8c638913dc45eb82647d52676ee4959ae5d95))
+* enhance progress reporting in withProgress function and update exit code handling in fake-docker ([f4fed6d](https://github.com/mordonez/ldev/commit/f4fed6db0354a35d8c58f73adff87a7c7ba812a1))
+* harden agent runtime workflows ([ecedc28](https://github.com/mordonez/ldev/commit/ecedc281cb5ce0e7641b19763a8c809b22e617a2))
+* harden oauth install on windows ([8a6a621](https://github.com/mordonez/ldev/commit/8a6a621feaeff31b8a02dc3452f99626c37eef40))
+* harden windows integration and runtime flows ([7d394e6](https://github.com/mordonez/ldev/commit/7d394e646f599d1367a773a81f77600f3b2262e0))
+* harden windows runtime behavior ([96714a1](https://github.com/mordonez/ldev/commit/96714a1c1edc2990d22850ece26bec265a1fef73))
+* honor absolute inventory page origins ([67d89d6](https://github.com/mordonez/ldev/commit/67d89d64d25877877be7adfb5f1a36f3d4a35563))
+* hot deploy + cache lock + volume validation in deploy-shared ([cea2582](https://github.com/mordonez/ldev/commit/cea2582377fd045bb7103cf6a40e1e5957371d52))
+* include classic portlet layout inventory ([7f39c20](https://github.com/mordonez/ldev/commit/7f39c2044d85903dedbb1859e06b182c5d01a6b3))
+* normalize ai install line endings ([9847fdc](https://github.com/mordonez/ldev/commit/9847fdc8a00ab4232764c5b77ce2f3aee7698926))
+* resolve partial worktree runtime context ([2bac07f](https://github.com/mordonez/ldev/commit/2bac07fb56c19fd120c73927075b8b65b29fa3b0))
+* search /global as fallback when ADT not found in specified site ([f0465cf](https://github.com/mordonez/ldev/commit/f0465cf465743d491ef18b4017f96c27f7c3c625))
+* tighten issue reproduction workflow ([0c5e9fe](https://github.com/mordonez/ldev/commit/0c5e9feabbc9693573c4cbc644923be09706c8f7))
+* URL encode all path segments to prevent query injection in page admin URLs ([36e58b9](https://github.com/mordonez/ldev/commit/36e58b9e37995cfa1de35f9ca902f84cba967f4f))
+
 ## [0.3.0](https://github.com/mordonez/ldev/compare/ldev-v0.2.2...ldev-v0.3.0) (2026-04-10)
 
 
