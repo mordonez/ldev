@@ -14,10 +14,11 @@ Project-specific context lives outside this file:
 
 Before changing code or runtime state:
 
-1. Run `ldev doctor`.
-2. Run `ldev context --json`.
-3. Run `ldev mcp check --json` to check MCP availability. This step is
-   informational — continue even if MCP is not available or not configured.
+1. Run `ldev context --json`.
+2. Run `ldev doctor --json` only when the task depends on runtime health,
+   installed tooling, browser automation, deploy verification, or diagnosis.
+3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
+   `ldev` command covers the required portal surface.
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 
@@ -42,12 +43,12 @@ Use `ldev --help` as the source of truth for the public CLI surface.
   under that root. Re-run the check after interruptions, context resumes, shell
   changes, or any step that may have changed directories.
 - Prefer the task-shaped public contract first:
-  - `ldev doctor --json`
   - `ldev context --json`
-  - `ldev mcp check --json`
   - `ldev portal check --json`
   - `ldev portal inventory ... --json`
   - `ldev logs diagnose --json`
+  - `ldev doctor --json` when runtime or tool readiness matters
+  - `ldev mcp check --json` when MCP is part of the plan
 - For scripting and agents, prefer machine-readable output:
   - `ldev doctor --json`
   - `ldev context --json`
@@ -56,7 +57,7 @@ Use `ldev --help` as the source of truth for the public CLI surface.
 ## MCP Usage
 
 - Treat MCP as optional. Do not assume it is enabled in every runtime.
-- Always run `ldev mcp check --json` before planning around MCP.
+- Run `ldev mcp check --json` before planning around MCP, not as universal bootstrap.
 - For agents and reusable skills, prefer OAuth2 via `ldev oauth install --write-env` instead of MCP Basic auth with a human username/password.
 - Treat MCP username/password auth as a quick manual test path, not as the default agent bootstrap.
 - If MCP is available and the task is generic OpenAPI discovery or generic endpoint execution, MCP can be the shortest path.

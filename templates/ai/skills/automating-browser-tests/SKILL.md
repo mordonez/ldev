@@ -16,6 +16,17 @@ ldev doctor --json
 ldev portal inventory page --url <fullUrl> --json
 ```
 
+Before opening Playwright, lock these fields from bootstrap:
+
+- `env.portalUrl`: use this exact host for the whole browser session
+- `ldev portal inventory page --url <fullUrl> --json`:
+  - `adminUrls.*` for candidate admin targets
+  - `siteFriendlyUrl`, `groupId`, `layout.plid` for manual fallback
+
+Do not mix `localhost` and `127.0.0.1` in the same browser flow. Liferay auth
+cookies are host-scoped, so a login on one host will not authenticate the
+other.
+
 Check `ldev doctor --json` → `tools.playwrightCli.available` before starting any browser flow.
 
 If `tools.playwrightCli.available` is `false`, install it first and do not proceed until it is available:
@@ -126,6 +137,9 @@ playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/after.png
 playwright-cli -s=<session-name> close
 ```
 
+Do not run `open`, `snapshot`, `screenshot`, `goto`, or `run-code` in parallel
+against the same session. Open first, then continue sequentially.
+
 When the browser flow starts from an issue URL, do not jump from `open` straight
 to grep or code edits. Use the browser and `ldev portal inventory page --url`
 together to inspect the actual loaded page first:
@@ -164,6 +178,15 @@ Before attempting Page Editor actions, determine whether you need an authenticat
 Default local portal credentials are documented in `ldev-liferay-core.md`. Use those values
 in the login script below rather than assuming them from memory.
 
+For admin URLs from navigation maps, `adminUrls.*`, or Control Panel paths:
+
+- assume authentication is required unless the task proves otherwise
+- open the login page on the same host as `env.portalUrl`
+- finish login before navigating to the admin URL
+- if `ldev portal inventory page --url ... --json` returns `adminUrls.*` on a
+  different host spelling than the browser session, normalize the URL to the
+  browser host before opening it
+
 Manual `playwright-cli` login flow:
 
 ```bash
@@ -178,6 +201,26 @@ EOF
 )
 playwright-cli -s=page-editor-<issue> run-code "$CODE"
 ```
+
+Prefer `run-code` for login over ad-hoc `fill`/`click` wrapper commands when the
+login page is localized or wrapper text matching is unstable. Use DOM ids like:
+
+- `#_com_liferay_login_web_portlet_LoginPortlet_login`
+- `#_com_liferay_login_web_portlet_LoginPortlet_password`
+
+After login, immediately confirm the current page:
+
+```bash
+playwright-cli -s=<session-name> run-code "async function (page) { return { url: page.url(), title: await page.title() }; }"
+```
+
+If login lands on another site such as `edicioweb`, that only confirms the auth
+session. You may still need to navigate explicitly to the target site's admin
+URL afterwards.
+
+If a direct `adminUrls.translate` or `adminUrls.configure` URL does not land on
+the expected page and instead falls back to a generic "Pàgines del lloc web"
+screen, treat that URL as a hint rather than a guaranteed deep-link.
 
 Project-specific wrappers can document their own historical helper commands in a local `REFERENCE.md`.
 
@@ -243,4 +286,7 @@ playwright-cli kill-all || true
 - Never validate against production; always reproduce locally first
 - For issue work, inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url` before deciding what code/resource to edit
 - If browser navigation lands on the wrong local site because of virtual host routing, treat browser evidence as blocked for that URL and use `curl`, `ldev portal inventory ...`, and runtime logs instead of forcing a misleading screenshot
+- If the browser is authenticated but lands in the wrong site admin context, do
+  not treat that as a login failure. Rebuild the admin URL from the intended
+  site context and continue on the same host.
 - If Chrome is unavailable but Firefox/WebKit works, report that explicitly instead of treating the whole validation as blocked

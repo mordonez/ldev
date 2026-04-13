@@ -17,7 +17,21 @@ Practical rules:
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - For `run-code`, prefer building the snippet into a shell variable with `cat <<'EOF'` and passing it quoted once.
 - Keep one browser helper active at a time per session name.
+- Do not run helper commands in parallel against the same session. Open first,
+  then `snapshot`, `run-code`, `goto`, and `screenshot` sequentially.
 - If local virtual host routing sends the browser to another site while `curl` still reaches the expected page, record that as a browser-routing limitation and finish validation with HTTP plus logs instead of claiming a visual pass.
+- Lock the browser host to `ldev context --json -> env.portalUrl` before login.
+  Do not mix `localhost` and `127.0.0.1` after authentication.
+- `ldev portal inventory page --url ... --json` may return `adminUrls.*` with a
+  different host spelling than the current browser session. Normalize the host
+  before opening the URL.
+- On localized Liferay login pages, prefer DOM-id selectors inside `run-code`
+  (`#_com_liferay_login_web_portlet_LoginPortlet_login` and
+  `#_com_liferay_login_web_portlet_LoginPortlet_password`) over wrapper
+  text-based `fill` commands.
+- If a deep-link to page configuration or translation falls back to generic
+  "Pàgines del lloc web", treat it as a context fallback. You are authenticated,
+  but not at the final target yet.
 
 Mobile capture pattern:
 

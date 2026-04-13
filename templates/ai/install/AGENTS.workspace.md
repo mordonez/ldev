@@ -32,10 +32,11 @@ If both layers speak to the same topic:
 
 Before changing code or runtime state:
 
-1. Run `ldev doctor --json`.
-2. Run `ldev context --json`.
-3. Run `ldev mcp check --json` to check MCP availability. This step is
-   informational — continue even if MCP is not available or not configured.
+1. Run `ldev context --json`.
+2. Run `ldev doctor --json` only when the task depends on runtime health,
+   installed tooling, browser automation, deploy verification, or diagnosis.
+3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
+   `ldev` command covers the required portal surface.
 4. Read `docs/ai/project-context.md` if it exists.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 
@@ -106,12 +107,12 @@ Before using MCP:
 - Prefer `ldev deploy module <module-name>` or `ldev deploy theme` over broader
   deploy commands. Do not use a broad deploy as a default validation step.
 - Prefer the task-shaped public contract first:
-  - `ldev doctor --json`
   - `ldev context --json`
-  - `ldev mcp check --json`
   - `ldev portal check --json`
   - `ldev portal inventory ... --json`
   - `ldev logs diagnose --json`
+  - `ldev doctor --json` when runtime or tool readiness matters
+  - `ldev mcp check --json` when MCP is part of the plan
 
 ## Project-Specific Knowledge
 

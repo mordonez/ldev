@@ -14,6 +14,7 @@ alwaysApply: true
 
 Preferred task-shaped entry points after bootstrap:
 
+- `ldev context --json`
 - `ldev portal inventory sites --json`
 - `ldev portal inventory pages --site /my-site --json`
 - `ldev portal inventory page --url /web/guest/home --json`
@@ -21,6 +22,11 @@ Preferred task-shaped entry points after bootstrap:
 - `ldev resource export-template --site /my-site --id <id> --json`
 - `ldev resource import-structure --site /my-site --key <key> --check-only`
 - `ldev deploy module <module-name> --format json`
+
+Run `ldev doctor --json` only when runtime health, installed tools,
+browser automation, or deploy verification are part of the task. Run
+`ldev mcp check --json` only when the task depends on MCP or when no direct
+`ldev` command covers the required portal surface.
 
 Use the official Liferay MCP only when it provides something that a direct `ldev` command does not already provide.
 

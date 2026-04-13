@@ -14,7 +14,6 @@ alwaysApply: true
 Preferred task-shaped entry points after bootstrap:
 
 - `ldev context --json`
-- `ldev doctor --json`
 - `ldev status --json`
 - `ldev portal inventory sites --json`
 - `ldev portal inventory pages --site /my-site --json`
@@ -24,6 +23,11 @@ Preferred task-shaped entry points after bootstrap:
 - `ldev resource import-structure --site /my-site --key <key> --check-only`
 - `ldev deploy module <module-name> --format json`
 - `ldev deploy theme --format json`
+
+Run `ldev doctor --json` only when runtime health, installed tools,
+browser automation, or deploy verification are part of the task. Run
+`ldev mcp check --json` only when the task depends on MCP or when no direct
+`ldev` command covers the required portal surface.
 
 Prefer `ldev` commands over raw Docker or shell equivalents. Use MCP only when it provides something a direct `ldev` command does not already cover.
 

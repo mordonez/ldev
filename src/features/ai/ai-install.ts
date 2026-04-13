@@ -671,7 +671,9 @@ function buildNextSteps(
   if (project) {
     steps.push('Project skills are project-owned: ldev ai update will not overwrite them.');
   }
-  steps.push(`From ${targetDir}, run ldev doctor --json and ldev context --json before starting an agent session.`);
+  steps.push(
+    `From ${targetDir}, start agent sessions with ldev context --json; run ldev doctor --json only when runtime, tooling, browser, or deploy checks matter.`,
+  );
   return steps;
 }
 function uniqueSorted(values: string[]): string[] {
