@@ -69,14 +69,16 @@ describe('liferay inventory page', () => {
     });
   });
 
-  test('uses absolute URL origin as the effective portal URL', async () => {
+  test('ignores absolute URL origin and keeps configured portal URL', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network disabled for test'));
+
     const seenUrls: string[] = [];
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {
         const url = String(input);
         seenUrls.push(url);
 
-        if (!url.startsWith('http://127.0.0.1:8240/')) {
+        if (!url.startsWith('http://localhost:8080/')) {
           throw new Error(`Unexpected portal origin ${url}`);
         }
 
@@ -106,7 +108,7 @@ describe('liferay inventory page', () => {
       siteFriendlyUrl: '/facultat-economia-empresa',
       url: '/web/facultat-economia-empresa/',
     });
-    expect(seenUrls.every((url) => url.startsWith('http://127.0.0.1:8240/'))).toBe(true);
+    expect(seenUrls.every((url) => url.startsWith('http://localhost:8080/'))).toBe(true);
   });
 
   test('resolves site root URLs through the runtime redirect when --url points to the site home', async () => {

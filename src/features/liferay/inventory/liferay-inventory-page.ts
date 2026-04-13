@@ -130,7 +130,7 @@ export async function runLiferayInventoryPage(
   dependencies?: InventoryPageDependencies,
 ): Promise<LiferayInventoryPageResult> {
   const request = resolveInventoryPageRequest(options);
-  const effectiveConfig = resolveAbsoluteUrlConfig(config, options.url);
+  const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(effectiveConfig, dependencies);
 
@@ -185,29 +185,6 @@ export async function runLiferayInventoryPage(
     request.privateLayout,
     request.localeHint,
   );
-}
-
-function resolveAbsoluteUrlConfig(config: AppConfig, rawUrl?: string): AppConfig {
-  if (!rawUrl) {
-    return config;
-  }
-
-  try {
-    const parsed = new URL(rawUrl);
-    const current = new URL(config.liferay.url);
-    if (parsed.origin === current.origin || !['http:', 'https:'].includes(parsed.protocol)) {
-      return config;
-    }
-    return {
-      ...config,
-      liferay: {
-        ...config.liferay,
-        url: parsed.origin,
-      },
-    };
-  } catch {
-    return config;
-  }
 }
 
 async function resolvePortalHomeRequest(config: AppConfig) {
