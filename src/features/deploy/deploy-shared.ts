@@ -10,6 +10,12 @@ import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {runProcess} from '../../core/platform/process.js';
 import {buildComposeEnv, resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-files.js';
 
+const DEPLOY_TARGET_DIR = '/opt/liferay/deploy';
+const DEPLOY_SOURCE_DIR = '/mnt/liferay/deploy';
+const CACHE_LOCK_FILE = '.ldev-cache.lock';
+const CACHE_LOCK_ATTEMPTS = 50;
+const CACHE_LOCK_DELAY_MS = 100;
+
 export type DeployContext = {
   repoRoot: string;
   liferayDir: string;
@@ -189,31 +195,33 @@ export async function syncArtifactsToDeployCache(
 ): Promise<{cacheDir: string; copied: number; commit: string}> {
   const envContext = resolveEnvContext(config);
   const cacheStorage = resolveRuntimeStorage(envContext, 'liferay-deploy-cache');
-  const cacheDir = cacheStorage.bindPath;
-  if (cacheStorage.mode === 'bind') {
-    await fs.ensureDir(cacheDir);
-  } else {
-    await ensureStorageVolume(cacheStorage);
-  }
+  return withStorageLock(cacheStorage, async () => {
+    const cacheDir = cacheStorage.bindPath;
+    if (cacheStorage.mode === 'bind') {
+      await fs.ensureDir(cacheDir);
+    } else {
+      await ensureStorageVolume(cacheStorage);
+    }
 
-  if (options?.clean ?? false) {
-    await clearCachedDeployArtifacts(cacheStorage);
-  }
+    if (options?.clean ?? false) {
+      await clearCachedDeployArtifacts(cacheStorage);
+    }
 
-  const copied =
-    cacheStorage.mode === 'bind'
-      ? await syncArtifactsToDirectory(cacheDir, artifacts)
-      : await syncBuildArtifactsToCachedStorage(context.buildDeployDir, cacheStorage, artifacts);
-  if (copied === 0) {
-    throw new CliError(`No deployable artifacts were found to copy into ${cacheDir}.`, {
-      code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
-    });
-  }
+    const copied =
+      cacheStorage.mode === 'bind'
+        ? await syncArtifactsToDirectory(cacheDir, artifacts)
+        : await syncBuildArtifactsToCachedStorage(context.buildDeployDir, cacheStorage, artifacts);
+    if (copied === 0) {
+      throw new CliError(`No deployable artifacts were found to copy into ${cacheDir}.`, {
+        code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
+      });
+    }
 
-  const commit = await currentArtifactCommit(context);
-  await writeCachedPrepareCommit(cacheStorage, commit);
+    const commit = await currentArtifactCommit(context);
+    await writeCachedPrepareCommit(cacheStorage, commit);
 
-  return {cacheDir, copied, commit};
+    return {cacheDir, copied, commit};
+  });
 }
 
 export async function hotDeployArtifactsToRunningLiferay(
@@ -234,10 +242,11 @@ export async function hotDeployArtifactsToRunningLiferay(
 
   let copied = 0;
   const failures: string[] = [];
-  for (const artifact of uniquePaths(artifacts)) {
+  const uniqueArtifacts = uniquePaths(artifacts);
+  for (const artifact of uniqueArtifacts) {
     const fileName = path.basename(artifact);
     const escapedFileName = escapeShellArg(fileName);
-    const command = `mkdir -p /opt/liferay/deploy && if [ /mnt/liferay/deploy/${escapedFileName} -ef /opt/liferay/deploy/${escapedFileName} ] 2>/dev/null; then true; else cp -f /mnt/liferay/deploy/${escapedFileName} /opt/liferay/deploy/; fi`;
+    const command = `mkdir -p ${DEPLOY_TARGET_DIR} && if [ ${DEPLOY_SOURCE_DIR}/${escapedFileName} -ef ${DEPLOY_TARGET_DIR}/${escapedFileName} ] 2>/dev/null; then true; else cp -f ${DEPLOY_SOURCE_DIR}/${escapedFileName} ${DEPLOY_TARGET_DIR}/; fi`;
     const result =
       liferayTarget.kind === 'compose'
         ? await runDockerCompose(envContext.dockerDir, ['exec', '-T', 'liferay', 'sh', '-lc', command], {
@@ -255,10 +264,18 @@ export async function hotDeployArtifactsToRunningLiferay(
     }
   }
 
+  const hasFailures = failures.length > 0;
+  const allCopied = copied === uniqueArtifacts.length && uniqueArtifacts.length > 0;
+  const reason = hasFailures
+    ? failures.length === uniqueArtifacts.length
+      ? `all artifacts failed to hot deploy: ${failures[0]}`
+      : `${failures.length}/${uniqueArtifacts.length} artifacts failed to hot deploy: ${failures.join('; ')}`
+    : null;
+
   return {
-    hotDeployed: copied > 0,
+    hotDeployed: allCopied,
     copied,
-    reason: copied > 0 ? null : (failures[0] ?? 'copy to /opt/liferay/deploy did not complete'),
+    reason,
     target: liferayTarget.containerId,
   };
 }
@@ -520,7 +537,49 @@ async function ensureStorageVolume(storage: RuntimeStorage): Promise<void> {
     return;
   }
 
-  await runDocker(['volume', 'create', storage.volumeName], {reject: false});
+  const result = await runDocker(['volume', 'create', storage.volumeName], {reject: false});
+  if (!result.ok) {
+    throw new CliError(
+      result.stderr.trim() || result.stdout.trim() || `Could not create volume ${storage.volumeName}`,
+      {
+        code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
+      },
+    );
+  }
+}
+
+async function withStorageLock<T>(storage: RuntimeStorage, run: () => Promise<T>): Promise<T> {
+  if (storage.mode !== 'bind') {
+    return run();
+  }
+
+  await fs.ensureDir(storage.bindPath);
+  const lockPath = path.join(storage.bindPath, CACHE_LOCK_FILE);
+
+  for (let attempt = 0; attempt < CACHE_LOCK_ATTEMPTS; attempt += 1) {
+    try {
+      const fd = await fs.open(lockPath, 'wx');
+
+      try {
+        return await run();
+      } finally {
+        await fs.close(fd).catch(() => undefined);
+        await fs.remove(lockPath).catch(() => undefined);
+      }
+    } catch {
+      await delay(CACHE_LOCK_DELAY_MS);
+    }
+  }
+
+  throw new CliError(`Timed out waiting for deploy cache lock at ${lockPath}.`, {
+    code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
+  });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function escapeSingleQuotes(value: string): string {
