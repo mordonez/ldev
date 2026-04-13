@@ -381,10 +381,12 @@ describe('env integration', () => {
     );
 
     const restoreSourceDataRoot = process.platform === 'linux' ? btrfsBase : mainDataRoot;
-    await fs.ensureDir(path.join(restoreSourceDataRoot, 'postgres-data'));
+    // Postgres restore always reads from the main env data root, even when the
+    // rest of the worktree data comes from BTRFS_BASE.
+    await fs.ensureDir(path.join(mainDataRoot, 'postgres-data'));
     await fs.ensureDir(path.join(restoreSourceDataRoot, 'liferay-data'));
     await fs.ensureDir(path.join(restoreSourceDataRoot, 'liferay-deploy-cache'));
-    await fs.writeFile(path.join(restoreSourceDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
+    await fs.writeFile(path.join(mainDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-data', 'from-base.txt'), 'base\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-deploy-cache', 'shared.jar'), 'from-main\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-deploy-cache', '.prepare-commit'), 'base123\n');
