@@ -35,6 +35,7 @@ const TOKEN_CLIENT = {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('liferay inventory page', () => {

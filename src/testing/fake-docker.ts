@@ -144,7 +144,7 @@ if (
     print(decodeEscapes(process.env.FAKE_DOCKER_LB_OUTPUT ?? '42|Active|    1|com.test.bundle\\n'));
     process.exit(0);
   }
-  if (input.includes('lb | grep')) {
+  if (input.includes('lb | grep') || input.trim() === 'lb' || input.includes('\\nlb\\n')) {
     println('42|Active|    1|com.test.bundle');
     process.exit(0);
   }
