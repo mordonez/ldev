@@ -18,6 +18,7 @@ const ADT_RESOURCE_CLASS_NAME = 'com.liferay.portlet.display.template.PortletDis
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
+  accessToken?: string;
 };
 
 export type ResolvedResourceSite = ResolvedSite & {
@@ -88,6 +89,7 @@ export async function listDdmTemplates(
   config: AppConfig,
   site: ResolvedResourceSite,
   dependencies?: ResourceDependencies,
+  options?: {includeCompanyFallback?: boolean},
 ): Promise<Record<string, unknown>[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
@@ -105,6 +107,10 @@ export async function listDdmTemplates(
 
   if (siteTemplates.length > 0) {
     return siteTemplates;
+  }
+
+  if (options?.includeCompanyFallback === false) {
+    return [];
   }
 
   return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, null, classNameId, resourceClassNameId);
@@ -178,6 +184,92 @@ async function fetchClassNameId(
     });
   }
   return classNameId;
+}
+
+export type GroupInfo = {
+  friendlyUrl: string;
+  name: string;
+  parentGroupId: number;
+};
+
+export type ResourceSiteChainEntry = {
+  siteId: number;
+  siteFriendlyUrl: string;
+  siteName: string;
+};
+
+export async function buildResourceSiteChain(
+  config: AppConfig,
+  startSite: string,
+  dependencies?: ResourceDependencies,
+): Promise<ResourceSiteChainEntry[]> {
+  const chain: ResourceSiteChainEntry[] = [];
+  const visited = new Set<number>();
+
+  const firstSite = await resolveResourceSite(config, startSite, dependencies);
+  chain.push({siteId: firstSite.id, siteFriendlyUrl: firstSite.friendlyUrlPath, siteName: firstSite.name});
+  visited.add(firstSite.id);
+
+  let currentGroupInfo = await fetchGroupInfo(config, firstSite.id, dependencies);
+
+  while (currentGroupInfo && currentGroupInfo.parentGroupId > 0 && !visited.has(currentGroupInfo.parentGroupId)) {
+    const parentId = currentGroupInfo.parentGroupId;
+    const parentGroupInfo = await fetchGroupInfo(config, parentId, dependencies);
+    if (!parentGroupInfo) {
+      break;
+    }
+
+    visited.add(parentId);
+    chain.push({
+      siteId: parentId,
+      siteFriendlyUrl: parentGroupInfo.friendlyUrl,
+      siteName: parentGroupInfo.name,
+    });
+    currentGroupInfo = parentGroupInfo;
+  }
+
+  try {
+    const globalSite = await resolveResourceSite(config, '/global', dependencies);
+    if (!visited.has(globalSite.id)) {
+      chain.push({siteId: globalSite.id, siteFriendlyUrl: globalSite.friendlyUrlPath, siteName: globalSite.name});
+    }
+  } catch {
+    // /global is not available on every permission set.
+  }
+
+  return chain;
+}
+
+export async function fetchGroupInfo(
+  config: AppConfig,
+  groupId: number,
+  dependencies?: ResourceDependencies,
+): Promise<GroupInfo | null> {
+  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+  const accessToken = await fetchAccessToken(config, dependencies);
+  const response = await authedGet<{
+    friendlyURL?: string;
+    friendlyUrl?: string;
+    nameCurrentValue?: string;
+    name?: string;
+    parentGroupId?: number;
+  }>(config, apiClient, accessToken, `/api/jsonws/group/get-group?groupId=${groupId}`);
+
+  if (!response.ok || !response.data) {
+    return null;
+  }
+
+  const data = response.data;
+  const rawFriendlyUrl = data.friendlyURL ?? data.friendlyUrl ?? '';
+  if (!rawFriendlyUrl) {
+    return null;
+  }
+
+  return {
+    friendlyUrl: rawFriendlyUrl.startsWith('/') ? rawFriendlyUrl : `/${rawFriendlyUrl}`,
+    name: data.nameCurrentValue ?? data.name ?? '',
+    parentGroupId: data.parentGroupId ?? -1,
+  };
 }
 
 async function resolveCompanyId(

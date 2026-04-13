@@ -46,6 +46,8 @@ export type AiCommandResult = {
   warnings: string[];
   nextSteps: string[];
   gitignoreEntriesAdded: string[];
+  claudeSkillCommandsInstalled: string[];
+  projectWorkspaceRulesSynced: string[];
 };
 
 type AiDependencies = {
@@ -125,6 +127,12 @@ export function formatAiResult(result: AiCommandResult): string {
       `Installed project agents: ${result.projectAgentsInstalled.length} (${result.projectAgentsInstalled.join(', ')})`,
     );
   }
+  if (result.claudeSkillCommandsInstalled.length > 0) {
+    lines.push(`Claude skills linked: ${result.claudeSkillCommandsInstalled.length} (.claude/skills/)`);
+  }
+  if (result.projectWorkspaceRulesSynced.length > 0) {
+    lines.push(`Project workspace rules synced: ${result.projectWorkspaceRulesSynced.join(', ')}`);
+  }
 
   if (result.nextSteps.length > 0) {
     lines.push('');
@@ -173,9 +181,13 @@ async function applyAiInstall(options: {
   const skillsToUpdate = managedVendorSkills;
 
   for (const skillName of skillsToUpdate) {
-    await fs.copy(path.join(options.assets.skillsSourceDir, skillName), path.join(skillsDestinationDir, skillName), {
-      overwrite: true,
-    });
+    await copyAiTemplatePath(
+      path.join(options.assets.skillsSourceDir, skillName),
+      path.join(skillsDestinationDir, skillName),
+      {
+        overwrite: true,
+      },
+    );
   }
 
   for (const skillName of retiredVendorSkills) {
@@ -262,6 +274,15 @@ async function applyAiInstall(options: {
   const gitignoreEntriesAdded =
     !options.skillsOnly && options.local ? await ensureLocalAiGitignoreEntries(options.targetDir) : [];
 
+  const allCommandSkills = [...new Set([...managedVendorSkills, ...allProjectSkillsForAgentsMd])];
+  const claudeSkillCommandsInstalled = await installClaudeSkillCommands(
+    options.targetDir,
+    allCommandSkills,
+    retiredVendorSkills,
+  );
+
+  const projectWorkspaceRulesSynced = await syncProjectWorkspaceRules(options.targetDir);
+
   return {
     mode: options.mode,
     targetDir: options.targetDir,
@@ -295,6 +316,8 @@ async function applyAiInstall(options: {
       selectedSkills,
     ),
     gitignoreEntriesAdded,
+    claudeSkillCommandsInstalled,
+    projectWorkspaceRulesSynced,
   };
 }
 
@@ -341,9 +364,16 @@ async function installManagedAiRules(
     const targets = workspaceRuleTargets(targetDir, baseName);
     const metadata = managedRuleMetadata(baseName);
 
-    for (const target of targets) {
+    // .workspace-rules/ is the single source of truth — write content there.
+    const workspaceRulesTarget = targets.find((t) => t.label === '.workspace-rules')!;
+    await fs.ensureDir(path.dirname(workspaceRulesTarget.path));
+    await writeTextFileLf(workspaceRulesTarget.path, content);
+    touchedTargets.add('.workspace-rules');
+
+    // All other targets are symlinks to .workspace-rules/ (copy fallback on Windows).
+    for (const target of targets.filter((t) => t.label !== '.workspace-rules')) {
       await fs.ensureDir(path.dirname(target.path));
-      await fs.writeFile(target.path, target.transform(content));
+      await ensureRuleSymlink(target.path, workspaceRulesTarget.path);
       touchedTargets.add(target.label);
     }
 
@@ -571,7 +601,7 @@ async function installAgentsFile(
   }
 
   const content = await renderAgentsFile(assets, options);
-  await fs.writeFile(destination, content);
+  await writeTextFileLf(destination, content);
   return exists ? 'overwritten' : 'installed';
 }
 
@@ -637,10 +667,13 @@ function buildNextSteps(
     steps.push('Review the ldev AI block in .gitignore and keep docs/ai tracked if you want shared project context.');
   }
   steps.push('Review .agents/skills/.');
+  steps.push('Run playwright-cli install --skills so agents have the official playwright-cli command reference.');
   if (project) {
     steps.push('Project skills are project-owned: ldev ai update will not overwrite them.');
   }
-  steps.push(`From ${targetDir}, run ldev doctor --json and ldev context --json before starting an agent session.`);
+  steps.push(
+    `From ${targetDir}, start agent sessions with ldev context --json; run ldev doctor --json only when runtime, tooling, browser, or deploy checks matter.`,
+  );
   return steps;
 }
 function uniqueSorted(values: string[]): string[] {
@@ -691,7 +724,7 @@ async function installProjectFile(targetDir: string, assets: AiAssets, relativeP
   }
 
   await fs.ensureDir(path.dirname(destination));
-  await fs.copy(source, destination);
+  await copyAiTemplatePath(source, destination);
   return true;
 }
 
@@ -725,10 +758,93 @@ async function installProjectOwnedSkills(
     if (await fs.pathExists(destination)) {
       continue;
     }
-    await fs.copy(source, destination, {overwrite: false});
+    await copyAiTemplatePath(source, destination, {overwrite: false});
     installed.push(destinationName);
   }
 
+  return installed;
+}
+
+async function ensureRuleSymlink(linkPath: string, workspaceRulesFile: string): Promise<void> {
+  if (await fs.pathExists(linkPath)) {
+    const stat = await fs.lstat(linkPath);
+    if (stat.isSymbolicLink()) {
+      return; // Symlink always points to the updated source — nothing to do.
+    }
+    await fs.remove(linkPath); // Stale copy — replace with symlink.
+  }
+  const symlinkTarget = path.relative(path.dirname(linkPath), workspaceRulesFile);
+  try {
+    await fs.symlink(symlinkTarget, linkPath);
+  } catch {
+    // Fallback: copy for environments without symlink privileges (e.g. Windows).
+    await fs.copy(workspaceRulesFile, linkPath, {overwrite: true});
+  }
+}
+
+async function syncProjectWorkspaceRules(targetDir: string): Promise<string[]> {
+  const workspaceRulesDir = path.join(targetDir, '.workspace-rules');
+  if (!(await fs.pathExists(workspaceRulesDir))) {
+    return [];
+  }
+
+  const entries = await fs.readdir(workspaceRulesDir);
+  const projectRules = entries.filter((e) => e.startsWith('project-') && e.endsWith('.md'));
+  const synced: string[] = [];
+
+  for (const entry of projectRules) {
+    const baseName = entry.replace(/\.md$/, '');
+    const workspaceRulesFile = path.join(workspaceRulesDir, entry);
+    const targets = workspaceRuleTargets(targetDir, baseName).filter((t) => t.label !== '.workspace-rules');
+
+    for (const target of targets) {
+      await fs.ensureDir(path.dirname(target.path));
+      await ensureRuleSymlink(target.path, workspaceRulesFile);
+    }
+
+    synced.push(baseName);
+  }
+
+  return synced;
+}
+
+async function installClaudeSkillCommands(
+  targetDir: string,
+  skillNames: string[],
+  retiredSkillNames: string[],
+): Promise<string[]> {
+  const skillsDir = path.join(targetDir, '.claude', 'skills');
+  await fs.ensureDir(skillsDir);
+
+  for (const skillName of retiredSkillNames) {
+    await fs.remove(path.join(skillsDir, skillName));
+  }
+
+  const installed: string[] = [];
+  for (const skillName of skillNames) {
+    const linkPath = path.join(skillsDir, skillName);
+    const absoluteSource = path.join(targetDir, '.agents', 'skills', skillName);
+
+    if (!(await fs.pathExists(absoluteSource))) {
+      continue;
+    }
+
+    // Directory symlinks are always current — skip if already linked.
+    if (await fs.pathExists(linkPath)) {
+      const stat = await fs.lstat(linkPath);
+      if (stat.isSymbolicLink()) {
+        continue;
+      }
+      await fs.remove(linkPath);
+    }
+
+    // Use junction on Windows (works without Developer Mode) or dir on Unix.
+    const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
+    // Junctions require absolute paths; Unix symlinks use relative.
+    const symlinkTarget = process.platform === 'win32' ? absoluteSource : path.relative(skillsDir, absoluteSource);
+    await fs.symlink(symlinkTarget, linkPath, symlinkType);
+    installed.push(skillName);
+  }
   return installed;
 }
 
@@ -757,7 +873,7 @@ async function installProjectAgents(targetDir: string, assets: AiAssets, project
     if (await fs.pathExists(destination)) {
       continue;
     }
-    await fs.copy(path.join(agentsDir, entry.name), destination);
+    await copyAiTemplatePath(path.join(agentsDir, entry.name), destination);
     installed.push(entry.name.replace('.md', ''));
   }
 
@@ -884,6 +1000,57 @@ async function ensureLocalAiGitignoreEntries(targetDir: string): Promise<string[
 
   await fs.writeFile(gitignorePath, `${lines.join('\n')}\n`);
   return missingEntries;
+}
+
+async function copyAiTemplatePath(
+  source: string,
+  destination: string,
+  options: {overwrite?: boolean} = {},
+): Promise<void> {
+  if ((await fs.pathExists(destination)) && options.overwrite === false) {
+    return;
+  }
+
+  const stat = await fs.stat(source);
+  if (stat.isDirectory()) {
+    await copyAiTemplateDirectory(source, destination, options);
+    return;
+  }
+
+  await fs.ensureDir(path.dirname(destination));
+  const buffer = await fs.readFile(source);
+  if (isProbablyBinary(buffer)) {
+    await fs.copy(source, destination, {overwrite: options.overwrite ?? true});
+    return;
+  }
+
+  await fs.writeFile(destination, normalizeTextLineEndings(buffer.toString('utf8')));
+  await fs.chmod(destination, stat.mode);
+}
+
+async function copyAiTemplateDirectory(
+  sourceDir: string,
+  destinationDir: string,
+  options: {overwrite?: boolean},
+): Promise<void> {
+  await fs.ensureDir(destinationDir);
+  const entries = await fs.readdir(sourceDir, {withFileTypes: true});
+
+  for (const entry of entries) {
+    await copyAiTemplatePath(path.join(sourceDir, entry.name), path.join(destinationDir, entry.name), options);
+  }
+}
+
+async function writeTextFileLf(filePath: string, content: string): Promise<void> {
+  await fs.writeFile(filePath, normalizeTextLineEndings(content));
+}
+
+function normalizeTextLineEndings(content: string): string {
+  return content.replace(/\r\n?/g, '\n');
+}
+
+function isProbablyBinary(buffer: Buffer): boolean {
+  return buffer.includes(0);
 }
 
 function normalizeGitignoreEntryForComparison(line: string): string {

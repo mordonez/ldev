@@ -24,9 +24,20 @@ Stay on the main checkout when:
 
 ## Setup
 
+Before creating a worktree, check the primary checkout:
+
+```bash
+git branch --show-current
+git rev-parse --abbrev-ref origin/HEAD
+```
+
+If the primary checkout is not on `main`, do not let the worktree implicitly
+branch from the current HEAD. Either switch the primary checkout to `main` first
+or pass an explicit base ref that has been validated for the task.
+
 ```bash
 # Create a worktree with its own isolated runtime environment
-ldev worktree setup --name <worktree-name> --with-env
+ldev worktree setup --name <worktree-name> --with-env --base main
 
 # Enter the worktree
 cd .worktrees/<worktree-name>
@@ -84,12 +95,11 @@ runtime data owned by that worktree. It does **not** remove:
 - Any local backup files downloaded with `ldev db files-download`
 - The git branch associated with the worktree unless `--delete-branch` is used
 
-Clean those up manually after confirming the worktree is removed:
+Clean those up manually after confirming the worktree is removed. Do not use a
+recursive delete until you have verified the exact resolved path and confirmed it
+belongs to the worktree or throwaway local artifact area:
 
 ```bash
-# Remove the manually mounted DL path if no longer needed
-rm -rf /path/to/doclib
-
 # Delete the branch if the work is merged or abandoned
 git branch -d <worktree-name>
 ```
@@ -99,6 +109,9 @@ git branch -d <worktree-name>
 - Prefer `ldev stop` inside the worktree before running `ldev worktree clean`
   from the main checkout. Removing a worktree with a running env can leave
   orphaned containers.
+- Do not create a worktree from a feature branch by accident. If the main
+  checkout is not on `main`, choose and pass the intended `--base <ref>`
+  explicitly.
 - Do not delete `.worktrees/<name>` manually — use `ldev worktree clean` so
   the Docker environment is cleaned up alongside it.
 - If a worktree env is broken and `ldev stop` fails, stop the containers

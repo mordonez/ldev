@@ -49,4 +49,35 @@ describe('project-context', () => {
     expect(project.files.liferayLocalProfile).toBe(path.join(workspaceRoot, '.liferay-cli.local.yml'));
     expect(project.liferay.oauth2Configured).toBe(true);
   });
+
+  test('treats partial .worktrees overlays as the effective repo root', () => {
+    const repoRoot = createTempRepo();
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      ['COMPOSE_PROJECT_NAME=labweb', 'BIND_IP=127.0.0.1', 'LIFERAY_HTTP_PORT=8080'].join('\n'),
+    );
+    fs.writeFileSync(path.join(repoRoot, '.liferay-cli.yml'), 'paths:\n  fragments: liferay/ub-fragments\n');
+
+    const worktreeRoot = path.join(repoRoot, '.worktrees', 'issue-5');
+    fs.mkdirSync(path.join(worktreeRoot, 'liferay', 'resources'), {recursive: true});
+    fs.writeFileSync(
+      path.join(worktreeRoot, '.liferay-cli.local.yml'),
+      'liferay:\n  oauth2:\n    clientId: local-id\n    clientSecret: local-secret\n',
+    );
+
+    const project = resolveProjectContext({cwd: path.join(worktreeRoot, 'liferay', 'resources')});
+
+    expect(project.repo.root).toBe(worktreeRoot);
+    expect(project.repo.dockerDir).toBe(path.join(worktreeRoot, 'docker'));
+    expect(project.repo.liferayDir).toBe(path.join(worktreeRoot, 'liferay'));
+    expect(project.files.dockerEnv).toBeNull();
+    expect(project.files.liferayProfile).toBe(path.join(repoRoot, '.liferay-cli.yml'));
+    expect(project.files.liferayLocalProfile).toBe(path.join(worktreeRoot, '.liferay-cli.local.yml'));
+    expect(project.env.composeProjectName).toBe('labweb-issue-5');
+    expect(project.env.httpPort).toBe('8239');
+    expect(project.env.portalUrl).toBe('http://127.0.0.1:8239');
+    expect(project.liferay.url).toBe('http://127.0.0.1:8239');
+    expect(project.paths.fragments).toBe('liferay/ub-fragments');
+    expect(project.liferay.oauth2Configured).toBe(true);
+  });
 });

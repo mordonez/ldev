@@ -11,7 +11,8 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {normalizeProcessEnv} from '../../core/platform/process.js';
+import {buildComposeEnv, resolveEnvContext} from '../env/env-files.js';
 import {
   resolveAdtsBaseDir,
   resolveFragmentsBaseDir,
@@ -46,14 +47,15 @@ export async function runSnapshot(
   const envContext = resolveEnvContext(config);
   const databaseDumpFile = path.join(snapshotDir, 'database.sql');
   const copiedPaths = await collectSnapshotPaths(config);
+  const composeEnv = buildComposeEnv(envContext, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   await fs.ensureDir(snapshotDir);
   await runStep(options?.printer, 'Starting postgres for snapshot', async () => {
-    await runDockerComposeOrThrow(envContext.dockerDir, ['up', '-d', 'postgres'], {env: options?.processEnv});
+    await runDockerComposeOrThrow(envContext.dockerDir, ['up', '-d', 'postgres'], {env: composeEnv});
   });
 
   await runStep(options?.printer, 'Generating SQL dump from local environment', async () => {
-    await writePostgresDump(envContext, databaseDumpFile, options?.processEnv);
+    await writePostgresDump(envContext, databaseDumpFile, composeEnv);
   });
 
   await runStep(options?.printer, 'Copying configs and resources to snapshot', async () => {
@@ -135,9 +137,11 @@ async function writePostgresDump(
 ): Promise<void> {
   const user = envContext.envValues.POSTGRES_USER || 'liferay';
   const db = envContext.envValues.POSTGRES_DB || 'liferay';
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', user, '-d', db], {
     cwd: envContext.dockerDir,
-    env: processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

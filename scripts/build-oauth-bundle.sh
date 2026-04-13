@@ -5,7 +5,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODULE_DIR="$ROOT_DIR/templates/modules"
 
 cd "$MODULE_DIR"
-./gradlew clean jar stageReleaseBundle test
+
+if command -v cmd.exe >/dev/null 2>&1 && [[ -f gradlew.bat ]]; then
+  cmd.exe //c gradlew.bat clean jar stageReleaseBundle test
+else
+  ./gradlew clean jar stageReleaseBundle test
+fi
 
 echo
 echo "OAuth installer bundle rebuilt:"

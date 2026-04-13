@@ -3,10 +3,15 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
-import {runDocker} from '../../core/platform/docker.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
-import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
+import {parseComposeFiles} from './env-compose-helpers.js';
+import {detectStoragePlatform} from './env-storage-config.js';
+import {normalizeEnvDataPermissions, resolveDockerConfigSourceDirs, copyDirectoryContents} from './env-data-utils.js';
+import {buildComposeFilesEnv, applyStorageModeOverrides, applyStorageVolumeEnvVars} from './env-compose-env.js';
+import {ensureDoclibVolume} from './env-doclib-volume.js';
+
+export {buildComposeFilesEnv, ensureDoclibVolume};
 
 export type EnvContext = {
   repoRoot: string;
@@ -21,6 +26,26 @@ export type EnvContext = {
   httpPort: string;
   portalUrl: string;
   composeProjectName: string;
+};
+
+export type PostgresStorage = {
+  mode: 'bind' | 'volume';
+  bindPath: string;
+  volumeName: string;
+};
+
+export type RuntimeStorageKey =
+  | 'postgres-data'
+  | 'liferay-data'
+  | 'liferay-osgi-state'
+  | 'liferay-deploy-cache'
+  | 'elasticsearch-data';
+
+export type RuntimeStorage = {
+  key: RuntimeStorageKey;
+  mode: 'bind' | 'volume';
+  bindPath: string;
+  volumeName: string;
 };
 
 export function resolveEnvContext(config: AppConfig): EnvContext {
@@ -80,16 +105,20 @@ export async function ensureEnvFile(context: EnvContext): Promise<{created: bool
 }
 
 export async function ensureEnvDataLayout(context: EnvContext): Promise<string[]> {
+  const managedStorages = resolveManagedStorages(context);
   const directories = [
     context.dataRoot,
-    path.join(context.dataRoot, 'liferay-data'),
-    path.join(context.dataRoot, 'liferay-osgi-state'),
     path.join(context.dataRoot, 'liferay-deploy-cache'),
     path.join(context.dataRoot, 'elasticsearch-data'),
     path.join(context.dataRoot, 'patching'),
     path.join(context.dataRoot, 'dumps'),
-    path.join(context.dataRoot, 'postgres-data'),
   ];
+
+  for (const storage of managedStorages) {
+    if (storage.mode === 'bind') {
+      directories.push(storage.bindPath);
+    }
+  }
 
   for (const directory of directories) {
     await fs.ensureDir(directory);
@@ -126,154 +155,130 @@ export async function seedBuildDockerConfigs(context: EnvContext): Promise<boole
   return true;
 }
 
-export async function ensureDoclibVolume(
+export function buildComposeEnv(
   context: EnvContext,
-  options?: {processEnv?: NodeJS.ProcessEnv},
-): Promise<{volumeName: string; devicePath: string; reused: boolean}> {
-  const worktreeContext = resolveWorktreeContext(context.repoRoot);
-  const mainDockerDir = worktreeContext.isWorktree
-    ? path.join(worktreeContext.mainRepoRoot, 'docker')
-    : context.dockerDir;
-  const mainDockerEnvFile = path.join(mainDockerDir, '.env');
-  const mainValues = readEnvFile(mainDockerEnvFile);
-  const mainComposeProject = mainValues.COMPOSE_PROJECT_NAME || 'liferay';
-  const mainDoclibVolume = mainValues.DOCLIB_VOLUME_NAME || `${mainComposeProject}-doclib`;
-  const volumeName = context.envValues.DOCLIB_VOLUME_NAME || mainDoclibVolume;
-  const devicePath = await resolveDesiredDoclibPath(
+  options?: {withServices?: string[]; baseEnv?: NodeJS.ProcessEnv},
+): NodeJS.ProcessEnv {
+  const requestedFiles =
+    options?.withServices && options.withServices.length > 0
+      ? ['docker-compose.yml', ...options.withServices.map((service) => `docker-compose.${service}.yml`)].filter(
+          (file) => file === 'docker-compose.yml' || fs.existsSync(path.join(context.dockerDir, file)),
+        )
+      : parseComposeFiles(context.envValues.COMPOSE_FILE);
+  const files = [...requestedFiles];
+  const postgresStorage = resolvePostgresStorage(context);
+  const liferayDataStorage = resolveRuntimeStorage(context, 'liferay-data');
+  const liferayOsgiStateStorage = resolveRuntimeStorage(context, 'liferay-osgi-state');
+  const elasticsearchDataStorage = resolveRuntimeStorage(context, 'elasticsearch-data');
+
+  applyStorageModeOverrides(
     context,
-    worktreeContext.isWorktree ? mainDockerDir : context.dockerDir,
+    files,
+    postgresStorage,
+    liferayDataStorage,
+    liferayOsgiStateStorage,
+    elasticsearchDataStorage,
   );
 
-  await fs.ensureDir(devicePath);
+  const env: NodeJS.ProcessEnv = {...(options?.baseEnv ?? process.env), COMPOSE_FILE: files.join(path.delimiter)};
+  applyStorageVolumeEnvVars(
+    env,
+    postgresStorage,
+    liferayDataStorage,
+    liferayOsgiStateStorage,
+    elasticsearchDataStorage,
+  );
+  return env;
+}
 
-  const existingType = (
-    await runDocker(['volume', 'inspect', volumeName, '--format', '{{index .Options "type"}}'], {
-      env: options?.processEnv,
-      reject: false,
-    })
-  ).stdout.trim();
+export function resolvePostgresStorage(context: EnvContext): RuntimeStorage {
+  return resolveRuntimeStorage(context, 'postgres-data');
+}
 
-  if (existingType === 'cifs') {
+export function resolveRuntimeStorage(context: EnvContext, key: RuntimeStorageKey): RuntimeStorage {
+  if (key === 'liferay-deploy-cache') {
     return {
-      volumeName,
-      devicePath,
-      reused: true,
+      key,
+      mode: 'bind',
+      bindPath: path.join(context.dataRoot, key),
+      volumeName: `${context.composeProjectName}-liferay-deploy-cache`,
     };
   }
 
-  const existingDevice = (
-    await runDocker(['volume', 'inspect', volumeName, '--format', '{{index .Options "device"}}'], {
-      env: options?.processEnv,
-      reject: false,
-    })
-  ).stdout.trim();
-
-  if (existingDevice === devicePath) {
-    return {
-      volumeName,
-      devicePath,
-      reused: true,
-    };
-  }
-
-  await runDocker(['volume', 'rm', volumeName], {env: options?.processEnv, reject: false});
-  const createResult = await runDocker(
-    [
-      'volume',
-      'create',
-      '--driver',
-      'local',
-      '--opt',
-      'type=none',
-      '--opt',
-      `device=${devicePath}`,
-      '--opt',
-      'o=bind',
-      volumeName,
-    ],
-    {env: options?.processEnv, reject: false},
-  );
-
-  if (!createResult.ok) {
-    throw new CliError(
-      createResult.stderr.trim() || createResult.stdout.trim() || `Could not create volume ${volumeName}`,
-      {
-        code: 'ENV_DOCLIB_VOLUME_ERROR',
-      },
-    );
-  }
-
+  const config = resolveRuntimeStorageConfig(context, key, detectStoragePlatform(context.envValues));
   return {
-    volumeName,
-    devicePath,
-    reused: false,
+    key,
+    mode: config.mode,
+    bindPath: path.join(context.dataRoot, key),
+    volumeName: config.volumeName,
   };
 }
 
-export function buildComposeFilesEnv(withServices: string[], baseEnv?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  if (withServices.length === 0) return baseEnv ?? process.env;
-  const files = ['docker-compose.yml', ...withServices.map((s) => `docker-compose.${s}.yml`)];
-  return {...(baseEnv ?? process.env), COMPOSE_FILE: files.join(':')};
+export function resolveManagedStorages(context: EnvContext): RuntimeStorage[] {
+  return [
+    resolveRuntimeStorage(context, 'postgres-data'),
+    resolveRuntimeStorage(context, 'liferay-data'),
+    resolveRuntimeStorage(context, 'liferay-osgi-state'),
+    resolveRuntimeStorage(context, 'liferay-deploy-cache'),
+    resolveRuntimeStorage(context, 'elasticsearch-data'),
+  ];
+}
+
+function resolveRuntimeStorageConfig(
+  context: EnvContext,
+  key: Exclude<RuntimeStorageKey, 'liferay-deploy-cache'>,
+  platform: 'windows' | 'other',
+): {mode: 'bind' | 'volume'; volumeName: string} {
+  const settings = {
+    'postgres-data': {
+      modeKey: 'POSTGRES_DATA_MODE',
+      volumeKey: 'POSTGRES_DATA_VOLUME_NAME',
+      defaultVolumeName: `${context.composeProjectName}-postgres-data`,
+      autoVolumeOnWindows: true,
+    },
+    'liferay-data': {
+      modeKey: 'LIFERAY_DATA_MODE',
+      volumeKey: 'LIFERAY_DATA_VOLUME_NAME',
+      defaultVolumeName: `${context.composeProjectName}-liferay-data`,
+      autoVolumeOnWindows: true,
+    },
+    'liferay-osgi-state': {
+      modeKey: 'LIFERAY_OSGI_STATE_MODE',
+      volumeKey: 'LIFERAY_OSGI_STATE_VOLUME_NAME',
+      defaultVolumeName: `${context.composeProjectName}-liferay-osgi-state`,
+      autoVolumeOnWindows: true,
+    },
+    'elasticsearch-data': {
+      modeKey: 'ELASTICSEARCH_DATA_MODE',
+      volumeKey: 'ELASTICSEARCH_DATA_VOLUME_NAME',
+      defaultVolumeName: `${context.composeProjectName}-elasticsearch-data`,
+      autoVolumeOnWindows: true,
+    },
+  }[key];
+
+  const requestedMode = context.envValues[settings.modeKey]?.trim().toLowerCase();
+  const volumeName = context.envValues[settings.volumeKey]?.trim() || settings.defaultVolumeName;
+  if (requestedMode === 'bind') {
+    return {mode: 'bind', volumeName};
+  }
+
+  if (requestedMode === 'volume') {
+    return {mode: 'volume', volumeName};
+  }
+
+  if (requestedMode !== undefined && requestedMode !== '' && requestedMode !== 'auto') {
+    throw new CliError(`Invalid ${settings.modeKey} value "${requestedMode}". Use bind, volume, or auto.`, {
+      code: 'ENV_INVALID_STORAGE_MODE',
+    });
+  }
+
+  return {
+    mode: platform === 'windows' && settings.autoVolumeOnWindows ? 'volume' : 'bind',
+    volumeName,
+  };
 }
 
 export function resolveDataRoot(dockerDir: string, configured: string | undefined): string {
   const dataRoot = configured && configured !== '' ? configured : './data/default';
   return path.isAbsolute(dataRoot) ? dataRoot : path.resolve(dockerDir, dataRoot);
-}
-
-async function normalizeEnvDataPermissions(dataRoot: string): Promise<void> {
-  const elasticsearchDataDir = path.join(dataRoot, 'elasticsearch-data');
-
-  if (await fs.pathExists(elasticsearchDataDir)) {
-    await fs.chmod(elasticsearchDataDir, 0o777);
-  }
-}
-
-function resolveSharedDoclibPath(context: EnvContext, mainDockerDir: string): string {
-  const mainEnvFile = path.join(mainDockerDir, '.env');
-  const mainValues = readEnvFile(mainEnvFile);
-  const mainDataRoot = resolveDataRoot(mainDockerDir, mainValues.ENV_DATA_ROOT);
-
-  return path.join(mainDataRoot, 'liferay-doclib');
-}
-
-async function resolveDesiredDoclibPath(context: EnvContext, mainDockerDir: string): Promise<string> {
-  const configuredPath = context.envValues.DOCLIB_PATH?.trim();
-  if (configuredPath) {
-    const resolvedConfiguredPath = path.resolve(configuredPath);
-    if (await fs.pathExists(resolvedConfiguredPath)) {
-      return resolvedConfiguredPath;
-    }
-  }
-
-  return resolveSharedDoclibPath(context, mainDockerDir);
-}
-
-async function resolveDockerConfigSourceDirs(liferayDir: string): Promise<string[]> {
-  const dockerenvDir = path.join(liferayDir, 'configs', 'dockerenv');
-  if (await fs.pathExists(dockerenvDir)) {
-    return [dockerenvDir];
-  }
-
-  const sourceDirs: string[] = [];
-  const commonDir = path.join(liferayDir, 'configs', 'common');
-  const localDir = path.join(liferayDir, 'configs', 'local');
-
-  if (await fs.pathExists(commonDir)) {
-    sourceDirs.push(commonDir);
-  }
-
-  if (await fs.pathExists(localDir)) {
-    sourceDirs.push(localDir);
-  }
-
-  return sourceDirs;
-}
-
-async function copyDirectoryContents(sourceDir: string, targetDir: string): Promise<void> {
-  const entries = await fs.readdir(sourceDir);
-
-  for (const entry of entries) {
-    await fs.copy(path.join(sourceDir, entry), path.join(targetDir, entry), {overwrite: true});
-  }
 }

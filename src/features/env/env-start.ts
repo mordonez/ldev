@@ -12,7 +12,7 @@ import {runWorktreeEnv} from '../worktree/worktree-env.js';
 
 import {ensureActivationKeyPrepared} from './env-activation-key.js';
 import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
-import {ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
+import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
 
 export type EnvStartResult = {
   ok: true;
@@ -47,16 +47,17 @@ export async function runEnvStart(
   await seedBuildDockerConfigs(context);
   await restoreBuildDeployFromCache(config);
   await ensureDoclibVolume(context, {processEnv: options?.processEnv});
+  const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
 
   if (options?.printer) {
     await withProgress(options.printer, 'Starting Docker services', async () => {
       await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
-        env: options?.processEnv,
+        env: composeEnv,
       });
     });
   } else {
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
-      env: options?.processEnv,
+      env: composeEnv,
     });
   }
 
@@ -66,7 +67,7 @@ export async function runEnvStart(
         await withProgress(options.printer, 'Waiting for Liferay to become ready', async () => {
           await waitForServiceHealthy(context, 'liferay', {
             timeoutSeconds: options?.timeoutSeconds ?? 250,
-            processEnv: options?.processEnv,
+            processEnv: composeEnv,
           });
         });
         await withProgress(options.printer, 'Waiting for portal to finish deploying bundles', async () => {
@@ -77,7 +78,7 @@ export async function runEnvStart(
       } else {
         await waitForServiceHealthy(context, 'liferay', {
           timeoutSeconds: options?.timeoutSeconds ?? 250,
-          processEnv: options?.processEnv,
+          processEnv: composeEnv,
         });
         await waitForPortalReady(context.portalUrl, {
           timeoutMs: (options?.timeoutSeconds ?? 250) * 1000,

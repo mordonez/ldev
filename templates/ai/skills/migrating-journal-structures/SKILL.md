@@ -50,7 +50,7 @@ Edit the descriptor to:
 When the migration introduces new fields or changes field types, use the field
 type catalog to get the correct JSON shape for each field:
 
-Reference: `developing-liferay/references/structure-field-catalog.md`
+Reference: `references/structure-field-catalog.md`
 
 ### 3. Validate before mutating
 

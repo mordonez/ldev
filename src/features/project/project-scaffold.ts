@@ -39,6 +39,12 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
       path.join(targetDir, '.gitignore'),
     )),
   );
+  copied.push(
+    ...(await copyMissingFileFromCandidates(
+      [path.join(assets.scaffoldDir, '.gitattributes'), path.join(assets.scaffoldDir, 'gitattributes')],
+      path.join(targetDir, '.gitattributes'),
+    )),
+  );
 
   return copied;
 }
@@ -58,15 +64,18 @@ export async function ensureDockerScaffold(
   await fs.ensureDir(destination);
   await copyAsset(assets.dockerDir, destination, '.env.example');
   await copyAsset(assets.dockerDir, destination, 'docker-compose.yml');
+  await copyAsset(assets.dockerDir, destination, 'docker-compose.liferay.volume.yml');
   await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
 
   if (services.includes('postgres')) {
     await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.volume.yml');
     await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
   }
 
   if (services.includes('elasticsearch')) {
     await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.volume.yml');
     await copyAsset(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
   }
 

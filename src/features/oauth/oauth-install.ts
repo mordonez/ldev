@@ -89,19 +89,17 @@ export async function runOAuthInstall(
     return provisionOAuthViaOsgiConfig(config, options, scopeAliases);
   }
 
-  if ((options?.extraScopeAliases?.length ?? 0) > 0) {
-    await writeOAuthInstallerOsgiConfig(config, {
-      enabled: false,
-      externalReferenceCode: 'ldev',
-      appName: 'ldev',
-      clientId: '',
-      clientSecret: '',
-      rotateClientSecret: false,
-      scopeAliases,
-      companyId: options?.companyId,
-      userId: options?.userId,
-    });
-  }
+  await writeOAuthInstallerOsgiConfig(config, {
+    enabled: false,
+    externalReferenceCode: 'ldev',
+    appName: 'ldev',
+    clientId: '',
+    clientSecret: '',
+    rotateClientSecret: false,
+    scopeAliases,
+    companyId: options?.companyId,
+    userId: options?.userId,
+  });
 
   const bundleTargetFile = await deployBundledOAuthInstallerJar(config, options?.printer);
 

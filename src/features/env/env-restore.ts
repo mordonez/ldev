@@ -10,12 +10,12 @@ import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runProcess} from '../../core/platform/process.js';
 import {resolveDeployContext, restoreArtifactsFromDeployCache} from '../deploy/deploy-shared.js';
+import {buildComposeEnv, resolvePostgresStorage} from './env-files.js';
 import {resolveBtrfsConfig} from '../worktree/worktree-state.js';
 import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {resolveEnvContext} from './env-files.js';
 
 const RESTORE_SUBDIRS = [
-  'postgres-data',
   'liferay-data',
   'liferay-osgi-state',
   'liferay-deploy-cache',
@@ -55,10 +55,16 @@ export async function runEnvRestore(
   const preservedDeployCache = await hasDeployCacheArtifacts(path.join(targetDataRoot, 'liferay-deploy-cache'));
 
   await runStep(options?.printer, 'Stopping current Docker environment', async () => {
-    await runDockerCompose(targetContext.dockerDir, ['down'], {env: options?.processEnv, reject: false});
+    await runDockerCompose(targetContext.dockerDir, ['down'], {
+      env: buildComposeEnv(targetContext, {baseEnv: options?.processEnv}),
+      reject: false,
+    });
   });
 
   const restoredSubdirs: string[] = [];
+  if (await restorePostgresStorage(mainEnvContext, targetContext, options?.processEnv)) {
+    restoredSubdirs.push('postgres-data');
+  }
   for (const subdir of RESTORE_SUBDIRS) {
     if (subdir === 'liferay-deploy-cache' && preservedDeployCache) {
       const sourceDir = path.join(sourceDataRoot, subdir);
@@ -149,6 +155,62 @@ async function restoreDataSubdir(sourceDir: string, targetDir: string, processEn
   if (!result.ok) {
     throw new Error(result.stderr.trim() || result.stdout.trim() || `Could not restore ${sourceDir}`);
   }
+}
+
+async function restorePostgresStorage(
+  sourceContext: ReturnType<typeof resolveEnvContext>,
+  targetContext: ReturnType<typeof resolveEnvContext>,
+  processEnv?: NodeJS.ProcessEnv,
+): Promise<boolean> {
+  const sourceStorage = resolvePostgresStorage(sourceContext);
+  const targetStorage = resolvePostgresStorage(targetContext);
+
+  if (sourceStorage.mode === 'bind' && targetStorage.mode === 'bind') {
+    const sourceDir = sourceStorage.bindPath;
+    if (!(await fs.pathExists(sourceDir))) {
+      return false;
+    }
+    await restoreDataSubdir(sourceDir, targetStorage.bindPath, processEnv);
+    return true;
+  }
+
+  if (targetStorage.mode === 'bind') {
+    return false;
+  }
+
+  await runDocker(['volume', 'rm', targetStorage.volumeName], {env: processEnv, reject: false});
+  await runDocker(['volume', 'create', targetStorage.volumeName], {env: processEnv, reject: false});
+
+  const sourceExists =
+    sourceStorage.mode === 'volume'
+      ? (await runDocker(['volume', 'inspect', sourceStorage.volumeName], {env: processEnv, reject: false})).ok
+      : await fs.pathExists(sourceStorage.bindPath);
+  if (!sourceExists) {
+    return false;
+  }
+
+  const sourceMount =
+    sourceStorage.mode === 'volume' ? `${sourceStorage.volumeName}:/source:ro` : `${sourceStorage.bindPath}:/source:ro`;
+  const result = await runDocker(
+    [
+      'run',
+      '--rm',
+      '-v',
+      sourceMount,
+      '-v',
+      `${targetStorage.volumeName}:/target`,
+      'alpine',
+      'sh',
+      '-lc',
+      'cp -a /source/. /target/',
+    ],
+    {env: processEnv, reject: false},
+  );
+  if (!result.ok) {
+    throw new Error(result.stderr.trim() || result.stdout.trim() || 'Could not restore PostgreSQL storage');
+  }
+
+  return true;
 }
 
 async function mergeDeployCache(sourceDir: string, targetDir: string): Promise<void> {

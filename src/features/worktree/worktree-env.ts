@@ -7,6 +7,7 @@ import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
+import {resolveManagedStorages} from '../env/env-files.js';
 import {resolveWorktreeContext, resolveWorktreeTarget, resolvePortSet, type WorktreeTarget} from './worktree-paths.js';
 import {syncWorktreeLocalArtifacts} from './worktree-local-artifacts.js';
 import {cloneInitialWorktreeState, resolveBtrfsConfig, worktreeEnvHasState} from './worktree-state.js';
@@ -70,15 +71,22 @@ export async function runWorktreeEnv(options: {
   const ports = resolvePortSet(target.name);
   const bindIp = currentValues.BIND_IP || mainValues.BIND_IP || '127.0.0.1';
   const mainComposeProject = mainValues.COMPOSE_PROJECT_NAME || 'liferay';
+  const worktreeComposeProject = `${mainComposeProject}-${target.name}`;
   const envDataRoot = btrfs.enabled
     ? path.join(btrfs.envsDir ?? path.join(mainEnvContext.dockerDir, 'btrfs', 'envs'), target.name)
     : path.join(target.dockerDir, 'data', 'envs', target.name);
   const nextValues = {
+    ...mainValues,
+    ...currentValues,
     BIND_IP: bindIp,
     LIFERAY_CLI_URL: `http://${bindIp}:${ports.httpPort}`,
-    COMPOSE_PROJECT_NAME: `${mainComposeProject}-${target.name}`,
-    VOLUME_PREFIX: `${mainComposeProject}-${target.name}`,
+    COMPOSE_PROJECT_NAME: worktreeComposeProject,
+    VOLUME_PREFIX: worktreeComposeProject,
     DOCLIB_VOLUME_NAME: mainValues.DOCLIB_VOLUME_NAME || `${mainComposeProject}-doclib`,
+    POSTGRES_DATA_VOLUME_NAME: `${worktreeComposeProject}-postgres-data`,
+    LIFERAY_DATA_VOLUME_NAME: `${worktreeComposeProject}-liferay-data`,
+    LIFERAY_OSGI_STATE_VOLUME_NAME: `${worktreeComposeProject}-liferay-osgi-state`,
+    ELASTICSEARCH_DATA_VOLUME_NAME: `${worktreeComposeProject}-elasticsearch-data`,
     LIFERAY_HTTP_PORT: ports.httpPort,
     LIFERAY_DEBUG_PORT: ports.debugPort,
     GOGO_PORT: ports.gogoPort,
@@ -98,10 +106,26 @@ export async function runWorktreeEnv(options: {
   const updated = upsertEnvFileValues(currentContent, nextValues);
   await fs.writeFile(target.envFile, updated === '' ? '' : `${updated}\n`);
 
-  const clonedState = !(await worktreeEnvHasState(envDataRoot))
+  const targetEnvContext = {
+    ...mainEnvContext,
+    repoRoot: target.worktreeDir,
+    liferayDir: path.join(target.worktreeDir, 'liferay'),
+    dockerDir: target.dockerDir,
+    dockerComposeFile: path.join(target.dockerDir, 'docker-compose.yml'),
+    dockerEnvFile: target.envFile,
+    envValues: nextValues,
+    dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
+    bindIp,
+    httpPort: ports.httpPort,
+    portalUrl: `http://${bindIp}:${ports.httpPort}`,
+    composeProjectName: worktreeComposeProject,
+  };
+
+  const clonedState = !(await worktreeEnvHasState(envDataRoot, targetEnvContext))
     ? await cloneInitialWorktreeState({
         mainEnvContext,
         targetDataRoot: envDataRoot,
+        targetEnvContext,
         btrfs,
       })
     : false;
@@ -110,7 +134,7 @@ export async function runWorktreeEnv(options: {
 
   const worktreeConfig = loadConfig({cwd: target.worktreeDir, env: process.env});
   const worktreeEnvContext = resolveLocalEnvContext(worktreeConfig);
-  await ensureLocalEnvDataLayout(worktreeEnvContext.dataRoot);
+  await ensureLocalEnvDataLayout(targetEnvContext);
   await seedLocalBuildDockerConfigs(worktreeEnvContext.liferayDir);
   if (worktreeConfig.repoRoot && worktreeConfig.liferayDir && worktreeConfig.dockerDir) {
     await restoreLocalArtifactsFromDeployCache(worktreeConfig);
@@ -127,7 +151,7 @@ export async function runWorktreeEnv(options: {
     worktreeDir: target.worktreeDir,
     dockerDir: target.dockerDir,
     envFile: target.envFile,
-    composeProjectName: `${mainComposeProject}-${target.name}`,
+    composeProjectName: worktreeComposeProject,
     portalUrl: `http://${bindIp}:${ports.httpPort}`,
     dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
     ports,
@@ -220,21 +244,40 @@ function resolveLocalDataRoot(dockerDir: string, configured: string | undefined)
   return path.isAbsolute(dataRoot) ? dataRoot : path.resolve(dockerDir, dataRoot);
 }
 
-async function ensureLocalEnvDataLayout(dataRoot: string): Promise<void> {
+async function ensureLocalEnvDataLayout(context: {
+  dataRoot: string;
+  envValues: Record<string, string>;
+  composeProjectName: string;
+  dockerDir: string;
+}): Promise<void> {
+  const storages = resolveManagedStorages({
+    repoRoot: '',
+    liferayDir: '',
+    dockerDir: context.dockerDir,
+    dockerComposeFile: '',
+    dockerEnvFile: '',
+    dockerEnvExampleFile: null,
+    envValues: context.envValues,
+    dataRoot: context.dataRoot,
+    bindIp: '',
+    httpPort: '',
+    portalUrl: '',
+    composeProjectName: context.composeProjectName,
+  });
+  const managedBindPaths = storages.filter((storage) => storage.mode === 'bind').map((storage) => storage.bindPath);
+
   for (const directory of [
-    dataRoot,
-    path.join(dataRoot, 'liferay-data'),
-    path.join(dataRoot, 'liferay-osgi-state'),
-    path.join(dataRoot, 'liferay-deploy-cache'),
-    path.join(dataRoot, 'elasticsearch-data'),
-    path.join(dataRoot, 'patching'),
-    path.join(dataRoot, 'dumps'),
-    path.join(dataRoot, 'postgres-data'),
+    context.dataRoot,
+    path.join(context.dataRoot, 'liferay-deploy-cache'),
+    path.join(context.dataRoot, 'elasticsearch-data'),
+    path.join(context.dataRoot, 'patching'),
+    path.join(context.dataRoot, 'dumps'),
+    ...managedBindPaths,
   ]) {
     await fs.ensureDir(directory);
   }
 
-  const elasticsearchDataDir = path.join(dataRoot, 'elasticsearch-data');
+  const elasticsearchDataDir = path.join(context.dataRoot, 'elasticsearch-data');
   if (await fs.pathExists(elasticsearchDataDir)) {
     await fs.chmod(elasticsearchDataDir, 0o777);
   }

@@ -14,7 +14,16 @@ Primary deploy model:
 
 - use `blade gw deploy` for standard Workspace deploy flows
 - use `blade gw tasks` to inspect available Gradle tasks
-- use `ldev deploy all` as the higher-level shortcut and workflow entry point
+- use `ldev deploy module <module-name>` when a module or deployable Gradle unit changed
+- use a a broad deploy only when a human explicitly asks for a full deploy and
+  the change cannot be proved with a narrower deploy
+
+Prefer atomic deploys. Do not use a broad deploy as a default validation step.
+
+Do not use deploy commands for Journal templates, ADTs, fragments, or
+structures. Those live in the portal runtime; apply them with
+`ldev resource import-*` and validate browser-visible behavior with
+`playwright-cli`.
 
 For Client Extensions:
 
@@ -24,7 +33,6 @@ For Client Extensions:
 
 Useful verification steps:
 
-- `ldev deploy all --format json`
 - `ldev status --json`
 - `ldev logs --no-follow`
 - `ldev portal check --json`

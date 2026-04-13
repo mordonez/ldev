@@ -3,13 +3,8 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
-import {
-  authedGet,
-  expectJsonSuccess,
-  fetchAccessToken,
-  normalizeLocalizedName,
-} from '../inventory/liferay-inventory-shared.js';
-import {resolveResourceSite} from './liferay-resource-shared.js';
+import {authedGet, fetchAccessToken, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
+import {buildResourceSiteChain, resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -33,7 +28,7 @@ export async function runLiferayResourceGetStructure(
 ): Promise<LiferayResourceStructureResult> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
+  let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
   const identifier = String(options.key ?? options.id ?? '').trim();
   if (identifier === '') {
     throw new CliError('Provide --key or --id.', {
@@ -42,6 +37,7 @@ export async function runLiferayResourceGetStructure(
   }
 
   let payload: Record<string, unknown> | null = null;
+  let lastKeyLookupStatus: number | null = null;
 
   if (options.id || /^\d+$/.test(identifier)) {
     const byIdResponse = await authedGet<Record<string, unknown>>(
@@ -53,24 +49,36 @@ export async function runLiferayResourceGetStructure(
 
     if (byIdResponse.ok) {
       payload = byIdResponse.data ?? null;
-    } else if (options.id) {
-      await expectJsonSuccess(byIdResponse, 'resource get-structure');
     }
   }
 
   if (!payload && options.key) {
     const encodedKey = encodeURIComponent(options.key);
-    const response = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
-      `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal/by-data-definition-key/${encodedKey}`,
-    );
-    const success = await expectJsonSuccess(response, 'resource get-structure');
-    payload = success.data ?? null;
+    const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
+
+    for (const candidate of siteChain) {
+      const response = await authedGet<Record<string, unknown>>(
+        config,
+        apiClient,
+        accessToken,
+        `/o/data-engine/v2.0/sites/${candidate.siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodedKey}`,
+      );
+      if (!response.ok) {
+        lastKeyLookupStatus = response.status;
+        continue;
+      }
+      payload = response.data ?? null;
+      site = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
+      break;
+    }
   }
 
   if (!payload) {
+    if (lastKeyLookupStatus !== null) {
+      throw new CliError(`resource get-structure failed with status=${lastKeyLookupStatus}.`, {
+        code: 'LIFERAY_RESOURCE_ERROR',
+      });
+    }
     throw new CliError(`Estructura no encontrada: ${identifier}`, {
       code: 'LIFERAY_RESOURCE_ERROR',
     });

@@ -18,6 +18,7 @@ describe('ai integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Run playwright-cli install --skills');
     expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
@@ -72,6 +73,8 @@ describe('ai integration', () => {
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).toContain('Read order:');
     expect(agents).toContain('docs/ai/project-context.md');
+    expect(agents).toContain('confirm the');
+    expect(agents).toContain('editing root');
     expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
     const claude = await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8');
     expect(claude).toContain('if it exists');
@@ -109,6 +112,32 @@ describe('ai integration', () => {
     expect(secondResult.exitCode).toBe(0);
     const secondGitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
     expect(secondGitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
+  }, 30000);
+
+  test('install --project --project-context writes managed AI files with LF endings', async () => {
+    const targetDir = createTempDir('dev-cli-ai-install-lf-');
+
+    const result = await runCli(['ai', 'install', '--force', '--target', targetDir, '--project', '--project-context'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+
+    const managedFiles = await collectFiles([
+      path.join(targetDir, '.agents'),
+      path.join(targetDir, '.claude'),
+      path.join(targetDir, '.github'),
+      path.join(targetDir, '.workspace-rules'),
+      path.join(targetDir, 'docs', 'ai'),
+      path.join(targetDir, 'AGENTS.md'),
+      path.join(targetDir, 'CLAUDE.md'),
+    ]);
+
+    expect(managedFiles.length).toBeGreaterThan(0);
+    for (const file of managedFiles) {
+      const content = await fs.readFile(file);
+      expect(content.includes(Buffer.from('\r\n')), file).toBe(false);
+    }
   }, 30000);
 
   test('install --local adds marker when equivalent gitignore entries already exist', async () => {
@@ -360,6 +389,23 @@ describe('ai integration', () => {
       false,
     );
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(
+          targetDir,
+          '.agents',
+          'skills',
+          'project-issue-engineering',
+          'references',
+          'github-visual-evidence.md',
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      await fs.pathExists(
+        path.join(targetDir, '.agents', 'skills', 'project-issue-engineering', 'scripts', 'png_to_evidence_svg.mjs'),
+      ),
+    ).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'build-verifier.md'))).toBe(true);
   }, 30000);
@@ -507,6 +553,12 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-deploy.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-setup.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-runtime.md'))).toBe(false);
+    const nativeAgentWorkflow = await fs.readFile(
+      path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'),
+      'utf8',
+    );
+    expect(nativeAgentWorkflow).toContain('Before the first edit, confirm every file path you will edit starts with');
+    expect(nativeAgentWorkflow).toContain('the worktree root');
 
     const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
     expect(rulesManifest.projectType).toBe('ldev-native');
@@ -559,3 +611,23 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-runtime-troubleshooting.md'))).toBe(true);
   }, 40000);
 });
+
+async function collectFiles(pathsToCollect: string[]): Promise<string[]> {
+  const files: string[] = [];
+
+  for (const pathToCollect of pathsToCollect) {
+    if (!(await fs.pathExists(pathToCollect))) {
+      continue;
+    }
+
+    const stat = await fs.stat(pathToCollect);
+    if (stat.isDirectory()) {
+      const entries = await fs.readdir(pathToCollect);
+      files.push(...(await collectFiles(entries.map((entry) => path.join(pathToCollect, entry)))));
+    } else {
+      files.push(pathToCollect);
+    }
+  }
+
+  return files;
+}

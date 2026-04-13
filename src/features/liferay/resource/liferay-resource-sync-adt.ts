@@ -52,14 +52,17 @@ export async function runLiferayResourceSyncAdt(
   const adtFile = await resolveAdtFile(config, name, resolvedWidget, options.file);
   const script = await fs.readFile(adtFile, 'utf8');
   const localSha = sha256(script);
-  const site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
-  const existing = (
-    await runLiferayResourceListAdts(
-      config,
-      {site: site.friendlyUrlPath, widgetType: resolvedWidget, className: resolvedClassName, includeScript: true},
-      dependencies,
-    )
-  ).find((item) => [item.templateKey, item.adtName, item.displayName].includes(name));
+  let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
+  let existing = await findAdt(config, site.friendlyUrlPath, resolvedWidget, resolvedClassName, name, dependencies);
+
+  if (!existing && site.friendlyUrlPath !== '/global') {
+    const globalSite = await resolveResourceSite(config, '/global', dependencies);
+    const globalExisting = await findAdt(config, '/global', resolvedWidget, resolvedClassName, name, dependencies);
+    if (globalExisting) {
+      site = globalSite;
+      existing = globalExisting;
+    }
+  }
 
   const classNameId = await fetchClassNameIdForValue(config, resolvedClassName, dependencies);
   const resourceClassNameId = await fetchAdtResourceClassNameId(config, dependencies);
@@ -193,6 +196,19 @@ function inferAdtName(file: string): string {
     );
   }
   return path.basename(file, path.extname(file));
+}
+
+async function findAdt(
+  config: AppConfig,
+  site: string,
+  widgetType: string,
+  className: string,
+  name: string,
+  dependencies?: ResourceSyncDependencies,
+) {
+  return (
+    await runLiferayResourceListAdts(config, {site, widgetType, className, includeScript: true}, dependencies)
+  ).find((item) => [item.templateKey, item.adtName, item.displayName].includes(name));
 }
 
 async function expectJsonSuccess<T>(

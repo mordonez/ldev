@@ -11,15 +11,15 @@ import {
 describe('worktree paths', () => {
   test('detects main checkout and nested worktree paths', () => {
     expect(resolveWorktreeContext('/repo')).toEqual({
-      currentRepoRoot: '/repo',
-      mainRepoRoot: '/repo',
+      currentRepoRoot: path.resolve('/repo'),
+      mainRepoRoot: path.resolve('/repo'),
       isWorktree: false,
       currentWorktreeName: null,
     });
 
     expect(resolveWorktreeContext('/repo/.worktrees/issue-123')).toEqual({
-      currentRepoRoot: '/repo/.worktrees/issue-123',
-      mainRepoRoot: '/repo',
+      currentRepoRoot: path.resolve('/repo/.worktrees/issue-123'),
+      mainRepoRoot: path.resolve('/repo'),
       isWorktree: true,
       currentWorktreeName: 'issue-123',
     });
@@ -27,7 +27,9 @@ describe('worktree paths', () => {
 
   test('builds worktree target paths and stable port sets', () => {
     const target = resolveWorktreeTarget('/repo', 'issue-123');
-    expect(target.worktreeDir).toBe(path.join('/repo', '.worktrees', 'issue-123'));
+    expect(path.normalize(target.worktreeDir)).toBe(
+      path.normalize(path.join(path.resolve('/repo'), '.worktrees', 'issue-123')),
+    );
     expect(target.branch).toBe('fix/issue-123');
 
     expect(resolvePortSet('issue-123')).toEqual(resolvePortSet('issue-123'));

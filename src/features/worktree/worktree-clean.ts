@@ -6,10 +6,17 @@ import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {deleteGitBranch, isGitRepository, listGitWorktrees, removeGitWorktree} from '../../core/platform/git.js';
+import {
+  deleteGitBranch,
+  isGitRepository,
+  listGitWorktrees,
+  pruneGitWorktrees,
+  removeGitWorktree,
+} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
+import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../env/env-files.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 
@@ -80,25 +87,80 @@ export async function runWorktreeClean(options: {
   }
 
   const envValues = (await fs.pathExists(target.envFile)) ? readEnvFile(target.envFile) : {};
-  const composeProjectName = envValues.COMPOSE_PROJECT_NAME || `liferay-${target.name}`;
+  const mainComposeProject = mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay';
+  const composeProjectName = envValues.COMPOSE_PROJECT_NAME || `${mainComposeProject}-${target.name}`;
+  const worktreeEnvContext = {
+    repoRoot: context.mainRepoRoot,
+    liferayDir: path.join(target.worktreeDir, 'liferay'),
+    dockerDir: target.dockerDir,
+    dockerComposeFile: path.join(target.dockerDir, 'docker-compose.yml'),
+    dockerEnvFile: target.envFile,
+    dockerEnvExampleFile: null,
+    envValues,
+    dataRoot: resolveWorktreeDataRoot(target.dockerDir, envValues.ENV_DATA_ROOT || `./data/envs/${target.name}`),
+    bindIp: envValues.BIND_IP || '',
+    httpPort: envValues.LIFERAY_HTTP_PORT || '',
+    portalUrl: '',
+    composeProjectName,
+  };
+  const managedStorages = resolveManagedStorages(worktreeEnvContext);
   const mainDoclibVolume =
     mainEnvValues.DOCLIB_VOLUME_NAME || `${mainEnvValues.COMPOSE_PROJECT_NAME || 'liferay'}-doclib`;
   const doclibCandidates = [envValues.DOCLIB_VOLUME_NAME || '', `${composeProjectName}-doclib`].filter(
     (value) => value !== '' && value !== mainDoclibVolume,
   );
+  const runtimeVolumeCandidates = managedStorages
+    .filter((storage) => storage.mode === 'volume')
+    .flatMap((storage) => [storage.volumeName, `${composeProjectName}-${storage.key}`]);
+
+  const doclibVolumesRemoved: string[] = [];
 
   const cleanTask = async () => {
+    // === Docker cleanup first: containers → volumes → images ===
+    // Must run before any filesystem operations so that Docker resources are
+    // always freed even if a later git/file removal throws EBUSY.
     if (await fs.pathExists(target.dockerDir)) {
-      await runDockerCompose(target.dockerDir, ['down', '--remove-orphans'], {env: options.processEnv});
+      await runDockerCompose(target.dockerDir, ['down', '--remove-orphans'], {
+        env: buildComposeEnv(worktreeEnvContext, {baseEnv: options.processEnv}),
+      });
     }
     await runDocker(['rm', '-f', ...((await listComposeContainers(composeProjectName, options.processEnv)) || [])], {
       env: options.processEnv,
       reject: false,
     });
+    for (const volume of unique([...doclibCandidates, ...runtimeVolumeCandidates])) {
+      const result = await runDocker(['volume', 'rm', volume], {env: options.processEnv, reject: false});
+      if (result.ok) {
+        doclibVolumesRemoved.push(volume);
+      }
+    }
+    await removeWorktreeImages(composeProjectName, options.processEnv);
+
+    // === Filesystem cleanup ===
     if (isRegistered) {
-      await removeGitWorktree(context.mainRepoRoot, target.worktreeDir).catch(async () => {
-        await removePathRobust(target.worktreeDir, {processEnv: options.processEnv});
-      });
+      // Remove the directory first (with EBUSY retries), then let git prune the
+      // stale reference — avoids git's own rmdir attempt racing with Docker handle release.
+      if (await fs.pathExists(target.worktreeDir)) {
+        await removePathRobust(target.worktreeDir, {processEnv: options.processEnv}).catch(async () => {
+          // Fallback: let git try its own force-remove
+          await removeGitWorktree(context.mainRepoRoot, target.worktreeDir).catch(() => undefined);
+        });
+      }
+
+      await pruneGitWorktrees(context.mainRepoRoot).catch(() => undefined);
+      const stillRegistered = (await listGitWorktrees(context.mainRepoRoot)).includes(target.worktreeDir);
+      if (stillRegistered) {
+        throw new CliError(
+          `Git still has the worktree registered after cleanup: ${target.worktreeDir}\nRun 'git worktree prune' and retry.`,
+          {code: 'WORKTREE_CLEAN_GIT_STALE'},
+        );
+      }
+
+      if (await fs.pathExists(target.worktreeDir)) {
+        throw new CliError(`Could not fully remove the worktree directory: ${target.worktreeDir}`, {
+          code: 'WORKTREE_CLEAN_FAILED',
+        });
+      }
     } else if (await fs.pathExists(target.worktreeDir)) {
       await removePathRobust(target.worktreeDir, {processEnv: options.processEnv});
     }
@@ -135,12 +197,19 @@ export async function runWorktreeClean(options: {
     }
   }
 
-  const doclibVolumesRemoved: string[] = [];
-  for (const volume of unique(doclibCandidates)) {
-    const result = await runDocker(['volume', 'rm', volume], {env: options.processEnv, reject: false});
-    if (result.ok) {
-      doclibVolumesRemoved.push(volume);
+  const attemptedVolumes = unique([...doclibCandidates, ...runtimeVolumeCandidates]);
+  const fallbackRuntimePrefixes = runtimeStorageKeys().map((key) => `${composeProjectName}-${key}`);
+  const remainingOwnedVolumes: string[] = [];
+  for (const volume of unique([...attemptedVolumes, ...fallbackRuntimePrefixes])) {
+    const inspect = await runDocker(['volume', 'inspect', volume], {env: options.processEnv, reject: false});
+    if (inspect.ok) {
+      remainingOwnedVolumes.push(volume);
     }
+  }
+  if (remainingOwnedVolumes.length > 0) {
+    throw new CliError(`Could not remove worktree volumes: ${remainingOwnedVolumes.join(', ')}`, {
+      code: 'WORKTREE_CLEAN_VOLUMES_REMAIN',
+    });
   }
 
   let branchDeleted = false;
@@ -218,6 +287,24 @@ function isPathInside(parent: string, candidate: string): boolean {
 
 function unique(values: string[]): string[] {
   return [...new Set(values)];
+}
+
+function runtimeStorageKeys(): RuntimeStorageKey[] {
+  return ['postgres-data', 'liferay-data', 'liferay-osgi-state', 'elasticsearch-data'];
+}
+
+async function removeWorktreeImages(composeProjectName: string, processEnv?: NodeJS.ProcessEnv): Promise<void> {
+  const result = await runDocker(
+    ['images', '--filter', `reference=${composeProjectName}-elasticsearch`, '--format', '{{.ID}}'],
+    {env: processEnv, reject: false},
+  );
+  if (!result.ok) return;
+  const imageIds = result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+  if (imageIds.length === 0) return;
+  await runDocker(['rmi', '-f', ...imageIds], {env: processEnv, reject: false});
 }
 
 function isOwnedBtrfsWorktreeDataRoot(candidate: string, worktreeName: string, btrfsEnvsDir: string | null): boolean {

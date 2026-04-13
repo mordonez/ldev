@@ -95,6 +95,84 @@ describe('liferay resource adt', () => {
     expect(formatLiferayResourceAdt(result)).toContain('directory=search_result_summary');
   });
 
+  test('falls back to /global when ADT is not found in the specified top-level site (parentGroupId=0)', async () => {
+    // Real-world case: /facultat-educacio is a top-level site (parentGroupId=0) so the
+    // parentGroupId walk yields nothing. The /global fallback must kick in automatically.
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        // Resolve child site /facultat-educacio by friendly URL
+        if (url.includes('/by-friendly-url-path/facultat-educacio')) {
+          return new Response('{"id":15506048,"friendlyUrlPath":"/facultat-educacio","name":"Facultat d\'Educació"}', {
+            status: 200,
+          });
+        }
+        // Resolve /global (used by both the /global fallback and resolveResourceSite inside listAdts)
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        // get-group for child site: parentGroupId=0 (top-level, no explicit parent)
+        if (url.includes('/api/jsonws/group/get-group?groupId=15506048')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/facultat-educacio","nameCurrentValue":"Facultat d\'Educació"}',
+            {status: 200},
+          );
+        }
+        // get-group for /global (companyId lookup inside resolveResourceSite)
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
+          return new Response('{"classNameId":2001}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
+          return new Response('{"classNameId":3001}', {status: 200});
+        }
+        // No ADT in /facultat-educacio
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=15506048&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response('[]', {status: 200});
+        }
+        // ADT found in /global
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":19690805,"templateKey":"19690804","nameCurrentValue":"UB_ADT_ACTIVIDADES_SEARCH","classNameId":3001,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceGetAdt(
+      CONFIG,
+      {site: '/facultat-educacio', displayStyle: 'ddmTemplate_19690804', widgetType: 'search-results'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.siteFriendlyUrl).toBe('/global');
+    expect(result.templateId).toBe('19690805');
+    expect(result.templateKey).toBe('19690804');
+    expect(result.adtName).toBe('UB_ADT_ACTIVIDADES_SEARCH');
+  });
+
   test('searches accessible sites when --site is omitted', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {

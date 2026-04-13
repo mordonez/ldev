@@ -84,7 +84,10 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
   const readProfileFileFn = dependencies?.readProfileFile ?? readLiferayProfileFile;
 
   const projectDetection = detectProjectFn(cwd);
-  const repoPaths = detectRepoPathsFn(cwd);
+  const detectedRepoPaths = detectRepoPathsFn(cwd);
+  const worktree = detectWorktreePath(cwd);
+  const repoPaths =
+    worktree && isWorktreeOverlay(worktree) ? resolveWorktreeRepoPaths(worktree, detectedRepoPaths) : detectedRepoPaths;
   const projectType = projectDetection.type ?? detectProjectTypeFn(cwd);
   const resolvedRepoRoot = repoPaths.repoRoot ?? projectDetection.root;
   const detectedProfileFiles = resolveLiferayProfileFiles(resolvedRepoRoot);
@@ -92,7 +95,11 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     shared: repoPaths.liferayProfileFile ?? detectedProfileFiles.shared,
     local: detectedProfileFiles.local,
   };
-  const dockerEnv = repoPaths.dockerEnvFile ? readEnvFileFn(repoPaths.dockerEnvFile) : {};
+  const dockerEnv = resolveDockerEnv({
+    repoPaths,
+    worktree,
+    readEnvFile: readEnvFileFn,
+  });
   const sharedProfile = profileFiles.shared ? readProfileFileFn(profileFiles.shared) : {};
   const localProfile = profileFiles.local ? readProfileFileFn(profileFiles.local) : {};
   const profile = {...sharedProfile, ...localProfile};
@@ -242,4 +249,121 @@ export function resolveEffectiveCwd(cwd: string | undefined, env: NodeJS.Process
 function resolveDataRoot(dockerDir: string, configured: string | undefined): string {
   const dataRoot = configured && configured !== '' ? configured : './data/default';
   return path.isAbsolute(dataRoot) ? dataRoot : path.resolve(dockerDir, dataRoot);
+}
+
+type WorktreePath = {
+  mainRepoRoot: string;
+  worktreeName: string;
+  worktreeRoot: string;
+};
+
+function detectWorktreePath(startDir: string): WorktreePath | null {
+  const resolved = path.resolve(startDir);
+  const parts = resolved.split(path.sep);
+  const markerIndex = parts.lastIndexOf('.worktrees');
+
+  if (markerIndex <= 0 || markerIndex >= parts.length - 1) {
+    return null;
+  }
+
+  const mainRepoRoot = parts.slice(0, markerIndex).join(path.sep) || path.sep;
+  const worktreeName = parts[markerIndex + 1];
+
+  return {
+    mainRepoRoot,
+    worktreeName,
+    worktreeRoot: parts.slice(0, markerIndex + 2).join(path.sep),
+  };
+}
+
+function isWorktreeOverlay(worktree: WorktreePath): boolean {
+  return (
+    fs.existsSync(path.join(worktree.mainRepoRoot, 'docker', 'docker-compose.yml')) &&
+    fs.existsSync(path.join(worktree.worktreeRoot, 'liferay'))
+  );
+}
+
+function resolveWorktreeRepoPaths(
+  worktree: WorktreePath,
+  detectedRepoPaths: ReturnType<typeof detectRepoPaths>,
+): ReturnType<typeof detectRepoPaths> {
+  const worktreeDockerDir = path.join(worktree.worktreeRoot, 'docker');
+  const worktreeEnvFile = path.join(worktreeDockerDir, '.env');
+  const worktreeProfileFile = path.join(worktree.worktreeRoot, '.liferay-cli.yml');
+  const mainProfileFile = path.join(worktree.mainRepoRoot, '.liferay-cli.yml');
+
+  return {
+    repoRoot: worktree.worktreeRoot,
+    dockerDir: worktreeDockerDir,
+    liferayDir: path.join(worktree.worktreeRoot, 'liferay'),
+    dockerEnvFile: fs.existsSync(worktreeEnvFile) ? worktreeEnvFile : null,
+    liferayProfileFile: fs.existsSync(worktreeProfileFile)
+      ? worktreeProfileFile
+      : fs.existsSync(mainProfileFile)
+        ? mainProfileFile
+        : detectedRepoPaths.liferayProfileFile,
+  };
+}
+
+function resolveDockerEnv(options: {
+  repoPaths: ReturnType<typeof detectRepoPaths>;
+  worktree: WorktreePath | null;
+  readEnvFile: typeof readEnvFile;
+}): Record<string, string> {
+  const env = options.repoPaths.dockerEnvFile ? options.readEnvFile(options.repoPaths.dockerEnvFile) : {};
+  const worktree = options.worktree;
+
+  if (!worktree || !isWorktreeOverlay(worktree)) {
+    return env;
+  }
+
+  const mainEnvFile = path.join(worktree.mainRepoRoot, 'docker', '.env');
+  const mainEnv = fs.existsSync(mainEnvFile) ? options.readEnvFile(mainEnvFile) : {};
+  const ports = resolveWorktreePortSet(worktree.worktreeName);
+  const bindIp = env.BIND_IP || mainEnv.BIND_IP || '127.0.0.1';
+  const mainComposeProject = mainEnv.COMPOSE_PROJECT_NAME || 'liferay';
+  const worktreeComposeProject = `${mainComposeProject}-${worktree.worktreeName}`;
+
+  return {
+    ...mainEnv,
+    COMPOSE_PROJECT_NAME: worktreeComposeProject,
+    VOLUME_PREFIX: worktreeComposeProject,
+    BIND_IP: bindIp,
+    LIFERAY_CLI_URL: `http://${bindIp}:${ports.httpPort}`,
+    LIFERAY_HTTP_PORT: ports.httpPort,
+    LIFERAY_DEBUG_PORT: ports.debugPort,
+    GOGO_PORT: ports.gogoPort,
+    POSTGRES_PORT: ports.postgresPort,
+    ES_HTTP_PORT: ports.esHttpPort,
+    ENV_DATA_ROOT:
+      env.ENV_DATA_ROOT || path.join(path.join(worktree.worktreeRoot, 'docker'), 'data', 'envs', worktree.worktreeName),
+    ...env,
+  };
+}
+
+function resolveWorktreePortSet(name: string): {
+  httpPort: string;
+  debugPort: string;
+  gogoPort: string;
+  postgresPort: string;
+  esHttpPort: string;
+} {
+  const hash = checksum(name);
+  const offset = hash % 800;
+
+  return {
+    httpPort: String(8100 + offset),
+    debugPort: String(9000 + offset),
+    gogoPort: String(12000 + offset),
+    postgresPort: String(5400 + offset),
+    esHttpPort: String(9201 + offset),
+  };
+}
+
+function checksum(value: string): number {
+  let hash = 0;
+  for (const character of value) {
+    hash = (hash * 33 + character.charCodeAt(0)) >>> 0;
+  }
+  return hash;
 }

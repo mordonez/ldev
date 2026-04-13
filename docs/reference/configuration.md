@@ -21,6 +21,9 @@ Local runtime values such as:
 - `LIFERAY_HTTP_PORT`
 - `COMPOSE_PROJECT_NAME`
 - `ENV_DATA_ROOT`
+- `POSTGRES_DATA_MODE`
+- `LIFERAY_DATA_MODE`
+- `LIFERAY_OSGI_STATE_MODE`
 - `LCP_PROJECT`
 - `LCP_ENVIRONMENT`
 
@@ -50,6 +53,81 @@ This is the preferred file for local OAuth credentials.
 export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key.xml
 export REPO_ROOT=/path/to/project
 ```
+
+## Runtime Storage Modes
+
+`ldev` supports three persistence modes for selected runtime directories:
+
+- `auto`: use the platform default
+- `bind`: always use bind mounts under `ENV_DATA_ROOT`
+- `volume`: always use Docker volumes
+
+Supported storages:
+
+- `POSTGRES_DATA_MODE`
+- `LIFERAY_DATA_MODE`
+- `LIFERAY_OSGI_STATE_MODE`
+- `ELASTICSEARCH_DATA_MODE`
+
+Default behavior:
+
+- Windows: `auto` resolves to Docker volumes for PostgreSQL, Liferay runtime state, and Elasticsearch data
+- Linux/macOS: `auto` resolves to bind mounts for these storages
+
+This means Linux/macOS keep the classic filesystem-based workflow by default, but you can opt into Docker volumes explicitly if you prefer that tradeoff.
+
+Example:
+
+```env
+POSTGRES_DATA_MODE=volume
+LIFERAY_DATA_MODE=volume
+LIFERAY_OSGI_STATE_MODE=volume
+ELASTICSEARCH_DATA_MODE=volume
+```
+
+Use `bind` when you want direct host visibility under `ENV_DATA_ROOT`. Use `volume` when you want Docker-managed persistence and, on some hosts, faster I/O.
+
+`liferay-deploy-cache` is always kept as a bind mount under `ENV_DATA_ROOT/liferay-deploy-cache`. It is a host/container exchange area for auto-deploy artifacts, so `ldev` does not support Docker volumes there.
+
+## Platform Guide
+
+Recommended starting point:
+
+- Windows: keep `auto` for PostgreSQL, Liferay runtime state, deploy cache, and Elasticsearch data
+- Linux/macOS: keep `auto` if you prefer the classic bind-mount workflow under `ENV_DATA_ROOT`
+- Linux/macOS: switch selected storages to `volume` if you want Docker-managed persistence or better I/O on your host
+
+Typical setups:
+
+```env
+# Default cross-platform setup
+POSTGRES_DATA_MODE=auto
+LIFERAY_DATA_MODE=auto
+LIFERAY_OSGI_STATE_MODE=auto
+ELASTICSEARCH_DATA_MODE=auto
+```
+
+```env
+# Opt into Docker volumes everywhere
+POSTGRES_DATA_MODE=volume
+LIFERAY_DATA_MODE=volume
+LIFERAY_OSGI_STATE_MODE=volume
+ELASTICSEARCH_DATA_MODE=volume
+```
+
+```env
+# Force the classic host-visible layout everywhere
+POSTGRES_DATA_MODE=bind
+LIFERAY_DATA_MODE=bind
+LIFERAY_OSGI_STATE_MODE=bind
+ELASTICSEARCH_DATA_MODE=bind
+```
+
+For existing projects, make sure the corresponding Compose overrides are present in `docker/` when you use `volume` or `auto` on Windows:
+
+- `docker-compose.postgres.volume.yml`
+- `docker-compose.liferay.volume.yml`
+- `docker-compose.elasticsearch.volume.yml`
 
 ## Secret handling
 

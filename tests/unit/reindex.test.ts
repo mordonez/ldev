@@ -1,13 +1,19 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import {describe, expect, test} from 'vitest';
 
+import {loadConfig} from '../../src/core/config/load-config.js';
 import {formatReindexSpeedup} from '../../src/features/reindex/reindex-speedup.js';
 import {formatReindexStatus} from '../../src/features/reindex/reindex-status.js';
 import {formatReindexTasks} from '../../src/features/reindex/reindex-tasks.js';
+import {resolveElasticsearchTarget} from '../../src/features/reindex/reindex-shared.js';
 import {
   formatReindexWatch,
   formatReindexWatchSnapshot,
   shouldStreamReindexWatch,
 } from '../../src/features/reindex/reindex-watch.js';
+import {createTempDir} from '../../src/testing/temp-repo.js';
 
 describe('formatReindexStatus', () => {
   test('returns rows formatted as space-separated fields', () => {
@@ -123,5 +129,26 @@ describe('shouldStreamReindexWatch', () => {
 
   test('returns false for json format', () => {
     expect(shouldStreamReindexWatch('json')).toBe(false);
+  });
+});
+
+describe('resolveElasticsearchTarget', () => {
+  test('detects external elasticsearch when COMPOSE_FILE uses the platform delimiter', () => {
+    const repoRoot = createTempDir('dev-cli-reindex-target-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}\nBIND_IP=127.0.0.1\nES_HTTP_PORT=9200\n`,
+    );
+
+    const config = loadConfig({cwd: repoRoot, env: process.env});
+    const target = resolveElasticsearchTarget(config);
+
+    expect(target).toEqual({
+      mode: 'external',
+      esUrl: 'http://127.0.0.1:9200',
+    });
   });
 });

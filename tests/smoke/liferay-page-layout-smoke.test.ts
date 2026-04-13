@@ -58,6 +58,10 @@ describe('liferay page-layout smoke', () => {
           return new Response('{"items":[{"id":9001,"name":"Default"}],"lastPage":1}', {status: 200});
         }
 
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
         throw new Error(`Unexpected URL ${url}`);
       }),
     );
@@ -116,6 +120,10 @@ describe('liferay page-layout smoke', () => {
 
         if (url.endsWith('/site-pages/home/experiences')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);

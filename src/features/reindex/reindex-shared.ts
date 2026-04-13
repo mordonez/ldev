@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose} from '../../core/platform/docker.js';
@@ -23,7 +25,7 @@ export function resolveElasticsearchTarget(config: AppConfig): ElasticsearchTarg
   const context = resolveEnvContext(config);
   const composeFile = context.envValues.COMPOSE_FILE || '';
   const hasExternalElasticsearch = composeFile
-    .split(':')
+    .split(path.delimiter)
     .map((entry) => entry.trim())
     .includes('docker-compose.elasticsearch.yml');
 

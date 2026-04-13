@@ -116,6 +116,15 @@ describe('git platform utilities', () => {
     expect(isWorktree).toBe(true);
   });
 
+  test('isWorktree returns true for .worktrees overlay paths before git resolution', async () => {
+    const runProcess = vi.spyOn(process, 'runProcess');
+
+    const isWorktree = await git.isWorktree('/repo/.worktrees/branch-name');
+
+    expect(isWorktree).toBe(true);
+    expect(runProcess).not.toHaveBeenCalled();
+  });
+
   test('isWorktree returns false when repo path does not contain .worktrees', async () => {
     vi.spyOn(process, 'runProcess').mockResolvedValue({
       command: 'git rev-parse --show-toplevel',

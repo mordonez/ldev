@@ -73,7 +73,7 @@ diagnose them:
 
 ### 4. Service Builder — mentioned without a contract
 
-`ldev deploy service` exists but no guidance on:
+Service Builder deploy support exists but no guidance on:
 
 - When to use Service Builder vs. plain OSGi service vs. Liferay Object
 - `service.xml` structure: entity, columns, finders, exceptions

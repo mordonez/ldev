@@ -1,0 +1,11 @@
+services:
+  liferay:
+    volumes:
+      - liferay-data:/opt/liferay/data
+      - liferay-osgi-state:/opt/liferay/osgi/state
+
+volumes:
+  liferay-data:
+    name: ${LIFERAY_DATA_VOLUME_NAME}
+  liferay-osgi-state:
+    name: ${LIFERAY_OSGI_STATE_VOLUME_NAME}

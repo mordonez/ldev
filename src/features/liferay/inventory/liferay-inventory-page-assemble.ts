@@ -16,17 +16,27 @@ export type ContentFieldSummary = {
 };
 
 export type JournalArticleSummary = {
+  groupId?: number;
+  siteFriendlyUrl?: string;
+  siteName?: string;
   articleId: string;
   title: string;
   ddmStructureKey: string;
   ddmTemplateKey?: string;
+  ddmStructureSiteFriendlyUrl?: string;
+  ddmTemplateSiteFriendlyUrl?: string;
+  structureExportPath?: string;
+  templateExportPath?: string;
   contentStructureId?: number;
   contentFields?: ContentFieldSummary[];
 };
 
 export type ContentStructureSummary = {
   contentStructureId: number;
+  key?: string;
   name: string;
+  siteFriendlyUrl?: string;
+  exportPath?: string;
 };
 
 export type FragmentEditableField = {
@@ -37,6 +47,8 @@ export type FragmentEditableField = {
 export type PageFragmentEntry = {
   type: 'fragment' | 'widget';
   fragmentKey?: string;
+  fragmentSiteFriendlyUrl?: string;
+  fragmentExportPath?: string;
   widgetName?: string;
   portletId?: string;
   configuration?: Record<string, string>;

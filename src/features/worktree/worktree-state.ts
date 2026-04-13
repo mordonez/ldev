@@ -8,6 +8,7 @@ import {removePathRobust} from '../../core/platform/fs.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {runProcess} from '../../core/platform/process.js';
 import type {EnvContext} from '../env/env-files.js';
+import {resolveManagedStorages, resolveRuntimeStorage, type RuntimeStorageKey} from '../env/env-files.js';
 
 export const WORKTREE_STATE_SUBDIRS = [
   'postgres-data',
@@ -61,10 +62,22 @@ export async function resolveBtrfsConfig(
   };
 }
 
-export async function worktreeEnvHasState(dataRoot: string): Promise<boolean> {
-  for (const subdir of WORKTREE_STATE_SUBDIRS) {
+export async function worktreeEnvHasState(dataRoot: string, envContext?: EnvContext): Promise<boolean> {
+  for (const subdir of [...WORKTREE_STATE_SUBDIRS, WORKTREE_DEPLOY_CACHE_SUBDIR]) {
     if (await fs.pathExists(path.join(dataRoot, subdir))) {
       return true;
+    }
+  }
+
+  if (envContext) {
+    for (const storage of resolveManagedStorages(envContext)) {
+      if (storage.mode !== 'volume') {
+        continue;
+      }
+      const inspect = await runDocker(['volume', 'inspect', storage.volumeName], {reject: false});
+      if (inspect.ok) {
+        return true;
+      }
     }
   }
 
@@ -75,6 +88,7 @@ export async function cloneInitialWorktreeState(options: {
   mainEnvContext: EnvContext;
   targetDataRoot: string;
   btrfs: BtrfsConfig;
+  targetEnvContext?: EnvContext;
   processEnv?: NodeJS.ProcessEnv;
 }): Promise<boolean> {
   const sourceDataRoot =
@@ -88,6 +102,27 @@ export async function cloneInitialWorktreeState(options: {
 
   let copiedAny = false;
   for (const subdir of WORKTREE_STATE_SUBDIRS) {
+    if (subdir === 'postgres-data' && options.targetEnvContext) {
+      if (
+        await cloneManagedRuntimeStorage(subdir, options.mainEnvContext, options.targetEnvContext, options.processEnv)
+      ) {
+        copiedAny = true;
+        continue;
+      }
+    }
+
+    if (
+      (subdir === 'liferay-data' || subdir === 'liferay-osgi-state' || subdir === 'elasticsearch-data') &&
+      options.targetEnvContext
+    ) {
+      if (
+        await cloneManagedRuntimeStorage(subdir, options.mainEnvContext, options.targetEnvContext, options.processEnv)
+      ) {
+        copiedAny = true;
+        continue;
+      }
+    }
+
     const sourceDir = path.join(sourceDataRoot, subdir);
     if (!(await fs.pathExists(sourceDir))) {
       continue;
@@ -99,7 +134,22 @@ export async function cloneInitialWorktreeState(options: {
   }
 
   const deployCacheSourceDir = path.join(sourceDataRoot, WORKTREE_DEPLOY_CACHE_SUBDIR);
-  if (await fs.pathExists(deployCacheSourceDir)) {
+  if (options.targetEnvContext) {
+    if (
+      await cloneManagedRuntimeStorage(
+        WORKTREE_DEPLOY_CACHE_SUBDIR,
+        options.mainEnvContext,
+        options.targetEnvContext,
+        options.processEnv,
+      )
+    ) {
+      copiedAny = true;
+    } else if (await fs.pathExists(deployCacheSourceDir)) {
+      const deployCacheTargetDir = path.join(options.targetDataRoot, WORKTREE_DEPLOY_CACHE_SUBDIR);
+      await cloneDataSubdir(deployCacheSourceDir, deployCacheTargetDir, options.btrfs, options.processEnv);
+      copiedAny = true;
+    }
+  } else if (await fs.pathExists(deployCacheSourceDir)) {
     const deployCacheTargetDir = path.join(options.targetDataRoot, WORKTREE_DEPLOY_CACHE_SUBDIR);
     await cloneDataSubdir(deployCacheSourceDir, deployCacheTargetDir, options.btrfs, options.processEnv);
     copiedAny = true;
@@ -264,6 +314,66 @@ async function tryCloneBtrfsSnapshot(sourceDir: string, targetDir: string): Prom
 
   const snapshot = await runProcess('btrfs', ['subvolume', 'snapshot', sourceDir, targetDir], {reject: false});
   return snapshot.ok;
+}
+
+async function cloneManagedRuntimeStorage(
+  key: RuntimeStorageKey,
+  sourceEnvContext: EnvContext,
+  targetEnvContext: EnvContext,
+  processEnv?: NodeJS.ProcessEnv,
+): Promise<boolean> {
+  const sourceStorage = resolveRuntimeStorage(sourceEnvContext, key);
+  const targetStorage = resolveRuntimeStorage(targetEnvContext, key);
+
+  if (sourceStorage.mode === 'bind' && targetStorage.mode === 'bind') {
+    return false;
+  }
+
+  if (targetStorage.mode === 'bind') {
+    const sourceDir = sourceStorage.mode === 'bind' ? sourceStorage.bindPath : null;
+    if (!sourceDir || !(await fs.pathExists(sourceDir))) {
+      return false;
+    }
+
+    await cloneDataSubdir(sourceDir, targetStorage.bindPath, disabledBtrfsConfig(), processEnv);
+    return true;
+  }
+
+  const sourceExists =
+    sourceStorage.mode === 'volume'
+      ? (await runDocker(['volume', 'inspect', sourceStorage.volumeName], {env: processEnv, reject: false})).ok
+      : await fs.pathExists(sourceStorage.bindPath);
+
+  if (!sourceExists) {
+    return false;
+  }
+
+  await runDocker(['volume', 'create', targetStorage.volumeName], {env: processEnv, reject: false});
+  const sourceMount =
+    sourceStorage.mode === 'volume' ? `${sourceStorage.volumeName}:/source:ro` : `${sourceStorage.bindPath}:/source:ro`;
+  const result = await runDocker(
+    [
+      'run',
+      '--rm',
+      '-v',
+      sourceMount,
+      '-v',
+      `${targetStorage.volumeName}:/target`,
+      'alpine',
+      'sh',
+      '-lc',
+      'cp -a /source/. /target/',
+    ],
+    {env: processEnv, reject: false},
+  );
+
+  if (!result.ok) {
+    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not clone ${key} storage`, {
+      code: 'WORKTREE_CLONE_FAILED',
+    });
+  }
+
+  return true;
 }
 
 async function isMainEnvRunning(mainEnvContext: EnvContext, processEnv?: NodeJS.ProcessEnv): Promise<boolean> {

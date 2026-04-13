@@ -79,9 +79,12 @@ export async function performLiferayHealthCheck(
     };
   }
 
-  throw new CliError(`health check failed with status=${response.status}.`, {
-    code: 'LIFERAY_HEALTH_ERROR',
-  });
+  throw new CliError(
+    `Health check failed with status=${response.status} on ${HEALTH_PATH}. Verify portal URL, OAuth client scopes, and token permissions.`,
+    {
+      code: 'LIFERAY_HEALTH_ERROR',
+    },
+  );
 }
 
 export function formatLiferayHealth(result: LiferayHealthResult): string {

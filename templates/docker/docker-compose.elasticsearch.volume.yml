@@ -1,0 +1,8 @@
+services:
+  elasticsearch:
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+volumes:
+  elasticsearch-data:
+    name: ${ELASTICSEARCH_DATA_VOLUME_NAME}

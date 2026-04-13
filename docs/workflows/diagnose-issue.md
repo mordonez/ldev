@@ -70,6 +70,8 @@ ldev env restart
 
 Use `deploy module` before broader rebuilds. Restart only when the runtime state needs to be refreshed.
 
+If deploy output reports that only some artifacts were hot-deployed, treat it as a failed deploy and retry after checking the reported artifact errors.
+
 ## 6. Verify
 
 ```bash

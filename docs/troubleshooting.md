@@ -168,6 +168,32 @@ ldev deploy prepare               # Test build without deploying
 # Check error output and fix build
 ```
 
+### Deploy reports partial hot deploy
+
+**Cause**: One or more artifacts could not be copied to the running container.
+
+**Fix**:
+
+```bash
+ldev deploy prepare               # Rebuild artifacts
+ldev deploy module foo-web        # Retry module deploy
+```
+
+If output says that only some artifacts were deployed, treat it as a failed deploy and use the reported artifact errors to fix the failing module/theme first.
+
+### Deploy cache lock timeout
+
+```text
+Timed out waiting for deploy cache lock
+```
+
+**Cause**: Another deploy command is running at the same time, or a previous deploy was interrupted.
+
+**Fix**:
+
+1. Wait for the other deploy to finish, then retry.
+2. If no deploy is running, run `ldev env restart` and retry the deploy command.
+
 ---
 
 ## Portal Issues

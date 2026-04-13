@@ -32,10 +32,11 @@ If both layers speak to the same topic:
 
 Before changing code or runtime state:
 
-1. Run `ldev doctor --json`.
-2. Run `ldev context --json`.
-3. Run `ldev mcp check --json` to check MCP availability. This step is
-   informational — continue even if MCP is not available or not configured.
+1. Run `ldev context --json`.
+2. Run `ldev doctor --json` only when the task depends on runtime health,
+   installed tooling, browser automation, deploy verification, or diagnosis.
+3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
+   `ldev` command covers the required portal surface.
 4. Read `docs/ai/project-context.md` if it exists.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 
@@ -50,10 +51,15 @@ Examples:
 
 - `ldev portal inventory sites --json`
 - `ldev portal inventory page --url /web/guest/home --json`
-- `ldev resource export-structures --site /my-site --json`
+- `ldev resource export-structure --site /my-site --key <key> --json`
+- `ldev resource export-template --site /my-site --id <id> --json`
 
 Use the official Liferay MCP only when it provides something that a direct
 `ldev` command does not already provide.
+
+Prefer atomic commands. Do not use plural resource commands or a broad deploy
+unless a human explicitly asks for a bulk operation and the risk is written down
+first.
 
 Use vendor skills for the full reusable workflow:
 
@@ -83,17 +89,30 @@ Before using MCP:
   directly. Use `ldev worktree setup --name <name> --with-env` instead — it handles
   environment isolation, database copying, and Btrfs snapshots on top of the git
   worktree. `git worktree add` alone is incomplete and unsafe for that workflow.
+- After creating an isolated worktree, immediately `cd` into it and confirm the
+  editing root with `git rev-parse --show-toplevel`. Do not edit files whose
+  absolute path belongs to the primary checkout when the task requires a
+  worktree.
+- Treat the confirmed worktree root as an edit boundary, not a one-time check.
+  Before any file edit, make sure the tool `workdir` and every target path are
+  under that root. Re-run the check after interruptions, context resumes, shell
+  changes, or any step that may have changed directories.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and
   agent-friendly workflows.
+- Prefer singular resource commands (`export-structure`, `export-template`,
+  `export-adt`, `export-fragment`, `import-structure`, `import-template`,
+  `import-adt`, `import-fragment`) over plural commands.
+- Prefer `ldev deploy module <module-name>` or `ldev deploy theme` over broader
+  deploy commands. Do not use a broad deploy as a default validation step.
 - Prefer the task-shaped public contract first:
-  - `ldev doctor --json`
   - `ldev context --json`
-  - `ldev mcp check --json`
   - `ldev portal check --json`
   - `ldev portal inventory ... --json`
   - `ldev logs diagnose --json`
+  - `ldev doctor --json` when runtime or tool readiness matters
+  - `ldev mcp check --json` when MCP is part of the plan
 
 ## Project-Specific Knowledge
 

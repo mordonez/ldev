@@ -108,7 +108,7 @@ ldev portal inventory structures --site /<site> --json
 Do not assume the browser URL site is the source of truth. Export from the
 site that actually owns the object.
 
-See also: `developing-liferay/references/structures.md` for the full
+See also: `../developing-liferay/references/structures.md` for the full
 export/import workflow.
 
 ### Content volume per site

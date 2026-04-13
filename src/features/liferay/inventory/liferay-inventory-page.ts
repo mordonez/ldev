@@ -5,6 +5,7 @@ import {createLiferayApiClient} from '../../../core/http/client.js';
 import {CliError} from '../../../core/errors.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
+import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
 import {
   fetchDisplayPageInventory,
   fetchRegularPageInventory,
@@ -12,7 +13,6 @@ import {
   resolveRegularLayoutPageData,
 } from './liferay-inventory-page-fetch.js';
 import type {
-  ContentFieldSummary,
   ContentStructureSummary,
   JournalArticleSummary,
   PageFragmentEntry,
@@ -49,9 +49,12 @@ export type LiferayInventoryPageResult =
         friendlyUrlPath: string;
         contentStructureId: number;
       };
-      articleProperties?: {
-        contentFields?: ContentFieldSummary[];
+      adminUrls?: {
+        edit: string;
+        translate: string;
       };
+      journalArticles?: JournalArticleSummary[];
+      contentStructures?: ContentStructureSummary[];
     }
   | {
       pageType: 'regularPage';
@@ -82,11 +85,21 @@ export type LiferayInventoryPageResult =
         translate: string;
       };
       componentInspectionSupported?: boolean;
+      portlets?: PagePortletSummary[];
       fragmentEntryLinks?: PageFragmentEntry[];
       widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>;
       journalArticles?: JournalArticleSummary[];
       contentStructures?: ContentStructureSummary[];
     };
+
+export type PagePortletSummary = {
+  columnId: string;
+  position: number;
+  portletId: string;
+  portletName: string;
+  instanceId?: string;
+  configuration?: Record<string, string>;
+};
 
 export type ResolvedRegularLayoutPage = {
   siteName: string;
@@ -117,20 +130,54 @@ export async function runLiferayInventoryPage(
   dependencies?: InventoryPageDependencies,
 ): Promise<LiferayInventoryPageResult> {
   const request = resolveInventoryPageRequest(options);
+  const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const site = await resolveSite(config, request.siteSlug, dependencies);
+  const accessToken = await fetchAccessToken(effectiveConfig, dependencies);
+
+  if (request.route === 'portalHome') {
+    const homeRequest = await resolvePortalHomeRequest(effectiveConfig);
+    if (homeRequest) {
+      const site = await resolveSite(effectiveConfig, homeRequest.siteSlug, dependencies);
+      return fetchRegularPageInventory(
+        effectiveConfig,
+        apiClient,
+        accessToken,
+        site,
+        homeRequest.friendlyUrl,
+        homeRequest.privateLayout,
+        homeRequest.localeHint,
+      );
+    }
+    const site = await resolveSite(effectiveConfig, 'global', dependencies);
+    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, false);
+  }
+
+  const site = await resolveSite(effectiveConfig, request.siteSlug, dependencies);
 
   if (request.route === 'siteRoot') {
-    return fetchSiteRootInventory(config, apiClient, accessToken, site, request.privateLayout);
+    if (options.url) {
+      const redirectedRequest = await resolveSiteHomeRequest(effectiveConfig, request);
+      if (redirectedRequest) {
+        return fetchRegularPageInventory(
+          effectiveConfig,
+          apiClient,
+          accessToken,
+          site,
+          redirectedRequest.friendlyUrl,
+          redirectedRequest.privateLayout,
+          redirectedRequest.localeHint,
+        );
+      }
+    }
+    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, request.privateLayout);
   }
 
   if (request.route === 'displayPage') {
-    return fetchDisplayPageInventory(config, apiClient, accessToken, site, request.displayPageUrlTitle ?? '');
+    return fetchDisplayPageInventory(effectiveConfig, apiClient, accessToken, site, request.displayPageUrlTitle ?? '');
   }
 
   return fetchRegularPageInventory(
-    config,
+    effectiveConfig,
     apiClient,
     accessToken,
     site,
@@ -138,6 +185,89 @@ export async function runLiferayInventoryPage(
     request.privateLayout,
     request.localeHint,
   );
+}
+
+async function resolvePortalHomeRequest(config: AppConfig) {
+  const redirectedUrl = await detectPathRedirect(config, '/');
+  if (!redirectedUrl) {
+    return null;
+  }
+
+  const resolved = resolveInventoryPageRequest({url: redirectedUrl});
+  return resolved.route === 'regularPage' ? resolved : null;
+}
+
+async function resolveSiteHomeRequest(config: AppConfig, request: ReturnType<typeof resolveInventoryPageRequest>) {
+  const redirectedUrl = await detectPathRedirect(
+    config,
+    buildPageUrl(`/${request.siteSlug}`, '/', request.privateLayout),
+  );
+  if (!redirectedUrl) {
+    return null;
+  }
+
+  const resolved = resolveInventoryPageRequest({url: redirectedUrl});
+  return resolved.route === 'regularPage' && resolved.siteSlug === request.siteSlug ? resolved : null;
+}
+
+async function detectPathRedirect(config: AppConfig, path: string): Promise<string | null> {
+  const rootUrl = `${config.liferay.url}${path}`;
+
+  try {
+    const manual = await fetch(rootUrl, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(config.liferay.timeoutSeconds * 1000),
+    });
+    const location = manual.headers.get('location');
+    const locationPath = normalizeDetectedPortalPath(location, config.liferay.url);
+    if (locationPath) {
+      return locationPath;
+    }
+    const manualBodyPath = parsePortalHomePathFromHtml(await manual.text().catch(() => ''));
+    if (manualBodyPath) {
+      return manualBodyPath;
+    }
+  } catch {
+    // Fall through to the regular follow-redirect request.
+  }
+
+  try {
+    const followed = await fetch(rootUrl, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(config.liferay.timeoutSeconds * 1000),
+    });
+    const followedPath = normalizeDetectedPortalPath(followed.url, config.liferay.url);
+    if (followedPath) {
+      return followedPath;
+    }
+    return parsePortalHomePathFromHtml(await followed.text().catch(() => ''));
+  } catch {
+    return null;
+  }
+}
+
+function parsePortalHomePathFromHtml(html: string): string | null {
+  const match =
+    html.match(/getLayoutRelativeURL:\s*function\s*\(\)\s*\{\s*return\s*['"]([^'"]+)['"]/) ??
+    html.match(/getLayoutURL:\s*function\s*\(\)\s*\{\s*return\s*['"]([^'"]+)['"]/) ??
+    html.match(/<a\b[^>]+href=['"]([^'"]*\/web\/[^'"]+)['"][^>]*>\s*UB\.EDU\s*</i);
+  return normalizeDetectedPortalPath(match?.[1] ?? null, 'http://localhost');
+}
+
+function normalizeDetectedPortalPath(value: string | null, baseUrl: string): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value, baseUrl);
+    if (parsed.pathname === '/' || (!parsed.pathname.startsWith('/web/') && !parsed.pathname.startsWith('/group/'))) {
+      return null;
+    }
+    return parsed.pathname;
+  } catch {
+    return value.startsWith('/web/') || value.startsWith('/group/') ? value : null;
+  }
 }
 
 export async function resolveRegularLayoutPage(
@@ -187,10 +317,11 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
       `articleKey=${result.article.key}`,
       `articleTitle=${result.article.title}`,
       `contentStructureId=${result.article.contentStructureId}`,
+      ...(result.adminUrls ? [`editUrl=${result.adminUrls.edit}`] : []),
+      ...(result.adminUrls ? [`translateUrl=${result.adminUrls.translate}`] : []),
     ];
-    for (const field of result.articleProperties?.contentFields ?? []) {
-      lines.push(`contentField ${field.path}=${field.value}`);
-    }
+    appendJournalArticleLines(lines, result.journalArticles);
+    appendContentStructureLines(lines, result.contentStructures);
     return lines.join('\n');
   }
 
@@ -217,6 +348,7 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
   if (result.layoutDetails.targetUrl) {
     lines.push(`targetUrl=${result.layoutDetails.targetUrl}`);
   }
+  appendPortletLines(lines, result.portlets);
   if (result.fragmentEntryLinks && result.fragmentEntryLinks.length > 0) {
     lines.push(`FRAGMENTS (${result.fragmentEntryLinks.length})`);
     let i = 1;
@@ -228,6 +360,12 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
         }
       } else {
         lines.push(`${i++}. ${entry.fragmentKey}`);
+        if (entry.fragmentSiteFriendlyUrl) {
+          lines.push(`   site=${entry.fragmentSiteFriendlyUrl}`);
+        }
+        if (entry.fragmentExportPath) {
+          lines.push(`   exportPath=${entry.fragmentExportPath}`);
+        }
       }
       if (verbose && entry.elementName) {
         lines.push(`   name=${entry.elementName}`);
@@ -250,15 +388,67 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
       }
     }
   }
-  if (result.journalArticles && result.journalArticles.length > 0) {
-    lines.push(`journalArticles=${result.journalArticles.length}`);
-    for (const article of result.journalArticles) {
-      lines.push(`article ${article.articleId} title=${article.title} structure=${article.ddmStructureKey}`);
-      for (const field of article.contentFields ?? []) {
-        lines.push(`contentField ${field.path}=${field.value}`);
-      }
-    }
-  }
+  appendJournalArticleLines(lines, result.journalArticles);
+  appendContentStructureLines(lines, result.contentStructures);
 
   return lines.join('\n');
+}
+
+function appendPortletLines(lines: string[], portlets?: PagePortletSummary[]): void {
+  if (!portlets || portlets.length === 0) {
+    return;
+  }
+
+  lines.push(`PORTLETS (${portlets.length})`);
+  let i = 1;
+  for (const portlet of portlets) {
+    lines.push(`${i++}. ${portlet.portletName}`);
+    lines.push(`   portletId=${portlet.portletId}`);
+    if (portlet.instanceId) {
+      lines.push(`   instanceId=${portlet.instanceId}`);
+    }
+    for (const [key, value] of Object.entries(portlet.configuration ?? {})) {
+      lines.push(`   ${key}=${value}`);
+    }
+  }
+}
+
+function appendJournalArticleLines(lines: string[], journalArticles?: JournalArticleSummary[]): void {
+  if (!journalArticles || journalArticles.length === 0) {
+    return;
+  }
+
+  lines.push(`journalArticles=${journalArticles.length}`);
+  for (const article of journalArticles) {
+    lines.push(`article ${article.articleId} title=${article.title} structure=${article.ddmStructureKey}`);
+    if (article.siteFriendlyUrl || article.groupId) {
+      lines.push(`  articleSite=${article.siteFriendlyUrl ?? '?'} groupId=${article.groupId ?? '?'}`);
+    }
+    if (article.ddmStructureSiteFriendlyUrl || article.structureExportPath) {
+      lines.push(
+        `  structureSite=${article.ddmStructureSiteFriendlyUrl ?? '?'}${article.structureExportPath ? ` export=${article.structureExportPath}` : ''}`,
+      );
+    }
+    if (article.ddmTemplateKey && (article.ddmTemplateSiteFriendlyUrl || article.templateExportPath)) {
+      lines.push(
+        `  template ${article.ddmTemplateKey} site=${article.ddmTemplateSiteFriendlyUrl ?? '?'}${article.templateExportPath ? ` export=${article.templateExportPath}` : ''}`,
+      );
+    }
+    for (const field of article.contentFields ?? []) {
+      lines.push(`contentField ${field.path}=${field.value}`);
+    }
+  }
+}
+
+function appendContentStructureLines(lines: string[], contentStructures?: ContentStructureSummary[]): void {
+  if (!contentStructures || contentStructures.length === 0) {
+    return;
+  }
+
+  lines.push(`contentStructures=${contentStructures.length}`);
+  for (const structure of contentStructures) {
+    lines.push(
+      `structure ${structure.key ?? structure.contentStructureId} site=${structure.siteFriendlyUrl ?? '?'} id=${structure.contentStructureId} name=${structure.name}${structure.exportPath ? ` export=${structure.exportPath}` : ''}`,
+    );
+  }
 }

@@ -5,7 +5,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {resolveResourceSite} from './liferay-resource-shared.js';
+import {buildResourceSiteChain} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -40,7 +40,50 @@ export async function runLiferayResourceGetAdt(
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceAdtResult> {
   const identifier = resolveIdentifier(options);
-  const searchedSites = await collectSearchSites(config, options.site, dependencies);
+
+  if (options.site?.trim()) {
+    // Walk up the site hierarchy: child → parent → … → root. Return the first match.
+    const siteChain = await buildResourceSiteChain(config, options.site, dependencies);
+
+    for (const site of siteChain) {
+      const rows = await runLiferayResourceListAdts(
+        config,
+        {
+          site: site.siteFriendlyUrl,
+          widgetType: options.widgetType,
+          className: options.className,
+          includeScript: true,
+        },
+        dependencies,
+      );
+
+      for (const row of rows) {
+        if (!matchesAdt(row, identifier)) {
+          continue;
+        }
+        return {
+          siteFriendlyUrl: site.siteFriendlyUrl,
+          widgetType: row.widgetType,
+          directory: ADT_WIDGET_DIR_BY_TYPE[row.widgetType] ?? row.widgetType.replaceAll('-', '_'),
+          className: row.className,
+          templateId: String(row.templateId),
+          displayStyle: `ddmTemplate_${row.templateId}`,
+          templateKey: row.templateKey,
+          displayName: row.displayName,
+          adtName: row.adtName,
+          classNameId: row.classNameId,
+          script: row.script ?? '',
+        };
+      }
+    }
+
+    throw new CliError(`ADT not found: ${identifier}`, {
+      code: 'LIFERAY_RESOURCE_ERROR',
+    });
+  }
+
+  // No site specified: search across all accessible sites and detect ambiguity.
+  const searchedSites = await collectSearchSites(config, dependencies);
   const matches: Array<LiferayResourceAdtResult & {siteId?: number; siteName?: string}> = [];
 
   for (const site of searchedSites) {
@@ -177,14 +220,8 @@ function matchesAdt(
 
 async function collectSearchSites(
   config: AppConfig,
-  requestedSite: string | undefined,
   dependencies?: ResourceDependencies,
 ): Promise<Array<{siteId: number; siteFriendlyUrl: string; siteName: string}>> {
-  if (requestedSite?.trim()) {
-    const site = await resolveResourceSite(config, requestedSite, dependencies);
-    return [{siteId: site.id, siteFriendlyUrl: site.friendlyUrlPath, siteName: site.name}];
-  }
-
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
   return sites.map((site) => ({
     siteId: site.groupId,

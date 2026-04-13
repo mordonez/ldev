@@ -99,6 +99,22 @@ ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ```
 
+## Keeping rules and skills up to date
+
+After pulling a new version of `ldev`, refresh skills and rules in the project:
+
+```bash
+ldev ai install --skills-only --target .
+```
+
+This updates `.agents/skills/` and all tool-specific rule directories
+(`.claude/rules/`, `.cursor/rules/`, `.gemini/`, etc.).
+
+> **Windows:** rule directories are created as copies instead of symlinks
+> (symlinks require Developer Mode). Re-running the command above refreshes
+> those copies. If you later enable Developer Mode, the next run replaces the
+> copies with proper symlinks automatically.
+
 ## Execution, not hype
 
 Use agents for planning or analysis if you want, but keep the system boundary clear:

@@ -22,7 +22,7 @@ describe('env integration', () => {
 
     expect(result.ok).toBe(true);
     expect(await fs.readFile(path.join(repoRoot, 'docker', '.env'), 'utf8')).toBe(
-      'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n',
+      'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\n',
     );
   });
 
@@ -134,9 +134,9 @@ describe('env integration', () => {
     expect(
       await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
     ).toBe(true);
-    expect(await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8')).toContain(
-      'dockerDeploy -Pliferay.workspace.environment=dockerenv',
-    );
+    const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
+    expect(gradleCalls).toContain('dockerDeploy');
+    expect(gradleCalls).toContain('-Pliferay.workspace.environment=dockerenv');
   }, 30000);
 
   test('env setup does not fail on a freshly initialized repo without HEAD', async () => {
@@ -373,18 +373,20 @@ describe('env integration', () => {
     await fs.writeFile(path.join(worktreeRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
     await fs.writeFile(
       path.join(repoRoot, 'docker', '.env'),
-      `COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./btrfs/main\nBTRFS_ROOT=./btrfs\nBTRFS_BASE=./btrfs/base\nBTRFS_ENVS=./btrfs/envs\nUSE_BTRFS_SNAPSHOTS=true\n`,
+      `COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./btrfs/main\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\nBTRFS_ROOT=./btrfs\nBTRFS_BASE=./btrfs/base\nBTRFS_ENVS=./btrfs/envs\nUSE_BTRFS_SNAPSHOTS=true\n`,
     );
     await fs.writeFile(
       path.join(worktreeRoot, 'docker', '.env'),
-      `COMPOSE_PROJECT_NAME=demo-issue-1\nENV_DATA_ROOT=${worktreeDataRoot}\nBTRFS_ROOT=${path.join(repoRoot, 'docker', 'btrfs')}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${path.join(repoRoot, 'docker', 'btrfs', 'envs')}\nUSE_BTRFS_SNAPSHOTS=true\n`,
+      `COMPOSE_PROJECT_NAME=demo-issue-1\nENV_DATA_ROOT=${worktreeDataRoot}\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\nBTRFS_ROOT=${path.join(repoRoot, 'docker', 'btrfs')}\nBTRFS_BASE=${btrfsBase}\nBTRFS_ENVS=${path.join(repoRoot, 'docker', 'btrfs', 'envs')}\nUSE_BTRFS_SNAPSHOTS=true\n`,
     );
 
     const restoreSourceDataRoot = process.platform === 'linux' ? btrfsBase : mainDataRoot;
-    await fs.ensureDir(path.join(restoreSourceDataRoot, 'postgres-data'));
+    // Postgres restore always reads from the main env data root, even when the
+    // rest of the worktree data comes from BTRFS_BASE.
+    await fs.ensureDir(path.join(mainDataRoot, 'postgres-data'));
     await fs.ensureDir(path.join(restoreSourceDataRoot, 'liferay-data'));
     await fs.ensureDir(path.join(restoreSourceDataRoot, 'liferay-deploy-cache'));
-    await fs.writeFile(path.join(restoreSourceDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
+    await fs.writeFile(path.join(mainDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-data', 'from-base.txt'), 'base\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-deploy-cache', 'shared.jar'), 'from-main\n');
     await fs.writeFile(path.join(restoreSourceDataRoot, 'liferay-deploy-cache', '.prepare-commit'), 'base123\n');
@@ -421,11 +423,11 @@ async function createEnvRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env.example'),
-    'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\n',
+    'A=1\nB=2\nC=3\nCOMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\n',
   );
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
+    'COMPOSE_PROJECT_NAME=demo\nDOCLIB_VOLUME_NAME=demo-doclib\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nBIND_IP=localhost\nLIFERAY_HTTP_PORT=8080\n',
   );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.ensureDir(path.join(repoRoot, 'liferay', 'configs', 'dockerenv'));
@@ -456,6 +458,17 @@ exit 0
 `,
     {mode: 0o755},
   );
+  await fs.writeFile(
+    path.join(liferayDir, 'gradlew.bat'),
+    `@echo off\r
+echo %*>> "${liferayDir.replaceAll('\\', '\\\\')}\\\\.gradle-calls.log"\r
+echo %* | findstr /C:"dockerDeploy" >nul\r
+if errorlevel 1 exit /b 0\r
+mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy" >nul 2>&1\r
+echo jar> "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy\\\\demo.jar"\r
+exit /b 0\r
+`,
+  );
 
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});
   await runProcess('git', ['config', 'user.email', 'tests@example.com'], {cwd: repoRoot});
@@ -484,6 +497,17 @@ fi
 exit 0
 `,
     {mode: 0o755},
+  );
+  await fs.writeFile(
+    path.join(liferayDir, 'gradlew.bat'),
+    `@echo off\r
+echo %*>> "${liferayDir.replaceAll('\\', '\\\\')}\\\\.gradle-calls.log"\r
+echo %* | findstr /C:"dockerDeploy" >nul\r
+if errorlevel 1 exit /b 0\r
+mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy" >nul 2>&1\r
+echo jar> "${liferayDir.replaceAll('\\', '\\\\')}\\\\build\\\\docker\\\\deploy\\\\demo.jar"\r
+exit /b 0\r
+`,
   );
 
   await runProcess('git', ['init', '-b', 'main'], {cwd: repoRoot});

@@ -10,7 +10,7 @@
 #
 # Place your activation key in:
 #   liferay/configs/dockerenv/osgi/modules/activation-key-*.xml
-# (gitignored — never commit the key)
+# (gitignored - never commit the key)
 #
 # Runs in the Pre-Startup phase (right before Tomcat starts).
 # See: https://learn.liferay.com/dxp/self-hosted-installation-and-upgrades/using-liferay-docker-images/licensing-dxp-in-docker

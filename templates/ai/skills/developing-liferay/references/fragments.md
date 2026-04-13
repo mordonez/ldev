@@ -31,11 +31,9 @@ ldev resource export-fragment --site /<site> --fragment <fragment-key>
 ldev resource import-fragment --site /<site> --fragment <fragment-key>
 ```
 
-Or batch import only when really necessary:
-
-```bash
-ldev resource import-fragments --site /<site>
-```
+If several fragments changed, repeat the singular import command per fragment.
+Do not use plural fragment imports unless a human explicitly asks for a bulk
+operation and accepts the risk.
 
 ## Validation
 

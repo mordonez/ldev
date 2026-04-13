@@ -27,7 +27,7 @@ describe('liferay-search', () => {
     ) as typeof fetch;
 
     const result = await runLiferaySearchIndices(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
     );
     expect(result.rows[0]?.index).toBe('liferay-1');
   });
@@ -38,7 +38,7 @@ describe('liferay-search', () => {
       .mockResolvedValue(new Response(JSON.stringify({foo: {mappings: {}}}), {status: 200})) as typeof fetch;
 
     const result = await runLiferaySearchMappings(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
       {index: 'foo'},
     );
     expect(result.index).toBe('foo');
@@ -53,7 +53,7 @@ describe('liferay-search', () => {
       ) as typeof fetch;
 
     const result = await runLiferaySearchQuery(
-      makeConfig({composeFile: 'docker-compose.yml:docker-compose.elasticsearch.yml'}),
+      makeConfig({composeFile: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter)}),
       {index: 'foo', query: 'bar'},
     );
     expect((result.hits.hits as {total: {value: number}}).total.value).toBe(2);
@@ -72,11 +72,11 @@ describe('liferay-search', () => {
 
     expect(result.esUrl).toContain('9201');
     expect(result.rows[0]?.index).toBe('liferay-sidecar');
-    expect(dockerSpy).toHaveBeenCalledWith(
-      expect.stringContaining('/docker'),
-      expect.arrayContaining(['exec', '-T', 'liferay', 'curl']),
-      expect.objectContaining({reject: false}),
-    );
+    expect(dockerSpy).toHaveBeenCalledTimes(1);
+    const [cwd, args, options] = dockerSpy.mock.calls[0] ?? [];
+    expect(path.basename(cwd ?? '')).toBe('docker');
+    expect(args).toEqual(expect.arrayContaining(['exec', '-T', 'liferay', 'curl']));
+    expect(options).toEqual(expect.objectContaining({reject: false}));
   });
 });
 

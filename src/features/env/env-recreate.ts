@@ -4,7 +4,7 @@ import {withProgress} from '../../core/output/printer.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {resolveDeployContext, restoreArtifactsFromDeployCache} from '../deploy/deploy-shared.js';
 
-import {resolveEnvContext} from './env-files.js';
+import {buildComposeEnv, resolveEnvContext} from './env-files.js';
 import {runEnvWait} from './env-wait.js';
 
 export type EnvRecreateResult = {
@@ -19,6 +19,7 @@ export async function runEnvRecreate(
   options?: {wait?: boolean; timeoutSeconds?: number; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
 ): Promise<EnvRecreateResult> {
   const context = resolveEnvContext(config);
+  const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
   let restoredDeployArtifacts = 0;
 
   if (config.repoRoot && config.liferayDir && config.dockerDir) {
@@ -28,9 +29,9 @@ export async function runEnvRecreate(
   }
 
   const recreateTask = async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['stop', 'liferay'], {env: options?.processEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['stop', 'liferay'], {env: composeEnv});
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', '--force-recreate', 'liferay'], {
-      env: options?.processEnv,
+      env: composeEnv,
     });
   };
 
@@ -44,7 +45,7 @@ export async function runEnvRecreate(
     await runEnvWait(config, {
       timeoutSeconds: options?.timeoutSeconds ?? 250,
       pollIntervalSeconds: 5,
-      processEnv: options?.processEnv,
+      processEnv: composeEnv,
       printer: options?.printer,
     });
   }

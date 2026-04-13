@@ -1,0 +1,8 @@
+services:
+  postgres:
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
+    name: ${POSTGRES_DATA_VOLUME_NAME}

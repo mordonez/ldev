@@ -149,4 +149,65 @@ describe('liferay resource get-template', () => {
       runLiferayResourceGetTemplate(CONFIG, {site: '/global', id: 'MISSING'}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('Template not found');
   });
+
+  test('falls back to global when a template is not found in the specified site', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":30100,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=30100')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/guest","nameCurrentValue":"Guest"}',
+            {
+              status: 200,
+            },
+          );
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/global","nameCurrentValue":"Global"}',
+            {
+              status: 200,
+            },
+          );
+        }
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
+          return new Response('{"classNameId":1001}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=30100')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
+          return new Response(
+            '[{"templateId":"50001","templateKey":"GLOBAL_TEMPLATE","externalReferenceCode":"erc-global-template","nameCurrentValue":"Global Template","classPK":301,"script":"<#-- global -->"}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceGetTemplate(
+      CONFIG,
+      {site: '/guest', id: 'GLOBAL_TEMPLATE'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.siteFriendlyUrl).toBe('/global');
+    expect(result.templateKey).toBe('GLOBAL_TEMPLATE');
+  });
 });

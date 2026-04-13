@@ -169,7 +169,7 @@ async function updateDockerEnv(
 
   if (services.length > 0) {
     const composeFiles = ['docker-compose.yml', ...services.map((s) => `docker-compose.${s}.yml`)];
-    envValues.COMPOSE_FILE = composeFiles.join(':');
+    envValues.COMPOSE_FILE = composeFiles.join(path.delimiter);
   }
 
   if (bindIp && bindIp !== '') {

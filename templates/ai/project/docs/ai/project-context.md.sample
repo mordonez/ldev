@@ -103,12 +103,15 @@ Notes:
 
 ## Project Runbooks
 
-- Build and prepare deploy artifacts:
+- Build and deploy the smallest affected artifact:
 
 ```bash
-ldev deploy service
-ldev deploy prepare
+ldev deploy module <module-name>
+ldev deploy theme
 ```
+
+Use only the command that matches the changed artifact. Do not use broad deploy
+or prepare commands as a default validation step.
 
 - Diagnose local runtime before deeper fixes:
 

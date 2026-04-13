@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import {describe, expect, test} from 'vitest';
 
 import {formatEnvIsHealthy, type EnvHealthResult} from '../../src/features/env/env-is-healthy.js';
@@ -458,7 +460,7 @@ describe('formatEnvSetup', () => {
       createdDirectories: [],
       pulledImages: true,
       warmedDeployCache: false,
-      composeFileWritten: 'docker-compose.yml:docker-compose.elasticsearch.yml',
+      composeFileWritten: ['docker-compose.yml', 'docker-compose.elasticsearch.yml'].join(path.delimiter),
     };
 
     expect(formatEnvSetup(result)).toContain('Profile saved:');

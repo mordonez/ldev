@@ -59,6 +59,7 @@ export type DoctorReport = {
     node: DoctorToolStatus;
     java: DoctorToolStatus;
     lcp: DoctorToolStatus;
+    playwrightCli: DoctorToolStatus;
   };
   environment: {
     cwd: string;

@@ -13,7 +13,7 @@ describe('snapshot integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {
       ...process.env,
-      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
       FAKE_DOCKER_PG_DUMP_OUTPUT: 'SELECT 1;\n',
     };
     const snapshotDir = path.join(repoRoot, '.ldev', 'snapshots', 'test-bundle');
@@ -39,7 +39,7 @@ describe('snapshot integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {
       ...process.env,
-      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
       FAKE_DOCKER_PSQL_OUTPUT: 'ok\n',
     };
     const snapshotDir = path.join(repoRoot, '.ldev', 'snapshots', 'restore-bundle');
@@ -81,7 +81,7 @@ describe('snapshot integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {
       ...process.env,
-      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
       FAKE_DOCKER_PG_DUMP_OUTPUT: 'SELECT 1;\n',
       FAKE_DOCKER_PSQL_OUTPUT: 'ok\n',
     };
@@ -123,7 +123,7 @@ async function createSnapshotRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  postgres:\n  liferay:\n');
   await fs.writeFile(
     path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n',
+    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n',
   );
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.writeFile(path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'portal-ext.properties'), 'foo=bar\n');

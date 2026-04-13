@@ -24,6 +24,7 @@ function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     encoding: 'utf8',
     stdio: options.stdio ?? 'pipe',
+    shell: process.platform === 'win32',
   });
 
   if (result.status !== 0) {

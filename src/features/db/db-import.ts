@@ -13,7 +13,8 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {buildComposeFilesEnv, ensureEnvDataLayout, resolveEnvContext} from '../env/env-files.js';
+import {normalizeProcessEnv} from '../../core/platform/process.js';
+import {buildComposeEnv, ensureEnvDataLayout, resolveEnvContext, resolvePostgresStorage} from '../env/env-files.js';
 
 export type DbImportResult = {
   ok: true;
@@ -41,26 +42,41 @@ export async function runDbImport(
   const context = resolveEnvContext(config);
   await ensureEnvDataLayout(context);
   const backupFile = await resolveBackupFile(context.dockerDir, options?.file);
-  const postgresDataDir = path.join(context.dataRoot, 'postgres-data');
+  const postgresStorage = resolvePostgresStorage(context);
+  const postgresDataDir = postgresStorage.bindPath;
 
-  const postgresDataHasContents = await hasDirectoryContents(postgresDataDir, options?.processEnv);
+  const postgresDataHasContents = await hasPostgresStorageContents(postgresStorage, options?.processEnv);
   let forcedReset = false;
   if (postgresDataHasContents) {
     if (!(options?.force ?? false)) {
       throw new CliError(
-        `The PostgreSQL data directory already contains data: ${postgresDataDir}\nRun 'ldev db import --force' again to replace the local database.`,
+        postgresStorage.mode === 'volume'
+          ? `The PostgreSQL volume already contains data: ${postgresStorage.volumeName}\nRun 'ldev db import --force' again to replace the local database.`
+          : `The PostgreSQL data directory already contains data: ${postgresDataDir}\nRun 'ldev db import --force' again to replace the local database.`,
         {code: 'DB_IMPORT_POSTGRES_NOT_EMPTY'},
       );
     }
 
-    await runStep(options?.printer, 'Cleaning existing postgres-data', async () => {
-      await removePathRobust(postgresDataDir, {processEnv: options?.processEnv});
-      await fs.ensureDir(postgresDataDir);
-    });
+    await runStep(
+      options?.printer,
+      postgresStorage.mode === 'volume' ? 'Cleaning PostgreSQL volume' : 'Cleaning existing postgres-data',
+      async () => {
+        if (postgresStorage.mode === 'volume') {
+          await runDocker(['volume', 'rm', postgresStorage.volumeName], {
+            env: options?.processEnv,
+            reject: false,
+          });
+          return;
+        }
+
+        await removePathRobust(postgresDataDir, {processEnv: options?.processEnv});
+        await fs.ensureDir(postgresDataDir);
+      },
+    );
     forcedReset = true;
   }
 
-  const postgresEnv = buildComposeFilesEnv(['postgres'], options?.processEnv);
+  const postgresEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   await runStep(options?.printer, 'Starting postgres', async () => {
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {env: postgresEnv});
@@ -207,6 +223,21 @@ async function hasDirectoryContents(directory: string, processEnv?: NodeJS.Proce
   return result.stdout.trim() !== '';
 }
 
+async function hasPostgresStorageContents(
+  storage: ReturnType<typeof resolvePostgresStorage>,
+  processEnv?: NodeJS.ProcessEnv,
+): Promise<boolean> {
+  if (storage.mode === 'bind') {
+    return hasDirectoryContents(storage.bindPath, processEnv);
+  }
+
+  const inspectResult = await runDocker(['volume', 'inspect', storage.volumeName], {
+    env: processEnv,
+    reject: false,
+  });
+  return inspectResult.ok;
+}
+
 async function waitForPostgresReady(
   dockerDir: string,
   envValues: Record<string, string>,
@@ -240,9 +271,11 @@ async function streamSqlIntoPostgres(
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
+  const normalizedEnv = normalizeProcessEnv(processEnv);
   const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
     cwd: dockerDir,
-    env: processEnv,
+    env: normalizedEnv,
+    shell: process.platform === 'win32',
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 

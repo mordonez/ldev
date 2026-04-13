@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import type {DoctorCheck, DoctorContext} from './doctor-types.js';
 import {
   MIN_RECOMMENDED_MEMORY_BYTES,
@@ -224,7 +226,7 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
           : ctx.activationKeyExists && ctx.activationKeyValidName
             ? `activation key ready at ${ctx.activationKeyFile}`
             : ctx.activationKeyExists
-              ? `activation key file name is invalid: ${ctx.activationKeyFile.split('/').pop()}`
+              ? `activation key file name is invalid: ${path.basename(ctx.activationKeyFile)}`
               : `activation key file does not exist: ${ctx.activationKeyFile}`,
       details:
         ctx.activationKeyFile === null
@@ -255,6 +257,19 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
       summary: capabilities.hasLcp
         ? summarizeTool('lcp', tools.lcp)
         : 'lcp is not available; this only affects specific legacy/local workflows',
+    },
+    {
+      id: 'playwright-cli',
+      label: 'playwright-cli (optional)',
+      status: capabilities.hasPlaywrightCli ? 'pass' : 'warn',
+      summary: capabilities.hasPlaywrightCli
+        ? summarizeTool('playwright-cli', tools.playwrightCli)
+        : 'playwright-cli is not available; browser validation requires installing it first',
+      details: capabilities.hasPlaywrightCli
+        ? undefined
+        : [
+            'Install with: npm install -g @playwright/cli@latest - required for session-based browser flows and before/after screenshot evidence.',
+          ],
     },
   ];
 }
