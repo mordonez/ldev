@@ -78,24 +78,30 @@ export async function fetchSiteRootInventory(
   };
 }
 
-export async function fetchDisplayPageInventory(
+/**
+ * Resolve display page article with fallback chain:
+ * 1. Try headless-delivery structured content by friendlyUrlPath
+ * 2. Fall back to JSONWS get-article-by-url-title
+ * Returns: { article, jsonwsArticle, articleRef }
+ */
+async function resolveDisplayPageArticle(
   config: AppConfig,
   apiClient: LiferayApiClient,
   accessToken: string,
-  site: ResolvedSite,
+  siteId: number,
   urlTitle: string,
-): Promise<LiferayInventoryPageResult> {
+): Promise<{article: StructuredContent; jsonwsArticle: Record<string, unknown> | null; articleRef: ArticleRef}> {
   const filter = encodeURIComponent(`friendlyUrlPath eq '${urlTitle}'`);
   const response = await authedGet<{items?: StructuredContent[]}>(
     config,
     apiClient,
     accessToken,
-    `/o/headless-delivery/v1.0/sites/${site.id}/structured-contents?filter=${filter}&pageSize=1`,
+    `/o/headless-delivery/v1.0/sites/${siteId}/structured-contents?filter=${filter}&pageSize=1`,
   );
   let article: StructuredContent | undefined = response.ok ? response.data?.items?.[0] : undefined;
-  let jsonwsArticle = await fetchJournalArticleByUrlTitle(config, apiClient, accessToken, site.id, urlTitle);
+  let jsonwsArticle = await fetchJournalArticleByUrlTitle(config, apiClient, accessToken, siteId, urlTitle);
 
-  // Fallback: try JSONWS get-article-by-url-title when headless delivery returns nothing.
+  // Fallback: try JSONWS when headless delivery returns nothing
   if (!article && jsonwsArticle) {
     article = {
       id: Number(jsonwsArticle.resourcePrimKey ?? jsonwsArticle.id ?? -1) || undefined,
@@ -109,26 +115,42 @@ export async function fetchDisplayPageInventory(
   if (!article) {
     throw new CliError(
       `No structured content found with friendlyUrlPath=${urlTitle}. Verify the article URL title and site visibility, or confirm JSONWS/headless permissions for this OAuth client.`,
-      {
-        code: 'LIFERAY_INVENTORY_ERROR',
-      },
+      {code: 'LIFERAY_INVENTORY_ERROR'},
     );
   }
 
   const articleRef: ArticleRef = {
     articleId: String(article.key ?? jsonwsArticle?.articleId ?? ''),
-    groupId: site.id,
+    groupId: siteId,
     ...(firstString(jsonwsArticle?.ddmTemplateKey) ? {ddmTemplateKey: firstString(jsonwsArticle?.ddmTemplateKey)} : {}),
   };
+
+  // Fetch JSONWS article if we don't have it yet
   if (!jsonwsArticle && articleRef.articleId) {
-    jsonwsArticle = await fetchLatestJournalArticle(config, apiClient, accessToken, site.id, articleRef.articleId);
+    jsonwsArticle = await fetchLatestJournalArticle(config, apiClient, accessToken, siteId, articleRef.articleId);
   }
 
-  // Try to get structured content by UUID first (complete data from headless-delivery)
+  return {article, jsonwsArticle, articleRef};
+}
+
+/**
+ * Resolve structured content data with fallback chain:
+ * 1. Try by UUID (preferred, more complete)
+ * 2. Fall back to by ID
+ */
+async function resolveStructuredContentData(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  siteId: number,
+  article: StructuredContent,
+  jsonwsArticle: Record<string, unknown> | null,
+): Promise<StructuredContent | null> {
   let structuredContent: StructuredContent | null = null;
   const uuid = firstString(jsonwsArticle?.uuid);
+
   if (uuid) {
-    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, site.id, uuid);
+    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, siteId, uuid);
   }
 
   // Fallback to fetch by ID if UUID didn't work
@@ -138,6 +160,33 @@ export async function fetchDisplayPageInventory(
       structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
     }
   }
+
+  return structuredContent;
+}
+
+export async function fetchDisplayPageInventory(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  site: ResolvedSite,
+  urlTitle: string,
+): Promise<LiferayInventoryPageResult> {
+  const {article, jsonwsArticle, articleRef} = await resolveDisplayPageArticle(
+    config,
+    apiClient,
+    accessToken,
+    site.id,
+    urlTitle,
+  );
+
+  const structuredContent = await resolveStructuredContentData(
+    config,
+    apiClient,
+    accessToken,
+    site.id,
+    article,
+    jsonwsArticle,
+  );
 
   // Enrich article object with structuredContent data
   if (structuredContent && structuredContent.contentStructureId) {
