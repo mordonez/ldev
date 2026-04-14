@@ -37,11 +37,14 @@ export type LiferayPageLayoutExport = {
     pageName: string;
   };
   adminUrls: {
+    view: string;
     edit: string;
     translate: string;
     configureGeneral: string;
     configureDesign: string;
     configureSeo: string;
+    configureOpenGraph: string;
+    configureCustomMetaTags: string;
   };
   headlessSitePage: Record<string, unknown>;
   experiences?: unknown;
@@ -103,6 +106,7 @@ export async function runLiferayPageLayoutExport(
       pageName: regularPage.pageName,
     },
     adminUrls: {
+      view: regularPage.adminUrls.view,
       edit: regularPage.adminUrls.edit,
       translate: regularPage.adminUrls.translate,
       configureGeneral: buildLayoutConfigureUrl(
@@ -127,6 +131,22 @@ export async function runLiferayPageLayoutExport(
         regularPage.groupId,
         regularPage.plid,
         'seo',
+        regularPage.privateLayout,
+      ),
+      configureOpenGraph: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'open-graph',
+        regularPage.privateLayout,
+      ),
+      configureCustomMetaTags: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'custom-meta-tags',
         regularPage.privateLayout,
       ),
     },

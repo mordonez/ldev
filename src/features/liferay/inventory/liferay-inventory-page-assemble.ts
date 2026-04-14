@@ -29,6 +29,29 @@ export type JournalArticleSummary = {
   templateExportPath?: string;
   contentStructureId?: number;
   contentFields?: ContentFieldSummary[];
+  widgetDefaultTemplate?: string;
+  widgetHeadlessDefaultTemplate?: string;
+  displayPageDefaultTemplate?: string;
+  widgetTemplateCandidates?: string[];
+  displayPageTemplateCandidates?: string[];
+  taxonomyCategoryNames?: string[];
+  taxonomyCategoryBriefs?: Array<Record<string, unknown>>;
+  renderedContents?: Array<Record<string, unknown>>;
+  availableLanguages?: string[];
+  dateCreated?: string;
+  dateModified?: string;
+  datePublished?: string;
+  expirationDate?: string;
+  reviewDate?: string;
+  description?: string;
+  externalReferenceCode?: string;
+  siteId?: number;
+  structuredContentFolderId?: number;
+  uuid?: string;
+  priority?: number;
+  neverExpire?: boolean;
+  subscribed?: boolean;
+  relatedContentsCount?: number;
 };
 
 export type ContentStructureSummary = {
@@ -53,6 +76,11 @@ export type PageFragmentEntry = {
   portletId?: string;
   configuration?: Record<string, string>;
   editableFields?: FragmentEditableField[];
+  contentSummary?: string;
+  title?: string;
+  heroText?: string;
+  navigationItems?: string[];
+  cardCount?: number;
   // verbose-only fields
   elementName?: string;
   cssClasses?: string[];
@@ -278,13 +306,16 @@ export function asArrayOfRecords(value: unknown): Array<Record<string, unknown>>
 }
 
 function recordToStringMap(value: Record<string, unknown>): Record<string, string> | undefined {
-  const entries = Object.entries(value).map(([key, item]) => [key, String(item)]);
-  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  const result: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = String(item);
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export function firstString(value: unknown): string | undefined {
   if (Array.isArray(value)) {
-    const first = value.find((item) => String(item ?? '').trim() !== '');
+    const first = (value as unknown[]).find((item) => String(item ?? '').trim() !== '');
     return first === undefined ? undefined : String(first).trim();
   }
   const normalized = String(value ?? '').trim();

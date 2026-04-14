@@ -3,6 +3,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import path from 'node:path';
 import fs from 'fs-extra';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {firstNonEmptyString, firstPositiveNumber, toBoolean, toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {authedGet, type ResolvedSite} from './liferay-inventory-shared.js';
 import {
   buildLayoutDetails,
@@ -58,6 +59,7 @@ export async function fetchSiteRootInventory(
   const layouts = await fetchLayoutsByParent(config, apiClient, accessToken, site.id, privateLayout, 0);
 
   return {
+    contractVersion: '2',
     pageType: 'siteRoot',
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
@@ -109,11 +111,6 @@ export async function fetchDisplayPageInventory(
     );
   }
 
-  const structuredContentId = article.id && article.id > 0 ? article.id : -1;
-  const structuredContent =
-    structuredContentId > 0
-      ? await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId)
-      : null;
   const articleRef: ArticleRef = {
     articleId: String(article.key ?? jsonwsArticle?.articleId ?? ''),
     groupId: site.id,
@@ -122,12 +119,34 @@ export async function fetchDisplayPageInventory(
   if (!jsonwsArticle && articleRef.articleId) {
     jsonwsArticle = await fetchLatestJournalArticle(config, apiClient, accessToken, site.id, articleRef.articleId);
   }
+
+  // Try to get structured content by UUID first (complete data from headless-delivery)
+  let structuredContent: StructuredContent | null = null;
+  const uuid = firstString(jsonwsArticle?.uuid);
+  if (uuid) {
+    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, site.id, uuid);
+  }
+
+  // Fallback to fetch by ID if UUID didn't work
+  if (!structuredContent) {
+    const structuredContentId = article.id && article.id > 0 ? article.id : -1;
+    if (structuredContentId > 0) {
+      structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
+    }
+  }
+
+  // Enrich article object with structuredContent data
+  if (structuredContent && structuredContent.contentStructureId) {
+    article.contentStructureId = structuredContent.contentStructureId;
+  }
+
   const journalArticle = await buildJournalArticleSummary(config, apiClient, accessToken, articleRef, {
     article: jsonwsArticle,
     structuredContent,
     fallbackSite: site,
     fallbackTitle: article.title,
     fallbackContentStructureId: article.contentStructureId,
+    includeHeadlessInventoryFields: true,
   });
   const contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, [journalArticle]);
   const articleClassPK = Number(article.id ?? jsonwsArticle?.resourcePrimKey ?? jsonwsArticle?.id ?? -1);
@@ -145,8 +164,10 @@ export async function fetchDisplayPageInventory(
       : undefined;
 
   return {
+    contractVersion: '2',
     pageType: 'displayPage',
     pageSubtype: 'journalArticle',
+    contentItemType: 'WebContent',
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
     groupId: site.id,
@@ -157,7 +178,7 @@ export async function fetchDisplayPageInventory(
       key: article.key ?? '',
       title: article.title ?? '',
       friendlyUrlPath: article.friendlyUrlPath ?? urlTitle,
-      contentStructureId: article.contentStructureId ?? -1,
+      contentStructureId: Number(article.contentStructureId ?? -1),
     },
     ...(articleAdminUrls ? {adminUrls: articleAdminUrls} : {}),
     journalArticles: [journalArticle],
@@ -191,18 +212,21 @@ export async function fetchRegularPageInventory(
   const {layout, locale: matchedLocale} = match;
 
   const layoutDetails = buildLayoutDetails(layout.typeSettings ?? '');
+  let configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout);
   const portlets = collectPortletPagePortlets(layout.typeSettings ?? '', layoutDetails.layoutTemplateId);
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
   const componentInspectionSupported = String(layout.type ?? '').toLowerCase() === 'content';
   const layoutClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_LAYOUT);
-  let fragmentEntryLinks: PageFragmentEntry[] | undefined;
-  let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> | undefined;
-  let journalArticles: JournalArticleSummary[] | undefined;
-  let contentStructures: ContentStructureSummary[] | undefined;
+  let pageMetadata: Record<string, unknown> | null = null;
+  let fragmentEntryLinks: PageFragmentEntry[] = [];
+  let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> = [];
+  let journalArticles: JournalArticleSummary[] = [];
+  let contentStructures: ContentStructureSummary[] = [];
 
   if (componentInspectionSupported) {
     const pageElement = await fetchSitePageElement(config, apiClient, accessToken, site.id, canonicalFriendlyUrl);
+    pageMetadata = await tryFetchSitePageMetadata(config, apiClient, accessToken, site.id, canonicalFriendlyUrl);
     const rawFragmentLinks = await tryFetchFragmentEntryLinks(
       config,
       apiClient,
@@ -210,7 +234,9 @@ export async function fetchRegularPageInventory(
       site.id,
       layout.plid ?? -1,
     );
+    configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
+    enrichRegularPageFragmentSummaries(fragmentEntryLinks);
     await enrichFragmentEntryExportPaths(config, accessToken, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
     widgets = fragmentEntryLinks
       .filter((entry) => entry.type === 'widget' && entry.widgetName)
@@ -223,9 +249,117 @@ export async function fetchRegularPageInventory(
     contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, journalArticles);
   }
 
+  function buildRegularPageSummary(
+    layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
+    fragmentEntryLinks?: PageFragmentEntry[],
+    widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>,
+  ): {
+    layoutTemplateId?: string;
+    targetUrl?: string;
+    fragmentCount: number;
+    widgetCount: number;
+  } {
+    return {
+      ...(layoutDetails.layoutTemplateId ? {layoutTemplateId: layoutDetails.layoutTemplateId} : {}),
+      ...(layoutDetails.targetUrl ? {targetUrl: layoutDetails.targetUrl} : {}),
+      fragmentCount: fragmentEntryLinks?.filter((entry) => entry.type === 'fragment').length ?? 0,
+      widgetCount: widgets?.length ?? fragmentEntryLinks?.filter((entry) => entry.type === 'widget').length ?? 0,
+    };
+  }
+
+  function enrichRegularPageFragmentSummaries(entries: PageFragmentEntry[]): void {
+    for (const entry of entries) {
+      if (entry.type !== 'fragment' || !entry.fragmentKey) {
+        continue;
+      }
+      const editableFields = new Map((entry.editableFields ?? []).map((field) => [field.id, field.value]));
+      const fields = [...editableFields.entries()]
+        .map(([id, value]) => ({id: id.trim(), value: String(value ?? '').trim()}))
+        .filter((field) => field.id !== '' && field.value !== '');
+      const field = (id: string): string => String(editableFields.get(id) ?? '').trim();
+      const firstFieldValue = (patterns: RegExp[]): string | undefined => {
+        for (const pattern of patterns) {
+          const match = fields.find((candidate) => pattern.test(candidate.id));
+          if (match) {
+            return match.value;
+          }
+        }
+        return undefined;
+      };
+      const listFieldValues = (patterns: RegExp[]): string[] =>
+        fields
+          .filter((candidate) => patterns.some((pattern) => pattern.test(candidate.id)))
+          .sort((left, right) => left.id.localeCompare(right.id, undefined, {numeric: true}))
+          .map((candidate) => candidate.value)
+          .filter(Boolean);
+      const stripHtml = (value: string): string =>
+        value
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      const truncate = (value: string, maxLength: number): string =>
+        value.length > maxLength ? `${value.slice(0, maxLength - 1).trimEnd()}…` : value;
+
+      const title =
+        firstFieldValue([/^title$/i, /(?:^|[._-])(title|heading|header|label|name)(?:[._-]|$)/i]) ?? undefined;
+
+      let cardCount: number | undefined;
+
+      const heroSource =
+        firstFieldValue([
+          /^summary$/i,
+          /^description$/i,
+          /(?:^|[._-])(intro|intro-paragraph|paragraph|text|body|content|summary|description)(?:[._-]|$)/i,
+        ]) ??
+        field('paragraph') ??
+        field('text');
+      const heroText = truncate(stripHtml(heroSource), 160) || undefined;
+
+      const navigationItems =
+        listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i]).length > 0
+          ? listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i])
+          : undefined;
+
+      const totalLinks = Number(entry.configuration?.totalLinks ?? Number.NaN);
+      if (Number.isFinite(totalLinks) && totalLinks > 0) {
+        cardCount = totalLinks;
+      } else {
+        const cardLikeFields = fields.filter((candidate) =>
+          /(?:^|[._-])(card|item|link)-\d+(?:[._-]|$)/i.test(candidate.id),
+        );
+        if (cardLikeFields.length > 0) {
+          cardCount = cardLikeFields.length;
+        }
+      }
+
+      const summaryParts = [title ? `title=${title}` : '', heroText ? `heroText=${heroText}` : '']
+        .filter(Boolean)
+        .concat(navigationItems && navigationItems.length > 0 ? [`navigationItems=${navigationItems.join(' | ')}`] : [])
+        .concat(typeof cardCount === 'number' ? [`cardCount=${cardCount}`] : []);
+
+      if (title) {
+        entry.title = title;
+      }
+      if (heroText) {
+        entry.heroText = heroText;
+      }
+      if (navigationItems && navigationItems.length > 0) {
+        entry.navigationItems = navigationItems;
+      }
+      if (typeof cardCount === 'number') {
+        entry.cardCount = cardCount;
+      }
+      if (summaryParts.length > 0) {
+        entry.contentSummary = summaryParts.join(' · ');
+      }
+    }
+  }
+
   return {
+    contractVersion: '2',
     pageType: 'regularPage',
     pageSubtype: layout.type ?? '',
+    pageUiType: resolveRegularPageUiType(layout.type),
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
     groupId: site.id,
@@ -234,14 +368,14 @@ export async function fetchRegularPageInventory(
     ...(matchedLocale ? {matchedLocale, requestedFriendlyUrl: friendlyUrl} : {}),
     pageName: layout.nameCurrentValue ?? '',
     privateLayout,
+    pageSummary: buildRegularPageSummary(layoutDetails, fragmentEntryLinks, widgets),
     layout: {
-      layoutId: layout.layoutId ?? -1,
-      plid: layout.plid ?? -1,
+      layoutId: Number(layout.layoutId ?? -1),
+      plid: Number(layout.plid ?? -1),
       friendlyUrl: canonicalFriendlyUrl,
       type: layout.type ?? '',
-      hidden: layout.hidden ?? false,
+      hidden: toBooleanOrFalse(layout.hidden),
     },
-    layoutDetails,
     adminUrls: buildLayoutAdminUrls(
       config.liferay.url,
       site.friendlyUrlPath,
@@ -251,17 +385,209 @@ export async function fetchRegularPageInventory(
       layoutClassNameId,
       privateLayout,
     ),
-    ...(portlets.length > 0 ? {portlets} : {}),
-    ...(componentInspectionSupported
-      ? {
-          componentInspectionSupported,
-          fragmentEntryLinks,
-          widgets,
-          journalArticles,
-          contentStructures,
-        }
-      : {}),
+    layoutDetails,
+    configurationTabs,
+    componentInspectionSupported,
+    portlets,
+    fragmentEntryLinks,
+    widgets,
+    journalArticles,
+    contentStructures,
+    configurationRaw: {
+      layout: buildConfigurationRawLayout(layout),
+      typeSettings: parseTypeSettingsMap(layout.typeSettings ?? ''),
+      ...(pageMetadata ? {sitePageMetadata: buildConfigurationRawSitePage(pageMetadata)} : {}),
+    },
   };
+}
+
+function resolveRegularPageUiType(layoutType: string | undefined): string {
+  const normalized = String(layoutType ?? '')
+    .trim()
+    .toLowerCase();
+  switch (normalized) {
+    case 'full_page_application':
+    case 'full-page-application':
+    case 'fullpageapplication':
+      return 'Full Page Application';
+    case 'content':
+      return 'Content Page';
+    case 'link_to_layout':
+    case 'link-to-layout':
+      return 'Link to a Page of This Site';
+    case 'url':
+      return 'Link to URL';
+    case 'node':
+      return 'Page Set';
+    case 'portlet':
+      return 'Widget Page';
+    case 'panel':
+      return 'Panel';
+    case 'embedded':
+      return 'Embedded';
+    default:
+      return normalized === '' ? 'Page' : 'Page';
+  }
+}
+
+function buildRegularPageConfigurationTabs(
+  layout: Layout,
+  layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
+  privateLayout: boolean,
+  pageMetadata?: Record<string, unknown> | null,
+): {
+  general: Record<string, unknown>;
+  design: Record<string, unknown>;
+  seo: Record<string, unknown>;
+  openGraph: Record<string, unknown>;
+  customMetaTags: Record<string, unknown>;
+} {
+  const typeSettings = parseTypeSettingsMap(layout.typeSettings ?? '');
+  const metadata = asRecord(pageMetadata ?? {});
+  const metadataSettings = asRecord(metadata.settings);
+  const customFieldsMap: Record<string, unknown> = {};
+  for (const item of Array.isArray(metadata.customFields) ? metadata.customFields : []) {
+    const field = asRecord(item);
+    const name = String(field.name ?? '').trim();
+    if (!name) {
+      continue;
+    }
+    customFieldsMap[name] = asRecord(field.customValue).data;
+  }
+
+  const categories = (Array.isArray(metadata.taxonomyCategoryBriefs) ? metadata.taxonomyCategoryBriefs : [])
+    .map((item) => asRecord(item).taxonomyCategoryName)
+    .filter((value): value is string => typeof value === 'string' && value.trim() !== '');
+
+  const tags = (Array.isArray(metadata.keywords) ? metadata.keywords : []).filter(
+    (item): item is string => typeof item === 'string' && item.trim() !== '',
+  );
+
+  const general: Record<string, unknown> = {
+    type: layout.type ?? '',
+    name: layout.nameCurrentValue ?? '',
+    hiddenInNavigation: toBooleanOrFalse(layout.hidden),
+    friendlyUrl: layout.friendlyURL ?? '',
+    queryString: typeSettings.queryString ?? '',
+    targetType: layoutDetails.targetUrl ? 'url' : '',
+    target: layoutDetails.targetUrl ?? '',
+    categories,
+    tags,
+    privateLayout,
+  };
+
+  const design: Record<string, unknown> = {
+    theme: {
+      useInheritedTheme: false,
+      themeId: layout.themeId ?? '',
+      colorSchemeId: layout.colorSchemeId ?? '',
+      styleBookEntryId: Number(layout.styleBookEntryId ?? 0),
+      masterLayoutPlid: Number(layout.masterLayoutPlid ?? 0),
+      faviconFileEntryId: Number(layout.faviconFileEntryId ?? 0),
+    },
+    themeFlags: {
+      showHeader: toBoolean(typeSettings['lfr-theme:regular:show-header']),
+      showFooter: toBoolean(typeSettings['lfr-theme:regular:show-footer']),
+      showHeaderSearch: toBoolean(typeSettings['lfr-theme:regular:show-header-search']),
+      wrapWidgetPageContent: toBoolean(typeSettings['lfr-theme:regular:wrap-widget-page-content']),
+      layoutUpdateable: toBoolean(typeSettings.layoutUpdateable),
+      published: toBoolean(typeSettings.published),
+    },
+    customCss: layout.css ?? '',
+    customJavascript: layout.javascript ?? '',
+    customFields: customFieldsMap,
+  };
+
+  const seo: Record<string, unknown> = {
+    title: layout.titleCurrentValue ?? '',
+    description: layout.descriptionCurrentValue ?? '',
+    keywords: layout.keywordsCurrentValue ?? '',
+    robots: layout.robotsCurrentValue ?? layout.robots ?? '',
+    sitemap: {
+      include: toBoolean(typeSettings['sitemap-include']),
+      changefreq: typeSettings['sitemap-changefreq'] ?? '',
+    },
+  };
+
+  const openGraph: Record<string, unknown> = {
+    title: firstNonEmptyString(metadataSettings.openGraphTitle, metadata.openGraphTitle),
+    description: firstNonEmptyString(metadataSettings.openGraphDescription, metadata.openGraphDescription),
+    type: firstNonEmptyString(metadataSettings.openGraphType, metadata.openGraphType),
+    url: firstNonEmptyString(metadataSettings.openGraphUrl, metadata.openGraphUrl),
+    imageAlt: firstNonEmptyString(metadataSettings.openGraphImageAlt, metadata.openGraphImageAlt),
+    imageFileEntryId: firstPositiveNumber(
+      metadataSettings.openGraphImageFileEntryId,
+      metadata.openGraphImageFileEntryId,
+    ),
+  };
+
+  const customMetaTags: Record<string, unknown> = {
+    values: metadata.customMetaTags ?? metadataSettings.customMetaTags ?? typeSettings.customMetaTags ?? null,
+  };
+
+  return {
+    general,
+    design,
+    seo,
+    openGraph,
+    customMetaTags,
+  };
+}
+
+function buildConfigurationRawLayout(layout: Layout): Record<string, unknown> {
+  return {
+    layoutId: Number(layout.layoutId ?? -1),
+    plid: Number(layout.plid ?? -1),
+    type: layout.type ?? '',
+    nameCurrentValue: layout.nameCurrentValue ?? '',
+    titleCurrentValue: layout.titleCurrentValue ?? '',
+    descriptionCurrentValue: layout.descriptionCurrentValue ?? '',
+    keywordsCurrentValue: layout.keywordsCurrentValue ?? '',
+    robotsCurrentValue: layout.robotsCurrentValue ?? '',
+    friendlyURL: layout.friendlyURL ?? '',
+    hidden: toBooleanOrFalse(layout.hidden),
+    themeId: layout.themeId ?? '',
+    colorSchemeId: layout.colorSchemeId ?? '',
+    styleBookEntryId: Number(layout.styleBookEntryId ?? 0),
+    masterLayoutPlid: Number(layout.masterLayoutPlid ?? 0),
+    faviconFileEntryId: Number(layout.faviconFileEntryId ?? 0),
+    css: layout.css ?? '',
+    javascript: layout.javascript ?? '',
+  };
+}
+
+function buildConfigurationRawSitePage(pageMetadata: Record<string, unknown>): Record<string, unknown> {
+  const metadata = asRecord(pageMetadata);
+  return {
+    id: firstPositiveNumber(metadata.id),
+    friendlyUrlPath: firstNonEmptyString(metadata.friendlyUrlPath),
+    title: firstNonEmptyString(metadata.title),
+    availableLanguages: Array.isArray(metadata.availableLanguages) ? metadata.availableLanguages : [],
+    taxonomyCategoryBriefs: Array.isArray(metadata.taxonomyCategoryBriefs) ? metadata.taxonomyCategoryBriefs : [],
+    keywords: Array.isArray(metadata.keywords) ? metadata.keywords : [],
+    customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+    settings: asRecord(metadata.settings),
+    viewableBy: asRecord(metadata.viewableBy),
+  };
+}
+
+function parseTypeSettingsMap(rawTypeSettings: string): Record<string, string> {
+  const settings: Record<string, string> = {};
+  if (rawTypeSettings.trim() === '') {
+    return settings;
+  }
+  for (const line of rawTypeSettings.split(/\r?\n/)) {
+    const separatorIndex = line.indexOf('=');
+    if (separatorIndex <= 0) {
+      continue;
+    }
+    const key = line.slice(0, separatorIndex).trim();
+    const value = line.slice(separatorIndex + 1).trim();
+    if (key !== '') {
+      settings[key] = value;
+    }
+  }
+  return settings;
 }
 
 function collectPortletPagePortlets(typeSettings: string, layoutTemplateId?: string): PagePortletSummary[] {
@@ -599,6 +925,30 @@ async function fetchSitePageElement(
   return asRecord(asRecord(response.data).pageDefinition).pageElement as Record<string, unknown> | null;
 }
 
+async function tryFetchSitePageMetadata(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  siteId: number,
+  friendlyUrl: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+    const response = await authedGet<Record<string, unknown>>(
+      config,
+      apiClient,
+      accessToken,
+      `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${encodeURIComponent(slug)}?nestedFields=taxonomyCategoryBriefs`,
+    );
+    if (!response.ok || !response.data) {
+      return null;
+    }
+    return asRecord(response.data);
+  } catch {
+    return null;
+  }
+}
+
 async function tryFetchFragmentEntryLinks(
   config: AppConfig,
   apiClient: LiferayApiClient,
@@ -646,6 +996,7 @@ async function buildJournalArticleSummary(
     fallbackSite?: ResolvedSite;
     fallbackTitle?: string;
     fallbackContentStructureId?: number;
+    includeHeadlessInventoryFields?: boolean;
   },
 ): Promise<JournalArticleSummary> {
   const article =
@@ -671,6 +1022,57 @@ async function buildJournalArticleSummary(
     ...(options?.fallbackContentStructureId ? {contentStructureId: Number(options.fallbackContentStructureId)} : {}),
   };
 
+  // 1. Try to enrich with headless-delivery using UUID from JSONWS
+  let structuredContent = options?.structuredContent ?? null;
+  const uuid = firstString(article?.uuid);
+  if (!structuredContent && uuid) {
+    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, ref.groupId, uuid);
+  }
+
+  // 2. If UUID lookup failed, try by ID as fallback
+  if (!structuredContent) {
+    const structuredContentId = Number(article?.id ?? article?.resourcePrimKey ?? -1);
+    if (structuredContentId > 0) {
+      structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
+    }
+  }
+
+  // 3. Enrich summary with headless-delivery data (or JSONWS fallback if headless-delivery hasn't indexed yet)
+  if (structuredContent) {
+    if (options?.includeHeadlessInventoryFields) {
+      enrichJournalArticleWithStructuredContent(summary, structuredContent, ddmTemplateKey);
+    }
+    if (structuredContent.contentStructureId) {
+      summary.contentStructureId = Number(structuredContent.contentStructureId);
+    }
+    const contentFields = summarizeContentFields(structuredContent.contentFields);
+    if (contentFields.length > 0) {
+      summary.contentFields = contentFields;
+    }
+  } else if (article) {
+    // Fallback: Use JSONWS data when headless-delivery hasn't indexed yet
+    // Extract contentStructureId from JSONWS article
+    const jsonwsContentStructureId = Number(article.contentStructureId ?? -1);
+    if (jsonwsContentStructureId > 0) {
+      summary.contentStructureId = jsonwsContentStructureId;
+    }
+  }
+
+  // 4. Resolve structure key if not already available
+  if (!summary.ddmStructureKey && summary.contentStructureId) {
+    const contentStructure = await fetchContentStructureById(
+      config,
+      apiClient,
+      accessToken,
+      summary.contentStructureId,
+    );
+    const contentStructureKey = inferContentStructureKey(contentStructure);
+    if (contentStructureKey) {
+      summary.ddmStructureKey = contentStructureKey;
+    }
+  }
+
+  // 5. Resolve structure site and export path
   if (articleSite?.friendlyUrl && summary.ddmStructureKey) {
     const structureSite = await resolveStructureSiteByKey(
       config,
@@ -688,6 +1090,8 @@ async function buildJournalArticleSummary(
       );
     }
   }
+
+  // 6. Resolve template site and export path
   if (articleSite?.friendlyUrl && ddmTemplateKey) {
     const templateSite = await resolveTemplateSiteByKey(config, articleSite.friendlyUrl, ddmTemplateKey, {
       apiClient,
@@ -696,44 +1100,6 @@ async function buildJournalArticleSummary(
     if (templateSite) {
       summary.ddmTemplateSiteFriendlyUrl = templateSite;
       summary.templateExportPath = buildTemplateExportPath(config, templateSite, ddmTemplateKey);
-    }
-  }
-
-  const structuredContentId = Number(options?.structuredContent?.id ?? article?.id ?? article?.resourcePrimKey ?? -1);
-  if (structuredContentId > 0) {
-    const structuredContent =
-      options?.structuredContent ??
-      (await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId));
-    if (structuredContent?.contentStructureId) {
-      summary.contentStructureId = Number(structuredContent.contentStructureId);
-    }
-    if (!summary.ddmStructureKey && summary.contentStructureId) {
-      const contentStructure = await fetchContentStructureById(
-        config,
-        apiClient,
-        accessToken,
-        summary.contentStructureId,
-      );
-      const contentStructureKey = inferContentStructureKey(contentStructure);
-      if (contentStructureKey) {
-        summary.ddmStructureKey = contentStructureKey;
-        if (articleSite?.friendlyUrl) {
-          const structureSite = await resolveStructureSiteByKey(
-            config,
-            apiClient,
-            accessToken,
-            articleSite.friendlyUrl,
-            summary.ddmStructureKey,
-          );
-          const siteFriendlyUrl = structureSite?.siteFriendlyUrl ?? articleSite.friendlyUrl;
-          summary.ddmStructureSiteFriendlyUrl = siteFriendlyUrl;
-          summary.structureExportPath = buildStructureExportPath(config, siteFriendlyUrl, summary.ddmStructureKey);
-        }
-      }
-    }
-    const contentFields = summarizeContentFields(structuredContent?.contentFields);
-    if (contentFields.length > 0) {
-      summary.contentFields = contentFields;
     }
   }
 
@@ -901,6 +1267,25 @@ async function fetchStructuredContentById(
     apiClient,
     accessToken,
     `/o/headless-delivery/v1.0/structured-contents/${id}`,
+  );
+  return response.ok ? (response.data ?? null) : null;
+}
+
+async function fetchStructuredContentByUuid(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  groupId: number,
+  uuid: string,
+): Promise<StructuredContent | null> {
+  if (!uuid) {
+    return null;
+  }
+  const response = await authedGet<StructuredContent>(
+    config,
+    apiClient,
+    accessToken,
+    `/o/headless-delivery/v1.0/sites/${groupId}/structured-contents/by-uuid/${encodeURIComponent(uuid)}`,
   );
   return response.ok ? (response.data ?? null) : null;
 }
@@ -1127,4 +1512,138 @@ function inferContentStructureKey(value: Record<string, unknown> | null | undefi
   }
   const name = String(value?.name ?? '').trim();
   return /^[A-Z0-9_]+$/.test(name) ? name : '';
+}
+
+function enrichJournalArticleWithStructuredContent(
+  summary: JournalArticleSummary,
+  structuredContent: StructuredContent,
+  ddmTemplateKey?: string,
+): void {
+  const record = asRecord(structuredContent);
+  const renderedContents = Array.isArray(record.renderedContents)
+    ? record.renderedContents.map((item) => asRecord(item))
+    : [];
+  const taxonomyCategoryBriefs = Array.isArray(record.taxonomyCategoryBriefs)
+    ? record.taxonomyCategoryBriefs.map((item) => asRecord(item))
+    : [];
+
+  const widgetTemplateCandidates: string[] = [];
+  const displayPageTemplateCandidates: string[] = [];
+  let widgetHeadlessDefaultTemplate: string | undefined;
+  let displayPageDefaultTemplate: string | undefined;
+
+  for (const entry of renderedContents) {
+    const template = firstString(entry.contentTemplateName) ?? firstString(entry.contentTemplateId);
+    if (!template) {
+      continue;
+    }
+    const renderedUrl = firstString(entry.renderedContentURL) ?? '';
+    const markedAsDefault = Boolean(entry.markedAsDefault);
+    const isDisplayPage = renderedUrl.includes('/rendered-content-by-display-page/');
+    if (isDisplayPage) {
+      displayPageTemplateCandidates.push(template);
+      if (markedAsDefault && !displayPageDefaultTemplate) {
+        displayPageDefaultTemplate = template;
+      }
+    } else {
+      widgetTemplateCandidates.push(template);
+      if (markedAsDefault && !widgetHeadlessDefaultTemplate) {
+        widgetHeadlessDefaultTemplate = template;
+      }
+    }
+  }
+
+  const widgetDefaultTemplate = ddmTemplateKey || widgetHeadlessDefaultTemplate;
+  const taxonomyCategoryNames = taxonomyCategoryBriefs
+    .map((item) => firstString(item.taxonomyCategoryName))
+    .filter((value): value is string => Boolean(value));
+
+  const priority = Number(record.priority);
+  const relatedContentsCount = Array.isArray(record.relatedContents) ? record.relatedContents.length : undefined;
+  const availableLanguages = Array.isArray(record.availableLanguages)
+    ? record.availableLanguages.map((item) => String(item)).filter(Boolean)
+    : [];
+
+  if (widgetDefaultTemplate) {
+    summary.widgetDefaultTemplate = widgetDefaultTemplate;
+  }
+  if (widgetHeadlessDefaultTemplate) {
+    summary.widgetHeadlessDefaultTemplate = widgetHeadlessDefaultTemplate;
+  }
+  if (displayPageDefaultTemplate) {
+    summary.displayPageDefaultTemplate = displayPageDefaultTemplate;
+  }
+  if (widgetTemplateCandidates.length > 0) {
+    summary.widgetTemplateCandidates = widgetTemplateCandidates;
+  }
+  if (displayPageTemplateCandidates.length > 0) {
+    summary.displayPageTemplateCandidates = displayPageTemplateCandidates;
+  }
+  if (renderedContents.length > 0) {
+    summary.renderedContents = renderedContents;
+  }
+  if (taxonomyCategoryBriefs.length > 0) {
+    summary.taxonomyCategoryBriefs = taxonomyCategoryBriefs;
+  }
+  if (taxonomyCategoryNames.length > 0) {
+    summary.taxonomyCategoryNames = taxonomyCategoryNames;
+  }
+  if (availableLanguages.length > 0) {
+    summary.availableLanguages = availableLanguages;
+  }
+
+  const dateCreated = firstString(record.dateCreated);
+  if (dateCreated) {
+    summary.dateCreated = dateCreated;
+  }
+  const dateModified = firstString(record.dateModified);
+  if (dateModified) {
+    summary.dateModified = dateModified;
+  }
+  const datePublished = firstString(record.datePublished);
+  if (datePublished) {
+    summary.datePublished = datePublished;
+  }
+  const expirationDate =
+    firstString(record.expirationDate) ?? firstString(record.dateExpired) ?? firstString(record.dateExpiration);
+  if (expirationDate) {
+    summary.expirationDate = expirationDate;
+  }
+  const reviewDate = firstString(record.reviewDate) ?? firstString(record.dateReview);
+  if (reviewDate) {
+    summary.reviewDate = reviewDate;
+  }
+  const description = firstString(record.description);
+  if (description) {
+    summary.description = description;
+  }
+  const externalReferenceCode = firstString(record.externalReferenceCode);
+  if (externalReferenceCode) {
+    summary.externalReferenceCode = externalReferenceCode;
+  }
+  const uuid = firstString(record.uuid);
+  if (uuid) {
+    summary.uuid = uuid;
+  }
+
+  const siteId = Number(record.siteId);
+  if (Number.isFinite(siteId) && siteId > 0) {
+    summary.siteId = siteId;
+  }
+  const structuredContentFolderId = Number(record.structuredContentFolderId);
+  if (Number.isFinite(structuredContentFolderId) && structuredContentFolderId > 0) {
+    summary.structuredContentFolderId = structuredContentFolderId;
+  }
+  if (Number.isFinite(priority)) {
+    summary.priority = priority;
+  }
+  if (typeof record.neverExpire === 'boolean') {
+    summary.neverExpire = record.neverExpire;
+  }
+  if (typeof record.subscribed === 'boolean') {
+    summary.subscribed = record.subscribed;
+  }
+  if (typeof relatedContentsCount === 'number') {
+    summary.relatedContentsCount = relatedContentsCount;
+  }
 }
