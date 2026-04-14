@@ -132,6 +132,7 @@ export async function runStructureMigration(
               authOptions(config, accessToken, locale),
             ),
             'structure-migrate update',
+            'LIFERAY_RESOURCE_ERROR',
           );
           await verifyStructuredContentPersistence(config, options.apiClient, accessToken, contentId, after, locale);
         }
@@ -258,6 +259,7 @@ async function listStructureContents(
         authOptions(config, accessToken),
       ),
       'structure-migrate list',
+      'LIFERAY_RESOURCE_ERROR',
     );
     rows.push(...(response.data?.items ?? []));
     lastPage = response.data?.lastPage ?? 1;
@@ -288,6 +290,7 @@ async function listStructureContentsByFolders(
           authOptions(config, accessToken),
         ),
         'structure-migrate list-by-folder',
+        'LIFERAY_RESOURCE_ERROR',
       );
       for (const item of response.data?.items ?? []) {
         if (String(item.contentStructureId ?? '') !== structureId) {
@@ -323,6 +326,7 @@ async function fetchStructuredContentForMigration(
       authOptions(config, accessToken, acceptLanguage),
     ),
     'structure-migrate get',
+    'LIFERAY_RESOURCE_ERROR',
   );
   return response.data ?? {};
 }
@@ -350,6 +354,7 @@ async function expandRootFolderScope(
         authOptions(config, accessToken),
       ),
       'journal-folder-get-folders',
+      'LIFERAY_RESOURCE_ERROR',
     );
     for (const row of response.data ?? []) {
       const childId = Number(row.folderId ?? -1);

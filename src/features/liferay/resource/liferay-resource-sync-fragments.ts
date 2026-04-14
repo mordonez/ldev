@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {HttpResponse} from '../../../core/http/client.js';
+import {ensureData} from '../liferay-http-shared.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {resolveFragmentsBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
@@ -738,22 +738,12 @@ async function postFormCandidates<T>(
   for (const form of candidates) {
     const response = await authedPostForm<T>(config, apiPath, form, dependencies);
     if (response.ok) {
-      return ensureJsonData(response, operation, apiPath);
+      return ensureData(response.data, `${operation} invalid JSON in ${apiPath}`, 'LIFERAY_RESOURCE_ERROR');
     }
     errors.push(`status=${response.status} body=${response.body}`);
   }
 
   throw new CliError(`${operation} fallo en ${apiPath} (${errors.join(' | ')})`, {
-    code: 'LIFERAY_RESOURCE_ERROR',
-  });
-}
-
-function ensureJsonData<T>(response: HttpResponse<T>, operation: string, apiPath: string): T {
-  if (response.data !== null) {
-    return response.data;
-  }
-
-  throw new CliError(`${operation} devolvio JSON invalido en ${apiPath}`, {
     code: 'LIFERAY_RESOURCE_ERROR',
   });
 }

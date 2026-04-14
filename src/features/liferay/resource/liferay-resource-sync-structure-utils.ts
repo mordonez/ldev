@@ -1,27 +1,6 @@
-import {CliError} from '../../../core/errors.js';
-import type {AppConfig} from '../../../core/config/load-config.js';
-import type {HttpResponse} from '../../../core/http/client.js';
+import {buildAuthOptions, expectJsonSuccess} from '../liferay-http-shared.js';
 
-export function authOptions(
-  config: AppConfig,
-  accessToken: string,
-  acceptLanguage = '',
-): {headers: Record<string, string>; timeoutSeconds: number} {
-  return {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(acceptLanguage !== '' ? {'Accept-Language': acceptLanguage} : {}),
-    },
-  };
-}
-
-export async function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): Promise<HttpResponse<T>> {
-  if (response.ok) {
-    return response;
-  }
-  throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_RESOURCE_ERROR'});
-}
+export {buildAuthOptions as authOptions, expectJsonSuccess};
 
 export function normalizeMigrationPhase(phase?: string): '' | 'pre' | 'post' | 'both' {
   const normalized = (phase ?? '').trim().toLowerCase();

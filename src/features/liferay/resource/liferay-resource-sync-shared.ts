@@ -5,7 +5,8 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient, type HttpResponse} from '../../../core/http/client.js';
-import {expectJsonSuccess, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
+import {buildAuthOptions, expectJsonSuccess} from '../liferay-http-shared.js';
+import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -30,12 +31,7 @@ export async function authedPostForm<T>(
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
 
-  return apiClient.postForm<T>(config.liferay.url, path, form, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return apiClient.postForm<T>(config.liferay.url, path, form, buildAuthOptions(config, accessToken));
 }
 
 export async function authedPostMultipart<T>(
@@ -47,12 +43,7 @@ export async function authedPostMultipart<T>(
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
 
-  return apiClient.postMultipart<T>(config.liferay.url, path, form, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return apiClient.postMultipart<T>(config.liferay.url, path, form, buildAuthOptions(config, accessToken));
 }
 
 export async function authedGetJson<T>(
@@ -63,13 +54,8 @@ export async function authedGetJson<T>(
 ): Promise<T> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await apiClient.get<T>(config.liferay.url, path, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  const success = await expectJsonSuccess(response, label);
+  const response = await apiClient.get<T>(config.liferay.url, path, buildAuthOptions(config, accessToken));
+  const success = await expectJsonSuccess(response, label, 'LIFERAY_RESOURCE_ERROR');
   return (success.data ?? null) as T;
 }
 
@@ -82,13 +68,8 @@ export async function authedPutJson<T>(
 ): Promise<T> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await apiClient.putJson<T>(config.liferay.url, path, payload, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  const success = await expectJsonSuccess(response, label);
+  const response = await apiClient.putJson<T>(config.liferay.url, path, payload, buildAuthOptions(config, accessToken));
+  const success = await expectJsonSuccess(response, label, 'LIFERAY_RESOURCE_ERROR');
   return (success.data ?? null) as T;
 }
 

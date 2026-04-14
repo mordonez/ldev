@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {expectJsonSuccess} from '../liferay-http-shared.js';
 import {
   ADT_CLASS_BY_WIDGET_TYPE,
   normalizeAdtWidgetType,
@@ -106,6 +107,7 @@ export async function runLiferayResourceSyncAdt(
         dependencies,
       ),
       'adt-create',
+      'LIFERAY_RESOURCE_ERROR',
     );
 
     return {
@@ -145,6 +147,7 @@ export async function runLiferayResourceSyncAdt(
         dependencies,
       ),
       'adt-update',
+      'LIFERAY_RESOURCE_ERROR',
     );
   }
 
@@ -209,14 +212,4 @@ async function findAdt(
   return (
     await runLiferayResourceListAdts(config, {site, widgetType, className, includeScript: true}, dependencies)
   ).find((item) => [item.templateKey, item.adtName, item.displayName].includes(name));
-}
-
-async function expectJsonSuccess<T>(
-  response: {ok: boolean; status: number; data: T | null},
-  label: string,
-): Promise<{ok: boolean; status: number; data: T | null}> {
-  if (response.ok) {
-    return response;
-  }
-  throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_RESOURCE_ERROR'});
 }
