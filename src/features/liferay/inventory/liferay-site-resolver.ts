@@ -76,6 +76,10 @@ export class SiteResolutionPipeline {
   /**
    * Execute the pipeline in order.
    * Returns first successful resolution, or throws if all steps return null.
+   * Error handling contract:
+   * - Steps return null to continue (miss)
+   * - Steps throw 404/403 to continue (miss)
+   * - Steps throw other errors to propagate (unexpected)
    */
   async execute(site: string, fallbackErrorMessage: string): Promise<ResolvedSite> {
     for (const {name, step} of this.steps) {
@@ -86,6 +90,12 @@ export class SiteResolutionPipeline {
           return result;
         }
       } catch (error) {
+        // Treat 404/403 as miss (continue to next step)
+        if (isMiss(error)) {
+          this.hooks?.onStepFailure?.(name, error instanceof Error ? error : new Error(String(error)));
+          continue;
+        }
+        // Unexpected error: propagate immediately
         this.hooks?.onStepFailure?.(name, error instanceof Error ? error : new Error(String(error)));
         throw error;
       }
@@ -377,10 +387,14 @@ async function resolveSiteViaJsonws(
   return null;
 }
 
-function isGatewayMiss(error: unknown): boolean {
+function isMiss(error: unknown): boolean {
   return (
     error instanceof CliError &&
     error.code === 'LIFERAY_GATEWAY_ERROR' &&
     (error.message.includes('status=403') || error.message.includes('status=404'))
   );
+}
+
+function isGatewayMiss(error: unknown): boolean {
+  return isMiss(error);
 }
