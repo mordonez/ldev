@@ -171,11 +171,12 @@ export async function runLiferayInventoryPage(
   const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(effectiveConfig, dependencies);
+  const siteDependencies = {...dependencies, accessToken};
 
   if (request.route === 'portalHome') {
     const homeRequest = await resolvePortalHomeRequest(effectiveConfig);
     if (homeRequest) {
-      const site = await resolveSite(effectiveConfig, homeRequest.siteSlug, dependencies);
+      const site = await resolveSite(effectiveConfig, homeRequest.siteSlug, siteDependencies);
       return fetchRegularPageInventory(
         effectiveConfig,
         apiClient,
@@ -186,12 +187,11 @@ export async function runLiferayInventoryPage(
         homeRequest.localeHint,
       ).then(finalizeResult);
     }
-    const site = await resolveSite(effectiveConfig, 'global', dependencies);
+    const site = await resolveSite(effectiveConfig, 'global', siteDependencies);
     return finalizeResult(await fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, false));
   }
 
-  const site = await resolveSite(effectiveConfig, request.siteSlug, dependencies);
-
+  const site = await resolveSite(effectiveConfig, request.siteSlug, siteDependencies);
   if (request.route === 'siteRoot') {
     if (options.url) {
       const redirectedRequest = await resolveSiteHomeRequest(effectiveConfig, request);
@@ -328,7 +328,7 @@ export async function resolveRegularLayoutPage(
 
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const site = await resolveSite(config, request.siteSlug, dependencies);
+  const site = await resolveSite(config, request.siteSlug, {...dependencies, accessToken});
 
   return resolveRegularLayoutPageData(config, apiClient, accessToken, site, request.friendlyUrl, request.privateLayout);
 }
