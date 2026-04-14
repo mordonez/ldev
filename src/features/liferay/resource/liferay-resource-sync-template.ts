@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {expectJsonSuccess} from '../liferay-http-shared.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js';
 import {fetchStructureByKey} from './liferay-resource-sync-structure-shared.js';
@@ -114,7 +115,7 @@ export async function runLiferayResourceSyncTemplate(
       },
       dependencies,
     );
-    const success = await expectJsonSuccess(created, 'template-create');
+    const success = await expectJsonSuccess(created, 'template-create', 'LIFERAY_RESOURCE_ERROR');
     const id = String(success.data?.templateKey ?? success.data?.templateId ?? '');
 
     return {
@@ -152,6 +153,7 @@ export async function runLiferayResourceSyncTemplate(
           dependencies,
         ),
         'template-update',
+        'LIFERAY_RESOURCE_ERROR',
       );
     }
   }
@@ -216,14 +218,4 @@ async function tryGetDdmTemplateByKey(
     }
     throw error;
   }
-}
-
-async function expectJsonSuccess<T>(
-  response: {ok: boolean; status: number; data: T | null},
-  label: string,
-): Promise<{ok: boolean; status: number; data: T | null}> {
-  if (response.ok) {
-    return response;
-  }
-  throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_RESOURCE_ERROR'});
 }
