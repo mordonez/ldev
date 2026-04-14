@@ -121,6 +121,7 @@ export async function runLiferayResourceSyncStructure(
         authOptions(config, accessToken),
       ),
       'structure-create',
+      'LIFERAY_RESOURCE_ERROR',
     );
 
     const createdId = String(created.data?.id ?? '');
@@ -181,6 +182,7 @@ export async function runLiferayResourceSyncStructure(
         authOptions(config, accessToken),
       ),
       'structure-update transition',
+      'LIFERAY_RESOURCE_ERROR',
     );
 
     migration = await runStructureMigration(config, options.key, site.id, options.migrationPlan!, {
@@ -254,7 +256,7 @@ async function fetchStructureByKey(
   if (response.status === 404) {
     return null;
   }
-  const success = await expectJsonSuccess(response, 'resource structure-sync get');
+  const success = await expectJsonSuccess(response, 'resource structure-sync get', 'LIFERAY_RESOURCE_ERROR');
   return success.data;
 }
 
@@ -277,6 +279,7 @@ async function updateStructureWithRecovery(
         authOptions(config, accessToken),
       ),
       'structure-update',
+      'LIFERAY_RESOURCE_ERROR',
     );
     return {data: updated.data ?? null, recoveredAfterTimeout: false};
   } catch (error) {

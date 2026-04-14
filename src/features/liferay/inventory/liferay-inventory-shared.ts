@@ -2,6 +2,7 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
+import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
 
 export type ResolvedSite = {
   id: number;
@@ -190,20 +191,11 @@ export async function authedGet<T>(
   accessToken: string,
   path: string,
 ): Promise<HttpResponse<T>> {
-  return apiClient.get<T>(config.liferay.url, path, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
+  return apiClient.get<T>(config.liferay.url, path, buildAuthOptions(config, accessToken));
 }
 
 export async function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): Promise<HttpResponse<T>> {
-  if (response.ok) {
-    return response;
-  }
-
-  throw new CliError(`${label} failed with status=${response.status}.`, {code: 'LIFERAY_INVENTORY_ERROR'});
+  return expectJsonSuccessShared(response, label, 'LIFERAY_INVENTORY_ERROR');
 }
 
 export function normalizeLocalizedName(value: string | Record<string, string> | undefined): string {
@@ -282,10 +274,7 @@ async function resolveSiteViaJsonws(
     const countResponse = await apiClient.get<string>(
       config.liferay.url,
       `/api/jsonws/group/search-count?companyId=${companyId}&name=&description=&params=%7B%7D`,
-      {
-        timeoutSeconds: config.liferay.timeoutSeconds,
-        headers: {Authorization: `Bearer ${accessToken}`},
-      },
+      buildAuthOptions(config, accessToken),
     );
 
     if (!countResponse.ok) {
