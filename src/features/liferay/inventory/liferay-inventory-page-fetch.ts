@@ -15,6 +15,7 @@ import {
 import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
   asRecord,
+  assignOptionalFiniteNumber,
   assignOptionalString,
   assignOptionalNumber,
   assignOptionalBoolean,
@@ -278,15 +279,12 @@ export async function fetchRegularPageInventory(
   let contentStructures: ContentStructureSummary[] = [];
 
   if (componentInspectionSupported) {
-    const pageElement = await fetchSitePageElement(config, apiClient, accessToken, site.id, canonicalFriendlyUrl);
-    pageMetadata = await tryFetchSitePageMetadata(config, apiClient, accessToken, site.id, canonicalFriendlyUrl);
-    const rawFragmentLinks = await tryFetchFragmentEntryLinks(
-      config,
-      apiClient,
-      accessToken,
-      site.id,
-      layout.plid ?? -1,
-    );
+    const {
+      pageElement,
+      pageMetadata: fetchedMetadata,
+      rawFragmentLinks,
+    } = await fetchComponentPageData(config, apiClient, accessToken, site.id, canonicalFriendlyUrl, layout.plid ?? -1);
+    pageMetadata = fetchedMetadata;
     configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
     enrichRegularPageFragmentSummaries(fragmentEntryLinks);
@@ -1591,6 +1589,29 @@ function inferContentStructureKey(value: Record<string, unknown> | null | undefi
   return /^[A-Z0-9_]+$/.test(name) ? name : '';
 }
 
+/**
+ * Fetch component page data (page element, metadata, fragment links).
+ * Single responsibility: isolated API calls for content page data.
+ */
+async function fetchComponentPageData(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  accessToken: string,
+  siteId: number,
+  canonicalFriendlyUrl: string,
+  plid: number,
+): Promise<{
+  pageElement: Record<string, unknown> | null;
+  pageMetadata: Record<string, unknown> | null;
+  rawFragmentLinks: Array<Record<string, unknown>>;
+}> {
+  const pageElement = await fetchSitePageElement(config, apiClient, accessToken, siteId, canonicalFriendlyUrl);
+  const pageMetadata = await tryFetchSitePageMetadata(config, apiClient, accessToken, siteId, canonicalFriendlyUrl);
+  const rawFragmentLinks = await tryFetchFragmentEntryLinks(config, apiClient, accessToken, siteId, plid);
+
+  return {pageElement, pageMetadata, rawFragmentLinks};
+}
+
 type TemplateInfo = {
   widgetTemplateCandidates: string[];
   displayPageTemplateCandidates: string[];
@@ -1700,7 +1721,7 @@ function enrichJournalArticleWithStructuredContent(
   // Assign numeric properties
   assignOptionalNumber(summary, 'siteId', Number(record.siteId));
   assignOptionalNumber(summary, 'structuredContentFolderId', Number(record.structuredContentFolderId));
-  assignOptionalNumber(summary, 'priority', priority);
+  assignOptionalFiniteNumber(summary, 'priority', priority);
 
   // Assign boolean properties
   assignOptionalBoolean(summary, 'neverExpire', record.neverExpire);

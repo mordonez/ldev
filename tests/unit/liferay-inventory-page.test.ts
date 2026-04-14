@@ -258,6 +258,7 @@ describe('liferay inventory page', () => {
             JSON.stringify({
               id: 41001,
               contentStructureId: 301,
+              priority: 0,
               contentFields: [
                 {
                   label: 'Headline',
@@ -866,6 +867,7 @@ describe('liferay inventory page', () => {
             JSON.stringify({
               id: 41001,
               contentStructureId: 301,
+              priority: 0,
               contentFields: [
                 {
                   label: 'Headline',
@@ -916,6 +918,7 @@ describe('liferay inventory page', () => {
           siteFriendlyUrl: '/guest',
           ddmStructureKey: 'NEWS',
           ddmTemplateKey: 'NEWS_TEMPLATE',
+          priority: 0,
           ddmStructureSiteFriendlyUrl: '/guest',
           ddmTemplateSiteFriendlyUrl: '/guest',
           contentFields: [

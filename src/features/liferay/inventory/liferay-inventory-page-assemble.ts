@@ -341,6 +341,19 @@ export function assignOptionalNumber(target: Record<string, unknown>, key: strin
 }
 
 /**
+ * Assign optional numeric property to object if value is finite.
+ */
+export function assignOptionalFiniteNumber(
+  target: Record<string, unknown>,
+  key: string,
+  value: number | undefined,
+): void {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    target[key] = value;
+  }
+}
+
+/**
  * Assign optional boolean property to object if value is boolean.
  */
 export function assignOptionalBoolean(target: Record<string, unknown>, key: string, value: unknown): void {
