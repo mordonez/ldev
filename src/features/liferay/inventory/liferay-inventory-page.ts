@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- inventory result contract and formatter remain co-located intentionally */
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';

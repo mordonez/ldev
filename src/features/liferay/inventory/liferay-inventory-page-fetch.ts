@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- inventory orchestration intentionally consolidated during active refactor */
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import path from 'node:path';
