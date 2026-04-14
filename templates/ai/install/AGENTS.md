@@ -24,6 +24,18 @@ Before changing code or runtime state:
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
+## ldev Command Resolution
+
+When instructions say `ldev ...`, resolve the CLI in this order:
+
+1. Try `ldev` directly.
+2. If `ldev` is not available in `PATH`, run `npx @mordonezdev/ldev ...`.
+3. On Windows PowerShell, if `npx` is blocked by script execution policy, use
+   `npx.cmd @mordonezdev/ldev ...`.
+
+For agent work, treat `npx.cmd @mordonezdev/ldev` as the Windows-safe fallback.
+Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
+
 ## Default Operating Rules
 
 - Use `ldev` as the official entrypoint. Do not fall back to legacy wrappers or
