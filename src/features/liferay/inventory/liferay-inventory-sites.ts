@@ -1,14 +1,12 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {CliError} from '../../../core/errors.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import {
-  authedGet,
-  fetchAccessToken,
-  fetchPagedItems,
-  normalizeFriendlyUrl,
-  normalizeLocalizedName,
-} from './liferay-inventory-shared.js';
+import {createOAuthTokenClient} from '../../../core/http/auth.js';
+import {fetchPagedItems, normalizeFriendlyUrl, normalizeLocalizedName} from './liferay-inventory-shared.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
+import {getOperationPolicy} from './capabilities.js';
 import {resolveResourceSite} from '../resource/liferay-resource-shared.js';
 
 export type LiferayInventorySite = {
@@ -31,23 +29,52 @@ export async function runLiferayInventorySites(
   dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventorySite[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const tokenClient = dependencies?.tokenClient;
+  const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const pageSize = options?.pageSize ?? 200;
+  const policy = getOperationPolicy('inventory.listSites');
+  const gateway = createLiferayGateway(config, apiClient, tokenClient);
 
-  let items: HeadlessSite[];
-  try {
-    items = await fetchPagedItems<HeadlessSite>(config, '/o/headless-admin-site/v1.0/sites', pageSize, {
-      apiClient,
-      tokenClient,
-    });
-  } catch (error) {
-    items = await fetchSitesViaJsonws(config, apiClient, tokenClient);
-    if (items.length === 0) {
-      throw error;
+  let lastError: unknown;
+  let sawEmptyHeadlessResponse = false;
+
+  for (const surface of policy.surfaces) {
+    if (surface === 'headless-admin-site') {
+      try {
+        const items = await fetchPagedItems<HeadlessSite>(config, '/o/headless-admin-site/v1.0/sites', pageSize, {
+          apiClient,
+          tokenClient,
+        });
+        if (items.length > 0) {
+          return items.map(normalizeSite);
+        }
+        sawEmptyHeadlessResponse = true;
+      } catch (error) {
+        lastError = error;
+        continue;
+      }
+    }
+
+    if (surface === 'jsonws') {
+      try {
+        const items = await fetchSitesViaJsonws(gateway);
+        if (items.length > 0) {
+          return items.map(normalizeSite);
+        }
+      } catch {
+        // JSONWS unavailable; preserve lastError from headless
+      }
     }
   }
 
-  return items.map(normalizeSite);
+  if (sawEmptyHeadlessResponse) {
+    return [];
+  }
+
+  if (lastError instanceof Error) {
+    throw lastError;
+  }
+
+  throw new CliError('Could not list sites.', {code: 'LIFERAY_INVENTORY_ERROR'});
 }
 
 export async function runLiferayInventorySitesIncludingGlobal(
@@ -104,82 +131,75 @@ function buildPagesCommand(siteFriendlyUrl: string): string {
   return `inventory pages --site ${siteFriendlyUrl}`;
 }
 
-type JsonwsCompany = {
-  companyId?: number;
-};
+async function fetchSitesViaJsonws(gateway: LiferayGateway): Promise<HeadlessSite[]> {
+  type JsonwsCompany = {companyId?: number};
+  type JsonwsGroupSearchResult = {
+    groupId?: number;
+    friendlyURL?: string;
+    friendlyUrl?: string;
+    nameCurrentValue?: string;
+    name?: string;
+    site?: boolean;
+  };
 
-type JsonwsGroup = {
-  groupId?: number;
-  friendlyURL?: string;
-  friendlyUrl?: string;
-  nameCurrentValue?: string;
-  name?: string;
-  site?: boolean;
-};
+  let companies: JsonwsCompany[] = [];
+  try {
+    companies = await gateway.getJson<JsonwsCompany[]>('/api/jsonws/company/get-companies', 'list-jsonws-companies');
+  } catch {
+    return [];
+  }
 
-async function fetchSitesViaJsonws(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  tokenClient?: OAuthTokenClient,
-): Promise<HeadlessSite[]> {
-  const accessToken = await fetchAccessToken(config, {apiClient, tokenClient});
-  const companiesResponse = await authedGet<JsonwsCompany[]>(
-    config,
-    apiClient,
-    accessToken,
-    '/api/jsonws/company/get-companies',
-  );
-
-  if (!companiesResponse.ok || !Array.isArray(companiesResponse.data)) {
+  if (!Array.isArray(companies)) {
     return [];
   }
 
   const sites: HeadlessSite[] = [];
 
-  for (const company of companiesResponse.data) {
+  for (const company of companies) {
     const companyId = company.companyId ?? 0;
     if (companyId <= 0) {
       continue;
     }
 
-    const countResponse = await apiClient.get<string>(
-      config.liferay.url,
-      `/api/jsonws/group/search-count?companyId=${companyId}&name=&description=&params=%7B%7D`,
-      {
-        timeoutSeconds: config.liferay.timeoutSeconds,
-        headers: {Authorization: `Bearer ${accessToken}`},
-      },
-    );
-
-    if (!countResponse.ok) {
+    let total: number;
+    try {
+      const totalStr = await gateway.getJson<string>(
+        `/api/jsonws/group/search-count?companyId=${companyId}&name=&description=&params=%7B%7D`,
+        'count-jsonws-groups',
+      );
+      total = Number.parseInt(totalStr, 10);
+    } catch {
       continue;
     }
 
-    const total = Number.parseInt(countResponse.body.trim().replace(/^"(.*)"$/, '$1'), 10);
     if (!Number.isFinite(total) || total <= 0) {
       continue;
     }
 
     for (let start = 0; start < total; start += 100) {
       const end = start + 100;
-      const response = await authedGet<JsonwsGroup[]>(
-        config,
-        apiClient,
-        accessToken,
-        '/api/jsonws/group/search' +
-          `?companyId=${companyId}` +
-          '&name=' +
-          '&description=' +
-          '&params=%7B%7D' +
-          `&start=${start}` +
-          `&end=${end}`,
-      );
+      let groups: JsonwsGroupSearchResult[] = [];
 
-      if (!response.ok || !Array.isArray(response.data)) {
+      try {
+        groups = await gateway.getJson<JsonwsGroupSearchResult[]>(
+          '/api/jsonws/group/search' +
+            `?companyId=${companyId}` +
+            '&name=' +
+            '&description=' +
+            '&params=%7B%7D' +
+            `&start=${start}` +
+            `&end=${end}`,
+          'search-jsonws-groups',
+        );
+      } catch {
         continue;
       }
 
-      for (const item of response.data) {
+      if (!Array.isArray(groups)) {
+        continue;
+      }
+
+      for (const item of groups) {
         if (!item.site) {
           continue;
         }
