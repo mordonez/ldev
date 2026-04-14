@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {CliError, resolveOutputFormatFromArgv, toCliErrorPayload} from '../../src/cli/errors.js';
+import {CliError, resolveOutputFormatFromArgv, toCliErrorPayload, toCliSuccessPayload} from '../../src/cli/errors.js';
 
 describe('resolveOutputFormatFromArgv', () => {
   test('returns "json" when --json flag is present', () => {
@@ -95,5 +95,45 @@ describe('toCliErrorPayload', () => {
 
     expect(payload.error.code).toBe('CLI_ERROR');
     expect(payload.error.message).toBe('Test message');
+  });
+});
+
+describe('toCliSuccessPayload', () => {
+  test('wraps data in success envelope', () => {
+    const data = {name: 'test', value: 42};
+    const payload = toCliSuccessPayload(data);
+
+    expect(payload).toEqual({
+      ok: true,
+      data: {name: 'test', value: 42},
+    });
+  });
+
+  test('wraps string data', () => {
+    const payload = toCliSuccessPayload('success message');
+
+    expect(payload).toEqual({
+      ok: true,
+      data: 'success message',
+    });
+  });
+
+  test('wraps array data', () => {
+    const data = [{id: 1}, {id: 2}];
+    const payload = toCliSuccessPayload(data);
+
+    expect(payload).toEqual({
+      ok: true,
+      data: [{id: 1}, {id: 2}],
+    });
+  });
+
+  test('wraps null data', () => {
+    const payload = toCliSuccessPayload(null);
+
+    expect(payload).toEqual({
+      ok: true,
+      data: null,
+    });
   });
 });
