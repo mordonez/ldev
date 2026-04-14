@@ -10,6 +10,11 @@ export type CliErrorPayload = {
   };
 };
 
+export type CliSuccessPayload<T = unknown> = {
+  ok: true;
+  data: T;
+};
+
 export function resolveOutputFormatFromArgv(argv: string[]): OutputFormat {
   for (let index = argv.length - 1; index >= 0; index -= 1) {
     const current = argv[index];
@@ -49,6 +54,13 @@ export function toCliErrorPayload(error: CliError): CliErrorPayload {
       message: error.message,
       ...(error.details === undefined ? {} : {details: error.details}),
     },
+  };
+}
+
+export function toCliSuccessPayload<T = unknown>(data: T): CliSuccessPayload<T> {
+  return {
+    ok: true,
+    data,
   };
 }
 

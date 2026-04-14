@@ -1,6 +1,7 @@
 import type {Command} from 'commander';
 
 import {createCommandContext, type CommandContext} from './command-context.js';
+import {toCliSuccessPayload} from './errors.js';
 import type {OutputFormat} from '../core/output/formats.js';
 
 const OUTPUT_FORMAT_OPTION_DESCRIPTION = 'Output format: text, json, ndjson';
@@ -9,7 +10,8 @@ export function addOutputFormatOption(command: Command, defaultFormat: OutputFor
   return command
     .option('--format <format>', OUTPUT_FORMAT_OPTION_DESCRIPTION, defaultFormat)
     .option('--json', 'Alias of --format json')
-    .option('--ndjson', 'Alias of --format ndjson');
+    .option('--ndjson', 'Alias of --format ndjson')
+    .option('--strict', 'Wrap success output in envelope: { ok: true, data: ... }');
 }
 
 export function renderCommandResult<TResult>(
@@ -26,7 +28,13 @@ export function renderCommandResult<TResult>(
     context.printer.write(text ?? result);
   } else {
     const json = typeof options?.json === 'function' ? options.json(result) : options?.json;
-    context.printer.write(json ?? result);
+    const outputValue = json ?? result;
+
+    if (context.strict) {
+      context.printer.write(toCliSuccessPayload(outputValue));
+    } else {
+      context.printer.write(outputValue);
+    }
   }
 
   const exitCode = typeof options?.exitCode === 'function' ? options.exitCode(result) : options?.exitCode;
@@ -39,7 +47,10 @@ export async function withCommandContext<TOptions extends object>(
   options: TOptions,
   run: (context: CommandContext) => Promise<void>,
 ): Promise<void> {
-  const context = createCommandContext({format: (options as {format?: string}).format});
+  const context = createCommandContext({
+    format: (options as {format?: string}).format,
+    strict: (options as {strict?: boolean}).strict,
+  });
   await run(context);
 }
 

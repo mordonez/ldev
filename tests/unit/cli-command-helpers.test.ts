@@ -9,7 +9,7 @@ import {
 } from '../../src/cli/command-helpers.js';
 import type {CommandContext} from '../../src/cli/command-context.js';
 
-const createMockContext = (format: 'text' | 'json' | 'ndjson'): CommandContext => ({
+const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): CommandContext => ({
   cwd: '/repo',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: {} as any,
@@ -21,6 +21,7 @@ const createMockContext = (format: 'text' | 'json' | 'ndjson'): CommandContext =
     error: vi.fn(),
     info: vi.fn(),
   },
+  strict,
 });
 
 describe('addOutputFormatOption', () => {
@@ -119,6 +120,55 @@ describe('renderCommandResult', () => {
     expect(exitCodeFn).toHaveBeenCalledWith({value: 100});
     expect(process.exitCode).toBe(5);
     process.exitCode = undefined;
+  });
+
+  test('wraps output in success envelope when strict mode is enabled in json format', () => {
+    const mockContext = createMockContext('json', true);
+
+    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({
+      ok: true,
+      data: {data: 'json-data'},
+    });
+  });
+
+  test('wraps output in success envelope when strict mode is enabled in ndjson format', () => {
+    const mockContext = createMockContext('ndjson', true);
+
+    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'ndjson-data'}});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({
+      ok: true,
+      data: {data: 'ndjson-data'},
+    });
+  });
+
+  test('does not wrap in envelope when strict mode is disabled', () => {
+    const mockContext = createMockContext('json', false);
+
+    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({data: 'json-data'});
+  });
+
+  test('does not wrap in envelope in text format even with strict mode', () => {
+    const mockContext = createMockContext('text', true);
+
+    renderCommandResult(mockContext, {data: 'result'}, {text: 'Text output'});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith('Text output');
+  });
+
+  test('wraps raw result when json option is undefined and strict mode is enabled', () => {
+    const mockContext = createMockContext('json', true);
+
+    renderCommandResult(mockContext, {data: 'result'});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({
+      ok: true,
+      data: {data: 'result'},
+    });
   });
 });
 
