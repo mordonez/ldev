@@ -6,6 +6,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {authedGet, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
@@ -198,7 +199,7 @@ async function fetchSitePage(
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
-  const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+  const slug = trimLeadingSlash(friendlyUrl);
   const response = await authedGet<Record<string, unknown>>(
     config,
     apiClient,
@@ -220,7 +221,7 @@ async function fetchSitePageExperiences(
   siteId: number,
   friendlyUrl: string,
 ): Promise<unknown | null> {
-  const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+  const slug = trimLeadingSlash(friendlyUrl);
   const response = await authedGet<unknown>(
     config,
     apiClient,

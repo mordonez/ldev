@@ -2,6 +2,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from '../page-layout/liferay-layout-shared.js';
 
@@ -164,6 +165,6 @@ function countPages(pages: LiferayInventoryPagesNode[]): number {
 }
 
 function buildSitePathPrefix(siteFriendlyUrl: string, privateLayout: boolean): string {
-  const siteSlug = siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl;
+  const siteSlug = trimLeadingSlash(siteFriendlyUrl);
   return `${privateLayout ? '/group/' : '/web/'}${siteSlug}`;
 }

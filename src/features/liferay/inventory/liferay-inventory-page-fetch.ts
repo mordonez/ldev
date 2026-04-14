@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {firstNonEmptyString, firstPositiveNumber, toBoolean, toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {authedGet, type ResolvedSite} from './liferay-inventory-shared.js';
 import {
   buildLayoutDetails,
@@ -912,7 +913,7 @@ async function fetchSitePageElement(
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
-  const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+  const slug = trimLeadingSlash(friendlyUrl);
   const response = await authedGet<Record<string, unknown>>(
     config,
     apiClient,
@@ -933,7 +934,7 @@ async function tryFetchSitePageMetadata(
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+    const slug = trimLeadingSlash(friendlyUrl);
     const response = await authedGet<Record<string, unknown>>(
       config,
       apiClient,

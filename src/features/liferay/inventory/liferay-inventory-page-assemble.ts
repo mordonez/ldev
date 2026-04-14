@@ -1,3 +1,5 @@
+import {firstNonBlank, firstString as firstStringUtil} from '../../../core/utils/text.js';
+
 export type StructuredContent = {
   id?: number;
   key?: string;
@@ -313,18 +315,7 @@ function recordToStringMap(value: Record<string, unknown>): Record<string, strin
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-export function firstString(value: unknown): string | undefined {
-  if (Array.isArray(value)) {
-    const first = (value as unknown[]).find((item) => String(item ?? '').trim() !== '');
-    return first === undefined ? undefined : String(first).trim();
-  }
-  const normalized = String(value ?? '').trim();
-  return normalized === '' ? undefined : normalized;
-}
-
-function firstNonBlank(...values: string[]): string {
-  return values.find((value) => value.trim() !== '') ?? '';
-}
+export const firstString = firstStringUtil;
 
 export function hasJsonWsException(value: unknown): boolean {
   return Boolean(asRecord(value).exception);

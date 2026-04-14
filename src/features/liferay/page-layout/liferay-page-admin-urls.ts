@@ -1,3 +1,5 @@
+import {trimLeadingSlash} from '../../../core/utils/text.js';
+
 export function buildLayoutConfigureUrl(
   baseUrl: string,
   siteFriendlyUrl: string,
@@ -6,7 +8,7 @@ export function buildLayoutConfigureUrl(
   screenNavigationEntryKey = 'general',
   privateLayout = false,
 ): string {
-  const siteSlug = encodeURIComponent(siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl);
+  const siteSlug = encodeURIComponent(trimLeadingSlash(siteFriendlyUrl));
   const encodedScreenNavigationEntryKey = encodeURIComponent(screenNavigationEntryKey);
   const prefix = '&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_';
   return (
@@ -27,7 +29,7 @@ export function buildLayoutTranslateUrl(
   plid: number,
   classNameId: number,
 ): string {
-  const siteSlug = encodeURIComponent(siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl);
+  const siteSlug = encodeURIComponent(trimLeadingSlash(siteFriendlyUrl));
   const prefix = '&_com_liferay_translation_web_internal_portlet_TranslationPortlet_';
   return (
     `${baseUrl}/group/${siteSlug}/~/control_panel/manage?p_p_id=com_liferay_translation_web_internal_portlet_TranslationPortlet` +
@@ -86,7 +88,7 @@ export function buildJournalArticleAdminUrls(
   classPK: number,
   articleClassNameId: number,
 ): {edit: string; translate: string} {
-  const siteSlug = encodeURIComponent(siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl);
+  const siteSlug = encodeURIComponent(trimLeadingSlash(siteFriendlyUrl));
   const manageBase = `${baseUrl}/group/${siteSlug}/~/control_panel/manage`;
   const journalPrefix = '&_com_liferay_journal_web_portlet_JournalPortlet_';
   const translationPrefix = '&_com_liferay_translation_web_internal_portlet_TranslationPortlet_';

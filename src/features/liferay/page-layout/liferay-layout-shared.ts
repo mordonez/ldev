@@ -1,5 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {firstNonBlank, trimLeadingSlash} from '../../../core/utils/text.js';
 import {authedGet, expectJsonSuccess} from '../inventory/liferay-inventory-shared.js';
 
 export type Layout = {
@@ -54,7 +55,7 @@ export async function fetchLayoutsByParent(
 }
 
 export function buildPageUrl(siteFriendlyUrl: string, friendlyUrl: string, privateLayout: boolean): string {
-  const siteSlug = siteFriendlyUrl.startsWith('/') ? siteFriendlyUrl.slice(1) : siteFriendlyUrl;
+  const siteSlug = trimLeadingSlash(siteFriendlyUrl);
   return `${privateLayout ? '/group/' : '/web/'}${siteSlug}${friendlyUrl}`;
 }
 
@@ -87,8 +88,4 @@ function parseTypeSettings(rawTypeSettings: string): Record<string, string> {
   }
 
   return settings;
-}
-
-function firstNonBlank(...values: Array<string | undefined>): string {
-  return values.find((value) => value && value.trim() !== '') ?? '';
 }
