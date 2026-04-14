@@ -6,6 +6,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {authedGet, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
@@ -37,11 +38,14 @@ export type LiferayPageLayoutExport = {
     pageName: string;
   };
   adminUrls: {
+    view: string;
     edit: string;
     translate: string;
     configureGeneral: string;
     configureDesign: string;
     configureSeo: string;
+    configureOpenGraph: string;
+    configureCustomMetaTags: string;
   };
   headlessSitePage: Record<string, unknown>;
   experiences?: unknown;
@@ -103,6 +107,7 @@ export async function runLiferayPageLayoutExport(
       pageName: regularPage.pageName,
     },
     adminUrls: {
+      view: regularPage.adminUrls.view,
       edit: regularPage.adminUrls.edit,
       translate: regularPage.adminUrls.translate,
       configureGeneral: buildLayoutConfigureUrl(
@@ -127,6 +132,22 @@ export async function runLiferayPageLayoutExport(
         regularPage.groupId,
         regularPage.plid,
         'seo',
+        regularPage.privateLayout,
+      ),
+      configureOpenGraph: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'open-graph',
+        regularPage.privateLayout,
+      ),
+      configureCustomMetaTags: buildLayoutConfigureUrl(
+        config.liferay.url,
+        regularPage.siteFriendlyUrl,
+        regularPage.groupId,
+        regularPage.plid,
+        'custom-meta-tags',
         regularPage.privateLayout,
       ),
     },
@@ -178,7 +199,7 @@ async function fetchSitePage(
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
-  const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+  const slug = trimLeadingSlash(friendlyUrl);
   const response = await authedGet<Record<string, unknown>>(
     config,
     apiClient,
@@ -200,7 +221,7 @@ async function fetchSitePageExperiences(
   siteId: number,
   friendlyUrl: string,
 ): Promise<unknown | null> {
-  const slug = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
+  const slug = trimLeadingSlash(friendlyUrl);
   const response = await authedGet<unknown>(
     config,
     apiClient,

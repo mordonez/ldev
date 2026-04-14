@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- inventory result contract and formatter remain co-located intentionally */
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
@@ -12,6 +13,7 @@ import {
   fetchSiteRootInventory,
   resolveRegularLayoutPageData,
 } from './liferay-inventory-page-fetch.js';
+import {validateLiferayInventoryPageResultV2} from './liferay-inventory-page-schema.js';
 import type {
   ContentStructureSummary,
   JournalArticleSummary,
@@ -27,6 +29,7 @@ type InventoryPageDependencies = {
 
 export type LiferayInventoryPageResult =
   | {
+      contractVersion: '2';
       pageType: 'siteRoot';
       siteName: string;
       siteFriendlyUrl: string;
@@ -35,8 +38,10 @@ export type LiferayInventoryPageResult =
       pages: Array<{layoutId: number; friendlyUrl: string; name: string; type: string}>;
     }
   | {
+      contractVersion: '2';
       pageType: 'displayPage';
       pageSubtype: 'journalArticle';
+      contentItemType: 'WebContent';
       siteName: string;
       siteFriendlyUrl: string;
       groupId: number;
@@ -57,8 +62,10 @@ export type LiferayInventoryPageResult =
       contentStructures?: ContentStructureSummary[];
     }
   | {
+      contractVersion: '2';
       pageType: 'regularPage';
       pageSubtype: string;
+      pageUiType: string;
       siteName: string;
       siteFriendlyUrl: string;
       groupId: number;
@@ -68,6 +75,12 @@ export type LiferayInventoryPageResult =
       requestedFriendlyUrl?: string;
       pageName: string;
       privateLayout: boolean;
+      pageSummary?: {
+        layoutTemplateId?: string;
+        targetUrl?: string;
+        fragmentCount: number;
+        widgetCount: number;
+      };
       layout: {
         layoutId: number;
         plid: number;
@@ -80,9 +93,26 @@ export type LiferayInventoryPageResult =
         targetUrl?: string;
       };
       adminUrls: {
+        view: string;
         edit: string;
-        configure: string;
+        configureGeneral: string;
+        configureDesign: string;
+        configureSeo: string;
+        configureOpenGraph: string;
+        configureCustomMetaTags: string;
         translate: string;
+      };
+      configurationTabs?: {
+        general: Record<string, unknown>;
+        design: Record<string, unknown>;
+        seo: Record<string, unknown>;
+        openGraph: Record<string, unknown>;
+        customMetaTags: Record<string, unknown>;
+      };
+      configurationRaw?: {
+        layout: Record<string, unknown>;
+        typeSettings: Record<string, string>;
+        sitePageMetadata?: Record<string, unknown>;
       };
       componentInspectionSupported?: boolean;
       portlets?: PagePortletSummary[];
@@ -118,8 +148,13 @@ export type ResolvedRegularLayoutPage = {
     targetUrl?: string;
   };
   adminUrls: {
+    view: string;
     edit: string;
-    configure: string;
+    configureGeneral: string;
+    configureDesign: string;
+    configureSeo: string;
+    configureOpenGraph: string;
+    configureCustomMetaTags: string;
     translate: string;
   };
 };
@@ -129,6 +164,9 @@ export async function runLiferayInventoryPage(
   options: {url?: string; site?: string; friendlyUrl?: string; privateLayout?: boolean; verbose?: boolean},
   dependencies?: InventoryPageDependencies,
 ): Promise<LiferayInventoryPageResult> {
+  const finalizeResult = (result: LiferayInventoryPageResult): LiferayInventoryPageResult =>
+    validateLiferayInventoryPageResultV2(result) as LiferayInventoryPageResult;
+
   const request = resolveInventoryPageRequest(options);
   const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
@@ -146,10 +184,10 @@ export async function runLiferayInventoryPage(
         homeRequest.friendlyUrl,
         homeRequest.privateLayout,
         homeRequest.localeHint,
-      );
+      ).then(finalizeResult);
     }
     const site = await resolveSite(effectiveConfig, 'global', dependencies);
-    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, false);
+    return finalizeResult(await fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, false));
   }
 
   const site = await resolveSite(effectiveConfig, request.siteSlug, dependencies);
@@ -166,24 +204,30 @@ export async function runLiferayInventoryPage(
           redirectedRequest.friendlyUrl,
           redirectedRequest.privateLayout,
           redirectedRequest.localeHint,
-        );
+        ).then(finalizeResult);
       }
     }
-    return fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, request.privateLayout);
+    return finalizeResult(
+      await fetchSiteRootInventory(effectiveConfig, apiClient, accessToken, site, request.privateLayout),
+    );
   }
 
   if (request.route === 'displayPage') {
-    return fetchDisplayPageInventory(effectiveConfig, apiClient, accessToken, site, request.displayPageUrlTitle ?? '');
+    return finalizeResult(
+      await fetchDisplayPageInventory(effectiveConfig, apiClient, accessToken, site, request.displayPageUrlTitle ?? ''),
+    );
   }
 
-  return fetchRegularPageInventory(
-    effectiveConfig,
-    apiClient,
-    accessToken,
-    site,
-    request.friendlyUrl,
-    request.privateLayout,
-    request.localeHint,
+  return finalizeResult(
+    await fetchRegularPageInventory(
+      effectiveConfig,
+      apiClient,
+      accessToken,
+      site,
+      request.friendlyUrl,
+      request.privateLayout,
+      request.localeHint,
+    ),
   );
 }
 
@@ -250,7 +294,7 @@ function parsePortalHomePathFromHtml(html: string): string | null {
   const match =
     html.match(/getLayoutRelativeURL:\s*function\s*\(\)\s*\{\s*return\s*['"]([^'"]+)['"]/) ??
     html.match(/getLayoutURL:\s*function\s*\(\)\s*\{\s*return\s*['"]([^'"]+)['"]/) ??
-    html.match(/<a\b[^>]+href=['"]([^'"]*\/web\/[^'"]+)['"][^>]*>\s*UB\.EDU\s*</i);
+    html.match(/<a\b[^>]+href=['"]([^'"]*(?:\/web\/|\/group\/)[^'"]+)['"][^>]*>/i);
   return normalizeDetectedPortalPath(match?.[1] ?? null, 'http://localhost');
 }
 
@@ -306,6 +350,7 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
   }
 
   if (result.pageType === 'displayPage') {
+    const firstArticle = result.journalArticles?.[0];
     const lines = [
       'DISPLAY PAGE',
       `site=${result.siteName}`,
@@ -313,6 +358,11 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
       `groupId=${result.groupId}`,
       `url=${result.url}`,
       `friendlyUrl=${result.friendlyUrl}`,
+      ...(firstArticle?.ddmStructureKey ? [`structureKey=${firstArticle.ddmStructureKey}`] : []),
+      ...(firstArticle?.widgetDefaultTemplate ? [`templateWidgetDefault=${firstArticle.widgetDefaultTemplate}`] : []),
+      ...(firstArticle?.displayPageDefaultTemplate
+        ? [`templateDisplayPageDefault=${firstArticle.displayPageDefaultTemplate}`]
+        : []),
       `articleId=${result.article.id}`,
       `articleKey=${result.article.key}`,
       `articleTitle=${result.article.title}`,
@@ -320,6 +370,15 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
       ...(result.adminUrls ? [`editUrl=${result.adminUrls.edit}`] : []),
       ...(result.adminUrls ? [`translateUrl=${result.adminUrls.translate}`] : []),
     ];
+    if (firstArticle?.taxonomyCategoryNames?.length) {
+      lines.push(`categories=${firstArticle.taxonomyCategoryNames.join(', ')}`);
+    }
+    if (firstArticle?.datePublished) {
+      lines.push(`datePublished=${firstArticle.datePublished}`);
+    }
+    if (typeof firstArticle?.priority === 'number') {
+      lines.push(`priority=${firstArticle.priority}`);
+    }
     appendJournalArticleLines(lines, result.journalArticles);
     appendContentStructureLines(lines, result.contentStructures);
     return lines.join('\n');
@@ -330,8 +389,8 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
     `site=${result.siteName}`,
     `siteFriendlyUrl=${result.siteFriendlyUrl}`,
     `groupId=${result.groupId}`,
-    `url=${result.url}`,
     `friendlyUrl=${result.friendlyUrl}`,
+    `url=${result.url}`,
     ...(result.matchedLocale ? [`locale=${result.matchedLocale}`, `requestedUrl=${result.requestedFriendlyUrl}`] : []),
     `pageName=${result.pageName}`,
     `layoutType=${result.pageSubtype}`,
@@ -339,14 +398,37 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
     `plid=${result.layout.plid}`,
     `hidden=${result.layout.hidden}`,
     `privateLayout=${result.privateLayout}`,
+    `viewUrl=${result.adminUrls.view}`,
     `editUrl=${result.adminUrls.edit}`,
+    `configureGeneralUrl=${result.adminUrls.configureGeneral}`,
+    `configureDesignUrl=${result.adminUrls.configureDesign}`,
+    `configureSeoUrl=${result.adminUrls.configureSeo}`,
+    `configureOpenGraphUrl=${result.adminUrls.configureOpenGraph}`,
+    `configureCustomMetaTagsUrl=${result.adminUrls.configureCustomMetaTags}`,
+    `translateUrl=${result.adminUrls.translate}`,
   ];
+
+  if (result.pageSummary) {
+    lines.push('PAGE SUMMARY');
+    lines.push(`layoutTemplateId=${result.pageSummary.layoutTemplateId ?? '-'}`);
+    lines.push(`targetUrl=${result.pageSummary.targetUrl ?? '-'}`);
+    lines.push(`fragmentCount=${result.pageSummary.fragmentCount}`);
+    lines.push(`widgetCount=${result.pageSummary.widgetCount}`);
+  }
 
   if (result.layoutDetails.layoutTemplateId) {
     lines.push(`layoutTemplateId=${result.layoutDetails.layoutTemplateId}`);
   }
   if (result.layoutDetails.targetUrl) {
     lines.push(`targetUrl=${result.layoutDetails.targetUrl}`);
+  }
+  if (result.configurationTabs) {
+    lines.push(`CONFIGURATION TABS`);
+    lines.push(`general=${JSON.stringify(result.configurationTabs.general)}`);
+    lines.push(`design=${JSON.stringify(result.configurationTabs.design)}`);
+    lines.push(`seo=${JSON.stringify(result.configurationTabs.seo)}`);
+    lines.push(`openGraph=${JSON.stringify(result.configurationTabs.openGraph)}`);
+    lines.push(`customMetaTags=${JSON.stringify(result.configurationTabs.customMetaTags)}`);
   }
   appendPortletLines(lines, result.portlets);
   if (result.fragmentEntryLinks && result.fragmentEntryLinks.length > 0) {
@@ -365,6 +447,21 @@ export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, v
         }
         if (entry.fragmentExportPath) {
           lines.push(`   exportPath=${entry.fragmentExportPath}`);
+        }
+        if (entry.title) {
+          lines.push(`   title=${entry.title}`);
+        }
+        if (entry.heroText) {
+          lines.push(`   heroText=${entry.heroText}`);
+        }
+        if (entry.navigationItems && entry.navigationItems.length > 0) {
+          lines.push(`   navigationItems=${entry.navigationItems.join(' | ')}`);
+        }
+        if (typeof entry.cardCount === 'number') {
+          lines.push(`   cardCount=${entry.cardCount}`);
+        }
+        if (entry.contentSummary) {
+          lines.push(`   summary=${entry.contentSummary}`);
         }
       }
       if (verbose && entry.elementName) {
@@ -433,6 +530,17 @@ function appendJournalArticleLines(lines: string[], journalArticles?: JournalArt
       lines.push(
         `  template ${article.ddmTemplateKey} site=${article.ddmTemplateSiteFriendlyUrl ?? '?'}${article.templateExportPath ? ` export=${article.templateExportPath}` : ''}`,
       );
+    }
+    if (article.widgetDefaultTemplate || article.displayPageDefaultTemplate) {
+      lines.push(
+        `  templates widgetDefault=${article.widgetDefaultTemplate ?? '-'} displayPageDefault=${article.displayPageDefaultTemplate ?? '-'}`,
+      );
+    }
+    if (article.taxonomyCategoryNames && article.taxonomyCategoryNames.length > 0) {
+      lines.push(`  categories=${article.taxonomyCategoryNames.join(', ')}`);
+    }
+    if (article.datePublished || article.dateModified) {
+      lines.push(`  dates published=${article.datePublished ?? '-'} modified=${article.dateModified ?? '-'}`);
     }
     for (const field of article.contentFields ?? []) {
       lines.push(`contentField ${field.path}=${field.value}`);

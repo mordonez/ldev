@@ -19,3 +19,4 @@ docs/.vitepress/cache/
 *.keystore
 .playwright-mcp/
 .claude/settings.local.json
+tmp/

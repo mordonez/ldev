@@ -1,3 +1,6 @@
+/* eslint-disable max-lines -- shared assembly helpers kept together for inventory readability */
+import {firstNonBlank, firstString as firstStringUtil} from '../../../core/utils/text.js';
+
 export type StructuredContent = {
   id?: number;
   key?: string;
@@ -29,6 +32,29 @@ export type JournalArticleSummary = {
   templateExportPath?: string;
   contentStructureId?: number;
   contentFields?: ContentFieldSummary[];
+  widgetDefaultTemplate?: string;
+  widgetHeadlessDefaultTemplate?: string;
+  displayPageDefaultTemplate?: string;
+  widgetTemplateCandidates?: string[];
+  displayPageTemplateCandidates?: string[];
+  taxonomyCategoryNames?: string[];
+  taxonomyCategoryBriefs?: Array<Record<string, unknown>>;
+  renderedContents?: Array<Record<string, unknown>>;
+  availableLanguages?: string[];
+  dateCreated?: string;
+  dateModified?: string;
+  datePublished?: string;
+  expirationDate?: string;
+  reviewDate?: string;
+  description?: string;
+  externalReferenceCode?: string;
+  siteId?: number;
+  structuredContentFolderId?: number;
+  uuid?: string;
+  priority?: number;
+  neverExpire?: boolean;
+  subscribed?: boolean;
+  relatedContentsCount?: number;
 };
 
 export type ContentStructureSummary = {
@@ -53,6 +79,11 @@ export type PageFragmentEntry = {
   portletId?: string;
   configuration?: Record<string, string>;
   editableFields?: FragmentEditableField[];
+  contentSummary?: string;
+  title?: string;
+  heroText?: string;
+  navigationItems?: string[];
+  cardCount?: number;
   // verbose-only fields
   elementName?: string;
   cssClasses?: string[];
@@ -278,23 +309,56 @@ export function asArrayOfRecords(value: unknown): Array<Record<string, unknown>>
 }
 
 function recordToStringMap(value: Record<string, unknown>): Record<string, string> | undefined {
-  const entries = Object.entries(value).map(([key, item]) => [key, String(item)]);
-  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
-}
-
-export function firstString(value: unknown): string | undefined {
-  if (Array.isArray(value)) {
-    const first = value.find((item) => String(item ?? '').trim() !== '');
-    return first === undefined ? undefined : String(first).trim();
+  const result: Record<string, string> = {};
+  for (const [key, item] of Object.entries(value)) {
+    result[key] = String(item);
   }
-  const normalized = String(value ?? '').trim();
-  return normalized === '' ? undefined : normalized;
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
-function firstNonBlank(...values: string[]): string {
-  return values.find((value) => value.trim() !== '') ?? '';
-}
+export const firstString = firstStringUtil;
 
 export function hasJsonWsException(value: unknown): boolean {
   return Boolean(asRecord(value).exception);
+}
+
+/**
+ * Assign optional string property to object if value is non-empty.
+ * Reduces boilerplate: instead of 4 lines per property, use 1 line.
+ */
+export function assignOptionalString(target: Record<string, unknown>, key: string, value: string | undefined): void {
+  if (value) {
+    target[key] = value;
+  }
+}
+
+/**
+ * Assign optional numeric property to object if value is finite and > 0.
+ */
+export function assignOptionalNumber(target: Record<string, unknown>, key: string, value: number | undefined): void {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    target[key] = value;
+  }
+}
+
+/**
+ * Assign optional numeric property to object if value is finite.
+ */
+export function assignOptionalFiniteNumber(
+  target: Record<string, unknown>,
+  key: string,
+  value: number | undefined,
+): void {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    target[key] = value;
+  }
+}
+
+/**
+ * Assign optional boolean property to object if value is boolean.
+ */
+export function assignOptionalBoolean(target: Record<string, unknown>, key: string, value: unknown): void {
+  if (typeof value === 'boolean') {
+    target[key] = value;
+  }
 }

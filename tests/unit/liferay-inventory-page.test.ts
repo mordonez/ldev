@@ -6,6 +6,7 @@ import {
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
+import {validateLiferayInventoryPageResultV2} from '../../src/features/liferay/inventory/liferay-inventory-page-schema.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -257,6 +258,7 @@ describe('liferay inventory page', () => {
             JSON.stringify({
               id: 41001,
               contentStructureId: 301,
+              priority: 0,
               contentFields: [
                 {
                   label: 'Headline',
@@ -288,9 +290,13 @@ describe('liferay inventory page', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+
     expect(result).toMatchObject({
+      contractVersion: '2',
       pageType: 'regularPage',
       pageSubtype: 'content',
+      pageUiType: 'Content Page',
       pageName: 'Home',
       groupId: 20121,
       url: '/web/guest/home',
@@ -303,9 +309,18 @@ describe('liferay inventory page', () => {
         targetUrl: 'https://example.test',
       },
       adminUrls: {
+        view: 'http://localhost:8080/web/guest/home',
         edit: 'http://localhost:8080/web/guest/home?p_l_mode=edit',
-        configure:
-          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=general',
+        configureGeneral:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_r_p_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationCategoryKey=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=general',
+        configureDesign:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_r_p_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationCategoryKey=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=design',
+        configureSeo:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_r_p_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationCategoryKey=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=seo',
+        configureOpenGraph:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_r_p_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationCategoryKey=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=open-graph',
+        configureCustomMetaTags:
+          'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_r_p_selPlid=1011&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_mvcRenderCommandName=%2Flayout_admin%2Fedit_layout&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_groupId=20121&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_privateLayout=false&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationCategoryKey=general&_com_liferay_layout_admin_web_portlet_GroupPagesPortlet_screenNavigationEntryKey=custom-meta-tags',
         translate:
           'http://localhost:8080/group/guest/~/control_panel/manage?p_p_id=com_liferay_translation_web_internal_portlet_TranslationPortlet&p_p_lifecycle=0&p_p_state=maximized&_com_liferay_translation_web_internal_portlet_TranslationPortlet_mvcRenderCommandName=%2Ftranslation%2Ftranslate&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classNameId=20006&_com_liferay_translation_web_internal_portlet_TranslationPortlet_classPK=1011&_com_liferay_translation_web_internal_portlet_TranslationPortlet_portletResource=com_liferay_layout_admin_web_portlet_GroupPagesPortlet',
       },
@@ -393,9 +408,13 @@ describe('liferay inventory page', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+
     expect(result).toMatchObject({
+      contractVersion: '2',
       pageType: 'regularPage',
       pageSubtype: 'portlet',
+      pageUiType: 'Widget Page',
       portlets: [
         {
           columnId: 'column-top',
@@ -754,7 +773,7 @@ describe('liferay inventory page', () => {
       throw new Error('Expected regular page');
     }
 
-    expect(result.fragmentEntryLinks).toEqual([
+    expect(result.fragmentEntryLinks).toMatchObject([
       {
         type: 'fragment',
         fragmentKey: 'ub-frg-articulo',
@@ -848,6 +867,7 @@ describe('liferay inventory page', () => {
             JSON.stringify({
               id: 41001,
               contentStructureId: 301,
+              priority: 0,
               contentFields: [
                 {
                   label: 'Headline',
@@ -875,8 +895,12 @@ describe('liferay inventory page', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+
     expect(result).toMatchObject({
+      contractVersion: '2',
       pageType: 'displayPage',
+      contentItemType: 'WebContent',
       url: '/web/guest/w/news-article',
       article: {
         id: 41001,
@@ -894,6 +918,7 @@ describe('liferay inventory page', () => {
           siteFriendlyUrl: '/guest',
           ddmStructureKey: 'NEWS',
           ddmTemplateKey: 'NEWS_TEMPLATE',
+          priority: 0,
           ddmStructureSiteFriendlyUrl: '/guest',
           ddmTemplateSiteFriendlyUrl: '/guest',
           contentFields: [

@@ -130,11 +130,14 @@ describe('liferay page-layout export', () => {
           pageName: 'Home',
         },
         adminUrls: {
+          view: 'view',
           edit: 'edit',
           translate: 'translate',
           configureGeneral: 'general',
           configureDesign: 'design',
           configureSeo: 'seo',
+          configureOpenGraph: 'open-graph',
+          configureCustomMetaTags: 'custom-meta-tags',
         },
         headlessSitePage: {id: 5001},
         layoutStructure: {
