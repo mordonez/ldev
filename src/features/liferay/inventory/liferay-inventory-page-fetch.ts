@@ -483,21 +483,25 @@ function resolveRegularPageUiType(layoutType: string | undefined): string {
   }
 }
 
-function buildRegularPageConfigurationTabs(
+/**
+ * Extract and normalize configuration metadata from page data.
+ * Handles: typeSettings parsing, custom fields, categories, tags, OG settings.
+ */
+function extractConfigurationMetadata(
   layout: Layout,
-  layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
-  privateLayout: boolean,
   pageMetadata?: Record<string, unknown> | null,
 ): {
-  general: Record<string, unknown>;
-  design: Record<string, unknown>;
-  seo: Record<string, unknown>;
-  openGraph: Record<string, unknown>;
-  customMetaTags: Record<string, unknown>;
+  typeSettings: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  metadataSettings: Record<string, unknown>;
+  customFieldsMap: Record<string, unknown>;
+  categories: string[];
+  tags: string[];
 } {
   const typeSettings = parseTypeSettingsMap(layout.typeSettings ?? '');
   const metadata = asRecord(pageMetadata ?? {});
   const metadataSettings = asRecord(metadata.settings);
+
   const customFieldsMap: Record<string, unknown> = {};
   for (const item of Array.isArray(metadata.customFields) ? metadata.customFields : []) {
     const field = asRecord(item);
@@ -514,6 +518,26 @@ function buildRegularPageConfigurationTabs(
 
   const tags = (Array.isArray(metadata.keywords) ? metadata.keywords : []).filter(
     (item): item is string => typeof item === 'string' && item.trim() !== '',
+  );
+
+  return {typeSettings, metadata, metadataSettings, customFieldsMap, categories, tags};
+}
+
+function buildRegularPageConfigurationTabs(
+  layout: Layout,
+  layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
+  privateLayout: boolean,
+  pageMetadata?: Record<string, unknown> | null,
+): {
+  general: Record<string, unknown>;
+  design: Record<string, unknown>;
+  seo: Record<string, unknown>;
+  openGraph: Record<string, unknown>;
+  customMetaTags: Record<string, unknown>;
+} {
+  const {typeSettings, metadata, metadataSettings, customFieldsMap, categories, tags} = extractConfigurationMetadata(
+    layout,
+    pageMetadata,
   );
 
   const general: Record<string, unknown> = {
