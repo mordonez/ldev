@@ -15,6 +15,9 @@ import {
 import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
   asRecord,
+  assignOptionalString,
+  assignOptionalNumber,
+  assignOptionalBoolean,
   collectPageElements,
   hasJsonWsException,
   summarizeContentFields,
@@ -1515,19 +1518,14 @@ function inferContentStructureKey(value: Record<string, unknown> | null | undefi
   return /^[A-Z0-9_]+$/.test(name) ? name : '';
 }
 
-function enrichJournalArticleWithStructuredContent(
-  summary: JournalArticleSummary,
-  structuredContent: StructuredContent,
-  ddmTemplateKey?: string,
-): void {
-  const record = asRecord(structuredContent);
-  const renderedContents = Array.isArray(record.renderedContents)
-    ? record.renderedContents.map((item) => asRecord(item))
-    : [];
-  const taxonomyCategoryBriefs = Array.isArray(record.taxonomyCategoryBriefs)
-    ? record.taxonomyCategoryBriefs.map((item) => asRecord(item))
-    : [];
+type TemplateInfo = {
+  widgetTemplateCandidates: string[];
+  displayPageTemplateCandidates: string[];
+  widgetHeadlessDefaultTemplate: string | undefined;
+  displayPageDefaultTemplate: string | undefined;
+};
 
+function extractTemplatesFromRenderedContents(renderedContents: Array<Record<string, unknown>>): TemplateInfo {
   const widgetTemplateCandidates: string[] = [];
   const displayPageTemplateCandidates: string[] = [];
   let widgetHeadlessDefaultTemplate: string | undefined;
@@ -1554,7 +1552,31 @@ function enrichJournalArticleWithStructuredContent(
     }
   }
 
-  const widgetDefaultTemplate = ddmTemplateKey || widgetHeadlessDefaultTemplate;
+  return {
+    widgetTemplateCandidates,
+    displayPageTemplateCandidates,
+    widgetHeadlessDefaultTemplate,
+    displayPageDefaultTemplate,
+  };
+}
+
+function enrichJournalArticleWithStructuredContent(
+  summary: JournalArticleSummary,
+  structuredContent: StructuredContent,
+  ddmTemplateKey?: string,
+): void {
+  const record = asRecord(structuredContent);
+  const renderedContents = Array.isArray(record.renderedContents)
+    ? record.renderedContents.map((item) => asRecord(item))
+    : [];
+  const taxonomyCategoryBriefs = Array.isArray(record.taxonomyCategoryBriefs)
+    ? record.taxonomyCategoryBriefs.map((item) => asRecord(item))
+    : [];
+
+  // Extract template information from rendered contents
+  const templates = extractTemplatesFromRenderedContents(renderedContents);
+  const widgetDefaultTemplate = ddmTemplateKey || templates.widgetHeadlessDefaultTemplate;
+
   const taxonomyCategoryNames = taxonomyCategoryBriefs
     .map((item) => firstString(item.taxonomyCategoryName))
     .filter((value): value is string => Boolean(value));
@@ -1565,20 +1587,15 @@ function enrichJournalArticleWithStructuredContent(
     ? record.availableLanguages.map((item) => String(item)).filter(Boolean)
     : [];
 
-  if (widgetDefaultTemplate) {
-    summary.widgetDefaultTemplate = widgetDefaultTemplate;
+  // Assign template properties
+  assignOptionalString(summary, 'widgetDefaultTemplate', widgetDefaultTemplate);
+  assignOptionalString(summary, 'widgetHeadlessDefaultTemplate', templates.widgetHeadlessDefaultTemplate);
+  assignOptionalString(summary, 'displayPageDefaultTemplate', templates.displayPageDefaultTemplate);
+  if (templates.widgetTemplateCandidates.length > 0) {
+    summary.widgetTemplateCandidates = templates.widgetTemplateCandidates;
   }
-  if (widgetHeadlessDefaultTemplate) {
-    summary.widgetHeadlessDefaultTemplate = widgetHeadlessDefaultTemplate;
-  }
-  if (displayPageDefaultTemplate) {
-    summary.displayPageDefaultTemplate = displayPageDefaultTemplate;
-  }
-  if (widgetTemplateCandidates.length > 0) {
-    summary.widgetTemplateCandidates = widgetTemplateCandidates;
-  }
-  if (displayPageTemplateCandidates.length > 0) {
-    summary.displayPageTemplateCandidates = displayPageTemplateCandidates;
+  if (templates.displayPageTemplateCandidates.length > 0) {
+    summary.displayPageTemplateCandidates = templates.displayPageTemplateCandidates;
   }
   if (renderedContents.length > 0) {
     summary.renderedContents = renderedContents;
@@ -1593,57 +1610,28 @@ function enrichJournalArticleWithStructuredContent(
     summary.availableLanguages = availableLanguages;
   }
 
-  const dateCreated = firstString(record.dateCreated);
-  if (dateCreated) {
-    summary.dateCreated = dateCreated;
-  }
-  const dateModified = firstString(record.dateModified);
-  if (dateModified) {
-    summary.dateModified = dateModified;
-  }
-  const datePublished = firstString(record.datePublished);
-  if (datePublished) {
-    summary.datePublished = datePublished;
-  }
-  const expirationDate =
-    firstString(record.expirationDate) ?? firstString(record.dateExpired) ?? firstString(record.dateExpiration);
-  if (expirationDate) {
-    summary.expirationDate = expirationDate;
-  }
-  const reviewDate = firstString(record.reviewDate) ?? firstString(record.dateReview);
-  if (reviewDate) {
-    summary.reviewDate = reviewDate;
-  }
-  const description = firstString(record.description);
-  if (description) {
-    summary.description = description;
-  }
-  const externalReferenceCode = firstString(record.externalReferenceCode);
-  if (externalReferenceCode) {
-    summary.externalReferenceCode = externalReferenceCode;
-  }
-  const uuid = firstString(record.uuid);
-  if (uuid) {
-    summary.uuid = uuid;
-  }
+  // Assign date properties using helper
+  assignOptionalString(summary, 'dateCreated', firstString(record.dateCreated));
+  assignOptionalString(summary, 'dateModified', firstString(record.dateModified));
+  assignOptionalString(summary, 'datePublished', firstString(record.datePublished));
+  assignOptionalString(
+    summary,
+    'expirationDate',
+    firstString(record.expirationDate) ?? firstString(record.dateExpired) ?? firstString(record.dateExpiration),
+  );
+  assignOptionalString(summary, 'reviewDate', firstString(record.reviewDate) ?? firstString(record.dateReview));
+  assignOptionalString(summary, 'description', firstString(record.description));
+  assignOptionalString(summary, 'externalReferenceCode', firstString(record.externalReferenceCode));
+  assignOptionalString(summary, 'uuid', firstString(record.uuid));
 
-  const siteId = Number(record.siteId);
-  if (Number.isFinite(siteId) && siteId > 0) {
-    summary.siteId = siteId;
-  }
-  const structuredContentFolderId = Number(record.structuredContentFolderId);
-  if (Number.isFinite(structuredContentFolderId) && structuredContentFolderId > 0) {
-    summary.structuredContentFolderId = structuredContentFolderId;
-  }
-  if (Number.isFinite(priority)) {
-    summary.priority = priority;
-  }
-  if (typeof record.neverExpire === 'boolean') {
-    summary.neverExpire = record.neverExpire;
-  }
-  if (typeof record.subscribed === 'boolean') {
-    summary.subscribed = record.subscribed;
-  }
+  // Assign numeric properties
+  assignOptionalNumber(summary, 'siteId', Number(record.siteId));
+  assignOptionalNumber(summary, 'structuredContentFolderId', Number(record.structuredContentFolderId));
+  assignOptionalNumber(summary, 'priority', priority);
+
+  // Assign boolean properties
+  assignOptionalBoolean(summary, 'neverExpire', record.neverExpire);
+  assignOptionalBoolean(summary, 'subscribed', record.subscribed);
   if (typeof relatedContentsCount === 'number') {
     summary.relatedContentsCount = relatedContentsCount;
   }

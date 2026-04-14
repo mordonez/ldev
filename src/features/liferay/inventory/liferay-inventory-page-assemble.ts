@@ -320,3 +320,31 @@ export const firstString = firstStringUtil;
 export function hasJsonWsException(value: unknown): boolean {
   return Boolean(asRecord(value).exception);
 }
+
+/**
+ * Assign optional string property to object if value is non-empty.
+ * Reduces boilerplate: instead of 4 lines per property, use 1 line.
+ */
+export function assignOptionalString(target: Record<string, unknown>, key: string, value: string | undefined): void {
+  if (value) {
+    target[key] = value;
+  }
+}
+
+/**
+ * Assign optional numeric property to object if value is finite and > 0.
+ */
+export function assignOptionalNumber(target: Record<string, unknown>, key: string, value: number | undefined): void {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    target[key] = value;
+  }
+}
+
+/**
+ * Assign optional boolean property to object if value is boolean.
+ */
+export function assignOptionalBoolean(target: Record<string, unknown>, key: string, value: unknown): void {
+  if (typeof value === 'boolean') {
+    target[key] = value;
+  }
+}
