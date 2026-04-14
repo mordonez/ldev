@@ -3,29 +3,27 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
+import {
+  SiteResolutionPipeline,
+  createByIdStep,
+  createByFriendlyUrlHeadlessSiteStep,
+  createByFriendlyUrlHeadlessUserStep,
+  createPaginatedSearchStep,
+  createJsonwsFallbackStep,
+  type ResolvedSite,
+  type SiteLookupPayload,
+  type HeadlessPage,
+} from './liferay-site-resolver.js';
 
-export type ResolvedSite = {
-  id: number;
-  friendlyUrlPath: string;
-  name: string;
-};
+// Re-export for backward compatibility
+export type {ResolvedSite};
 
 type InventoryDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
   accessToken?: string;
   forceRefresh?: boolean;
-};
-
-type HeadlessPage<T> = {
-  items?: T[];
-  lastPage?: number;
-};
-
-type SiteLookupPayload = {
-  id?: number;
-  friendlyUrlPath?: string;
-  name?: string | Record<string, string>;
 };
 
 const accessTokenCache = new Map<string, string>();
@@ -58,91 +56,25 @@ export async function resolveSite(
   dependencies?: InventoryDependencies,
 ): Promise<ResolvedSite> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createInventoryGateway(config, apiClient, dependencies);
 
-  if (/^\d+$/.test(site)) {
-    const byIdResponse = await authedGet<SiteLookupPayload>(
-      config,
-      apiClient,
-      accessToken,
-      `/o/headless-admin-site/v1.0/sites/${site}`,
+  // Build and execute resolution pipeline
+  const pipeline = new SiteResolutionPipeline();
+
+  pipeline
+    .addStep('by-id', createByIdStep(gateway, normalizeResolvedSite))
+    .addStep('by-friendly-url-headless-site', createByFriendlyUrlHeadlessSiteStep(gateway, normalizeResolvedSite))
+    .addStep('by-friendly-url-headless-user', createByFriendlyUrlHeadlessUserStep(gateway, normalizeResolvedSite))
+    .addStep(
+      'paginated-search',
+      createPaginatedSearchStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
+    )
+    .addStep(
+      'jsonws-fallback',
+      createJsonwsFallbackStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
     );
 
-    if (byIdResponse.ok) {
-      return normalizeResolvedSite(byIdResponse.data, site);
-    }
-  }
-
-  const normalized = site.startsWith('/') ? site.slice(1) : site;
-  const exactFriendlyUrlRequested = site.trim().startsWith('/');
-  const byFriendlyUrlResponse = await authedGet<SiteLookupPayload>(
-    config,
-    apiClient,
-    accessToken,
-    `/o/headless-admin-site/v1.0/sites/by-friendly-url-path/${encodeURIComponent(normalized)}`,
-  );
-
-  if (byFriendlyUrlResponse.ok) {
-    return normalizeResolvedSite(byFriendlyUrlResponse.data, site);
-  }
-
-  // headless-admin-site does not expose company groups (e.g. /global, site=false in Liferay).
-  // Fall back to headless-admin-user which does return them.
-  const byFriendlyUrlUserResponse = await authedGet<SiteLookupPayload>(
-    config,
-    apiClient,
-    accessToken,
-    `/o/headless-admin-user/v1.0/sites/by-friendly-url-path/${encodeURIComponent(normalized)}`,
-  );
-
-  if (byFriendlyUrlUserResponse.ok) {
-    return normalizeResolvedSite(byFriendlyUrlUserResponse.data, site);
-  }
-
-  const cleanInput = normalized.toLowerCase();
-  let page = 1;
-  let lastPage = 1;
-
-  while (page <= lastPage) {
-    const pageResponse = await authedGet<HeadlessPage<SiteLookupPayload>>(
-      config,
-      apiClient,
-      accessToken,
-      `/o/headless-admin-site/v1.0/sites?pageSize=100&page=${page}`,
-    );
-
-    if (pageResponse.status === 403 || pageResponse.status === 404) {
-      break;
-    }
-
-    const response = await expectJsonSuccess(pageResponse, `list sites page=${page}`);
-
-    const payload = response.data ?? {};
-    const items = Array.isArray(payload.items) ? payload.items : [];
-    for (const item of items) {
-      const friendlyUrlPath = normalizeFriendlyUrl(item.friendlyUrlPath ?? '');
-      const normalizedFriendlyUrl = friendlyUrlPath.startsWith('/') ? friendlyUrlPath.slice(1) : friendlyUrlPath;
-      const name = normalizeLocalizedName(item.name).toLowerCase();
-
-      if (
-        normalizedFriendlyUrl === cleanInput ||
-        (!exactFriendlyUrlRequested && (normalizedFriendlyUrl.includes(cleanInput) || name.includes(cleanInput)))
-      ) {
-        return normalizeResolvedSite(item, site);
-      }
-    }
-
-    lastPage = payload.lastPage ?? 1;
-    page += 1;
-  }
-
-  const jsonwsFallback = await resolveSiteViaJsonws(config, apiClient, accessToken, site);
-
-  if (jsonwsFallback) {
-    return jsonwsFallback;
-  }
-
-  throw new CliError(`Could not resolve site "${site}".`, {code: 'LIFERAY_SITE_NOT_FOUND'});
+  return pipeline.execute(site, `Could not resolve site "${site}".`);
 }
 
 export async function fetchPagedItems<T>(
@@ -152,34 +84,41 @@ export async function fetchPagedItems<T>(
   dependencies?: InventoryDependencies,
 ): Promise<T[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createInventoryGateway(config, apiClient, dependencies);
+
   const items: T[] = [];
   let page = 1;
   let lastPage = 1;
 
   while (page <= lastPage) {
     const separator = basePath.includes('?') ? '&' : '?';
-    const response = await authedGet<HeadlessPage<T>>(
-      config,
-      apiClient,
-      accessToken,
-      `${basePath}${separator}page=${page}&pageSize=${pageSize}`,
-    );
 
-    if (response.status === 403) {
-      throw new CliError(
-        `403 Forbidden on ${basePath} (check the bootstrap OAuth2 scopes for Data Engine/Headless Delivery).`,
-        {code: 'LIFERAY_INVENTORY_ERROR'},
+    try {
+      const pageData = await gateway.getJson<HeadlessPage<T>>(
+        `${basePath}${separator}page=${page}&pageSize=${pageSize}`,
+        `paged request ${basePath}`,
       );
-    }
 
-    const success = await expectJsonSuccess(response, `paged request ${basePath}`);
-    const payload = success.data ?? {};
-    if (Array.isArray(payload.items)) {
-      items.push(...payload.items);
+      const payload = pageData ?? {};
+      if (Array.isArray(payload.items)) {
+        items.push(...payload.items);
+      }
+      lastPage = payload.lastPage ?? 1;
+      page += 1;
+    } catch (error) {
+      // Handle gateway errors: convert to inventory-specific error code
+      if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+        // Check for 403 (permission) errors and provide scoped guidance
+        if (error.message.includes('status=403')) {
+          throw new CliError(
+            `403 Forbidden on ${basePath} (check the bootstrap OAuth2 scopes for Data Engine/Headless Delivery).`,
+            {code: 'LIFERAY_INVENTORY_ERROR'},
+          );
+        }
+        throw new CliError(error.message, {code: 'LIFERAY_INVENTORY_ERROR'});
+      }
+      throw error;
     }
-    lastPage = payload.lastPage ?? 1;
-    page += 1;
   }
 
   return items;
@@ -232,101 +171,19 @@ function normalizeResolvedSite(payload: SiteLookupPayload | null, site: string):
   };
 }
 
-type JsonwsCompany = {
-  companyId?: number;
-};
+function createInventoryGateway(config: AppConfig, apiClient: LiferayApiClient, dependencies?: InventoryDependencies) {
+  if (dependencies?.accessToken) {
+    const fixedTokenClient: OAuthTokenClient = {
+      fetchClientCredentialsToken: async () => ({
+        accessToken: dependencies.accessToken!,
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      }),
+    };
 
-type JsonwsGroup = {
-  groupId?: number;
-  friendlyURL?: string;
-  friendlyUrl?: string;
-  nameCurrentValue?: string;
-  name?: string;
-  site?: boolean;
-};
-
-async function resolveSiteViaJsonws(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  site: string,
-): Promise<ResolvedSite | null> {
-  const companiesResponse = await authedGet<JsonwsCompany[]>(
-    config,
-    apiClient,
-    accessToken,
-    '/api/jsonws/company/get-companies',
-  );
-
-  if (!companiesResponse.ok || !Array.isArray(companiesResponse.data)) {
-    return null;
+    return createLiferayGateway(config, apiClient, fixedTokenClient);
   }
 
-  const cleanInput = (site.startsWith('/') ? site.slice(1) : site).toLowerCase();
-  const exactFriendlyUrlRequested = site.trim().startsWith('/');
-
-  for (const company of companiesResponse.data) {
-    const companyId = company.companyId ?? 0;
-    if (companyId <= 0) {
-      continue;
-    }
-
-    const countResponse = await apiClient.get<string>(
-      config.liferay.url,
-      `/api/jsonws/group/search-count?companyId=${companyId}&name=&description=&params=%7B%7D`,
-      buildAuthOptions(config, accessToken),
-    );
-
-    if (!countResponse.ok) {
-      continue;
-    }
-
-    const total = Number.parseInt(countResponse.body.trim().replace(/^"(.*)"$/, '$1'), 10);
-    if (!Number.isFinite(total) || total <= 0) {
-      continue;
-    }
-
-    for (let start = 0; start < total; start += 100) {
-      const end = start + 100;
-      const response = await authedGet<JsonwsGroup[]>(
-        config,
-        apiClient,
-        accessToken,
-        '/api/jsonws/group/search' +
-          `?companyId=${companyId}` +
-          '&name=' +
-          '&description=' +
-          '&params=%7B%7D' +
-          `&start=${start}` +
-          `&end=${end}`,
-      );
-
-      if (!response.ok || !Array.isArray(response.data)) {
-        continue;
-      }
-
-      for (const item of response.data) {
-        if (!item.site) {
-          continue;
-        }
-
-        const friendlyUrlPath = normalizeFriendlyUrl(item.friendlyURL ?? item.friendlyUrl ?? '');
-        const normalizedFriendlyUrl = friendlyUrlPath.startsWith('/') ? friendlyUrlPath.slice(1) : friendlyUrlPath;
-        const name = normalizeLocalizedName(item.nameCurrentValue ?? item.name).toLowerCase();
-
-        if (
-          normalizedFriendlyUrl === cleanInput ||
-          (!exactFriendlyUrlRequested && (normalizedFriendlyUrl.includes(cleanInput) || name.includes(cleanInput)))
-        ) {
-          return {
-            id: item.groupId ?? -1,
-            friendlyUrlPath,
-            name: normalizeLocalizedName(item.nameCurrentValue ?? item.name),
-          };
-        }
-      }
-    }
-  }
-
-  return null;
+  const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
+  return createLiferayGateway(config, apiClient, tokenClient);
 }
