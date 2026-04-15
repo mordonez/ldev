@@ -147,7 +147,7 @@ async function resolveMcpEndpoint(config: AppConfig, authHeaders: Record<string,
       return url;
     }
   }
-  throw new CliError('No MCP endpoint responded successfully.', {code: 'LIFERAY_MCP_ERROR'});
+  throw new CliError('No MCP endpoint responded successfully.', {code: 'LIFERAY_MCP_INIT_ERROR'});
 }
 
 function buildEndpointCandidates(baseUrl: string): string[] {
@@ -261,20 +261,20 @@ async function initializeMcpSession(
   const body = await response.text();
   if (!response.ok) {
     throw new CliError(`MCP initialize failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_ERROR',
+      code: 'LIFERAY_MCP_INIT_ERROR',
     });
   }
 
   const sessionId = response.headers.get('Mcp-Session-Id')?.trim() ?? '';
   if (sessionId === '') {
-    throw new CliError('MCP initialize did not return Mcp-Session-Id.', {code: 'LIFERAY_MCP_ERROR'});
+    throw new CliError('MCP initialize did not return Mcp-Session-Id.', {code: 'LIFERAY_MCP_INIT_ERROR'});
   }
 
   const parsed = parseJson(body);
   const result = (parsed as {result?: {protocolVersion?: string; serverInfo?: {name?: string; version?: string}}})
     .result;
   if (!result?.protocolVersion) {
-    throw new CliError('MCP initialize returned an unexpected payload.', {code: 'LIFERAY_MCP_ERROR'});
+    throw new CliError('MCP initialize returned an unexpected payload.', {code: 'LIFERAY_MCP_INIT_ERROR'});
   }
 
   return {
@@ -312,7 +312,7 @@ async function sendMcpNotification(
   const body = await response.text();
   if (!response.ok) {
     throw new CliError(`MCP notification failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_ERROR',
+      code: 'LIFERAY_MCP_NOTIFICATION_ERROR',
     });
   }
 }
@@ -344,7 +344,7 @@ async function sendMcpRequest(
   const body = await response.text();
   if (!response.ok) {
     throw new CliError(`MCP request failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_ERROR',
+      code: 'LIFERAY_MCP_REQUEST_ERROR',
     });
   }
 
@@ -371,7 +371,7 @@ function parseJson(body: string): unknown {
       return ssePayload;
     }
 
-    throw new CliError(`Invalid MCP JSON payload: ${sanitizeBody(body)}`, {code: 'LIFERAY_MCP_ERROR'});
+    throw new CliError(`Invalid MCP JSON payload: ${sanitizeBody(body)}`, {code: 'LIFERAY_MCP_SSE_PARSE_ERROR'});
   }
 }
 
