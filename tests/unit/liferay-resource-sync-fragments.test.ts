@@ -89,7 +89,7 @@ async function writeFragmentProject(
 }
 
 describe('liferay resource fragments-sync', () => {
-  test('imports fragments through the ZIP endpoint when available', async () => {
+  test('imports fragments through the legacy API only', async () => {
     const {config, repoRoot} = await createRepoFixture();
     const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');
     await writeFragmentProject(projectDir);
@@ -104,11 +104,17 @@ describe('liferay resource fragments-sync', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
-        if (url.includes('/c/portal/fragment/import_fragment_entries')) {
-          return new Response(
-            '{"fragmentEntriesImportResult":[{"fragmentEntryKey":"hero-banner"}],"pageTemplatesImportResult":[]}',
-            {status: 200},
-          );
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          return new Response('{"fragmentCollectionId":501,"fragmentCollectionKey":"marketing"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
+          return new Response('{"fragmentEntryId":601}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -121,8 +127,8 @@ describe('liferay resource fragments-sync', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result.mode).toBe('oauth-zip-import');
-    if (result.mode !== 'oauth-zip-import') {
+    expect(result.mode).toBe('oauth-jsonws-import');
+    if (result.mode !== 'oauth-jsonws-import') {
       throw new Error('unexpected mode');
     }
     expect(result.summary.importedFragments).toBe(1);
@@ -250,6 +256,56 @@ describe('liferay resource fragments-sync', () => {
     expect(result.summary.importedFragments).toBe(1);
     expect(result.fragmentResults).toHaveLength(1);
     expect(result.fragmentResults[0]?.fragment).toBe('hero-banner');
+  });
+
+  test('accepts --dir when pointing to a nested fragment directory', async () => {
+    const {config, repoRoot} = await createRepoFixture();
+    const projectDir = path.join(repoRoot, 'custom-fragments');
+    await writeFragmentProject(projectDir, {collection: 'ub-base', collectionName: 'UB Base'});
+
+    const nestedFragmentDir = path.join(projectDir, 'src', 'ub-base', 'fragments', 'hero-banner');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          return new Response('{"fragmentCollectionId":1100,"fragmentCollectionKey":"ub-base"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=1100')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
+          const form = new URLSearchParams(String(init?.body ?? ''));
+          expect(form.get('fragmentEntryKey')).toBe('hero-banner');
+          return new Response('{"fragmentEntryId":3002}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncFragments(
+      config,
+      {site: '/global', dir: nestedFragmentDir, fragment: 'hero-banner'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('oauth-jsonws-import');
+    if (result.mode !== 'oauth-jsonws-import') {
+      throw new Error('unexpected mode');
+    }
+    expect(result.summary.importedFragments).toBe(1);
+    expect(result.summary.errors).toBe(0);
   });
 
   test('retries candidates in order when first form fails and second succeeds', async () => {
