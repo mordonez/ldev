@@ -33,17 +33,19 @@ export class LiferayGateway {
     private tokenClient: OAuthTokenClient,
   ) {}
 
+  private getCacheKey(): string {
+    return [this.config.liferay.url, this.config.liferay.oauth2ClientId, this.config.liferay.oauth2ClientSecret].join(
+      '|',
+    );
+  }
+
   /**
    * Fetch or return cached access token.
    * Cache key includes url + clientId + clientSecret to support multi-instance scenarios.
    * TTL: 1 hour (refreshed when expired).
    */
   private async getAccessToken(): Promise<string> {
-    const cacheKey = [
-      this.config.liferay.url,
-      this.config.liferay.oauth2ClientId,
-      this.config.liferay.oauth2ClientSecret,
-    ].join('|');
+    const cacheKey = this.getCacheKey();
 
     const now = Date.now();
     const cached = this.accessTokenCache.get(cacheKey);
@@ -56,6 +58,14 @@ export class LiferayGateway {
     this.accessTokenCache.set(cacheKey, {token: accessToken, cachedAt: now});
 
     return accessToken;
+  }
+
+  /**
+   * Seed the gateway token cache with a caller-provided access token.
+   * Useful during incremental migration from helpers that already receive a token.
+   */
+  seedAccessToken(accessToken: string): void {
+    this.accessTokenCache.set(this.getCacheKey(), {token: accessToken, cachedAt: Date.now()});
   }
 
   /**
