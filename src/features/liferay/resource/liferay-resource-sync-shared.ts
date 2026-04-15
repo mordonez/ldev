@@ -5,7 +5,7 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient, type HttpResponse} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {buildAuthOptions, ensureData, expectJsonSuccess} from '../liferay-http-shared.js';
+import {buildAuthOptions, ensureData} from '../liferay-http-shared.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 
 type ResourceDependencies = {
@@ -22,7 +22,7 @@ export type ResourceSyncResult = {
   extra: string;
 };
 
-export async function authedPostForm<T>(
+async function postFormCandidateResponse<T>(
   config: AppConfig,
   path: string,
   form: Record<string, string>,
@@ -44,7 +44,7 @@ export async function postFormCandidates<T>(
   const errors: string[] = [];
 
   for (const form of candidates) {
-    const response = await authedPostForm<T>(config, apiPath, form, dependencies);
+    const response = await postFormCandidateResponse<T>(config, apiPath, form, dependencies);
     if (response.ok) {
       return ensureData(response.data, `${operation} invalid JSON in ${apiPath}`, 'LIFERAY_RESOURCE_ERROR');
     }
@@ -52,45 +52,6 @@ export async function postFormCandidates<T>(
   }
 
   throw LiferayErrors.resourceError(`${operation} failed on ${apiPath} (${errors.join(' | ')})`);
-}
-
-export async function authedPostMultipart<T>(
-  config: AppConfig,
-  path: string,
-  form: FormData,
-  dependencies?: ResourceDependencies,
-): Promise<HttpResponse<T>> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-
-  return apiClient.postMultipart<T>(config.liferay.url, path, form, buildAuthOptions(config, accessToken));
-}
-
-export async function authedGetJson<T>(
-  config: AppConfig,
-  path: string,
-  label: string,
-  dependencies?: ResourceDependencies,
-): Promise<T> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await apiClient.get<T>(config.liferay.url, path, buildAuthOptions(config, accessToken));
-  const success = await expectJsonSuccess(response, label, 'LIFERAY_RESOURCE_ERROR');
-  return (success.data ?? null) as T;
-}
-
-export async function authedPutJson<T>(
-  config: AppConfig,
-  path: string,
-  payload: unknown,
-  label: string,
-  dependencies?: ResourceDependencies,
-): Promise<T> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await apiClient.putJson<T>(config.liferay.url, path, payload, buildAuthOptions(config, accessToken));
-  const success = await expectJsonSuccess(response, label, 'LIFERAY_RESOURCE_ERROR');
-  return (success.data ?? null) as T;
 }
 
 export function sha256(text: string): string {
