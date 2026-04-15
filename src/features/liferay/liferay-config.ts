@@ -2,8 +2,8 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
+import {LiferayErrors} from './errors/index.js';
 
 type ConfigEntry = {
   key: string;
@@ -141,7 +141,7 @@ export function formatLiferayConfigSet(result: LiferayConfigSetResult): string {
 
 function resolveConfigRoots(config: AppConfig, source: 'effective' | 'source'): string[] {
   if (!config.liferayDir) {
-    throw new CliError('liferay config requires a resolved liferayDir.', {code: 'LIFERAY_CONFIG_REPO_REQUIRED'});
+    throw LiferayErrors.configRepoRequired();
   }
 
   if (source === 'effective') {
@@ -189,7 +189,7 @@ async function resolveWritableOsgiConfigFile(roots: string[], pid: string): Prom
 
   const base = roots[0];
   if (!base) {
-    throw new CliError('Could not resolve the OSGi configs directory.', {code: 'LIFERAY_CONFIG_ERROR'});
+    throw LiferayErrors.configError('Could not resolve the OSGi configs directory.');
   }
 
   const file = path.join(base, 'osgi', 'configs', `${pid}.config`);
@@ -208,7 +208,7 @@ async function resolveWritablePortalPropertiesFile(roots: string[]): Promise<str
 
   const base = roots[0];
   if (!base) {
-    throw new CliError('Could not resolve the portal-ext.properties directory.', {code: 'LIFERAY_CONFIG_ERROR'});
+    throw LiferayErrors.configError('Could not resolve the portal-ext.properties directory.');
   }
 
   const file = path.join(base, 'portal-ext.local.properties');

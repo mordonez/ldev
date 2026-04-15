@@ -1,7 +1,7 @@
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
+import {LiferayErrors} from './errors/index.js';
 import {authedGet} from './inventory/liferay-inventory-shared.js';
 
 const HEALTH_PATH = '/o/headless-admin-user/v1.0/my-user-account';
@@ -79,11 +79,8 @@ export async function performLiferayHealthCheck(
     };
   }
 
-  throw new CliError(
+  throw LiferayErrors.healthError(
     `Health check failed with status=${response.status} on ${HEALTH_PATH}. Verify portal URL, OAuth client scopes, and token permissions.`,
-    {
-      code: 'LIFERAY_HEALTH_ERROR',
-    },
   );
 }
 
