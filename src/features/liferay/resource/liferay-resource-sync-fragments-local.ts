@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {resolveFragmentsBaseDir, resolveRepoPath} from './liferay-resource-paths.js';
+import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
 import type {
   LocalFragment,
   LocalFragmentCollection,
@@ -11,43 +11,7 @@ import type {
 } from './liferay-resource-sync-fragments-types.js';
 
 export function resolveFragmentsProjectDir(config: AppConfig, dir: string | undefined, siteToken: string): string {
-  if ((dir ?? '').trim() === '') {
-    return path.join(resolveFragmentsBaseDir(config), 'sites', siteToken);
-  }
-
-  const configured = path.resolve(resolveRepoPath(config, dir ?? ''));
-  const detectedFromConfigured = detectFragmentsProjectRoot(configured);
-  if (detectedFromConfigured) {
-    return detectedFromConfigured;
-  }
-
-  const configuredWithSite = path.join(configured, siteToken);
-  const detectedFromSitePath = detectFragmentsProjectRoot(configuredWithSite);
-  if (detectedFromSitePath) {
-    return detectedFromSitePath;
-  }
-
-  return configuredWithSite;
-}
-
-function detectFragmentsProjectRoot(startPath: string): string | null {
-  let current = path.resolve(startPath);
-
-  while (true) {
-    if (fs.existsSync(path.join(current, 'src'))) {
-      return current;
-    }
-
-    if (path.basename(current).toLowerCase() === 'src') {
-      return path.dirname(current);
-    }
-
-    const parent = path.dirname(current);
-    if (parent === current) {
-      return null;
-    }
-    current = parent;
-  }
+  return resolveArtifactFragmentProjectDir(config, siteToken, dir);
 }
 
 export async function readLocalFragmentsProject(
@@ -116,13 +80,7 @@ export async function readLocalFragmentsProject(
   };
 }
 
-export function sanitizeFileToken(value: string): string {
-  const normalized = value
-    .trim()
-    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
-    .replaceAll(/_+/g, '_');
-  return normalized === '' ? 'unnamed' : normalized;
-}
+export {sanitizeArtifactToken as sanitizeFileToken} from './artifact-paths.js';
 
 export function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

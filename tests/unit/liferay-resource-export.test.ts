@@ -538,6 +538,66 @@ describe('liferay resource export', () => {
     expect(formatLiferayResourceExportStructures(result)).toContain('EXPORTED site=/global count=1');
   });
 
+  test('exports all structures under dir/siteToken when --dir is provided', async () => {
+    const dir = createTempDir('dev-cli-resource-export-structures-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=200')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
+          return new Response(
+            '{"id":301,"dataDefinitionKey":"BASIC-WEB-CONTENT","name":{"en_US":"Basic Web Content"}}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportStructures(
+      config,
+      {site: '/global', dir: 'custom-structures'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.siteResults[0]?.outputDir).toBe(path.join(dir, 'custom-structures', 'global'));
+    expect(await fs.pathExists(path.join(dir, 'custom-structures', 'global', 'BASIC-WEB-CONTENT.json'))).toBe(true);
+  });
+
   test('exports all structures sanitizing volatile p_p_auth tokens', async () => {
     const dir = createTempDir('dev-cli-resource-export-structures-sanitize-');
     const config = {
@@ -651,6 +711,60 @@ describe('liferay resource export', () => {
     expect(written).toBe('<#-- ftl -->');
     expect(result.exported).toBe(1);
     expect(formatLiferayResourceExportTemplates(result)).toContain('EXPORTED site=/global exported=1 failed=0');
+  });
+
+  test('exports all templates under dir/siteToken when --dir is provided', async () => {
+    const dir = createTempDir('dev-cli-resource-export-templates-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":301,"externalReferenceCode":"NEWS_TEMPLATE","templateScript":"<#-- ftl -->"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportTemplates(
+      config,
+      {site: '/global', dir: 'custom-templates'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.siteResults[0]?.outputDir).toBe(path.join(dir, 'custom-templates', 'global'));
+    expect(await fs.readFile(path.join(dir, 'custom-templates', 'global', 'NEWS_TEMPLATE.ftl'), 'utf8')).toBe(
+      '<#-- ftl -->',
+    );
   });
 
   test('exports all templates sanitizing volatile p_p_auth tokens', async () => {
@@ -897,6 +1011,95 @@ describe('liferay resource export', () => {
     ).toBe('<#-- ftl -->');
   });
 
+  test('export-adts writes under dir/siteToken when --dir is provided', async () => {
+    const dir = createTempDir('dev-cli-resource-export-adts-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate',
+          )
+        ) {
+          return new Response('{"classNameId":2001}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
+          return new Response('{"classNameId":3001}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=')) {
+          return new Response('{"classNameId":3999}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":40801,"templateKey":"SEARCH_RESULTS","nameCurrentValue":"Search Results","classNameId":3001,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3002&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response('[]', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3999&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportAdts(
+      config,
+      {site: '/global', dir: 'custom-adts'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.outputDir).toBe(path.join(dir, 'custom-adts', 'global'));
+    expect(
+      await fs.readFile(path.join(dir, 'custom-adts', 'global', 'search_result_summary', 'SEARCH_RESULTS.ftl'), 'utf8'),
+    ).toBe('<#-- ftl -->');
+  });
+
   test('export-fragments --all-sites includes /global', async () => {
     const dir = createTempDir('dev-cli-resource-export-fragments-all-sites-');
     const config = {
@@ -980,6 +1183,159 @@ describe('liferay resource export', () => {
         'utf8',
       ),
     ).toBe('');
+  });
+
+  test('export-fragments --all-sites does not create directories for sites without fragments', async () => {
+    const dir = createTempDir('dev-cli-resource-export-fragments-no-empty-sites-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
+          return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/company/get-companies')) {
+          return new Response('[{"companyId":10157}]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/search-count?companyId=10157')) {
+          return new Response('1', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/search?companyId=10157')) {
+          return new Response(
+            '[{"groupId":20122,"friendlyURL":"/cataleg-estrategies","nameCurrentValue":"Cataleg","site":true}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-friendly-url-path/cataleg-estrategies')) {
+          return new Response('{"id":20122,"friendlyUrlPath":"/cataleg-estrategies","name":"Cataleg"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20122')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response(
+            '[{"fragmentCollectionId":501,"name":"Marketing","fragmentCollectionKey":"marketing","description":"Marketing fragments"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20122')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
+          return new Response(
+            '[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner","icon":"square","type":1}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportFragments(
+      config,
+      {allSites: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('all-sites');
+    expect(result.scannedSites).toBe(2);
+    expect(result.fragmentCount).toBe(1);
+    expect(await fs.pathExists(path.join(dir, 'liferay', 'fragments', 'sites', 'cataleg-estrategies'))).toBe(false);
+    expect(
+      await fs.pathExists(
+        path.join(dir, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'fragments', 'hero-banner'),
+      ),
+    ).toBe(true);
+  });
+
+  test('export-fragments keeps historical project-root behavior when --dir is provided', async () => {
+    const dir = createTempDir('dev-cli-resource-export-fragments-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response(
+            '[{"fragmentCollectionId":501,"name":"Marketing","fragmentCollectionKey":"marketing","description":"Marketing fragments"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
+          return new Response(
+            '[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner","icon":"square","type":1}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportFragments(
+      config,
+      {site: '/global', dir: 'custom-fragments'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.outputDir).toBe(path.join(dir, 'custom-fragments'));
+    expect(
+      await fs.readFile(
+        path.join(dir, 'custom-fragments', 'src', 'marketing', 'fragments', 'hero-banner', 'index.html'),
+        'utf8',
+      ),
+    ).toBe('');
+    expect(await fs.pathExists(path.join(dir, 'custom-fragments', 'global'))).toBe(false);
   });
 
   test('export-templates uses the same enumeration source as inventory templates', async () => {

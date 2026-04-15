@@ -2,10 +2,11 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import path from 'node:path';
-import {resolveSiteToken, resolveTemplatesBaseDir} from './liferay-resource-paths.js';
+import {resolveSiteToken} from './liferay-resource-paths.js';
 import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js';
 import fs from 'fs-extra';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
+import {resolveArtifactSiteDir} from './artifact-paths.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -18,15 +19,12 @@ export async function runLiferayResourceExportTemplate(
   dependencies?: ResourceDependencies,
 ): Promise<{outputPath: string}> {
   const result = await runLiferayResourceGetTemplate(config, {site: options.site, id: options.id}, dependencies);
+  const siteToken = resolveSiteToken(result.siteFriendlyUrl);
   const outputPath = path.resolve(
-    options.output ?? buildDefaultOutputPath(config, result.siteFriendlyUrl, result.templateKey),
+    options.output ?? path.join(resolveArtifactSiteDir(config, 'template', siteToken), `${result.templateKey}.ftl`),
   );
   await fs.ensureDir(path.dirname(outputPath));
   await fs.writeFile(outputPath, normalizeLiferayTemplateScript(result.templateScript));
 
   return {outputPath};
-}
-
-function buildDefaultOutputPath(config: AppConfig, siteFriendlyUrl: string, templateKey: string): string {
-  return path.join(resolveTemplatesBaseDir(config), resolveSiteToken(siteFriendlyUrl), `${templateKey}.ftl`);
 }

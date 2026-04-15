@@ -6,12 +6,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {
-  resolveAdtsBaseDir,
-  resolveRepoPath,
-  resolveSiteToken,
-  ADT_WIDGET_DIR_BY_TYPE,
-} from './liferay-resource-paths.js';
+import {resolveSiteToken, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, sanitizeArtifactToken} from './artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
@@ -44,9 +40,7 @@ export async function runLiferayResourceExportAdts(
   },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportAdtsResult> {
-  const baseDir = path.resolve(
-    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveAdtsBaseDir(config),
-  );
+  const baseDir = resolveArtifactBaseDir(config, 'adt', options?.dir);
 
   if (options?.allSites) {
     const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
@@ -117,7 +111,7 @@ export async function runLiferayResourceExportAdts(
       const target = path.join(
         outputDir,
         widgetDir ?? row.widgetType.replaceAll('-', '_'),
-        `${sanitizeFileToken(row.templateKey || row.adtName)}.ftl`,
+        `${sanitizeArtifactToken(row.templateKey || row.adtName)}.ftl`,
       );
       await fs.ensureDir(path.dirname(target));
       await fs.writeFile(target, `${row.script ?? ''}`);
@@ -149,12 +143,4 @@ export function formatLiferayResourceExportAdts(result: LiferayResourceExportAdt
   }
 
   return `EXPORTED site=${result.site} exported=${result.exported} failed=${result.failed} dir=${result.outputDir}`;
-}
-
-function sanitizeFileToken(value: string): string {
-  const normalized = value
-    .trim()
-    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
-    .replaceAll(/_+/g, '_');
-  return normalized === '' ? 'unnamed' : normalized;
 }
