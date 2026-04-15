@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
-import type {LiferayApiClient} from '../../core/http/client.js';
+import type {HttpRequestOptions, LiferayApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess} from './liferay-http-shared.js';
 
@@ -62,13 +62,17 @@ export class LiferayGateway {
    * GET /path, parse JSON, assert ok status, return data.
    * @throws CliError if response not ok
    */
-  async getJson<T>(path: string, label: string): Promise<T> {
+  async getJson<T>(path: string, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
     const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.get<T>(
-      this.config.liferay.url,
-      path,
-      buildAuthOptions(this.config, accessToken),
-    );
+    const authOptions = buildAuthOptions(this.config, accessToken);
+    const response = await this.apiClient.get<T>(this.config.liferay.url, path, {
+      ...authOptions,
+      ...requestOptions,
+      headers: {
+        ...authOptions.headers,
+        ...requestOptions?.headers,
+      },
+    });
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;

@@ -1,7 +1,7 @@
-import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import {CliError} from '../../../core/errors.js';
 import {firstNonBlank, trimLeadingSlash} from '../../../core/utils/text.js';
-import {authedGet, expectJsonSuccess} from '../inventory/liferay-inventory-shared.js';
+import {LiferayErrors} from '../errors/index.js';
+import type {LiferayGateway} from '../liferay-gateway.js';
 
 export type Layout = {
   layoutId?: number;
@@ -37,21 +37,23 @@ export type Layout = {
 };
 
 export async function fetchLayoutsByParent(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   privateLayout: boolean,
   parentLayoutId: number,
 ): Promise<Layout[]> {
-  const response = await authedGet<Layout[]>(
-    config,
-    apiClient,
-    accessToken,
-    `/api/jsonws/layout/get-layouts?groupId=${groupId}&privateLayout=${privateLayout}&parentLayoutId=${parentLayoutId}`,
-  );
-  const success = await expectJsonSuccess(response, 'layout/get-layouts');
-  return Array.isArray(success.data) ? success.data : [];
+  try {
+    const layouts = await gateway.getJson<Layout[]>(
+      `/api/jsonws/layout/get-layouts?groupId=${groupId}&privateLayout=${privateLayout}&parentLayoutId=${parentLayoutId}`,
+      'layout/get-layouts',
+    );
+    return Array.isArray(layouts) ? layouts : [];
+  } catch (error) {
+    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+      throw LiferayErrors.inventoryError(error.message);
+    }
+    throw error;
+  }
 }
 
 export function buildPageUrl(siteFriendlyUrl: string, friendlyUrl: string, privateLayout: boolean): string {

@@ -6,13 +6,14 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {firstNonEmptyString, firstPositiveNumber, toBoolean, toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
-import {authedGet, type ResolvedSite} from './liferay-inventory-shared.js';
+import type {ResolvedSite} from './liferay-inventory-shared.js';
 import {
   buildLayoutDetails,
   buildPageUrl,
   fetchLayoutsByParent,
   type Layout,
 } from '../page-layout/liferay-layout-shared.js';
+import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
   asRecord,
@@ -52,13 +53,11 @@ const CLASS_NAME_LAYOUT = 'com.liferay.portal.kernel.model.Layout';
 const CLASS_NAME_JOURNAL_ARTICLE = 'com.liferay.journal.model.JournalArticle';
 
 export async function fetchSiteRootInventory(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   site: ResolvedSite,
   privateLayout: boolean,
 ): Promise<LiferayInventoryPageResult> {
-  const layouts = await fetchLayoutsByParent(config, apiClient, accessToken, site.id, privateLayout, 0);
+  const layouts = await fetchLayoutsByParent(gateway, site.id, privateLayout, 0);
 
   return {
     contractVersion: '2',
@@ -83,21 +82,18 @@ export async function fetchSiteRootInventory(
  * Returns: { article, jsonwsArticle, articleRef }
  */
 async function resolveDisplayPageArticle(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   urlTitle: string,
 ): Promise<{article: StructuredContent; jsonwsArticle: Record<string, unknown> | null; articleRef: ArticleRef}> {
   const filter = encodeURIComponent(`friendlyUrlPath eq '${urlTitle}'`);
-  const response = await authedGet<{items?: StructuredContent[]}>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<{items?: StructuredContent[]}>(
+    gateway,
     `/o/headless-delivery/v1.0/sites/${siteId}/structured-contents?filter=${filter}&pageSize=1`,
+    'site-structured-contents',
   );
   let article: StructuredContent | undefined = response.ok ? response.data?.items?.[0] : undefined;
-  let jsonwsArticle = await fetchJournalArticleByUrlTitle(config, apiClient, accessToken, siteId, urlTitle);
+  let jsonwsArticle = await fetchJournalArticleByUrlTitle(gateway, siteId, urlTitle);
 
   // Fallback: try JSONWS when headless delivery returns nothing
   if (!article && jsonwsArticle) {
@@ -124,7 +120,7 @@ async function resolveDisplayPageArticle(
 
   // Fetch JSONWS article if we don't have it yet
   if (!jsonwsArticle && articleRef.articleId) {
-    jsonwsArticle = await fetchLatestJournalArticle(config, apiClient, accessToken, siteId, articleRef.articleId);
+    jsonwsArticle = await fetchLatestJournalArticle(gateway, siteId, articleRef.articleId);
   }
 
   return {article, jsonwsArticle, articleRef};
@@ -136,9 +132,7 @@ async function resolveDisplayPageArticle(
  * 2. Fall back to by ID
  */
 async function resolveStructuredContentData(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   article: StructuredContent,
   jsonwsArticle: Record<string, unknown> | null,
@@ -147,14 +141,14 @@ async function resolveStructuredContentData(
   const uuid = firstString(jsonwsArticle?.uuid);
 
   if (uuid) {
-    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, siteId, uuid);
+    structuredContent = await fetchStructuredContentByUuid(gateway, siteId, uuid);
   }
 
   // Fallback to fetch by ID if UUID didn't work
   if (!structuredContent) {
     const structuredContentId = article.id && article.id > 0 ? article.id : -1;
     if (structuredContentId > 0) {
-      structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
+      structuredContent = await fetchStructuredContentById(gateway, structuredContentId);
     }
   }
 
@@ -163,34 +157,22 @@ async function resolveStructuredContentData(
 
 export async function fetchDisplayPageInventory(
   config: AppConfig,
+  gateway: LiferayGateway,
   apiClient: LiferayApiClient,
   accessToken: string,
   site: ResolvedSite,
   urlTitle: string,
 ): Promise<LiferayInventoryPageResult> {
-  const {article, jsonwsArticle, articleRef} = await resolveDisplayPageArticle(
-    config,
-    apiClient,
-    accessToken,
-    site.id,
-    urlTitle,
-  );
+  const {article, jsonwsArticle, articleRef} = await resolveDisplayPageArticle(gateway, site.id, urlTitle);
 
-  const structuredContent = await resolveStructuredContentData(
-    config,
-    apiClient,
-    accessToken,
-    site.id,
-    article,
-    jsonwsArticle,
-  );
+  const structuredContent = await resolveStructuredContentData(gateway, site.id, article, jsonwsArticle);
 
   // Enrich article object with structuredContent data
   if (structuredContent && structuredContent.contentStructureId) {
     article.contentStructureId = structuredContent.contentStructureId;
   }
 
-  const journalArticle = await buildJournalArticleSummary(config, apiClient, accessToken, articleRef, {
+  const journalArticle = await buildJournalArticleSummary(gateway, config, apiClient, accessToken, articleRef, {
     article: jsonwsArticle,
     structuredContent,
     fallbackSite: site,
@@ -198,9 +180,11 @@ export async function fetchDisplayPageInventory(
     fallbackContentStructureId: article.contentStructureId,
     includeHeadlessInventoryFields: true,
   });
-  const contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, [journalArticle]);
+  const contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, accessToken, [
+    journalArticle,
+  ]);
   const articleClassPK = Number(article.id ?? jsonwsArticle?.resourcePrimKey ?? jsonwsArticle?.id ?? -1);
-  const articleClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_JOURNAL_ARTICLE);
+  const articleClassNameId = await resolveClassNameId(config, gateway, CLASS_NAME_JOURNAL_ARTICLE);
   const articleAdminUrls =
     articleRef.articleId && articleClassPK > 0
       ? buildJournalArticleAdminUrls(
@@ -238,6 +222,7 @@ export async function fetchDisplayPageInventory(
 
 export async function fetchRegularPageInventory(
   config: AppConfig,
+  gateway: LiferayGateway,
   apiClient: LiferayApiClient,
   accessToken: string,
   site: ResolvedSite,
@@ -245,15 +230,7 @@ export async function fetchRegularPageInventory(
   privateLayout: boolean,
   localeHint?: string,
 ): Promise<LiferayInventoryPageResult> {
-  const match = await findLayoutByFriendlyUrl(
-    config,
-    apiClient,
-    accessToken,
-    site.id,
-    friendlyUrl,
-    privateLayout,
-    localeHint,
-  );
+  const match = await findLayoutByFriendlyUrl(gateway, site.id, friendlyUrl, privateLayout, localeHint);
   if (!match) {
     throw LiferayErrors.inventoryError(
       `Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`,
@@ -267,7 +244,7 @@ export async function fetchRegularPageInventory(
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
   const componentInspectionSupported = String(layout.type ?? '').toLowerCase() === 'content';
-  const layoutClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_LAYOUT);
+  const layoutClassNameId = await resolveClassNameId(config, gateway, CLASS_NAME_LAYOUT);
   let pageMetadata: Record<string, unknown> | null = null;
   let fragmentEntryLinks: PageFragmentEntry[] = [];
   let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> = [];
@@ -279,7 +256,7 @@ export async function fetchRegularPageInventory(
       pageElement,
       pageMetadata: fetchedMetadata,
       rawFragmentLinks,
-    } = await fetchComponentPageData(config, apiClient, accessToken, site.id, canonicalFriendlyUrl, layout.plid ?? -1);
+    } = await fetchComponentPageData(gateway, site.id, canonicalFriendlyUrl, layout.plid ?? -1);
     pageMetadata = fetchedMetadata;
     configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
@@ -292,8 +269,15 @@ export async function fetchRegularPageInventory(
         ...(entry.portletId ? {portletId: entry.portletId} : {}),
         ...(entry.configuration ? {configuration: entry.configuration} : {}),
       }));
-    journalArticles = await collectLayoutJournalArticles(config, apiClient, accessToken, site.id, rawFragmentLinks);
-    contentStructures = await collectLayoutContentStructures(config, apiClient, accessToken, journalArticles);
+    journalArticles = await collectLayoutJournalArticles(
+      gateway,
+      config,
+      apiClient,
+      accessToken,
+      site.id,
+      rawFragmentLinks,
+    );
+    contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, accessToken, journalArticles);
   }
 
   function buildRegularPageSummary(
@@ -706,13 +690,14 @@ function extractPortletInstance(portletId: string): {instanceId?: string} {
 
 export async function resolveRegularLayoutPageData(
   config: AppConfig,
+  gateway: LiferayGateway,
   apiClient: LiferayApiClient,
   accessToken: string,
   site: ResolvedSite,
   friendlyUrl: string,
   privateLayout: boolean,
 ): Promise<ResolvedRegularLayoutPage> {
-  const match = await findLayoutByFriendlyUrl(config, apiClient, accessToken, site.id, friendlyUrl, privateLayout);
+  const match = await findLayoutByFriendlyUrl(gateway, site.id, friendlyUrl, privateLayout);
   if (!match) {
     throw LiferayErrors.inventoryError(
       `Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`,
@@ -723,7 +708,7 @@ export async function resolveRegularLayoutPageData(
   const layoutDetails = buildLayoutDetails(layout.typeSettings ?? '');
   const canonicalFriendlyUrl = layout.friendlyURL ?? friendlyUrl;
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
-  const layoutClassNameId = await resolveClassNameId(config, apiClient, accessToken, CLASS_NAME_LAYOUT);
+  const layoutClassNameId = await resolveClassNameId(config, gateway, CLASS_NAME_LAYOUT);
 
   return {
     siteName: site.name,
@@ -750,23 +735,17 @@ export async function resolveRegularLayoutPageData(
   };
 }
 
-async function resolveClassNameId(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  className: string,
-): Promise<number> {
+async function resolveClassNameId(config: AppConfig, gateway: LiferayGateway, className: string): Promise<number> {
   const cacheKey = `${config.liferay.url}|${className}`;
   const cached = classNameIdLookupCache.get(cacheKey);
   if (cached && cached > 0) {
     return cached;
   }
 
-  const response = await safeAuthedGet<Record<string, unknown>>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<Record<string, unknown>>(
+    gateway,
     `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
+    'fetch-class-name',
   );
   const resolved = Number(response.data?.classNameId ?? -1);
   if (!response.ok || resolved <= 0) {
@@ -780,24 +759,14 @@ async function resolveClassNameId(
 }
 
 async function findLayoutByFriendlyUrl(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   friendlyUrl: string,
   privateLayout: boolean,
   localeHint?: string,
 ): Promise<LayoutMatch | null> {
   // 1. Try exact match via recursive tree search (canonical URL, fast)
-  const canonical = await findLayoutByFriendlyUrlRecursive(
-    config,
-    apiClient,
-    accessToken,
-    groupId,
-    friendlyUrl,
-    privateLayout,
-    0,
-  );
+  const canonical = await findLayoutByFriendlyUrlRecursive(gateway, groupId, friendlyUrl, privateLayout, 0);
   if (canonical) {
     return {layout: canonical, locale: null};
   }
@@ -806,15 +775,7 @@ async function findLayoutByFriendlyUrl(
   if (localeHint) {
     const localeCandidates = [localeHint, ...KNOWN_LOCALES.filter((candidate) => candidate !== localeHint)];
     for (const candidateLocale of localeCandidates) {
-      const match = await findLayoutByLocaleFriendlyUrl(
-        config,
-        apiClient,
-        accessToken,
-        groupId,
-        friendlyUrl,
-        privateLayout,
-        candidateLocale,
-      );
+      const match = await findLayoutByLocaleFriendlyUrl(gateway, groupId, friendlyUrl, privateLayout, candidateLocale);
       if (match) {
         return match;
       }
@@ -824,15 +785,7 @@ async function findLayoutByFriendlyUrl(
   // 3. Last resort for localized friendly URLs without a locale prefix.
   // Try common locales and map the localized URL back to the canonical layout.
   for (const candidateLocale of KNOWN_LOCALES) {
-    const match = await findLayoutByLocaleFriendlyUrl(
-      config,
-      apiClient,
-      accessToken,
-      groupId,
-      friendlyUrl,
-      privateLayout,
-      candidateLocale,
-    );
+    const match = await findLayoutByLocaleFriendlyUrl(gateway, groupId, friendlyUrl, privateLayout, candidateLocale);
     if (match) {
       return match;
     }
@@ -842,9 +795,7 @@ async function findLayoutByFriendlyUrl(
 }
 
 async function findLayoutByLocaleFriendlyUrl(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   friendlyUrl: string,
   privateLayout: boolean,
@@ -854,18 +805,16 @@ async function findLayoutByLocaleFriendlyUrl(
     return null;
   }
 
-  const plid = await findLocalizedPagePlid(config, apiClient, accessToken, groupId, friendlyUrl, languageId);
+  const plid = await findLocalizedPagePlid(gateway, groupId, friendlyUrl, languageId);
   if (plid <= 0) {
     return null;
   }
-  const layout = await findLayoutByPlidRecursive(config, apiClient, accessToken, groupId, privateLayout, 0, plid);
+  const layout = await findLayoutByPlidRecursive(gateway, groupId, privateLayout, 0, plid);
   return layout ? {layout, locale: languageId} : null;
 }
 
 async function findLocalizedPagePlid(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   friendlyUrl: string,
   languageId: string,
@@ -875,16 +824,15 @@ async function findLocalizedPagePlid(
   const acceptLanguage = languageId.replace('_', '-');
 
   while (page <= lastPage) {
-    const response = await apiClient.get<{
+    const response = await safeGatewayGet<{
       items?: Array<{id?: number; friendlyUrlPath?: string}>;
       lastPage?: number;
-    }>(config.liferay.url, `/o/headless-delivery/v1.0/sites/${groupId}/site-pages?page=${page}&pageSize=100`, {
-      timeoutSeconds: config.liferay.timeoutSeconds,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Accept-Language': acceptLanguage,
-      },
-    });
+    }>(
+      gateway,
+      `/o/headless-delivery/v1.0/sites/${groupId}/site-pages?page=${page}&pageSize=100`,
+      `list-site-pages-${page}`,
+      {headers: {'Accept-Language': acceptLanguage}},
+    );
 
     if (!response.ok || !response.data) {
       return -1;
@@ -904,15 +852,13 @@ async function findLocalizedPagePlid(
 }
 
 async function findLayoutByFriendlyUrlRecursive(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   friendlyUrl: string,
   privateLayout: boolean,
   parentLayoutId: number,
 ): Promise<Layout | null> {
-  const layouts = await fetchLayoutsByParent(config, apiClient, accessToken, groupId, privateLayout, parentLayoutId);
+  const layouts = await fetchLayoutsByParent(gateway, groupId, privateLayout, parentLayoutId);
 
   for (const layout of layouts) {
     if ((layout.friendlyURL ?? '') === friendlyUrl) {
@@ -922,9 +868,7 @@ async function findLayoutByFriendlyUrlRecursive(
 
   for (const layout of layouts) {
     const child = await findLayoutByFriendlyUrlRecursive(
-      config,
-      apiClient,
-      accessToken,
+      gateway,
       groupId,
       friendlyUrl,
       privateLayout,
@@ -939,15 +883,13 @@ async function findLayoutByFriendlyUrlRecursive(
 }
 
 async function findLayoutByPlidRecursive(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   privateLayout: boolean,
   parentLayoutId: number,
   plid: number,
 ): Promise<Layout | null> {
-  const layouts = await fetchLayoutsByParent(config, apiClient, accessToken, groupId, privateLayout, parentLayoutId);
+  const layouts = await fetchLayoutsByParent(gateway, groupId, privateLayout, parentLayoutId);
 
   for (const layout of layouts) {
     if (Number(layout.plid ?? -1) === plid) {
@@ -956,15 +898,7 @@ async function findLayoutByPlidRecursive(
   }
 
   for (const layout of layouts) {
-    const child = await findLayoutByPlidRecursive(
-      config,
-      apiClient,
-      accessToken,
-      groupId,
-      privateLayout,
-      Number(layout.layoutId ?? 0),
-      plid,
-    );
+    const child = await findLayoutByPlidRecursive(gateway, groupId, privateLayout, Number(layout.layoutId ?? 0), plid);
     if (child) {
       return child;
     }
@@ -974,18 +908,15 @@ async function findLayoutByPlidRecursive(
 }
 
 async function fetchSitePageElement(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
   const slug = trimLeadingSlash(friendlyUrl);
-  const response = await authedGet<Record<string, unknown>>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<Record<string, unknown>>(
+    gateway,
     `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${encodeURIComponent(slug)}?fields=pageDefinition`,
+    'fetch-site-page-element',
   );
   if (!response.ok) {
     return null;
@@ -994,19 +925,16 @@ async function fetchSitePageElement(
 }
 
 async function tryFetchSitePageMetadata(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
   try {
     const slug = trimLeadingSlash(friendlyUrl);
-    const response = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
+    const response = await safeGatewayGet<Record<string, unknown>>(
+      gateway,
       `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${encodeURIComponent(slug)}?nestedFields=taxonomyCategoryBriefs`,
+      'fetch-site-page-metadata',
     );
     if (!response.ok || !response.data) {
       return null;
@@ -1018,25 +946,23 @@ async function tryFetchSitePageMetadata(
 }
 
 async function tryFetchFragmentEntryLinks(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   plid: number,
 ): Promise<Array<Record<string, unknown>>> {
   if (plid <= 0) {
     return [];
   }
-  const response = await authedGet<Array<Record<string, unknown>>>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<Array<Record<string, unknown>>>(
+    gateway,
     `/api/jsonws/fragment.fragmententrylink/get-fragment-entry-links?groupId=${groupId}&plid=${plid}`,
+    'fetch-fragment-entry-links',
   );
   return response.ok && Array.isArray(response.data) ? response.data : [];
 }
 
 async function collectLayoutJournalArticles(
+  gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
   accessToken: string,
@@ -1047,13 +973,14 @@ async function collectLayoutJournalArticles(
   const result: JournalArticleSummary[] = [];
 
   for (const ref of refs.values()) {
-    result.push(await buildJournalArticleSummary(config, apiClient, accessToken, ref));
+    result.push(await buildJournalArticleSummary(gateway, config, apiClient, accessToken, ref));
   }
 
   return result;
 }
 
 async function buildJournalArticleSummary(
+  gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
   accessToken: string,
@@ -1067,8 +994,7 @@ async function buildJournalArticleSummary(
     includeHeadlessInventoryFields?: boolean;
   },
 ): Promise<JournalArticleSummary> {
-  const article =
-    options?.article ?? (await fetchLatestJournalArticle(config, apiClient, accessToken, ref.groupId, ref.articleId));
+  const article = options?.article ?? (await fetchLatestJournalArticle(gateway, ref.groupId, ref.articleId));
   const articleSite =
     (await safeFetchGroupInfo(config, ref.groupId, {apiClient, accessToken})) ??
     (options?.fallbackSite
@@ -1094,14 +1020,14 @@ async function buildJournalArticleSummary(
   let structuredContent = options?.structuredContent ?? null;
   const uuid = firstString(article?.uuid);
   if (!structuredContent && uuid) {
-    structuredContent = await fetchStructuredContentByUuid(config, apiClient, accessToken, ref.groupId, uuid);
+    structuredContent = await fetchStructuredContentByUuid(gateway, ref.groupId, uuid);
   }
 
   // 2. If UUID lookup failed, try by ID as fallback
   if (!structuredContent) {
     const structuredContentId = Number(article?.id ?? article?.resourcePrimKey ?? -1);
     if (structuredContentId > 0) {
-      structuredContent = await fetchStructuredContentById(config, apiClient, accessToken, structuredContentId);
+      structuredContent = await fetchStructuredContentById(gateway, structuredContentId);
     }
   }
 
@@ -1128,12 +1054,7 @@ async function buildJournalArticleSummary(
 
   // 4. Resolve structure key if not already available
   if (!summary.ddmStructureKey && summary.contentStructureId) {
-    const contentStructure = await fetchContentStructureById(
-      config,
-      apiClient,
-      accessToken,
-      summary.contentStructureId,
-    );
+    const contentStructure = await fetchContentStructureById(gateway, summary.contentStructureId);
     const contentStructureKey = inferContentStructureKey(contentStructure);
     if (contentStructureKey) {
       summary.ddmStructureKey = contentStructureKey;
@@ -1143,6 +1064,7 @@ async function buildJournalArticleSummary(
   // 5. Resolve structure site and export path
   if (articleSite?.friendlyUrl && summary.ddmStructureKey) {
     const structureSite = await resolveStructureSiteByKey(
+      gateway,
       config,
       apiClient,
       accessToken,
@@ -1175,6 +1097,7 @@ async function buildJournalArticleSummary(
 }
 
 async function collectLayoutContentStructures(
+  gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
   accessToken: string,
@@ -1189,11 +1112,10 @@ async function collectLayoutContentStructures(
       continue;
     }
     seen.add(contentStructureId);
-    const response = await safeAuthedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
+    const response = await safeGatewayGet<Record<string, unknown>>(
+      gateway,
       `/o/headless-delivery/v1.0/content-structures/${contentStructureId}`,
+      'fetch-content-structure',
     );
     if (!response.ok) {
       continue;
@@ -1276,18 +1198,15 @@ function collectArticleRefFromPreferences(
 }
 
 async function fetchJournalArticleByUrlTitle(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   urlTitle: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const response = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
+    const response = await safeGatewayGet<Record<string, unknown>>(
+      gateway,
       `/api/jsonws/journal.journalarticle/get-article-by-url-title?groupId=${groupId}&urlTitle=${encodeURIComponent(urlTitle)}`,
+      'get-article-by-url-title',
     );
     if (!response.ok || hasJsonWsException(response.data)) {
       return null;
@@ -1299,18 +1218,15 @@ async function fetchJournalArticleByUrlTitle(
 }
 
 async function fetchLatestJournalArticle(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   articleId: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    const response = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
+    const response = await safeGatewayGet<Record<string, unknown>>(
+      gateway,
       `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${groupId}&articleId=${encodeURIComponent(articleId)}&status=0`,
+      'get-latest-article',
     );
     if (!response.ok || hasJsonWsException(response.data)) {
       return null;
@@ -1321,75 +1237,62 @@ async function fetchLatestJournalArticle(
   }
 }
 
-async function fetchStructuredContentById(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  id: number,
-): Promise<StructuredContent | null> {
+async function fetchStructuredContentById(gateway: LiferayGateway, id: number): Promise<StructuredContent | null> {
   if (id <= 0) {
     return null;
   }
-  const response = await authedGet<StructuredContent>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<StructuredContent>(
+    gateway,
     `/o/headless-delivery/v1.0/structured-contents/${id}`,
+    'fetch-structured-content-by-id',
   );
   return response.ok ? (response.data ?? null) : null;
 }
 
 async function fetchStructuredContentByUuid(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   uuid: string,
 ): Promise<StructuredContent | null> {
   if (!uuid) {
     return null;
   }
-  const response = await authedGet<StructuredContent>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<StructuredContent>(
+    gateway,
     `/o/headless-delivery/v1.0/sites/${groupId}/structured-contents/by-uuid/${encodeURIComponent(uuid)}`,
+    'fetch-structured-content-by-uuid',
   );
   return response.ok ? (response.data ?? null) : null;
 }
 
-async function fetchContentStructureById(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  id: number,
-): Promise<Record<string, unknown> | null> {
+async function fetchContentStructureById(gateway: LiferayGateway, id: number): Promise<Record<string, unknown> | null> {
   if (id <= 0) {
     return null;
   }
-  const response = await safeAuthedGet<Record<string, unknown>>(
-    config,
-    apiClient,
-    accessToken,
+  const response = await safeGatewayGet<Record<string, unknown>>(
+    gateway,
     `/o/headless-delivery/v1.0/content-structures/${id}`,
+    'fetch-content-structure-by-id',
   );
   return response.ok ? (response.data ?? null) : null;
 }
 
-async function safeAuthedGet<T>(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+async function safeGatewayGet<T>(
+  gateway: LiferayGateway,
   requestPath: string,
+  label: string,
+  requestOptions?: {headers?: Record<string, string>},
 ) {
   try {
-    return await authedGet<T>(config, apiClient, accessToken, requestPath);
+    const data = await gateway.getJson<T>(requestPath, label, requestOptions);
+    return {ok: true, status: 200, headers: new Headers(), body: '', data};
   } catch {
     return {ok: false, status: -1, headers: new Headers(), body: '', data: null};
   }
 }
 
 async function resolveStructureSiteByKey(
+  gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
   accessToken: string,
@@ -1398,11 +1301,10 @@ async function resolveStructureSiteByKey(
 ): Promise<{siteFriendlyUrl: string} | null> {
   const siteChain = await buildResourceSiteChain(config, startSite, {apiClient, accessToken});
   for (const site of siteChain) {
-    const response = await authedGet<Record<string, unknown>>(
-      config,
-      apiClient,
-      accessToken,
+    const response = await safeGatewayGet<Record<string, unknown>>(
+      gateway,
       `/o/data-engine/v2.0/sites/${site.siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(structureKey)}`,
+      'resolve-structure-site-by-key',
     );
     if (response.ok) {
       return {siteFriendlyUrl: site.siteFriendlyUrl};
@@ -1577,9 +1479,7 @@ function inferContentStructureKey(value: Record<string, unknown> | null | undefi
  * Single responsibility: isolated API calls for content page data.
  */
 async function fetchComponentPageData(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   canonicalFriendlyUrl: string,
   plid: number,
@@ -1588,9 +1488,9 @@ async function fetchComponentPageData(
   pageMetadata: Record<string, unknown> | null;
   rawFragmentLinks: Array<Record<string, unknown>>;
 }> {
-  const pageElement = await fetchSitePageElement(config, apiClient, accessToken, siteId, canonicalFriendlyUrl);
-  const pageMetadata = await tryFetchSitePageMetadata(config, apiClient, accessToken, siteId, canonicalFriendlyUrl);
-  const rawFragmentLinks = await tryFetchFragmentEntryLinks(config, apiClient, accessToken, siteId, plid);
+  const pageElement = await fetchSitePageElement(gateway, siteId, canonicalFriendlyUrl);
+  const pageMetadata = await tryFetchSitePageMetadata(gateway, siteId, canonicalFriendlyUrl);
+  const rawFragmentLinks = await tryFetchFragmentEntryLinks(gateway, siteId, plid);
 
   return {pageElement, pageMetadata, rawFragmentLinks};
 }
