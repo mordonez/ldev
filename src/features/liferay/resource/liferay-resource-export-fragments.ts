@@ -68,9 +68,7 @@ export async function runLiferayResourceExportFragments(
   const siteToken = resolveSiteToken(site.friendlyUrlPath);
   const outputDir = resolveArtifactSiteDir(config, 'fragment', siteToken, options?.dir);
   const srcDir = path.join(outputDir, 'src');
-
-  await fs.remove(srcDir);
-  await fs.ensureDir(srcDir);
+  let initializedOutput = false;
 
   const collections = await listFragmentCollections(config, site.id, dependencies);
   let collectionCount = 0;
@@ -89,6 +87,27 @@ export async function runLiferayResourceExportFragments(
       }
     }
 
+    const fragments = await listFragments(config, collectionId, dependencies);
+    const filteredFragments = fragments.filter((fragment) => {
+      if (!options?.fragment) {
+        return true;
+      }
+
+      const fragmentKey = String(fragment.fragmentEntryKey ?? '');
+      const fragmentName = String(fragment.name ?? '');
+      return [fragmentKey, fragmentName].includes(options.fragment);
+    });
+
+    if (filteredFragments.length === 0) {
+      continue;
+    }
+
+    if (!initializedOutput) {
+      await fs.remove(srcDir);
+      await fs.ensureDir(srcDir);
+      initializedOutput = true;
+    }
+
     const collectionKey =
       String(collection.fragmentCollectionKey ?? '').trim() ||
       sanitizeArtifactToken(String(collection.name ?? 'collection'));
@@ -99,17 +118,7 @@ export async function runLiferayResourceExportFragments(
       description: String(collection.description ?? ''),
     });
 
-    const fragments = await listFragments(config, collectionId, dependencies);
-    let collectionHasFragments = false;
-    for (const fragment of fragments) {
-      if (options?.fragment) {
-        const fragmentKey = String(fragment.fragmentEntryKey ?? '');
-        const fragmentName = String(fragment.name ?? '');
-        if (![fragmentKey, fragmentName].includes(options.fragment)) {
-          continue;
-        }
-      }
-
+    for (const fragment of filteredFragments) {
       const fragmentKey =
         String(fragment.fragmentEntryKey ?? '').trim() || sanitizeArtifactToken(String(fragment.name ?? 'fragment'));
       const fragmentDir = path.join(collectionDir, 'fragments', fragmentKey);
@@ -144,16 +153,9 @@ export async function runLiferayResourceExportFragments(
         name: String(fragment.name ?? fragmentKey),
         type: Number(fragment.type ?? 0) === 1 ? 'section' : 'component',
       });
-
-      collectionHasFragments = true;
       fragmentCount += 1;
     }
-
-    if (collectionHasFragments) {
-      collectionCount += 1;
-    } else {
-      await fs.remove(collectionDir);
-    }
+    collectionCount += 1;
   }
 
   return {

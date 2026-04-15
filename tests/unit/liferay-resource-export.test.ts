@@ -1185,6 +1185,95 @@ describe('liferay resource export', () => {
     ).toBe('');
   });
 
+  test('export-fragments --all-sites does not create directories for sites without fragments', async () => {
+    const dir = createTempDir('dev-cli-resource-export-fragments-no-empty-sites-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
+          return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/company/get-companies')) {
+          return new Response('[{"companyId":10157}]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/search-count?companyId=10157')) {
+          return new Response('1', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/search?companyId=10157')) {
+          return new Response(
+            '[{"groupId":20122,"friendlyURL":"/cataleg-estrategies","nameCurrentValue":"Cataleg","site":true}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-friendly-url-path/cataleg-estrategies')) {
+          return new Response('{"id":20122,"friendlyUrlPath":"/cataleg-estrategies","name":"Cataleg"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20122')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response(
+            '[{"fragmentCollectionId":501,"name":"Marketing","fragmentCollectionKey":"marketing","description":"Marketing fragments"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20122')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=501')) {
+          return new Response(
+            '[{"fragmentEntryId":601,"fragmentEntryKey":"hero-banner","name":"Hero Banner","icon":"square","type":1}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceExportFragments(
+      config,
+      {allSites: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('all-sites');
+    expect(result.scannedSites).toBe(2);
+    expect(result.fragmentCount).toBe(1);
+    expect(await fs.pathExists(path.join(dir, 'liferay', 'fragments', 'sites', 'cataleg-estrategies'))).toBe(false);
+    expect(
+      await fs.pathExists(
+        path.join(dir, 'liferay', 'fragments', 'sites', 'global', 'src', 'marketing', 'fragments', 'hero-banner'),
+      ),
+    ).toBe(true);
+  });
+
   test('export-fragments keeps historical project-root behavior when --dir is provided', async () => {
     const dir = createTempDir('dev-cli-resource-export-fragments-dir-');
     const config = {
