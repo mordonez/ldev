@@ -111,6 +111,38 @@ type FolderTree = {
   missingRootFolders: number[];
 };
 
+type PruneContext = {
+  apiClient: LiferayApiClient;
+  tokenClient: OAuthTokenClient;
+  printer?: Printer;
+  gateway: LiferayGateway;
+  longRunningGateway: LiferayGateway;
+  groupId: number;
+  siteFriendlyUrl?: string;
+  rootFolderIds: number[];
+  wholeFolderDelete: boolean;
+};
+
+type StructureResolution = {
+  structureMap: Map<number, string>;
+  structureNameMap: Map<string, string>;
+};
+
+type PrunePlanSummary = {
+  candidateArticles: ArticleWithFolder[];
+  summaryByKey: Map<string, StructurePruneSummary>;
+  toDelete: ArticleWithFolder[];
+  keptCount: number;
+  plannedRemovableFolderIds: number[];
+  sampleArticles: SampleArticle[];
+};
+
+type PruneExecutionResult = {
+  removedFolders: number[];
+  failedArticles: FailedArticle[];
+  failedFolders: FailedFolder[];
+};
+
 const ARTICLE_DELETE_CONCURRENCY = 2;
 const ARTICLE_INVENTORY_CONCURRENCY = 2;
 
@@ -121,248 +153,51 @@ export async function runContentPrune(
   options: ContentPruneOptions,
   dependencies?: PruneDependencies,
 ): Promise<ContentPruneResult> {
-  if (
-    (options.site === undefined && options.groupId === undefined) ||
-    (options.site && options.groupId !== undefined)
-  ) {
-    throw LiferayErrors.contentPruneError('Use exactly one of site or groupId.');
-  }
+  assertValidContentPruneOptions(options);
 
-  const rootFolderIds = [...new Set(options.rootFolders)];
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
-  const printer = dependencies?.printer;
-  const gateway = createLiferayGateway(config, apiClient, tokenClient);
-  const longRunningGateway = createLiferayGateway(
-    {
-      ...config,
-      liferay: {
-        ...config.liferay,
-        timeoutSeconds: Math.max(config.liferay.timeoutSeconds, 600),
-      },
-    },
-    apiClient,
-    tokenClient,
+  const context = await createPruneContext(config, options, dependencies);
+  const tree = await runStep(context.printer, 'Resolving folder scope', () =>
+    collectFolderTree(context.gateway, context.rootFolderIds, context.groupId, context.wholeFolderDelete),
   );
 
-  // 1. Resolve groupId
-  let groupId: number;
-  let siteFriendlyUrl: string | undefined;
-
-  if (options.site) {
-    const site = await resolveSite(config, options.site, {apiClient, tokenClient});
-    groupId = site.id;
-    siteFriendlyUrl = site.friendlyUrlPath;
-  } else {
-    groupId = options.groupId!;
+  if (context.wholeFolderDelete) {
+    return runWholeFolderDelete(context, options, tree);
   }
 
-  const wholeFolderDelete = !options.dryRun && canDeleteWholeFolders(options);
+  const {structureMap, structureNameMap} = await resolvePruneStructures(config, context, options);
+  const allArticles = await collectPruneArticles(context.printer, context.longRunningGateway, context.groupId, tree);
 
-  // 2. Validate root folders and build folder tree
-  const tree = await runStep(printer, 'Resolving folder scope', () =>
-    collectFolderTree(gateway, rootFolderIds, groupId, wholeFolderDelete),
-  );
-
-  if (wholeFolderDelete) {
-    const removedFolders: number[] = [];
-    const failedFolders: FailedFolder[] = [];
-    const articleCount = countStructuredContents(tree.allFolders);
-    const existingRootFolders = rootFolderIds.filter((folderId) => tree.allFolders.has(folderId));
-
-    await runStep(printer, 'Deleting root folders', async () => {
-      for (const folderId of existingRootFolders) {
-        const deletion = await deleteJournalFolder(longRunningGateway, folderId);
-        if (deletion.ok) {
-          removedFolders.push(folderId);
-        } else {
-          failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
-        }
-      }
-    });
-
-    return {
-      ok: true,
-      mode: options.dryRun ? 'dry-run' : 'apply',
-      groupId,
-      siteFriendlyUrl,
-      rootFolders: rootFolderIds,
-      folderCount: tree.allFolders.size,
-      articleCount,
-      keptCount: 0,
-      deletedCount: options.dryRun
-        ? articleCount
-        : countStructuredContentsForRoots(removedFolders, tree.allFolders, tree.childrenMap),
-      structures: [],
-      sampleArticles: [],
-      removedFolders,
-      missingFolders: tree.missingRootFolders,
-      failedArticles: [],
-      failedFolders,
-    };
-  }
-
-  // 3. Resolve structures
-  const structureMap = new Map<number, string>(); // structureId -> key
-  const structureNameMap = new Map<string, string>(); // key -> name
-
-  await runStep(printer, 'Resolving journal structures', () =>
-    resolveJournalStructureDefinitions(config, apiClient, tokenClient, groupId, structureMap, structureNameMap),
-  );
-
-  if (options.structures && options.structures.length > 0) {
-    for (const key of options.structures) {
-      const found = [...structureMap.values()].includes(key);
-      if (!found) {
-        throw LiferayErrors.contentPruneError(`Structure "${key}" not found in group ${groupId}.`);
-      }
-    }
-  }
-
-  // 4. Fetch all articles in all folders
-  const allArticles = await runStep(printer, 'Collecting journal articles', async () => {
-    const articles: ArticleWithFolder[] = [];
-    await runConcurrent([...tree.allFolders.keys()], ARTICLE_INVENTORY_CONCURRENCY, async (folderId) => {
-      const folderArticles = await fetchJournalArticlesInFolder(longRunningGateway, groupId, folderId);
-      articles.push(...folderArticles);
-    });
-
-    return dedupeArticles(articles);
-  });
-
-  await runStep(printer, 'Hydrating missing structure metadata', () =>
+  await runStep(context.printer, 'Hydrating missing structure metadata', () =>
     hydrateMissingJournalStructureDefinitions(
-      gateway,
+      context.gateway,
       allArticles.map((article) => article.contentStructureId).filter(isPresentNumber),
       structureMap,
       structureNameMap,
     ),
   );
 
-  // 5. Filter by structure (if structures specified)
-  let candidateArticles: ArticleWithFolder[];
-  if (options.structures && options.structures.length > 0) {
-    const filterKeys = new Set(options.structures);
-    candidateArticles = allArticles.filter((a) => {
-      const key = a.contentStructureId !== undefined ? structureMap.get(a.contentStructureId) : undefined;
-      return key !== undefined && filterKeys.has(key);
-    });
-  } else {
-    candidateArticles = allArticles;
-  }
-
-  // 6. Plan: group by folder or structure, sort deterministically, apply keep
-  const keepPerBucket = options.keep ?? 0;
-  const keepScope = options.keepScope ?? 'folder';
-  const plan = await runStep(printer, 'Planning content prune', async () =>
-    buildPlan(candidateArticles, structureMap, keepPerBucket, keepScope),
+  const planSummary = await buildPrunePlanSummary(
+    context.printer,
+    options,
+    context.rootFolderIds,
+    tree,
+    allArticles,
+    structureMap,
+    structureNameMap,
   );
 
-  // 7. Build structure summaries
-  const summaryByKey = new Map<string, StructurePruneSummary>();
-  for (const item of plan) {
-    const entry = summaryByKey.get(item.structureKey);
-    if (entry) {
-      entry.found++;
-      if (item.action === 'keep') entry.kept++;
-      else entry.deleted++;
-    } else {
-      summaryByKey.set(item.structureKey, {
-        key: item.structureKey,
-        name: structureNameMap.get(item.structureKey) ?? item.structureKey,
-        found: 1,
-        kept: item.action === 'keep' ? 1 : 0,
-        deleted: item.action === 'delete' ? 1 : 0,
-      });
-    }
-  }
-
-  const toDelete = plan.filter((p) => p.action === 'delete').map((p) => p.article);
-  const keptCount = plan.filter((p) => p.action === 'keep').length;
-
-  // 8. Determine removable folders (only possible when all articles in a folder are deleted)
-  const toDeleteByFolder = new Map<number, number>();
-  for (const article of toDelete) {
-    toDeleteByFolder.set(article.folderId, (toDeleteByFolder.get(article.folderId) ?? 0) + 1);
-  }
-
-  const plannedRemovableFolderIds = computeRemovableFolderIds(
-    rootFolderIds,
-    tree.allFolders,
-    tree.childrenMap,
-    tree.depths,
-    toDeleteByFolder,
-  );
-
-  // 9. Build stable sample (sorted by date desc + id asc)
-  const sampleArticles: SampleArticle[] = plan
-    .filter((p) => p.action === 'delete')
-    .sort((left, right) => compareArticlesByRecencyDescThenIdAsc(left.article, right.article))
-    .slice(0, 5)
-    .map((p) => ({
-      id: p.article.id ?? 0,
-      title: normalizeLocalizedName(p.article.title),
-      structureKey: p.structureKey,
-      modifiedDate: p.article.dateModified ?? '',
-      action: 'delete' as const,
-    }));
-
-  // 10. Execute (if not dry-run)
-  const removedFolders: number[] = [];
-  const failedArticles: FailedArticle[] = [];
-  const failedFolders: FailedFolder[] = [];
-  const deletedByFolder = new Map<number, number>();
-  if (!options.dryRun) {
-    await runStep(printer, 'Deleting journal articles', async () => {
-      await runConcurrent(toDelete, ARTICLE_DELETE_CONCURRENCY, async (article) => {
-        const failure = await deleteJournalArticle(
-          gateway,
-          groupId,
-          article.id ?? 0,
-          article.key ?? String(article.id ?? ''),
-        );
-        if (failure) {
-          failedArticles.push(failure);
-          return;
-        }
-
-        deletedByFolder.set(article.folderId, (deletedByFolder.get(article.folderId) ?? 0) + 1);
-      });
-    });
-
-    await runStep(printer, 'Deleting empty folders', async () => {
-      const sortedRemovable = computeRemovableFolderIds(
-        rootFolderIds,
-        tree.allFolders,
-        tree.childrenMap,
-        tree.depths,
-        deletedByFolder,
+  const execution = options.dryRun
+    ? {removedFolders: [], failedArticles: [], failedFolders: []}
+    : await executePrunePlan(
+        context.printer,
+        context.gateway,
+        context.groupId,
+        context.rootFolderIds,
+        tree,
+        planSummary.toDelete,
       );
-      for (const folderId of sortedRemovable) {
-        const deletion = await tryDeleteFolder(gateway, folderId);
-        if (deletion.ok) removedFolders.push(folderId);
-        else failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
-      }
-    });
-  }
 
-  return {
-    ok: true,
-    mode: options.dryRun ? 'dry-run' : 'apply',
-    groupId,
-    siteFriendlyUrl,
-    rootFolders: rootFolderIds,
-    folderCount: tree.allFolders.size,
-    articleCount: candidateArticles.length,
-    keptCount,
-    deletedCount: options.dryRun ? toDelete.length : Math.max(toDelete.length - failedArticles.length, 0),
-    structures: [...summaryByKey.values()].sort((a, b) => a.key.localeCompare(b.key)),
-    sampleArticles,
-    removedFolders: options.dryRun ? plannedRemovableFolderIds : removedFolders,
-    missingFolders: [],
-    failedArticles,
-    failedFolders,
-  };
+  return buildPruneResult(context, options, tree, planSummary, execution);
 }
 
 export function formatContentPrune(result: ContentPruneResult): string {
@@ -433,6 +268,335 @@ export function formatContentPrune(result: ContentPruneResult): string {
 }
 
 // === Private helpers ===
+
+function assertValidContentPruneOptions(options: ContentPruneOptions): void {
+  if (
+    (options.site === undefined && options.groupId === undefined) ||
+    (options.site && options.groupId !== undefined)
+  ) {
+    throw LiferayErrors.contentPruneError('Use exactly one of site or groupId.');
+  }
+}
+
+async function createPruneContext(
+  config: AppConfig,
+  options: ContentPruneOptions,
+  dependencies?: PruneDependencies,
+): Promise<PruneContext> {
+  const rootFolderIds = [...new Set(options.rootFolders)];
+  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+  const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
+  const gateway = createLiferayGateway(config, apiClient, tokenClient);
+  const longRunningGateway = createLiferayGateway(
+    {
+      ...config,
+      liferay: {
+        ...config.liferay,
+        timeoutSeconds: Math.max(config.liferay.timeoutSeconds, 600),
+      },
+    },
+    apiClient,
+    tokenClient,
+  );
+
+  let groupId: number;
+  let siteFriendlyUrl: string | undefined;
+
+  if (options.site) {
+    const site = await resolveSite(config, options.site, {apiClient, tokenClient});
+    groupId = site.id;
+    siteFriendlyUrl = site.friendlyUrlPath;
+  } else {
+    groupId = options.groupId!;
+  }
+
+  return {
+    apiClient,
+    tokenClient,
+    printer: dependencies?.printer,
+    gateway,
+    longRunningGateway,
+    groupId,
+    siteFriendlyUrl,
+    rootFolderIds,
+    wholeFolderDelete: !options.dryRun && canDeleteWholeFolders(options),
+  };
+}
+
+async function runWholeFolderDelete(
+  context: PruneContext,
+  options: ContentPruneOptions,
+  tree: FolderTree,
+): Promise<ContentPruneResult> {
+  const removedFolders: number[] = [];
+  const failedFolders: FailedFolder[] = [];
+  const articleCount = countStructuredContents(tree.allFolders);
+  const existingRootFolders = context.rootFolderIds.filter((folderId) => tree.allFolders.has(folderId));
+
+  await runStep(context.printer, 'Deleting root folders', async () => {
+    for (const folderId of existingRootFolders) {
+      const deletion = await deleteJournalFolder(context.longRunningGateway, folderId);
+      if (deletion.ok) {
+        removedFolders.push(folderId);
+      } else {
+        failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
+      }
+    }
+  });
+
+  return {
+    ok: true,
+    mode: options.dryRun ? 'dry-run' : 'apply',
+    groupId: context.groupId,
+    siteFriendlyUrl: context.siteFriendlyUrl,
+    rootFolders: context.rootFolderIds,
+    folderCount: tree.allFolders.size,
+    articleCount,
+    keptCount: 0,
+    deletedCount: options.dryRun
+      ? articleCount
+      : countStructuredContentsForRoots(removedFolders, tree.allFolders, tree.childrenMap),
+    structures: [],
+    sampleArticles: [],
+    removedFolders,
+    missingFolders: tree.missingRootFolders,
+    failedArticles: [],
+    failedFolders,
+  };
+}
+
+async function resolvePruneStructures(
+  config: AppConfig,
+  context: PruneContext,
+  options: ContentPruneOptions,
+): Promise<StructureResolution> {
+  const structureMap = new Map<number, string>();
+  const structureNameMap = new Map<string, string>();
+
+  await runStep(context.printer, 'Resolving journal structures', () =>
+    resolveJournalStructureDefinitions(
+      config,
+      context.apiClient,
+      context.tokenClient,
+      context.groupId,
+      structureMap,
+      structureNameMap,
+    ),
+  );
+
+  if (options.structures && options.structures.length > 0) {
+    const availableKeys = new Set(structureMap.values());
+    for (const key of options.structures) {
+      if (!availableKeys.has(key)) {
+        throw LiferayErrors.contentPruneError(`Structure "${key}" not found in group ${context.groupId}.`);
+      }
+    }
+  }
+
+  return {structureMap, structureNameMap};
+}
+
+async function collectPruneArticles(
+  printer: Printer | undefined,
+  gateway: LiferayGateway,
+  groupId: number,
+  tree: FolderTree,
+): Promise<ArticleWithFolder[]> {
+  return runStep(printer, 'Collecting journal articles', async () => {
+    const articles: ArticleWithFolder[] = [];
+    await runConcurrent([...tree.allFolders.keys()], ARTICLE_INVENTORY_CONCURRENCY, async (folderId) => {
+      const folderArticles = await fetchJournalArticlesInFolder(gateway, groupId, folderId);
+      articles.push(...folderArticles);
+    });
+
+    return dedupeArticles(articles);
+  });
+}
+
+async function buildPrunePlanSummary(
+  printer: Printer | undefined,
+  options: ContentPruneOptions,
+  rootFolderIds: number[],
+  tree: FolderTree,
+  allArticles: ArticleWithFolder[],
+  structureMap: Map<number, string>,
+  structureNameMap: Map<string, string>,
+): Promise<PrunePlanSummary> {
+  const candidateArticles = filterCandidateArticles(allArticles, options.structures, structureMap);
+  const keepPerBucket = options.keep ?? 0;
+  const keepScope = options.keepScope ?? 'folder';
+  const plan = await runStep(printer, 'Planning content prune', async () =>
+    buildPlan(candidateArticles, structureMap, keepPerBucket, keepScope),
+  );
+  const summaryByKey = buildStructureSummary(plan, structureNameMap);
+  const toDelete = plan.filter((item) => item.action === 'delete').map((item) => item.article);
+  const keptCount = plan.filter((item) => item.action === 'keep').length;
+  const plannedRemovableFolderIds = computeRemovableFolderIds(
+    rootFolderIds,
+    tree.allFolders,
+    tree.childrenMap,
+    tree.depths,
+    buildArticleCountByFolder(toDelete),
+  );
+
+  return {
+    candidateArticles,
+    summaryByKey,
+    toDelete,
+    keptCount,
+    plannedRemovableFolderIds,
+    sampleArticles: buildSampleArticles(plan),
+  };
+}
+
+async function executePrunePlan(
+  printer: Printer | undefined,
+  gateway: LiferayGateway,
+  groupId: number,
+  rootFolderIds: number[],
+  tree: FolderTree,
+  toDelete: ArticleWithFolder[],
+): Promise<PruneExecutionResult> {
+  const removedFolders: number[] = [];
+  const failedArticles: FailedArticle[] = [];
+  const failedFolders: FailedFolder[] = [];
+  const deletedByFolder = new Map<number, number>();
+
+  await runStep(printer, 'Deleting journal articles', async () => {
+    await runConcurrent(toDelete, ARTICLE_DELETE_CONCURRENCY, async (article) => {
+      const failure = await deleteJournalArticle(
+        gateway,
+        groupId,
+        article.id ?? 0,
+        article.key ?? String(article.id ?? ''),
+      );
+      if (failure) {
+        failedArticles.push(failure);
+        return;
+      }
+
+      deletedByFolder.set(article.folderId, (deletedByFolder.get(article.folderId) ?? 0) + 1);
+    });
+  });
+
+  await runStep(printer, 'Deleting empty folders', async () => {
+    const sortedRemovable = computeRemovableFolderIds(
+      rootFolderIds,
+      tree.allFolders,
+      tree.childrenMap,
+      tree.depths,
+      deletedByFolder,
+    );
+    for (const folderId of sortedRemovable) {
+      const deletion = await tryDeleteFolder(gateway, folderId);
+      if (deletion.ok) {
+        removedFolders.push(folderId);
+      } else {
+        failedFolders.push({folderId, status: deletion.status, operation: 'delete-folder'});
+      }
+    }
+  });
+
+  return {removedFolders, failedArticles, failedFolders};
+}
+
+function buildPruneResult(
+  context: PruneContext,
+  options: ContentPruneOptions,
+  tree: FolderTree,
+  planSummary: PrunePlanSummary,
+  execution: PruneExecutionResult,
+): ContentPruneResult {
+  return {
+    ok: true,
+    mode: options.dryRun ? 'dry-run' : 'apply',
+    groupId: context.groupId,
+    siteFriendlyUrl: context.siteFriendlyUrl,
+    rootFolders: context.rootFolderIds,
+    folderCount: tree.allFolders.size,
+    articleCount: planSummary.candidateArticles.length,
+    keptCount: planSummary.keptCount,
+    deletedCount: options.dryRun
+      ? planSummary.toDelete.length
+      : Math.max(planSummary.toDelete.length - execution.failedArticles.length, 0),
+    structures: [...planSummary.summaryByKey.values()].sort((left, right) => left.key.localeCompare(right.key)),
+    sampleArticles: planSummary.sampleArticles,
+    removedFolders: options.dryRun ? planSummary.plannedRemovableFolderIds : execution.removedFolders,
+    missingFolders: [],
+    failedArticles: execution.failedArticles,
+    failedFolders: execution.failedFolders,
+  };
+}
+
+function filterCandidateArticles(
+  allArticles: ArticleWithFolder[],
+  structures: string[] | undefined,
+  structureMap: Map<number, string>,
+): ArticleWithFolder[] {
+  if (!structures || structures.length === 0) {
+    return allArticles;
+  }
+
+  const filterKeys = new Set(structures);
+  return allArticles.filter((article) => {
+    const key = article.contentStructureId !== undefined ? structureMap.get(article.contentStructureId) : undefined;
+    return key !== undefined && filterKeys.has(key);
+  });
+}
+
+function buildStructureSummary(
+  plan: ArticlePlan[],
+  structureNameMap: Map<string, string>,
+): Map<string, StructurePruneSummary> {
+  const summaryByKey = new Map<string, StructurePruneSummary>();
+
+  for (const item of plan) {
+    const entry = summaryByKey.get(item.structureKey);
+    if (entry) {
+      entry.found++;
+      if (item.action === 'keep') {
+        entry.kept++;
+      } else {
+        entry.deleted++;
+      }
+      continue;
+    }
+
+    summaryByKey.set(item.structureKey, {
+      key: item.structureKey,
+      name: structureNameMap.get(item.structureKey) ?? item.structureKey,
+      found: 1,
+      kept: item.action === 'keep' ? 1 : 0,
+      deleted: item.action === 'delete' ? 1 : 0,
+    });
+  }
+
+  return summaryByKey;
+}
+
+function buildArticleCountByFolder(articles: ArticleWithFolder[]): Map<number, number> {
+  const counts = new Map<number, number>();
+
+  for (const article of articles) {
+    counts.set(article.folderId, (counts.get(article.folderId) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
+function buildSampleArticles(plan: ArticlePlan[]): SampleArticle[] {
+  return plan
+    .filter((item) => item.action === 'delete')
+    .sort((left, right) => compareArticlesByRecencyDescThenIdAsc(left.article, right.article))
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.article.id ?? 0,
+      title: normalizeLocalizedName(item.article.title),
+      structureKey: item.structureKey,
+      modifiedDate: item.article.dateModified ?? '',
+      action: 'delete',
+    }));
+}
 
 async function collectFolderTree(
   gateway: LiferayGateway,
