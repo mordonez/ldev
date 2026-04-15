@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError, normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {resolveRepoPath, resolveStructuresBaseDir} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {runLiferayResourceSyncStructure} from './liferay-resource-sync-structure.js';
 
@@ -52,10 +52,8 @@ export async function runLiferayResourceImportStructures(
     );
   }
 
-  const baseDir = path.resolve(
-    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveStructuresBaseDir(config),
-  );
-  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [siteToToken(options?.site ?? '/global')];
+  const baseDir = resolveArtifactBaseDir(config, 'structure', options?.dir);
+  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [resolveSiteToken(options?.site ?? '/global')];
 
   let processed = 0;
   let failed = 0;
@@ -68,7 +66,7 @@ export async function runLiferayResourceImportStructures(
         await runLiferayResourceSyncStructure(
           config,
           {
-            site: tokenToSite(siteToken),
+            site: siteTokenToFriendlyUrl(siteToken),
             key,
             file,
             checkOnly: Boolean(options?.checkOnly),
@@ -85,7 +83,7 @@ export async function runLiferayResourceImportStructures(
         processed += 1;
       } catch (error) {
         failed += 1;
-        const failure = toImportFailure(tokenToSite(siteToken), key, file, error);
+        const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), key, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
           throw new CliError(`Import failed for structure '${key}' in site '${failure.site}': ${failure.message}`, {
@@ -99,8 +97,8 @@ export async function runLiferayResourceImportStructures(
 
   return {
     ...(options?.allSites
-      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => tokenToSite(token))}
-      : {mode: 'single-site' as const, site: tokenToSite(siteTokens[0] ?? 'global')}),
+      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => siteTokenToFriendlyUrl(token))}
+      : {mode: 'single-site' as const, site: siteTokenToFriendlyUrl(siteTokens[0] ?? 'global')}),
     processed,
     failed,
     baseDir,
@@ -159,14 +157,6 @@ async function listFiles(baseDir: string, extension: string, allowedKeys: string
     }
   }
   return matches.sort();
-}
-
-function siteToToken(site: string): string {
-  return site.replace(/^\//, '').trim() || 'global';
-}
-
-function tokenToSite(token: string): string {
-  return token === 'global' ? '/global' : `/${token}`;
 }
 
 function toImportFailure(site: string, entry: string, file: string, error: unknown): LiferayResourceImportFailure {

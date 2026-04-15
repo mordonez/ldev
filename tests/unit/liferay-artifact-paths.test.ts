@@ -8,6 +8,8 @@ import {
   resolveArtifactSiteDir,
   resolveFragmentProjectDir,
   sanitizeArtifactToken,
+  resolveSiteToken,
+  siteTokenToFriendlyUrl,
   type ArtifactType,
 } from '../../src/features/liferay/resource/artifact-paths.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
@@ -74,6 +76,62 @@ describe('sanitizeArtifactToken', () => {
 
   test('unicode chars are replaced', () => {
     expect(sanitizeArtifactToken('café')).toBe('caf_');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveSiteToken – site friendly URL → directory token
+// ---------------------------------------------------------------------------
+
+describe('resolveSiteToken', () => {
+  test('strips leading slash', () => {
+    expect(resolveSiteToken('/my-site')).toBe('my-site');
+  });
+
+  test('empty string returns global', () => {
+    expect(resolveSiteToken('')).toBe('global');
+  });
+
+  test('whitespace-only returns global', () => {
+    expect(resolveSiteToken('   ')).toBe('global');
+  });
+
+  test('/global returns global', () => {
+    expect(resolveSiteToken('/global')).toBe('global');
+  });
+
+  test('already-clean token passes through', () => {
+    expect(resolveSiteToken('my-site')).toBe('my-site');
+  });
+
+  test('nested path keeps structure', () => {
+    expect(resolveSiteToken('/parent/child')).toBe('parent/child');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// siteTokenToFriendlyUrl – directory token → site friendly URL (inverse)
+// ---------------------------------------------------------------------------
+
+describe('siteTokenToFriendlyUrl', () => {
+  test('global token → /global', () => {
+    expect(siteTokenToFriendlyUrl('global')).toBe('/global');
+  });
+
+  test('regular token → /token', () => {
+    expect(siteTokenToFriendlyUrl('my-site')).toBe('/my-site');
+  });
+
+  test('roundtrip resolveSiteToken → siteTokenToFriendlyUrl', () => {
+    for (const url of ['/global', '/my-site', '/group/subsite']) {
+      expect(siteTokenToFriendlyUrl(resolveSiteToken(url))).toBe(url);
+    }
+  });
+
+  test('roundtrip siteTokenToFriendlyUrl → resolveSiteToken', () => {
+    for (const token of ['global', 'my-site', 'group/subsite']) {
+      expect(resolveSiteToken(siteTokenToFriendlyUrl(token))).toBe(token);
+    }
   });
 });
 

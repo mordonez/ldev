@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError, normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {resolveRepoPath, resolveTemplatesBaseDir} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {LiferayResourceImportFailure} from './liferay-resource-import-structures.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {runLiferayResourceSyncTemplate} from './liferay-resource-sync-template.js';
@@ -41,10 +41,8 @@ export async function runLiferayResourceImportTemplates(
     );
   }
 
-  const baseDir = path.resolve(
-    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveTemplatesBaseDir(config),
-  );
-  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [siteToToken(options?.site ?? '/global')];
+  const baseDir = resolveArtifactBaseDir(config, 'template', options?.dir);
+  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [resolveSiteToken(options?.site ?? '/global')];
 
   let processed = 0;
   let failed = 0;
@@ -57,7 +55,7 @@ export async function runLiferayResourceImportTemplates(
         await runLiferayResourceSyncTemplate(
           config,
           {
-            site: tokenToSite(siteToken),
+            site: siteTokenToFriendlyUrl(siteToken),
             key: id,
             file,
             structureKey: options?.structureKey,
@@ -69,7 +67,7 @@ export async function runLiferayResourceImportTemplates(
         processed += 1;
       } catch (error) {
         failed += 1;
-        const failure = toImportFailure(tokenToSite(siteToken), id, file, error);
+        const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), id, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
           throw new CliError(`Import failed for template '${id}' in site '${failure.site}': ${failure.message}`, {
@@ -83,8 +81,8 @@ export async function runLiferayResourceImportTemplates(
 
   return {
     ...(options?.allSites
-      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => tokenToSite(token))}
-      : {mode: 'single-site' as const, site: tokenToSite(siteTokens[0] ?? 'global')}),
+      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => siteTokenToFriendlyUrl(token))}
+      : {mode: 'single-site' as const, site: siteTokenToFriendlyUrl(siteTokens[0] ?? 'global')}),
     processed,
     failed,
     baseDir,
@@ -151,14 +149,6 @@ function normalizeTemplateKeys(templateKeys: string[] | undefined): string[] {
   }
 
   return [...new Set(templateKeys.map((value) => value.trim()).filter((value) => value !== ''))];
-}
-
-function siteToToken(site: string): string {
-  return site.replace(/^\//, '').trim() || 'global';
-}
-
-function tokenToSite(token: string): string {
-  return token === 'global' ? '/global' : `/${token}`;
 }
 
 function toImportFailure(site: string, entry: string, file: string, error: unknown): LiferayResourceImportFailure {

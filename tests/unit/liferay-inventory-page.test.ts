@@ -1,4 +1,5 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
+import path from 'node:path';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
@@ -25,6 +26,20 @@ const CONFIG = {
     timeoutSeconds: 30,
   },
 };
+
+const EXPECTED_GUEST_STRUCTURE_EXPORT_PATH = path.resolve(
+  CONFIG.repoRoot,
+  'liferay/resources/journal/structures',
+  'guest',
+  'NEWS.json',
+);
+
+const EXPECTED_GUEST_TEMPLATE_EXPORT_PATH = path.resolve(
+  CONFIG.repoRoot,
+  'liferay/resources/journal/templates',
+  'guest',
+  'NEWS_TEMPLATE.ftl',
+);
 
 const TOKEN_CLIENT = {
   fetchClientCredentialsToken: async () => ({
@@ -953,12 +968,15 @@ describe('liferay inventory page', () => {
           contentStructureId: 301,
           key: 'NEWS',
           siteFriendlyUrl: '/guest',
+          exportPath: EXPECTED_GUEST_STRUCTURE_EXPORT_PATH,
         },
       ],
     });
     if (result.pageType !== 'displayPage') {
       throw new Error('Expected display page');
     }
+    expect(result.journalArticles?.[0]?.structureExportPath).toBe(EXPECTED_GUEST_STRUCTURE_EXPORT_PATH);
+    expect(result.journalArticles?.[0]?.templateExportPath).toBe(EXPECTED_GUEST_TEMPLATE_EXPORT_PATH);
     expect('articleProperties' in result).toBe(false);
     expect(formatLiferayInventoryPage(result)).toContain('DISPLAY PAGE');
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=News title');
