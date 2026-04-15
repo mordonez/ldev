@@ -19,12 +19,106 @@ import type {
   JournalArticleSummary,
   PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
+import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
 
 export {resolveInventoryPageRequest};
 
 type InventoryPageDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
+};
+
+export type InventoryPageConfigurationGeneral = {
+  type: string;
+  name: string;
+  hiddenInNavigation: boolean;
+  friendlyUrl: string;
+  queryString: string;
+  targetType: string;
+  target: string;
+  categories: string[];
+  tags: string[];
+  privateLayout: boolean;
+};
+
+export type InventoryPageConfigurationDesign = {
+  theme: {
+    useInheritedTheme: boolean;
+    themeId: string;
+    colorSchemeId: string;
+    styleBookEntryId: number;
+    masterLayoutPlid: number;
+    faviconFileEntryId: number;
+  };
+  themeFlags: {
+    showHeader?: boolean;
+    showFooter?: boolean;
+    showHeaderSearch?: boolean;
+    wrapWidgetPageContent?: boolean;
+    layoutUpdateable?: boolean;
+    published?: boolean;
+  };
+  customCss: string;
+  customJavascript: string;
+  customFields: {[key: string]: unknown};
+};
+
+export type InventoryPageConfigurationSeo = {
+  title: string;
+  description: string;
+  keywords: string;
+  robots: string;
+  sitemap: {
+    include?: boolean;
+    changefreq: string;
+  };
+};
+
+export type InventoryPageConfigurationOpenGraph = {
+  title?: string;
+  description?: string;
+  type?: string;
+  url?: string;
+  imageAlt?: string;
+  imageFileEntryId?: number;
+};
+
+export type InventoryPageConfigurationCustomMetaTags = {
+  values: unknown;
+};
+
+export type InventoryPageConfigurationTabs = {
+  general: InventoryPageConfigurationGeneral;
+  design: InventoryPageConfigurationDesign;
+  seo: InventoryPageConfigurationSeo;
+  openGraph: InventoryPageConfigurationOpenGraph;
+  customMetaTags: InventoryPageConfigurationCustomMetaTags;
+};
+
+export type InventoryPageRawLayout = {
+  layoutId: number;
+  plid: number;
+  type: string;
+  nameCurrentValue: string;
+  titleCurrentValue: string;
+  descriptionCurrentValue: string;
+  keywordsCurrentValue: string;
+  robotsCurrentValue: string;
+  friendlyURL: string;
+  hidden: boolean;
+  themeId: string;
+  colorSchemeId: string;
+  styleBookEntryId: number;
+  masterLayoutPlid: number;
+  faviconFileEntryId: number;
+  css: string;
+  javascript: string;
+};
+
+export type InventoryPageConfigurationRaw = {
+  layout: InventoryPageRawLayout;
+  typeSettings: {[key: string]: string};
+  sitePageMetadata?: HeadlessSitePagePayload;
 };
 
 export type LiferayInventoryPageResult =
@@ -102,18 +196,8 @@ export type LiferayInventoryPageResult =
         configureCustomMetaTags: string;
         translate: string;
       };
-      configurationTabs?: {
-        general: Record<string, unknown>;
-        design: Record<string, unknown>;
-        seo: Record<string, unknown>;
-        openGraph: Record<string, unknown>;
-        customMetaTags: Record<string, unknown>;
-      };
-      configurationRaw?: {
-        layout: Record<string, unknown>;
-        typeSettings: Record<string, string>;
-        sitePageMetadata?: Record<string, unknown>;
-      };
+      configurationTabs?: InventoryPageConfigurationTabs;
+      configurationRaw?: InventoryPageConfigurationRaw;
       componentInspectionSupported?: boolean;
       portlets?: PagePortletSummary[];
       fragmentEntryLinks?: PageFragmentEntry[];

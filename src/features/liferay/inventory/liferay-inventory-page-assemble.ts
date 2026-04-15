@@ -1,5 +1,6 @@
 /* eslint-disable max-lines -- shared assembly helpers kept together for inventory readability */
 import {firstNonBlank, firstString as firstStringUtil} from '../../../core/utils/text.js';
+import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
 export type StructuredContent = {
   id?: number;
@@ -91,7 +92,7 @@ export type PageFragmentEntry = {
 };
 
 export function collectPageElements(
-  pageElement: Record<string, unknown> | null,
+  pageElement: HeadlessPageElementPayload | null,
   fragmentEntryLinks: Array<Record<string, unknown>>,
   locale: string | null = null,
 ): PageFragmentEntry[] {
@@ -112,7 +113,7 @@ export function collectPageElements(
 }
 
 function collectPageElementsRecursive(
-  element: Record<string, unknown> | null,
+  element: HeadlessPageElementPayload | null,
   result: PageFragmentEntry[],
   locale: string | null = null,
 ): void {
@@ -248,6 +249,8 @@ function extractFragmentEditableFields(fragmentFields: unknown, locale: string |
     const text = asRecord(value.text);
     const i18n = asRecord(text.value_i18n);
     // Prefer the matched locale, then ca_ES, then es_ES, then any available
+    // TODO: consider improving locale matching logic if needed in the future
+    // Not hardcoded locales
     const textValue = String(
       (locale ? i18n[locale] : undefined) ??
         i18n['ca_ES'] ??

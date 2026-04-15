@@ -11,6 +11,7 @@ import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
+import {fetchHeadlessSitePage, type HeadlessSitePagePayload} from './liferay-site-page-shared.js';
 
 const EXPORT_KIND = 'liferay-page-layout-export';
 const EXPORT_SCHEMA_VERSION = 1;
@@ -48,7 +49,7 @@ export type LiferayPageLayoutExport = {
     configureOpenGraph: string;
     configureCustomMetaTags: string;
   };
-  headlessSitePage: Record<string, unknown>;
+  headlessSitePage: HeadlessSitePagePayload;
   experiences?: unknown;
   layoutStructure: {
     available: false;
@@ -65,7 +66,7 @@ export async function runLiferayPageLayoutExport(
   const regularPage = await resolveExportableRegularPage(config, options, dependencies);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createLiferayGateway(config, apiClient, dependencies?.tokenClient);
-  const headlessSitePage = await fetchSitePage(gateway, regularPage.groupId, regularPage.friendlyUrl);
+  const headlessSitePage = await fetchHeadlessSitePage(gateway, regularPage.groupId, regularPage.friendlyUrl);
 
   if (headlessSitePage === null) {
     throw LiferayErrors.pageLayoutError(
@@ -173,34 +174,6 @@ async function resolveExportableRegularPage(
   }
 
   return page;
-}
-
-async function fetchSitePage(
-  gateway: LiferayGateway,
-  siteId: number,
-  friendlyUrl: string,
-): Promise<Record<string, unknown> | null> {
-  const slug = trimLeadingSlash(friendlyUrl);
-  let data: Record<string, unknown> | null;
-
-  try {
-    data = await gateway.getJson<Record<string, unknown> | null>(
-      `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}?fields=actions,friendlyUrlPath,id,pageDefinition,pageType,siteId,title,uuid`,
-      `fetch site page ${siteId}/${slug}`,
-    );
-  } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
-      return null;
-    }
-
-    throw error;
-  }
-
-  if (data === null || Array.isArray(data)) {
-    return null;
-  }
-
-  return data;
 }
 
 async function fetchSitePageExperiences(
