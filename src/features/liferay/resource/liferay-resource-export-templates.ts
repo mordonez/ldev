@@ -8,7 +8,8 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayInventoryTemplates, type LiferayInventoryTemplate} from '../inventory/liferay-inventory-templates.js';
 import {listDdmTemplates} from './liferay-resource-shared.js';
-import {resolveTemplatesBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, sanitizeArtifactToken} from './artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
 
@@ -44,7 +45,7 @@ export async function runLiferayResourceExportTemplates(
   options?: {site?: string; dir?: string; allSites?: boolean; continueOnError?: boolean; debug?: boolean},
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportTemplatesResult> {
-  const baseDir = resolveTemplatesOutputBaseDir(config, options?.dir);
+  const baseDir = resolveArtifactBaseDir(config, 'template', options?.dir);
 
   if (options?.allSites) {
     const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
@@ -150,7 +151,7 @@ async function exportTemplatesForSite(
         throw new CliError('templateScript is empty', {code: 'LIFERAY_RESOURCE_ERROR'});
       }
 
-      const outputName = `${sanitizeFileToken(resolveTemplateExportName(template))}.ftl`;
+      const outputName = `${sanitizeArtifactToken(resolveTemplateExportName(template))}.ftl`;
       const filePath = path.join(outputDir, outputName);
       await fs.ensureDir(path.dirname(filePath));
       await fs.writeFile(filePath, script);
@@ -175,14 +176,6 @@ async function exportTemplatesForSite(
     failed,
     debug: debugEnabled ? debug : undefined,
   };
-}
-
-function resolveTemplatesOutputBaseDir(config: AppConfig, dir: string | undefined): string {
-  if ((dir ?? '').trim() !== '') {
-    return path.resolve(resolveRepoPath(config, dir ?? ''));
-  }
-
-  return resolveTemplatesBaseDir(config);
 }
 
 async function listTemplatesForExport(
@@ -237,12 +230,4 @@ function resolveTemplateExportName(template: LiferayInventoryTemplate): string {
     return template.name;
   }
   return 'template';
-}
-
-function sanitizeFileToken(value: string): string {
-  const normalized = value
-    .trim()
-    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
-    .replaceAll(/_+/g, '_');
-  return normalized === '' ? 'unnamed' : normalized;
 }

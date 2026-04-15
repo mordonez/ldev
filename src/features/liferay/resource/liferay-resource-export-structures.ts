@@ -8,7 +8,8 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {runLiferayInventoryStructures} from '../inventory/liferay-inventory-structures.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
-import {resolveRepoPath, resolveSiteToken, resolveStructuresBaseDir} from './liferay-resource-paths.js';
+import {resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveArtifactSiteDir} from './artifact-paths.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
 
 type ResourceDependencies = {
@@ -110,7 +111,7 @@ async function exportStructuresForSite(
 ): Promise<LiferayResourceExportStructuresSiteResult> {
   const rows = await runLiferayInventoryStructures(config, {site}, dependencies);
   const siteToken = resolveSiteToken(site);
-  const outputDir = resolveStructuresOutputDir(config, dir, siteToken);
+  const outputDir = resolveArtifactSiteDir(config, 'structure', siteToken, dir);
   let processed = 0;
   let diffs = 0;
 
@@ -145,14 +146,6 @@ async function exportStructuresForSite(
     processed,
     diffs,
   };
-}
-
-function resolveStructuresOutputDir(config: AppConfig, dir: string | undefined, siteToken: string): string {
-  if ((dir ?? '').trim() !== '') {
-    return path.join(path.resolve(resolveRepoPath(config, dir ?? '')), siteToken);
-  }
-
-  return path.join(resolveStructuresBaseDir(config), siteToken);
 }
 
 async function fileDiffers(filePath: string, payload: unknown): Promise<boolean> {

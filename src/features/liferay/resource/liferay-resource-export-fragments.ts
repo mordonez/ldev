@@ -6,7 +6,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-import {resolveFragmentsBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, resolveArtifactSiteDir, sanitizeArtifactToken} from './artifact-paths.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -57,9 +58,7 @@ export async function runLiferayResourceExportFragments(
       siteToken: 'all-sites',
       collectionCount,
       fragmentCount,
-      outputDir: path.resolve(
-        options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveFragmentsBaseDir(config),
-      ),
+      outputDir: resolveArtifactBaseDir(config, 'fragment', options?.dir),
       scannedSites: siteResults.length,
       siteResults,
     };
@@ -67,10 +66,7 @@ export async function runLiferayResourceExportFragments(
 
   const site = await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const siteToken = resolveSiteToken(site.friendlyUrlPath);
-  const baseOutputDir = options?.dir?.trim()
-    ? path.resolve(resolveRepoPath(config, options.dir))
-    : path.join(resolveFragmentsBaseDir(config), 'sites', siteToken);
-  const outputDir = path.resolve(baseOutputDir);
+  const outputDir = resolveArtifactSiteDir(config, 'fragment', siteToken, options?.dir);
   const srcDir = path.join(outputDir, 'src');
 
   await fs.remove(srcDir);
@@ -95,7 +91,7 @@ export async function runLiferayResourceExportFragments(
 
     const collectionKey =
       String(collection.fragmentCollectionKey ?? '').trim() ||
-      sanitizeFileToken(String(collection.name ?? 'collection'));
+      sanitizeArtifactToken(String(collection.name ?? 'collection'));
     const collectionDir = path.join(srcDir, collectionKey);
     await fs.ensureDir(path.join(collectionDir, 'fragments'));
     await writeJson(path.join(collectionDir, 'collection.json'), {
@@ -115,7 +111,7 @@ export async function runLiferayResourceExportFragments(
       }
 
       const fragmentKey =
-        String(fragment.fragmentEntryKey ?? '').trim() || sanitizeFileToken(String(fragment.name ?? 'fragment'));
+        String(fragment.fragmentEntryKey ?? '').trim() || sanitizeArtifactToken(String(fragment.name ?? 'fragment'));
       const fragmentDir = path.join(collectionDir, 'fragments', fragmentKey);
       await fs.ensureDir(fragmentDir);
       await fs.writeFile(path.join(fragmentDir, 'index.html'), String(fragment.html ?? ''));
@@ -180,14 +176,6 @@ export function formatLiferayResourceExportFragments(result: LiferayResourceExpo
 async function writeJson(filePath: string, payload: unknown): Promise<void> {
   await fs.ensureDir(path.dirname(filePath));
   await fs.writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`);
-}
-
-function sanitizeFileToken(value: string): string {
-  const normalized = value
-    .trim()
-    .replaceAll(/[^A-Za-z0-9_.-]+/g, '_')
-    .replaceAll(/_+/g, '_');
-  return normalized === '' ? 'unnamed' : normalized;
 }
 
 function defaultFragmentConfiguration(): {fieldSets: Array<{fields: Array<Record<string, string>>}>} {
