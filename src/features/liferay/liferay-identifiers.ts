@@ -12,6 +12,7 @@
  */
 
 import {CliError} from '../../core/errors.js';
+import type {DdmTemplatePayload} from '../liferay/resource/liferay-resource-payloads.js';
 
 // ---------------------------------------------------------------------------
 // DDM Template matching
@@ -21,7 +22,7 @@ import {CliError} from '../../core/errors.js';
  * Matches a DDM template item (from JSONWS `listDdmTemplates`) against an identifier.
  * Fields checked: templateId, templateKey, externalReferenceCode, nameCurrentValue, name.
  */
-export function matchesDdmTemplate(item: Record<string, unknown>, identifier: string): boolean {
+export function matchesDdmTemplate(item: DdmTemplatePayload, identifier: string): boolean {
   return (
     identifier === String(item.templateId ?? '') ||
     identifier === String(item.templateKey ?? '') ||

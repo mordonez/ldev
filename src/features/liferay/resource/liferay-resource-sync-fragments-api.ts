@@ -4,14 +4,20 @@ import {listFragmentCollections, listFragments} from './liferay-resource-shared.
 import {postFormCandidates, type ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-sync-fragments-types.js';
 import {sanitizeFileToken} from './liferay-resource-sync-fragments-local.js';
+import {
+  toFragmentCollectionPayload,
+  toFragmentEntryPayload,
+  type FragmentCollectionPayload,
+  type FragmentEntryPayload,
+} from './liferay-resource-payloads.js';
 
 export async function listRuntimeCollectionsByKey(
   config: AppConfig,
   groupId: number,
   dependencies?: ResourceSyncDependencies,
-): Promise<Map<string, Record<string, unknown>>> {
+): Promise<Map<string, FragmentCollectionPayload>> {
   const collections = await listFragmentCollections(config, groupId, dependencies);
-  const byKey = new Map<string, Record<string, unknown>>();
+  const byKey = new Map<string, FragmentCollectionPayload>();
 
   for (const collection of collections) {
     const key = String(collection.fragmentCollectionKey ?? '').trim();
@@ -31,9 +37,9 @@ export async function listRuntimeFragmentsByKey(
   config: AppConfig,
   fragmentCollectionId: number,
   dependencies?: ResourceSyncDependencies,
-): Promise<Map<string, Record<string, unknown>>> {
+): Promise<Map<string, FragmentEntryPayload>> {
   const runtimeFragments = await listFragments(config, fragmentCollectionId, dependencies);
-  const byKey = new Map<string, Record<string, unknown>>();
+  const byKey = new Map<string, FragmentEntryPayload>();
 
   for (const runtimeFragment of runtimeFragments) {
     const runtimeKey = String(runtimeFragment.fragmentEntryKey ?? '').trim();
@@ -54,14 +60,14 @@ export async function createFragmentCollection(
   groupId: number,
   collection: LocalFragmentCollection,
   dependencies?: ResourceSyncDependencies,
-): Promise<Record<string, unknown>> {
+): Promise<FragmentCollectionPayload> {
   const base = {
     groupId: String(groupId),
     name: collection.name,
     description: collection.description,
   };
 
-  return postFormCandidates<Record<string, unknown>>(
+  const response = await postFormCandidates<FragmentCollectionPayload>(
     config,
     '/api/jsonws/fragment.fragmentcollection/add-fragment-collection',
     [
@@ -82,6 +88,8 @@ export async function createFragmentCollection(
     'fragment-collection-create',
     dependencies,
   );
+
+  return toFragmentCollectionPayload(response);
 }
 
 export async function updateFragmentCollection(
@@ -101,7 +109,7 @@ export async function updateFragmentCollection(
   };
 
   try {
-    await postFormCandidates<Record<string, unknown>>(
+    await postFormCandidates<FragmentCollectionPayload>(
       config,
       '/api/jsonws/fragment.fragmentcollection/update-fragment-collection',
       [
@@ -125,10 +133,10 @@ export async function createFragmentEntry(
   fragmentCollectionId: number,
   fragment: LocalFragment,
   dependencies?: ResourceSyncDependencies,
-): Promise<Record<string, unknown>> {
+): Promise<FragmentEntryPayload> {
   const base = fragmentEntryBaseForm(groupId, fragmentCollectionId, fragment);
 
-  return postFormCandidates<Record<string, unknown>>(
+  const response = await postFormCandidates<FragmentEntryPayload>(
     config,
     '/api/jsonws/fragment.fragmententry/add-fragment-entry',
     [
@@ -144,6 +152,8 @@ export async function createFragmentEntry(
     'fragment-entry-create',
     dependencies,
   );
+
+  return toFragmentEntryPayload(response);
 }
 
 export async function updateFragmentEntry(
@@ -153,7 +163,7 @@ export async function updateFragmentEntry(
   fragmentEntryId: number,
   fragment: LocalFragment,
   dependencies?: ResourceSyncDependencies,
-): Promise<Record<string, unknown>> {
+): Promise<FragmentEntryPayload> {
   if (fragmentEntryId <= 0) {
     throw new CliError(`fragmentEntryId invalido para ${fragment.slug}`, {
       code: 'LIFERAY_RESOURCE_ERROR',
@@ -174,7 +184,7 @@ export async function updateFragmentEntry(
     type: String(fragment.type),
   };
 
-  return postFormCandidates<Record<string, unknown>>(
+  const response = await postFormCandidates<FragmentEntryPayload>(
     config,
     '/api/jsonws/fragment.fragmententry/update-fragment-entry',
     [
@@ -189,6 +199,8 @@ export async function updateFragmentEntry(
     'fragment-entry-update',
     dependencies,
   );
+
+  return toFragmentEntryPayload(response);
 }
 
 function fragmentEntryBaseForm(

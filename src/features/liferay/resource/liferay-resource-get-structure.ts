@@ -5,6 +5,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {authedGet, fetchAccessToken, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
 import {buildResourceSiteChain, resolveResourceSite} from './liferay-resource-shared.js';
+import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -18,7 +19,7 @@ export type LiferayResourceStructureResult = {
   key: string;
   id: number;
   name: string;
-  raw: Record<string, unknown>;
+  raw: DataDefinitionPayload;
 };
 
 export async function runLiferayResourceGetStructure(
@@ -36,11 +37,11 @@ export async function runLiferayResourceGetStructure(
     });
   }
 
-  let payload: Record<string, unknown> | null = null;
+  let payload: DataDefinitionPayload | null = null;
   let lastKeyLookupStatus: number | null = null;
 
   if (options.id || /^\d+$/.test(identifier)) {
-    const byIdResponse = await authedGet<Record<string, unknown>>(
+    const byIdResponse = await authedGet<DataDefinitionPayload>(
       config,
       apiClient,
       accessToken,
@@ -57,7 +58,7 @@ export async function runLiferayResourceGetStructure(
     const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
 
     for (const candidate of siteChain) {
-      const response = await authedGet<Record<string, unknown>>(
+      const response = await authedGet<DataDefinitionPayload>(
         config,
         apiClient,
         accessToken,

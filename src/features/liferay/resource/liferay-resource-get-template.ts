@@ -5,6 +5,7 @@ import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
+import type {DdmTemplatePayload} from './liferay-resource-payloads.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -32,7 +33,7 @@ export async function runLiferayResourceGetTemplate(
 ): Promise<LiferayResourceTemplateResult> {
   const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
   let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
-  let match: Record<string, unknown> | undefined;
+  let match: DdmTemplatePayload | undefined;
 
   for (const candidate of siteChain) {
     const candidateSite = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
