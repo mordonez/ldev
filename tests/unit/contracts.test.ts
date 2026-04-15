@@ -330,7 +330,7 @@ describe('Resource Contracts', () => {
   describe('liferayResourceSyncFragmentsSingleResultSchema', () => {
     it('parses single-site fragment sync result', () => {
       const result = liferayResourceSyncFragmentsSingleResultSchema.parse({
-        mode: 'oauth-zip-import',
+        mode: 'oauth-jsonws-import',
         site: '/my-site',
         siteId: 20140,
         projectDir: '/home/user/project',
@@ -350,7 +350,7 @@ describe('Resource Contracts', () => {
         ],
         pageTemplateResults: [],
       });
-      expect(result.mode).toBe('oauth-zip-import');
+      expect(result.mode).toBe('oauth-jsonws-import');
       expect(result.summary.importedFragments).toBe(5);
       expect(result.summary.errors).toBe(0);
     });
@@ -403,7 +403,7 @@ describe('Contract tolerances', () => {
 
   it('discriminated union for fragment sync (single vs all-sites)', () => {
     const singleResult = liferayResourceSyncFragmentsResultSchema.parse({
-      mode: 'oauth-zip-import',
+      mode: 'oauth-jsonws-import',
       site: '/site',
       siteId: 1,
       projectDir: '/dir',
@@ -420,7 +420,7 @@ describe('Contract tolerances', () => {
       errors: 0,
       siteResults: [
         {
-          mode: 'oauth-zip-import',
+          mode: 'oauth-jsonws-import',
           site: '/site1',
           siteId: 1,
           projectDir: '/dir',
