@@ -4,6 +4,7 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
+import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -53,9 +54,7 @@ export async function runLiferayResourceGetTemplate(
         {site: candidateSite.friendlyUrlPath},
         dependencies,
       );
-      const inventoryMatch = inventoryTemplates.find(
-        (item) => options.id === item.id || options.id === item.externalReferenceCode || options.id === item.name,
-      );
+      const inventoryMatch = inventoryTemplates.find((item) => matchesInventoryTemplate(item, options.id));
 
       if (inventoryMatch) {
         site = candidateSite;
@@ -108,18 +107,4 @@ export function formatLiferayResourceTemplate(result: LiferayResourceTemplateRes
   ].join('\n');
 }
 
-function matchesTemplate(item: Record<string, unknown>, identifier: string): boolean {
-  const templateId = String(item.templateId ?? '');
-  const templateKey = String(item.templateKey ?? '');
-  const externalReferenceCode = String(item.externalReferenceCode ?? '');
-  const nameCurrentValue = String(item.nameCurrentValue ?? '');
-  const name = String(item.name ?? '');
-
-  return (
-    identifier === templateId ||
-    identifier === templateKey ||
-    identifier === externalReferenceCode ||
-    identifier === nameCurrentValue ||
-    identifier === name
-  );
-}
+const matchesTemplate = matchesDdmTemplate;

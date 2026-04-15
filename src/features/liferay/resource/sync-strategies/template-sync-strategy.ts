@@ -23,6 +23,7 @@ import {
   type ResourceSyncDependencies,
 } from '../liferay-resource-sync-shared.js';
 import {expectJsonSuccess} from '../../liferay-http-shared.js';
+import {matchesInventoryTemplate} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
 type TemplateLocalData = {
@@ -91,7 +92,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     }
 
     const inventoryExisting = inventoryTemplates.find((item) => {
-      if (![item.id, item.externalReferenceCode, item.name].includes(opts.key)) {
+      if (!matchesInventoryTemplate(item, opts.key)) {
         return false;
       }
       if (structureIdFilter !== '' && String(item.contentStructureId) !== structureIdFilter) {

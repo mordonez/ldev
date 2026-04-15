@@ -6,6 +6,7 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {buildResourceSiteChain} from './liferay-resource-shared.js';
+import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -39,7 +40,7 @@ export async function runLiferayResourceGetAdt(
   },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceAdtResult> {
-  const identifier = resolveIdentifier(options);
+  const identifier = normalizeAdtIdentifier(options);
 
   if (options.site?.trim()) {
     // Walk up the site hierarchy: child → parent → … → root. Return the first match.
@@ -58,7 +59,7 @@ export async function runLiferayResourceGetAdt(
       );
 
       for (const row of rows) {
-        if (!matchesAdt(row, identifier)) {
+        if (!matchesAdtRow(row, identifier)) {
           continue;
         }
         return {
@@ -99,7 +100,7 @@ export async function runLiferayResourceGetAdt(
     );
 
     for (const row of rows) {
-      if (!matchesAdt(row, identifier)) {
+      if (!matchesAdtRow(row, identifier)) {
         continue;
       }
 
@@ -171,51 +172,6 @@ export function formatLiferayResourceAdt(result: LiferayResourceAdtResult): stri
     `templateKey=${result.templateKey}`,
     `name=${result.adtName}`,
   ].join('\n');
-}
-
-function resolveIdentifier(options: {
-  displayStyle?: string;
-  id?: string;
-  key?: string;
-  name?: string;
-  widgetType?: string;
-}): string {
-  if (options.id?.trim()) {
-    return options.id.trim();
-  }
-  if (options.displayStyle?.trim()) {
-    const trimmed = options.displayStyle.trim();
-    return trimmed.startsWith('ddmTemplate_') ? trimmed.slice('ddmTemplate_'.length) : trimmed;
-  }
-  if (options.key?.trim()) {
-    return options.key.trim();
-  }
-  if (options.name?.trim()) {
-    return options.name.trim();
-  }
-
-  throw new CliError('adt requires --display-style, --id, --key, or --name', {
-    code: 'LIFERAY_RESOURCE_ERROR',
-  });
-}
-
-function matchesAdt(
-  row: {
-    widgetType: string;
-    templateId: number;
-    templateKey: string;
-    displayName: string;
-    adtName: string;
-  },
-  identifier: string,
-): boolean {
-  return (
-    identifier === String(row.templateId) ||
-    identifier === row.templateKey ||
-    identifier === row.displayName ||
-    identifier === row.adtName ||
-    identifier === `ddmTemplate_${row.templateId}`
-  );
 }
 
 async function collectSearchSites(
