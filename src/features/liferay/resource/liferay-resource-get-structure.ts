@@ -1,8 +1,8 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {authedGet, fetchAccessToken, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
 import {buildResourceSiteChain, resolveResourceSite} from './liferay-resource-shared.js';
 import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
@@ -32,9 +32,7 @@ export async function runLiferayResourceGetStructure(
   let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
   const identifier = String(options.key ?? options.id ?? '').trim();
   if (identifier === '') {
-    throw new CliError('Provide --key or --id.', {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError('Provide --key or --id.');
   }
 
   let payload: DataDefinitionPayload | null = null;
@@ -76,13 +74,9 @@ export async function runLiferayResourceGetStructure(
 
   if (!payload) {
     if (lastKeyLookupStatus !== null) {
-      throw new CliError(`resource get-structure failed with status=${lastKeyLookupStatus}.`, {
-        code: 'LIFERAY_RESOURCE_ERROR',
-      });
+      throw LiferayErrors.resourceError(`resource get-structure failed with status=${lastKeyLookupStatus}.`);
     }
-    throw new CliError(`Estructura no encontrada: ${identifier}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`Estructura no encontrada: ${identifier}`);
   }
 
   return {

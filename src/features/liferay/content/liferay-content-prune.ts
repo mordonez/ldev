@@ -1,9 +1,9 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken, normalizeLocalizedName, resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {
   authedGetWithRefresh,
@@ -128,9 +128,7 @@ export async function runContentPrune(
     (options.site === undefined && options.groupId === undefined) ||
     (options.site && options.groupId !== undefined)
   ) {
-    throw new CliError('Use exactly one of site or groupId.', {
-      code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-    });
+    throw LiferayErrors.contentPruneError('Use exactly one of site or groupId.');
   }
 
   const rootFolderIds = [...new Set(options.rootFolders)];
@@ -212,9 +210,7 @@ export async function runContentPrune(
     for (const key of options.structures) {
       const found = [...structureMap.values()].includes(key);
       if (!found) {
-        throw new CliError(`Structure "${key}" not found in group ${groupId}.`, {
-          code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-        });
+        throw LiferayErrors.contentPruneError(`Structure "${key}" not found in group ${groupId}.`);
       }
     }
   }
@@ -467,16 +463,14 @@ async function collectFolderTree(
         continue;
       }
 
-      throw new CliError(`Folder ${rootId} not found (status=${resp.status}).`, {
-        code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-      });
+      throw LiferayErrors.contentPruneError(`Folder ${rootId} not found (status=${resp.status}).`);
     }
 
     const folder = resp.data ?? {};
     if (folder.siteId !== groupId) {
-      throw new CliError(`Folder ${rootId} belongs to group ${folder.siteId ?? 'unknown'}, not ${groupId}.`, {
-        code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-      });
+      throw LiferayErrors.contentPruneError(
+        `Folder ${rootId} belongs to group ${folder.siteId ?? 'unknown'}, not ${groupId}.`,
+      );
     }
 
     allFolders.set(rootId, folder);
@@ -509,9 +503,7 @@ async function collectSubfolders(
     );
 
     if (!response.ok) {
-      throw new CliError(`Subfolders for folder ${parentId} failed with status=${response.status}.`, {
-        code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-      });
+      throw LiferayErrors.contentPruneError(`Subfolders for folder ${parentId} failed with status=${response.status}.`);
     }
 
     const items = response.data?.items ?? [];
@@ -681,9 +673,7 @@ async function deleteJournalArticle(
   articleId: string,
 ): Promise<FailedArticle | null> {
   if (!articleId) {
-    throw new CliError('Cannot delete article without articleId.', {
-      code: 'LIFERAY_CONTENT_PRUNE_ERROR',
-    });
+    throw LiferayErrors.contentPruneError('Cannot delete article without articleId.');
   }
 
   const response = await postFormWithRefresh(

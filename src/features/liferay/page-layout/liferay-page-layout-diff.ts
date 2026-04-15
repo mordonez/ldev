@@ -1,10 +1,10 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayPageLayoutExport, type LiferayPageLayoutExport} from './liferay-page-layout-export.js';
 
 const DIFF_KIND = 'liferay-page-layout-diff';
@@ -90,9 +90,7 @@ export async function readLiferayPageLayoutExportFile(filePath: string): Promise
   const parsed = JSON.parse(await fs.readFile(resolvedFilePath, 'utf8')) as Partial<LiferayPageLayoutExport>;
 
   if (parsed.kind !== EXPORT_KIND) {
-    throw new CliError(`El fichero no parece un export de page layout: ${resolvedFilePath}`, {
-      code: 'LIFERAY_PAGE_LAYOUT_ERROR',
-    });
+    throw LiferayErrors.pageLayoutError(`El fichero no parece un export de page layout: ${resolvedFilePath}`);
   }
 
   return parsed as LiferayPageLayoutExport;
@@ -109,13 +107,13 @@ export function collectPageLayoutDiffs(
 
 function validateDiffOptions(options: {url?: string; file?: string; referenceUrl?: string}): void {
   if (!options.url) {
-    throw new CliError('Use --url to indicate the live base page.', {code: 'LIFERAY_PAGE_LAYOUT_ERROR'});
+    throw LiferayErrors.pageLayoutError('Use --url to indicate the live base page.');
   }
 
   const fileProvided = Boolean(options.file);
   const referenceUrlProvided = Boolean(options.referenceUrl);
   if (fileProvided === referenceUrlProvided) {
-    throw new CliError('Use exactly one of --file or --reference-url.', {code: 'LIFERAY_PAGE_LAYOUT_ERROR'});
+    throw LiferayErrors.pageLayoutError('Use exactly one of --file or --reference-url.');
   }
 }
 

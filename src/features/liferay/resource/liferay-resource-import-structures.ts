@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError, normalizeCliError} from '../../../core/errors.js';
+import {normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {runLiferayResourceSyncStructure} from './liferay-resource-sync-structure.js';
@@ -46,9 +47,8 @@ export async function runLiferayResourceImportStructures(
 ): Promise<LiferayResourceImportStructuresResult> {
   const structureKeys = normalizeKeys(options?.structureKeys);
   if (!options?.allSites && !options?.apply && structureKeys.length === 0) {
-    throw new CliError(
+    throw LiferayErrors.resourceError(
       'resource import-structures requires --structure <key> (repeatable), --apply for the resolved site, or --all-sites to avoid accidental mass imports.',
-      {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }
 
@@ -86,10 +86,10 @@ export async function runLiferayResourceImportStructures(
         const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), key, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
-          throw new CliError(`Import failed for structure '${key}' in site '${failure.site}': ${failure.message}`, {
-            code: 'LIFERAY_RESOURCE_ERROR',
-            details: failure,
-          });
+          throw LiferayErrors.resourceError(
+            `Import failed for structure '${key}' in site '${failure.site}': ${failure.message}`,
+            {details: failure},
+          );
         }
       }
     }

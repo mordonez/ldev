@@ -2,8 +2,8 @@ import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
@@ -266,7 +266,7 @@ async function readDescriptorNode(config: AppConfig, migrationFile: string): Pro
     ? migrationFile
     : path.resolve(config.repoRoot ?? config.cwd, migrationFile);
   if (!(await fs.pathExists(candidate))) {
-    throw new CliError(`Migration descriptor not found: ${migrationFile}`, {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError(`Migration descriptor not found: ${migrationFile}`);
   }
   return await fs.readJson(candidate);
 }
@@ -275,12 +275,12 @@ function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): Migr
   const site = String(descriptorNode.site ?? '/global').trim() || '/global';
   const structureKey = String(descriptorNode.structureKey ?? '').trim();
   if (structureKey === '') {
-    throw new CliError('Invalid descriptor: missing structureKey', {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError('Invalid descriptor: missing structureKey');
   }
 
   const introduceNode = asRecord(descriptorNode.introduce);
   if (Object.keys(introduceNode).length === 0) {
-    throw new CliError('Invalid descriptor: missing introduce.', {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError('Invalid descriptor: missing introduce.');
   }
 
   const introduce = parseStageDescriptor(introduceNode, 'introduce');
@@ -302,7 +302,7 @@ function parseStageDescriptor(node: Record<string, unknown>, stageName: Migratio
     mappings: normalizeMappingsArray(rawPlanNode.mappings),
   };
   if (!Array.isArray(planNode.mappings) || planNode.mappings.length === 0) {
-    throw new CliError(`Invalid descriptor: ${stageName}.mappings[] is empty.`, {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError(`Invalid descriptor: ${stageName}.mappings[] is empty.`);
   }
   return {
     structureFile,
@@ -418,9 +418,8 @@ function buildCleanupPlanNode(
     (Array.isArray(explicitRootFolderIds) && explicitRootFolderIds.length > 0);
 
   if (migratedArticleKeys.length === 0 && !hasExplicitScope) {
-    throw new CliError(
+    throw LiferayErrors.resourceError(
       'Cleanup stage unsafe: no migrated articleIds were produced and the descriptor does not declare articleIds, folderIds or rootFolderIds.',
-      {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }
 

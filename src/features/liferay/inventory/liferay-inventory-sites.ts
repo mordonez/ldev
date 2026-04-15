@@ -1,9 +1,9 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../../core/http/auth.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchPagedItems, normalizeFriendlyUrl, normalizeLocalizedName} from './liferay-inventory-shared.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {getOperationPolicy} from './capabilities.js';
@@ -74,7 +74,7 @@ export async function runLiferayInventorySites(
     throw lastError;
   }
 
-  throw new CliError('Could not list sites.', {code: 'LIFERAY_INVENTORY_ERROR'});
+  throw LiferayErrors.inventoryError('Could not list sites.');
 }
 
 export async function runLiferayInventorySitesIncludingGlobal(

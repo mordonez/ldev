@@ -1,5 +1,5 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {
   createFragmentCollection,
@@ -47,9 +47,7 @@ export async function runFragmentsImportLegacy(
 
       const collectionId = Number(runtimeCollection.fragmentCollectionId ?? -1);
       if (collectionId <= 0) {
-        throw new CliError(`fragmentCollectionId invalido para ${localCollection.slug}`, {
-          code: 'LIFERAY_RESOURCE_ERROR',
-        });
+        throw LiferayErrors.resourceError(`fragmentCollectionId invalido para ${localCollection.slug}`);
       }
 
       const runtimeByKey = await listRuntimeFragmentsByKey(config, collectionId, dependencies);

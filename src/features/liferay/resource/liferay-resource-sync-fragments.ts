@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {resolveSiteToken} from './liferay-resource-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
@@ -33,9 +33,7 @@ export async function runLiferayResourceSyncFragments(
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceSyncFragmentsResult> {
   if (options?.allSites && (options?.fragment ?? '').trim() !== '') {
-    throw new CliError('--fragment requires --site or --site-id', {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError('--fragment requires --site or --site-id');
   }
 
   if (options?.allSites) {

@@ -1,9 +1,9 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken, normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {runLiferayInventorySites} from '../inventory/liferay-inventory-sites.js';
 import {
@@ -315,9 +315,7 @@ async function fetchHeadlessFoldersPageByPage(
     );
 
     if (!response.ok) {
-      throw new CliError(`${basePath} failed with status=${response.status}.`, {
-        code: 'LIFERAY_CONTENT_STATS_ERROR',
-      });
+      throw LiferayErrors.contentStatsError(`${basePath} failed with status=${response.status}.`);
     }
 
     items.push(...(response.data?.items ?? []));

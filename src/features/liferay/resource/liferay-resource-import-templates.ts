@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError, normalizeCliError} from '../../../core/errors.js';
+import {normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {LiferayResourceImportFailure} from './liferay-resource-import-structures.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
@@ -35,9 +36,8 @@ export async function runLiferayResourceImportTemplates(
 ): Promise<LiferayResourceImportTemplatesResult> {
   const templateKeys = normalizeTemplateKeys(options?.templateKeys);
   if (!options?.allSites && !options?.apply && templateKeys.length === 0) {
-    throw new CliError(
+    throw LiferayErrors.resourceError(
       'resource import-templates requires --template <key> (repeatable), --apply for the resolved site, or --all-sites to avoid accidental mass imports.',
-      {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }
 
@@ -70,10 +70,10 @@ export async function runLiferayResourceImportTemplates(
         const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), id, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
-          throw new CliError(`Import failed for template '${id}' in site '${failure.site}': ${failure.message}`, {
-            code: 'LIFERAY_RESOURCE_ERROR',
-            details: failure,
-          });
+          throw LiferayErrors.resourceError(
+            `Import failed for template '${id}' in site '${failure.site}': ${failure.message}`,
+            {details: failure},
+          );
         }
       }
     }

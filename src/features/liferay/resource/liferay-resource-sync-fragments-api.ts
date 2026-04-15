@@ -1,4 +1,4 @@
-import {CliError} from '../../../core/errors.js';
+import {LiferayErrors} from '../errors/index.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {listFragmentCollections, listFragments} from './liferay-resource-shared.js';
 import {postFormCandidates, type ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
@@ -165,9 +165,7 @@ export async function updateFragmentEntry(
   dependencies?: ResourceSyncDependencies,
 ): Promise<FragmentEntryPayload> {
   if (fragmentEntryId <= 0) {
-    throw new CliError(`fragmentEntryId invalido para ${fragment.slug}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`fragmentEntryId invalido para ${fragment.slug}`);
   }
 
   const base = {

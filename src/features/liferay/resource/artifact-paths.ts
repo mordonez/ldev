@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 
 export type ArtifactType = 'template' | 'structure' | 'adt' | 'fragment';
 
@@ -251,9 +252,7 @@ async function resolveAdtArtifactFile(config: AppConfig, key: string, widgetType
   const baseDir = resolveAdtsBaseDir(config);
   const widgetDir = ADT_WIDGET_DIR_BY_TYPE[widgetType];
   if (!widgetDir) {
-    throw new CliError(`widget-type ADT no soportado: ${widgetType}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`widget-type ADT no soportado: ${widgetType}`);
   }
 
   const matches = await findFilesByPathSuffix(baseDir, path.join(widgetDir, `${key}.ftl`));

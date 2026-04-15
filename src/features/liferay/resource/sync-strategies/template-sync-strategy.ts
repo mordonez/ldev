@@ -9,6 +9,7 @@ import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
 import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
+import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetTemplate} from '../liferay-resource-get-template.js';
 import {fetchStructureByKey} from '../liferay-resource-sync-structure-shared.js';
 import {resolveTemplateFile, resolveSiteToken} from '../liferay-resource-paths.js';
@@ -160,9 +161,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     if (!remoteArtifact) {
       // Create new template
       if (!opts.structureKey) {
-        throw new CliError('To create a template, provide --structure-key.', {
-          code: 'LIFERAY_RESOURCE_ERROR',
-        });
+        throw LiferayErrors.resourceError('To create a template, provide --structure-key.');
       }
 
       const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
@@ -248,9 +247,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
 
     // Verify hash match
     if (runtimeHash !== '' && runtimeHash !== localArtifact.contentHash) {
-      throw new CliError(`Hash mismatch template '${remoteArtifact.name}'`, {
-        code: 'LIFERAY_RESOURCE_ERROR',
-      });
+      throw LiferayErrors.resourceError(`Hash mismatch template '${remoteArtifact.name}'`);
     }
   },
 };

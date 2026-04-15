@@ -1,8 +1,8 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 
 type ResourceDependencies = {
@@ -30,7 +30,7 @@ export async function fetchStructureByKey(
   );
 
   if (!response.ok) {
-    throw new CliError(`structure-get failed with status=${response.status}.`, {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError(`structure-get failed with status=${response.status}.`);
   }
 
   return response.data ?? {};

@@ -10,6 +10,7 @@ import {CliError} from '../../../../core/errors.js';
 import type {LiferayApiClient} from '../../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../../core/http/auth.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
+import {LiferayErrors} from '../../errors/index.js';
 import {fetchAccessToken} from '../../inventory/liferay-inventory-shared.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
 import {resolveStructureFile} from '../liferay-resource-paths.js';
@@ -150,9 +151,8 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
 
     // Breaking-change guard
     if (removedFieldReferences.length > 0 && !opts.migrationPlan && !opts.allowBreakingChange) {
-      throw new CliError(
+      throw LiferayErrors.resourceBreakingChange(
         `Blocked change: the structure removes ${removedFieldReferences.length} field(s) ${removedFieldReferences.join(', ')}. Define --migration-plan or use --allow-breaking-change.`,
-        {code: 'LIFERAY_RESOURCE_BREAKING_CHANGE'},
       );
     }
 
@@ -362,12 +362,9 @@ async function updateStructureWithRecovery(
       return {data: recovered, recoveredAfterTimeout: true};
     }
 
-    throw new CliError(
+    throw LiferayErrors.resourceTimeoutRecoverable(
       `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource get-structure --site ${siteId} --key ${key}' or retry the import once the portal is responsive again.`,
-      {
-        code: 'LIFERAY_RESOURCE_TIMEOUT_RECOVERABLE',
-        details: {operation: 'structure-update', key, siteId, recoverable: true},
-      },
+      {details: {operation: 'structure-update', key, siteId, recoverable: true}},
     );
   }
 }

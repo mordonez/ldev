@@ -1,8 +1,8 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {
   authedGet,
   expectJsonSuccess,
@@ -54,9 +54,7 @@ export async function resolveResourceSite(
   const companyId = await resolveCompanyId(config, apiClient, accessToken, resolvedSite.id);
 
   if (companyId <= 0) {
-    throw new CliError(`site sin companyId valido: ${site}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`site sin companyId valido: ${site}`);
   }
 
   return {
@@ -201,9 +199,7 @@ async function fetchClassNameId(
   const success = await expectJsonSuccess(response, `classname ${className}`);
   const classNameId = success.data?.classNameId ?? -1;
   if (classNameId <= 0) {
-    throw new CliError(`classNameId no resuelto para ${className}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`classNameId no resuelto para ${className}`);
   }
   classNameIdLookupCache.set(cacheKey, classNameId);
   return classNameId;

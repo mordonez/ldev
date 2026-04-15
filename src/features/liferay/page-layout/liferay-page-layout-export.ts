@@ -1,12 +1,12 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {authedGet, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
@@ -73,11 +73,8 @@ export async function runLiferayPageLayoutExport(
   );
 
   if (headlessSitePage === null) {
-    throw new CliError(
+    throw LiferayErrors.pageLayoutError(
       'The page cannot be exported through Headless Delivery or could not be resolved as a content page.',
-      {
-        code: 'LIFERAY_PAGE_LAYOUT_ERROR',
-      },
     );
   }
 
@@ -181,11 +178,8 @@ async function resolveExportableRegularPage(
   const page = await resolveRegularLayoutPage(config, options, dependencies);
 
   if (page.layoutType.toLowerCase() !== 'content') {
-    throw new CliError(
+    throw LiferayErrors.pageLayoutError(
       `page-layout export solo soporta layoutType=content; recibido ${page.layoutType || '<empty>'}.`,
-      {
-        code: 'LIFERAY_PAGE_LAYOUT_ERROR',
-      },
     );
   }
 

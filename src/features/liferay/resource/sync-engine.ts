@@ -15,6 +15,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {CliError} from '../../../core/errors.js';
 import type {ResolvedSite} from '../inventory/liferay-site-resolver.js';
+import {LiferayErrors} from '../errors/index.js';
 import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
 
 /**
@@ -138,9 +139,9 @@ export async function syncArtifact<Local = Record<string, unknown>, Remote = Rec
 
   // 3. If missing and not allowed, preserve legacy sync semantics.
   if (!remoteArtifact && !options.createMissing) {
-    throw new CliError(`Artifact '${localArtifact.id}' does not exist and create-missing is not enabled.`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(
+      `Artifact '${localArtifact.id}' does not exist and create-missing is not enabled.`,
+    );
   }
 
   // 4. If missing and check-only (only reachable when createMissing=true)

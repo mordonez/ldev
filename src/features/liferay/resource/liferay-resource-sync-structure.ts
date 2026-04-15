@@ -1,5 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {CliError} from '../../../core/errors.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
 import type {MigrationStats} from './liferay-resource-sync-structure-migration.js';
@@ -67,9 +68,7 @@ export async function runLiferayResourceSyncStructure(
 
   // Guard: missing + !createMissing
   if (!remote && !options.createMissing) {
-    throw new CliError(`Structure '${options.key}' does not exist and create-missing is not enabled.`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`Structure '${options.key}' does not exist and create-missing is not enabled.`);
   }
 
   // Guard: missing + checkOnly
