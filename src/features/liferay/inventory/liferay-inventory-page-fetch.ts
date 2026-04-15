@@ -35,12 +35,7 @@ import type {
   PagePortletSummary,
   ResolvedRegularLayoutPage,
 } from './liferay-inventory-page.js';
-import {
-  resolveSiteToken,
-  resolveStructuresBaseDir,
-  resolveTemplatesBaseDir,
-  resolveFragmentsBaseDir,
-} from '../resource/liferay-resource-paths.js';
+import {resolveSiteToken, resolveFragmentsBaseDir, resolveArtifactSiteDir} from '../resource/liferay-resource-paths.js';
 import {
   buildResourceSiteChain,
   fetchGroupInfo,
@@ -1453,7 +1448,7 @@ async function resolveTemplateSiteByKey(
 
 function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
   try {
-    return path.join(resolveStructuresBaseDir(config), resolveSiteToken(siteFriendlyUrl), `${key}.json`);
+    return path.join(resolveArtifactSiteDir(config, 'structure', resolveSiteToken(siteFriendlyUrl)), `${key}.json`);
   } catch {
     return undefined;
   }
@@ -1461,7 +1456,7 @@ function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, ke
 
 function buildTemplateExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
   try {
-    return path.join(resolveTemplatesBaseDir(config), resolveSiteToken(siteFriendlyUrl), `${key}.ftl`);
+    return path.join(resolveArtifactSiteDir(config, 'template', resolveSiteToken(siteFriendlyUrl)), `${key}.ftl`);
   } catch {
     return undefined;
   }

@@ -58,6 +58,11 @@ export function resolveSiteToken(siteFriendlyUrl: string): string {
   return token === '' ? 'global' : token;
 }
 
+/** Inverse of resolveSiteToken: converts a directory token back to a site friendly URL. */
+export function siteTokenToFriendlyUrl(token: string): string {
+  return token === 'global' ? '/global' : `/${token}`;
+}
+
 type ResolveArtifactFileOptions =
   | {
       type: 'structure';

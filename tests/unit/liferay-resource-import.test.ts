@@ -318,6 +318,58 @@ describe('liferay resource import', () => {
     });
   });
 
+  test('import-templates with custom dir keeps the site token layout under the override directory', async () => {
+    const dir = createTempDir('dev-cli-resource-import-templates-custom-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+    const templateDir = path.join(dir, '.tmp', 'templates-import', 'global');
+    await fs.ensureDir(templateDir);
+    const featured = path.join(templateDir, 'FEATURED.ftl');
+    await fs.writeFile(featured, 'featured');
+
+    syncTemplateMock.mockReset();
+    syncTemplateMock.mockImplementation(async (_config, options) => ({
+      status: 'updated',
+      id: options.key,
+      name: options.key,
+      extra: '',
+      templateFile: options.file,
+      siteId: 20121,
+      siteFriendlyUrl: '/global',
+    }));
+
+    const result = await runLiferayResourceImportTemplates(config, {
+      site: '/global',
+      dir: '.tmp/templates-import',
+      templateKeys: ['FEATURED'],
+    });
+
+    expect(result.baseDir).toBe(path.join(dir, '.tmp', 'templates-import'));
+    expect(result.processed).toBe(1);
+    expect(syncTemplateMock.mock.calls[0]?.[1]).toMatchObject({
+      site: '/global',
+      key: 'FEATURED',
+      file: featured,
+    });
+  });
+
   test('import-structures requires an explicit selector, --apply or --all-sites guardrail', async () => {
     const dir = createTempDir('dev-cli-resource-import-structures-guardrail-');
     const config = {
@@ -443,6 +495,58 @@ describe('liferay resource import', () => {
     ]);
     expect(syncStructureMock).toHaveBeenCalledTimes(2);
     expect(syncStructureMock.mock.calls[1]?.[1]).toMatchObject({
+      key: 'OK',
+      file: okFile,
+    });
+  });
+
+  test('import-structures with custom dir keeps the site token layout under the override directory', async () => {
+    const dir = createTempDir('dev-cli-resource-import-structures-custom-dir-');
+    const config = {
+      ...CONFIG,
+      repoRoot: dir,
+      cwd: dir,
+      dockerDir: path.join(dir, 'docker'),
+      liferayDir: path.join(dir, 'liferay'),
+      files: {
+        dockerEnv: path.join(dir, 'docker', '.env'),
+        liferayProfile: path.join(dir, '.liferay-cli.yml'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/templates/application_display',
+        fragments: 'liferay/fragments',
+      },
+    };
+    await fs.ensureDir(path.join(dir, 'docker'));
+    await fs.writeFile(path.join(dir, 'docker', '.env'), '');
+    const structuresDir = path.join(dir, '.tmp', 'structures-import', 'global');
+    await fs.ensureDir(structuresDir);
+    const okFile = path.join(structuresDir, 'OK.json');
+    await fs.writeJson(okFile, {name: 'ok'});
+
+    syncStructureMock.mockReset();
+    syncStructureMock.mockImplementation(async (_config, options) => ({
+      status: 'updated',
+      id: '123',
+      key: options.key,
+      siteId: 20121,
+      siteFriendlyUrl: '/global',
+      structureFile: options.file,
+      removedFieldReferences: [],
+    }));
+
+    const result = await runLiferayResourceImportStructures(config, {
+      site: '/global',
+      dir: '.tmp/structures-import',
+      structureKeys: ['OK'],
+    });
+
+    expect(result.baseDir).toBe(path.join(dir, '.tmp', 'structures-import'));
+    expect(result.processed).toBe(1);
+    expect(syncStructureMock.mock.calls[0]?.[1]).toMatchObject({
+      site: '/global',
       key: 'OK',
       file: okFile,
     });

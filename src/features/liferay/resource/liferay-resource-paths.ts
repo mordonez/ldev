@@ -4,12 +4,15 @@ export {
   ADT_WIDGET_DIR_BY_TYPE,
   requireRepoRoot,
   resolveAdtsBaseDir,
+  resolveArtifactBaseDir,
+  resolveArtifactSiteDir,
   resolveFragmentsBaseDir,
   resolveMigrationsBaseDir,
   resolveRepoPath,
   resolveSiteToken,
   resolveStructuresBaseDir,
   resolveTemplatesBaseDir,
+  siteTokenToFriendlyUrl,
 } from './artifact-paths.js';
 
 import {resolveArtifactFile} from './artifact-paths.js';

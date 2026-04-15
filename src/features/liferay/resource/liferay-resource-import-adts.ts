@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError, normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {resolveAdtsBaseDir, resolveRepoPath} from './liferay-resource-paths.js';
+import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {LiferayResourceImportFailure} from './liferay-resource-import-structures.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {runLiferayResourceSyncAdt} from './liferay-resource-sync-adt.js';
@@ -44,10 +44,8 @@ export async function runLiferayResourceImportAdts(
     );
   }
 
-  const baseDir = path.resolve(
-    options?.dir?.trim() ? resolveRepoPath(config, options.dir) : resolveAdtsBaseDir(config),
-  );
-  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [siteToToken(options?.site ?? '/global')];
+  const baseDir = resolveArtifactBaseDir(config, 'adt', options?.dir);
+  const siteTokens = options?.allSites ? await listSiteTokens(baseDir) : [resolveSiteToken(options?.site ?? '/global')];
 
   let processed = 0;
   let failed = 0;
@@ -64,7 +62,7 @@ export async function runLiferayResourceImportAdts(
         await runLiferayResourceSyncAdt(
           config,
           {
-            site: tokenToSite(siteToken),
+            site: siteTokenToFriendlyUrl(siteToken),
             file,
             widgetType: options?.widgetType,
             className: options?.className,
@@ -77,7 +75,7 @@ export async function runLiferayResourceImportAdts(
       } catch (error) {
         failed += 1;
         const entry = path.basename(file, '.ftl');
-        const failure = toImportFailure(tokenToSite(siteToken), entry, file, error);
+        const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), entry, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
           throw new CliError(`Import failed for ADT '${entry}' in site '${failure.site}': ${failure.message}`, {
@@ -91,8 +89,8 @@ export async function runLiferayResourceImportAdts(
 
   return {
     ...(options?.allSites
-      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => tokenToSite(token))}
-      : {mode: 'single-site' as const, site: tokenToSite(siteTokens[0] ?? 'global')}),
+      ? {mode: 'all-sites' as const, sites: siteTokens.map((token) => siteTokenToFriendlyUrl(token))}
+      : {mode: 'single-site' as const, site: siteTokenToFriendlyUrl(siteTokens[0] ?? 'global')}),
     processed,
     failed,
     baseDir,
@@ -167,14 +165,6 @@ async function collectUniqueFiles(baseDirs: string[], extension: string, allowed
     }
   }
   return Array.from(unique).sort();
-}
-
-function siteToToken(site: string): string {
-  return site.replace(/^\//, '').trim() || 'global';
-}
-
-function tokenToSite(token: string): string {
-  return token === 'global' ? '/global' : `/${token}`;
 }
 
 function toImportFailure(site: string, entry: string, file: string, error: unknown): LiferayResourceImportFailure {
