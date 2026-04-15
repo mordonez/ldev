@@ -2,13 +2,14 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
-import {authedGet, fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
 
 const EXPORT_KIND = 'liferay-page-layout-export';
@@ -63,14 +64,8 @@ export async function runLiferayPageLayoutExport(
 ): Promise<LiferayPageLayoutExport> {
   const regularPage = await resolveExportableRegularPage(config, options, dependencies);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const headlessSitePage = await fetchSitePage(
-    config,
-    apiClient,
-    accessToken,
-    regularPage.groupId,
-    regularPage.friendlyUrl,
-  );
+  const gateway = createLiferayGateway(config, apiClient, dependencies?.tokenClient);
+  const headlessSitePage = await fetchSitePage(gateway, regularPage.groupId, regularPage.friendlyUrl);
 
   if (headlessSitePage === null) {
     throw LiferayErrors.pageLayoutError(
@@ -78,13 +73,7 @@ export async function runLiferayPageLayoutExport(
     );
   }
 
-  const experiences = await fetchSitePageExperiences(
-    config,
-    apiClient,
-    accessToken,
-    regularPage.groupId,
-    regularPage.friendlyUrl,
-  );
+  const experiences = await fetchSitePageExperiences(gateway, regularPage.groupId, regularPage.friendlyUrl);
 
   return {
     kind: EXPORT_KIND,
@@ -187,41 +176,50 @@ async function resolveExportableRegularPage(
 }
 
 async function fetchSitePage(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   friendlyUrl: string,
 ): Promise<Record<string, unknown> | null> {
   const slug = trimLeadingSlash(friendlyUrl);
-  const response = await authedGet<Record<string, unknown>>(
-    config,
-    apiClient,
-    accessToken,
-    `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}?fields=actions,friendlyUrlPath,id,pageDefinition,pageType,siteId,title,uuid`,
-  );
+  let data: Record<string, unknown> | null;
 
-  if (!response.ok || response.data === null || Array.isArray(response.data)) {
+  try {
+    data = await gateway.getJson<Record<string, unknown> | null>(
+      `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}?fields=actions,friendlyUrlPath,id,pageDefinition,pageType,siteId,title,uuid`,
+      `fetch site page ${siteId}/${slug}`,
+    );
+  } catch (error) {
+    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+      return null;
+    }
+
+    throw error;
+  }
+
+  if (data === null || Array.isArray(data)) {
     return null;
   }
 
-  return response.data;
+  return data;
 }
 
 async function fetchSitePageExperiences(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   friendlyUrl: string,
 ): Promise<unknown | null> {
   const slug = trimLeadingSlash(friendlyUrl);
-  const response = await authedGet<unknown>(
-    config,
-    apiClient,
-    accessToken,
-    `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}/experiences`,
-  );
 
-  return response.ok ? response.data : null;
+  try {
+    return await gateway.getJson<unknown>(
+      `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}/experiences`,
+      `fetch site page experiences ${siteId}/${slug}`,
+    );
+  } catch (error) {
+    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+      return null;
+    }
+
+    throw error;
+  }
 }

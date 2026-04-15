@@ -107,6 +107,59 @@ describe('liferay page-layout export', () => {
     });
   });
 
+  test('keeps experiences as best-effort and omits them when the endpoint fails', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('parentLayoutId=0')) {
+          return new Response(
+            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('parentLayoutId=11')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/site-pages/home?fields=')) {
+          return new Response(
+            '{"id":5001,"uuid":"uuid-1","friendlyUrlPath":"home","pageType":"Content Layout","siteId":20121,"title":"Home","pageDefinition":{"widgets":[]}}',
+            {status: 200},
+          );
+        }
+
+        if (url.endsWith('/site-pages/home/experiences')) {
+          return new Response('{"message":"not available"}', {status: 404});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayPageLayoutExport(
+      CONFIG,
+      {url: '/web/guest/home'},
+      {
+        apiClient,
+        tokenClient: TOKEN_CLIENT,
+        now: () => new Date('2026-03-26T12:00:00.000Z'),
+      },
+    );
+
+    expect(result.headlessSitePage).toMatchObject({id: 5001});
+    expect(result).not.toHaveProperty('experiences');
+  });
+
   test('writes export to a file and creates parent directories', async () => {
     const dir = createTempDir('dev-cli-page-layout-export-');
     const filePath = path.join(dir, 'nested', 'page-layout.json');
@@ -180,5 +233,44 @@ describe('liferay page-layout export', () => {
     await expect(
       runLiferayPageLayoutExport(CONFIG, {url: '/web/guest/home'}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('layoutType=content');
+  });
+
+  test('keeps the export failure message when headless delivery does not return a usable page object', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('parentLayoutId=0')) {
+          return new Response(
+            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/api/jsonws/layout/get-layouts?') && url.includes('parentLayoutId=11')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/site-pages/home?fields=')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayPageLayoutExport(CONFIG, {url: '/web/guest/home'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+    ).rejects.toThrow(
+      'The page cannot be exported through Headless Delivery or could not be resolved as a content page.',
+    );
   });
 });
