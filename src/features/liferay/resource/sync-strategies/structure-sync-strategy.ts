@@ -8,10 +8,9 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
 import type {LiferayApiClient} from '../../../../core/http/client.js';
-import type {OAuthTokenClient} from '../../../../core/http/auth.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
+import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
-import {fetchAccessToken} from '../../inventory/liferay-inventory-shared.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
 import {resolveStructureFile} from '../liferay-resource-paths.js';
 import {
@@ -106,11 +105,9 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData> | null> {
     const opts = options as StructureSyncOptions;
-    const apiClient: LiferayApiClient =
-      (dependencies as unknown as {apiClient?: LiferayApiClient})?.apiClient ?? createLiferayApiClient();
-    const accessToken = await fetchAccessToken(config, dependencies);
+    const {gateway} = createStructureTransport(config, dependencies);
 
-    const existing = await fetchStructureByKey(config, apiClient, accessToken, site.id, opts.key);
+    const existing = await fetchStructureByKeyViaGateway(gateway, site.id, opts.key);
     if (!existing) {
       return null;
     }
@@ -139,9 +136,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData>> {
     const opts = options as StructureSyncOptions;
-    const apiClient: LiferayApiClient =
-      (dependencies as unknown as {apiClient?: LiferayApiClient})?.apiClient ?? createLiferayApiClient();
-    const accessToken = await fetchAccessToken(config, dependencies);
+    const {apiClient, tokenClient, gateway} = createStructureTransport(config, dependencies);
 
     const payload = await fs.readJson(localArtifact.data.filePath);
     const payloadFieldRefs = collectFieldReferences(payload);
@@ -160,7 +155,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     let migration: MigrationStats | undefined;
     const migrationOptions = {
       apiClient,
-      tokenClient: (dependencies as unknown as {tokenClient?: OAuthTokenClient})?.tokenClient,
+      tokenClient,
       cleanupSource: Boolean(opts.cleanupMigration),
       dryRun: Boolean(opts.migrationDryRun),
       fetchStructureByKeyFn: fetchStructureByKey,
@@ -193,18 +188,14 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       }
 
       const createPayload = removeExternalReferenceCode(payload);
-      const created = await expectJsonSuccess(
-        await apiClient.postJson<Record<string, unknown>>(
-          config.liferay.url,
-          `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`,
-          createPayload,
-          authOptions(config, accessToken),
-        ),
+      const created = await postJsonAsResource<Record<string, unknown>>(
+        gateway,
+        `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`,
+        createPayload,
         'structure-create',
-        'LIFERAY_RESOURCE_ERROR',
       );
 
-      const createdId = String((created.data as unknown as Record<string, unknown>)?.id ?? '');
+      const createdId = String((created as Record<string, unknown> | null)?.id ?? '');
       if (opts.migrationPlan && shouldRunPostMigration(phase)) {
         migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan, migrationOptions);
       }
@@ -214,7 +205,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
         name: opts.key,
         data: {
           structureId: createdId,
-          runtimeDefinition: (created.data as unknown as Record<string, unknown>) ?? {},
+          runtimeDefinition: (created as Record<string, unknown> | null) ?? {},
           existingFieldRefs: payloadFieldRefs,
           removedFieldReferences,
           migration,
@@ -236,18 +227,14 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     if (autoTransition) {
       const sourceSnapshots = await captureMigrationSourceSnapshots(config, runtimeId, site.id, opts.migrationPlan!, {
         apiClient,
-        tokenClient: (dependencies as unknown as {tokenClient?: OAuthTokenClient})?.tokenClient,
+        tokenClient,
       });
       updatePayload = buildTransitionPayload(remoteArtifact.data.runtimeDefinition, payload);
-      await expectJsonSuccess(
-        await apiClient.putJson<Record<string, unknown>>(
-          config.liferay.url,
-          `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
-          updatePayload,
-          authOptions(config, accessToken),
-        ),
+      await putJsonAsResource<Record<string, unknown>>(
+        gateway,
+        `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
+        updatePayload,
         'structure-update transition',
-        'LIFERAY_RESOURCE_ERROR',
       );
 
       migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan!, {
@@ -257,9 +244,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     }
 
     const updated = await updateStructureWithRecovery(
-      config,
-      apiClient,
-      accessToken,
+      gateway,
       site.id,
       runtimeId,
       opts.key,
@@ -300,6 +285,38 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
 
 // ---- Private Helpers ----
 
+function createStructureTransport(config: AppConfig, dependencies?: StructureResourceDependencies) {
+  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+  const tokenClient = dependencies?.tokenClient;
+
+  return {
+    apiClient,
+    tokenClient,
+    gateway: createLiferayGateway(config, apiClient, tokenClient),
+  };
+}
+
+async function fetchStructureByKeyViaGateway(
+  gateway: LiferayGateway,
+  siteId: number,
+  key: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    return (
+      (await gateway.getJson<Record<string, unknown>>(
+        `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
+        'resource structure-sync get',
+      )) ?? {}
+    );
+  } catch (error) {
+    if (isGatewayStatus(error, 404)) {
+      return null;
+    }
+
+    rethrowGatewayAsResourceError(error);
+  }
+}
+
 async function fetchStructureByKey(
   config: AppConfig,
   apiClient: LiferayApiClient,
@@ -319,10 +336,34 @@ async function fetchStructureByKey(
   return (success.data as Record<string, unknown>) ?? {};
 }
 
+async function postJsonAsResource<T>(
+  gateway: LiferayGateway,
+  path: string,
+  payload: unknown,
+  label: string,
+): Promise<T> {
+  try {
+    return await gateway.postJson<T>(path, payload, label);
+  } catch (error) {
+    rethrowGatewayAsResourceError(error);
+  }
+}
+
+async function putJsonAsResource<T>(
+  gateway: LiferayGateway,
+  path: string,
+  payload: unknown,
+  label: string,
+): Promise<T> {
+  try {
+    return await gateway.putJson<T>(path, payload, label);
+  } catch (error) {
+    rethrowGatewayAsResourceError(error);
+  }
+}
+
 async function updateStructureWithRecovery(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   runtimeId: string,
   key: string,
@@ -331,26 +372,20 @@ async function updateStructureWithRecovery(
   dependencies?: StructureResourceDependencies,
 ): Promise<{data: Record<string, unknown> | null; recoveredAfterTimeout: boolean}> {
   try {
-    const updated = await expectJsonSuccess(
-      await apiClient.putJson<Record<string, unknown>>(
-        config.liferay.url,
-        `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
-        payload,
-        authOptions(config, accessToken),
-      ),
+    const updated = await putJsonAsResource<Record<string, unknown>>(
+      gateway,
+      `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
+      payload,
       'structure-update',
-      'LIFERAY_RESOURCE_ERROR',
     );
-    return {data: (updated.data as Record<string, unknown>) ?? null, recoveredAfterTimeout: false};
+    return {data: (updated as Record<string, unknown> | null) ?? null, recoveredAfterTimeout: false};
   } catch (error) {
     if (!isRecoverableTimeoutError(error)) {
       throw error;
     }
 
     const recovered = await pollStructureUpdateRecovery(
-      config,
-      apiClient,
-      accessToken,
+      gateway,
       siteId,
       key,
       payload,
@@ -370,9 +405,7 @@ async function updateStructureWithRecovery(
 }
 
 async function pollStructureUpdateRecovery(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   key: string,
   payload: Record<string, unknown>,
@@ -391,7 +424,7 @@ async function pollStructureUpdateRecovery(
   }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const runtime = await fetchStructureByKey(config, apiClient, accessToken, siteId, key);
+    const runtime = await fetchStructureByKeyViaGateway(gateway, siteId, key);
     if (runtime && structureShapeMatches(runtime, expectedShape)) {
       return runtime;
     }
@@ -402,6 +435,20 @@ async function pollStructureUpdateRecovery(
   }
 
   return null;
+}
+
+function isGatewayStatus(error: unknown, status: number): boolean {
+  return (
+    error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && error.message.includes(`status=${status}`)
+  );
+}
+
+function rethrowGatewayAsResourceError(error: unknown): never {
+  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    throw LiferayErrors.resourceError(error.message);
+  }
+
+  throw error;
 }
 
 function isRecoverableTimeoutError(error: unknown): boolean {

@@ -7,19 +7,13 @@ import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
+import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
 import {resolveAdtFile} from '../liferay-resource-paths.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
-import {
-  authedGetJson,
-  authedPostForm,
-  localizedMap,
-  sha256,
-  type ResourceSyncDependencies,
-} from '../liferay-resource-sync-shared.js';
-import {expectJsonSuccess} from '../../liferay-http-shared.js';
+import {localizedMap, sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import {matchesAdtRow} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
@@ -125,43 +119,40 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     dependencies?: ResourceSyncDependencies,
   ): Promise<RemoteArtifact<AdtRemoteData>> {
     const opts = options as AdtSyncOptions;
+    const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
 
     if (!remoteArtifact) {
       // Create new ADT
       const classNameId = await fetchClassNameIdForValue(config, opts.className, dependencies);
       const resourceClassNameId = await fetchAdtResourceClassNameId(config, dependencies);
 
-      const created = await expectJsonSuccess(
-        await authedPostForm<Record<string, unknown>>(
-          config,
-          '/api/jsonws/ddm.ddmtemplate/add-template',
-          {
-            externalReferenceCode: opts.key,
-            groupId: String(site.id),
-            classNameId: String(classNameId),
-            classPK: '0', // ADTs have no structure binding
-            resourceClassNameId: String(resourceClassNameId),
-            nameMap: localizedMap(opts.key),
-            descriptionMap: localizedMap(''),
-            type: 'display',
-            mode: '',
-            language: 'ftl',
-            script: localArtifact.normalizedContent,
-          },
-          dependencies,
-        ),
+      const created = await postFormAsResource<Record<string, unknown>>(
+        gateway,
+        '/api/jsonws/ddm.ddmtemplate/add-template',
+        {
+          externalReferenceCode: opts.key,
+          groupId: String(site.id),
+          classNameId: String(classNameId),
+          classPK: '0', // ADTs have no structure binding
+          resourceClassNameId: String(resourceClassNameId),
+          nameMap: localizedMap(opts.key),
+          descriptionMap: localizedMap(''),
+          type: 'display',
+          mode: '',
+          language: 'ftl',
+          script: localArtifact.normalizedContent,
+        },
         'adt-create',
-        'LIFERAY_RESOURCE_ERROR',
       );
 
-      const createdId = String(created.data?.templateKey ?? created.data?.templateId ?? '');
+      const createdId = String(created.templateKey ?? created.templateId ?? '');
 
       return {
         id: createdId,
         name: opts.key,
         data: {
           templateId: createdId,
-          templateKey: created.data?.templateKey as string | undefined,
+          templateKey: created.templateKey as string | undefined,
           widgetType: opts.widgetType,
           className: opts.className,
         },
@@ -169,32 +160,27 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     }
 
     // Update existing ADT
-    const ddmTemplate = await authedGetJson<Record<string, unknown>>(
-      config,
+    const ddmTemplate = await getJsonAsResource<Record<string, unknown>>(
+      gateway,
       `/api/jsonws/ddm.ddmtemplate/get-template?templateId=${remoteArtifact.data.templateId}`,
       'adt-ddm-get',
-      dependencies,
     );
 
-    await expectJsonSuccess(
-      await authedPostForm(
-        config,
-        '/api/jsonws/ddm.ddmtemplate/update-template',
-        {
-          templateId: remoteArtifact.data.templateId,
-          classPK: String(ddmTemplate.classPK ?? '0'),
-          nameMap: localizedMap(opts.key),
-          descriptionMap: localizedMap(''),
-          type: 'display',
-          mode: '',
-          language: 'ftl',
-          script: localArtifact.normalizedContent,
-          cacheable: 'false',
-        },
-        dependencies,
-      ),
+    await postFormAsResource(
+      gateway,
+      '/api/jsonws/ddm.ddmtemplate/update-template',
+      {
+        templateId: remoteArtifact.data.templateId,
+        classPK: String(ddmTemplate.classPK ?? '0'),
+        nameMap: localizedMap(opts.key),
+        descriptionMap: localizedMap(''),
+        type: 'display',
+        mode: '',
+        language: 'ftl',
+        script: localArtifact.normalizedContent,
+        cacheable: 'false',
+      },
       'adt-update',
-      'LIFERAY_RESOURCE_ERROR',
     );
 
     return remoteArtifact;
@@ -229,3 +215,32 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     }
   },
 };
+
+async function getJsonAsResource<T>(gateway: LiferayGateway, path: string, label: string): Promise<T> {
+  try {
+    return await gateway.getJson<T>(path, label);
+  } catch (error) {
+    rethrowGatewayAsResourceError(error);
+  }
+}
+
+async function postFormAsResource<T>(
+  gateway: LiferayGateway,
+  path: string,
+  form: Record<string, string>,
+  label: string,
+): Promise<T> {
+  try {
+    return await gateway.postForm<T>(path, form, label);
+  } catch (error) {
+    rethrowGatewayAsResourceError(error);
+  }
+}
+
+function rethrowGatewayAsResourceError(error: unknown): never {
+  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    throw LiferayErrors.resourceError(error.message);
+  }
+
+  throw error;
+}

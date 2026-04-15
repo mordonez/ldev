@@ -7,6 +7,7 @@ import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
+import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
 import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
 import {LiferayErrors} from '../../errors/index.js';
@@ -16,7 +17,6 @@ import {resolveTemplateFile, resolveSiteToken} from '../liferay-resource-paths.j
 import {fetchStructureTemplateClassIds} from '../liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from '../liferay-resource-template-normalize.js';
 import {
-  authedGetJson,
   ensureString,
   localizedMap,
   sha256,
@@ -103,13 +103,8 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
 
     // Try direct DDM template lookup
     const {classNameId} = await fetchStructureTemplateClassIds(config, dependencies);
-    const directDdmTemplate = await tryGetDdmTemplateByKey(
-      config,
-      site.id,
-      String(classNameId),
-      opts.key,
-      dependencies,
-    );
+    const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+    const directDdmTemplate = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), opts.key);
 
     const existing = directDdmTemplate
       ? structureIdFilter === '' || String(directDdmTemplate.classPK ?? '') === structureIdFilter
@@ -257,23 +252,34 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
  * Returns null if not found (swallows 404-like errors).
  */
 async function tryGetDdmTemplateByKey(
-  config: AppConfig,
+  gateway: LiferayGateway,
   siteId: number,
   classNameId: string,
   templateKey: string,
-  dependencies?: ResourceSyncDependencies,
 ): Promise<Record<string, unknown> | null> {
   try {
-    return await authedGetJson<Record<string, unknown>>(
-      config,
+    return await gateway.getJson<Record<string, unknown>>(
       `/api/jsonws/ddm.ddmtemplate/get-template?groupId=${siteId}&classNameId=${classNameId}&templateKey=${templateKey}`,
       'template-lookup',
-      dependencies,
     );
   } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_RESOURCE_ERROR') {
+    if (isGatewayStatus(error, 404)) {
       return null;
     }
-    throw error;
+    rethrowGatewayAsResourceError(error);
   }
+}
+
+function isGatewayStatus(error: unknown, status: number): boolean {
+  return (
+    error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && error.message.includes(`status=${status}`)
+  );
+}
+
+function rethrowGatewayAsResourceError(error: unknown): never {
+  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    throw LiferayErrors.resourceError(error.message);
+  }
+
+  throw error;
 }
