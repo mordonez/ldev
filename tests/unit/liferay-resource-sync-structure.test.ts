@@ -73,6 +73,52 @@ async function createRepoFixture(): Promise<{
 }
 
 describe('liferay resource structure-sync', () => {
+  test('throws when structure is missing and createMissing is not enabled', async () => {
+    const {config} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response('{"message":"Not Found"}', {status: 404});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+    ).rejects.toThrow('does not exist and create-missing is not enabled');
+  });
+
+  test('returns checked_missing when structure is missing and checkOnly is enabled with createMissing', async () => {
+    const {config} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response('{"message":"Not Found"}', {status: 404});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncStructure(
+      config,
+      {site: '/global', key: 'BASIC', checkOnly: true, createMissing: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('checked_missing');
+    expect(result.id).toBe('');
+    expect(result.removedFieldReferences).toEqual([]);
+  });
+
   test('blocks breaking changes without migration-plan or allow-breaking-change', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
