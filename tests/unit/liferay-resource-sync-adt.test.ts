@@ -67,6 +67,45 @@ async function createRepoFixture() {
 }
 
 describe('liferay resource adt-sync', () => {
+  test('throws when ADT is missing and createMissing is not enabled', async () => {
+    const {config, adtFile} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (
+          url.includes('/classname/fetch-class-name?value=com.liferay.portlet.display.template.PortletDisplayTemplate')
+        ) {
+          return new Response('{"classNameId":777}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/classname/fetch-class-name?value=com.liferay.portal.search.web.internal.result.display.context.SearchResultSummaryDisplayContext',
+          )
+        ) {
+          return new Response('{"classNameId":888}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates')) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncAdt(config, {site: '/global', file: adtFile}, {apiClient, tokenClient: TOKEN_CLIENT}),
+    ).rejects.toThrow('does not exist and create-missing is not enabled');
+  });
+
   test('creates a missing ADT from a local file', async () => {
     const {config, adtFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({

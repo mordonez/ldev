@@ -57,6 +57,51 @@ async function createRepoFixture() {
 }
 
 describe('liferay resource template-sync', () => {
+  test('throws when template is missing and createMissing is not enabled', async () => {
+    const {config, templateFile} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
+        }
+        if (
+          url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=MISSING')
+        ) {
+          return new Response('{"status":404}', {status: 404});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates')) {
+          return new Response('[]', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncTemplate(
+        config,
+        {site: '/global', key: 'MISSING', file: templateFile},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
+    ).rejects.toThrow('does not exist and create-missing is not enabled');
+  });
+
   test('updates an existing template and verifies the resulting hash', async () => {
     const {config, templateFile} = await createRepoFixture();
     const calls: string[] = [];
