@@ -1,9 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
-import {createLiferayApiClient} from '../../../core/http/client.js';
-import {LiferayErrors} from '../errors/index.js';
-import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -16,22 +14,9 @@ export async function fetchStructureByKey(
   key: string,
   dependencies?: ResourceDependencies,
 ): Promise<Record<string, unknown>> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await apiClient.get<Record<string, unknown>>(
-    config.liferay.url,
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+  return gateway.getJson<Record<string, unknown>>(
     `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
-    {
-      timeoutSeconds: config.liferay.timeoutSeconds,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
+    'structure-get',
   );
-
-  if (!response.ok) {
-    throw LiferayErrors.resourceError(`structure-get failed with status=${response.status}.`);
-  }
-
-  return response.data ?? {};
 }
