@@ -3,8 +3,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
 import {
-  authedGet,
   expectJsonSuccess,
   fetchAccessToken,
   resolveSite,
@@ -42,6 +42,16 @@ type ClassNamePayload = {
 type GroupPayload = {
   companyId?: number;
 };
+
+function createResourceReadGateway(config: AppConfig, apiClient: LiferayApiClient, accessToken?: string) {
+  const gateway = createLiferayGateway(config, apiClient);
+
+  if (accessToken) {
+    gateway.seedAccessToken(accessToken);
+  }
+
+  return gateway;
+}
 
 export async function resolveResourceSite(
   config: AppConfig,
@@ -152,10 +162,8 @@ export async function listFragmentCollections(
 ): Promise<FragmentCollectionPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await authedGet<unknown[]>(
-    config,
-    apiClient,
-    accessToken,
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=${siteId}`,
   );
   const success = await expectJsonSuccess(response, 'fragment collections');
@@ -169,10 +177,8 @@ export async function listFragments(
 ): Promise<FragmentEntryPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await authedGet<unknown[]>(
-    config,
-    apiClient,
-    accessToken,
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=${collectionId}`,
   );
   const success = await expectJsonSuccess(response, 'fragments');
@@ -190,10 +196,8 @@ async function fetchClassNameId(
   const cached = classNameIdLookupCache.get(cacheKey, forceRefresh);
   if (cached) return cached;
 
-  const response = await authedGet<ClassNamePayload>(
-    config,
-    apiClient,
-    accessToken,
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const response = await gateway.getRaw<ClassNamePayload>(
     `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
   );
   const success = await expectJsonSuccess(response, `classname ${className}`);
@@ -266,13 +270,14 @@ export async function fetchGroupInfo(
 ): Promise<GroupInfo | null> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await authedGet<{
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const response = await gateway.getRaw<{
     friendlyURL?: string;
     friendlyUrl?: string;
     nameCurrentValue?: string;
     name?: string;
     parentGroupId?: number;
-  }>(config, apiClient, accessToken, `/api/jsonws/group/get-group?groupId=${groupId}`);
+  }>(`/api/jsonws/group/get-group?groupId=${groupId}`);
 
   if (!response.ok || !response.data) {
     return null;
@@ -297,12 +302,8 @@ async function resolveCompanyId(
   accessToken: string,
   siteId: number,
 ): Promise<number> {
-  const groupResponse = await authedGet<GroupPayload>(
-    config,
-    apiClient,
-    accessToken,
-    `/api/jsonws/group/get-group?groupId=${siteId}`,
-  );
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const groupResponse = await gateway.getRaw<GroupPayload>(`/api/jsonws/group/get-group?groupId=${siteId}`);
 
   if (groupResponse.ok) {
     const companyId = groupResponse.data?.companyId ?? -1;
@@ -311,12 +312,7 @@ async function resolveCompanyId(
     }
   }
 
-  const companiesResponse = await authedGet<Array<{companyId?: number}>>(
-    config,
-    apiClient,
-    accessToken,
-    '/api/jsonws/company/get-companies',
-  );
+  const companiesResponse = await gateway.getRaw<Array<{companyId?: number}>>('/api/jsonws/company/get-companies');
 
   if (!companiesResponse.ok || !Array.isArray(companiesResponse.data) || companiesResponse.data.length === 0) {
     return -1;
@@ -335,10 +331,8 @@ async function fetchDdmTemplates(
   resourceClassNameId: number,
 ): Promise<DdmTemplatePayload[]> {
   const groupQuery = groupId === null ? '0' : String(groupId);
-  const response = await authedGet<unknown[]>(
-    config,
-    apiClient,
-    accessToken,
+  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=${groupQuery}&classNameId=${classNameId}&resourceClassNameId=${resourceClassNameId}&status=0`,
   );
 
