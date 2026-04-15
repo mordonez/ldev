@@ -2,6 +2,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
 import {fetchPagedItems, resolveSite} from './inventory/liferay-inventory-shared.js';
+import {createLiferayGateway} from './liferay-gateway.js';
 import {performLiferayHealthCheck} from './liferay-health.js';
 
 export type LiferayAuditResult = {
@@ -36,7 +37,7 @@ export async function runLiferayAudit(
   const siteInput = options?.site ?? '/global';
   const pageSize = options?.pageSize ?? 200;
 
-  const health = await performLiferayHealthCheck(config, token.accessToken, apiClient);
+  const health = await performLiferayHealthCheck(createLiferayGateway(config, apiClient, tokenClient));
   const site = await resolveSite(config, siteInput, {apiClient, tokenClient});
   const [structures, templates] = await Promise.all([
     fetchPagedItems(config, `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`, pageSize, {
