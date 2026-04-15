@@ -11,7 +11,7 @@
  *   ADT input:    --id > --display-style (strips ddmTemplate_) > --key > --name
  */
 
-import {CliError} from '../../core/errors.js';
+import {LiferayErrors} from './errors/index.js';
 import type {DdmTemplatePayload} from '../liferay/resource/liferay-resource-payloads.js';
 
 // ---------------------------------------------------------------------------
@@ -108,7 +108,5 @@ export function normalizeAdtIdentifier(options: AdtIdentifierOptions): string {
     return options.name.trim();
   }
 
-  throw new CliError('adt requires --display-style, --id, --key, or --name', {
-    code: 'LIFERAY_RESOURCE_ERROR',
-  });
+  throw LiferayErrors.resourceError('adt requires --display-style, --id, --key, or --name');
 }

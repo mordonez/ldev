@@ -1,10 +1,10 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from './liferay-resource-paths.js';
 
@@ -61,9 +61,9 @@ export async function runLiferayResourceMigrationInit(
   );
 
   if ((await fs.pathExists(outputPath)) && !options.overwrite) {
-    throw new CliError(`The descriptor already exists: ${outputPath}. Use --overwrite to regenerate it.`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(
+      `The descriptor already exists: ${outputPath}. Use --overwrite to regenerate it.`,
+    );
   }
 
   const descriptor = {

@@ -1,9 +1,9 @@
 import fs from 'fs-extra';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {authOptions, expectJsonSuccess} from './liferay-resource-sync-structure-utils.js';
 
@@ -65,12 +65,12 @@ export async function runStructureMigration(
       : planRoot;
   const planData = parseMigrationPlan(plan);
   if (planData.rules.length === 0) {
-    throw new CliError('Invalid migration plan: missing mappings[]', {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
   }
 
   const structure = await options.fetchStructureByKeyFn(config, options.apiClient, accessToken, siteId, structureKey);
   if (!structure?.id) {
-    throw new CliError(`Could not resolve structure ${structureKey}`, {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError(`Could not resolve structure ${structureKey}`);
   }
 
   const selected = await selectStructureContents(
@@ -163,8 +163,7 @@ export async function runStructureMigration(
     const summary = failures
       .map(({contentId, articleKey, message}) => `${articleKey || contentId}: ${message}`)
       .join('; ');
-    throw new CliError(`Structure migration failed for ${failures.length} content item(s): ${summary}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
+    throw LiferayErrors.resourceError(`Structure migration failed for ${failures.length} content item(s): ${summary}`, {
       details: {stats, failures},
     });
   }
@@ -394,9 +393,8 @@ async function verifyStructuredContentPersistence(
     }
   }
 
-  throw new CliError(
+  throw LiferayErrors.resourceError(
     `structure-migrate update was accepted but contentFields were not persisted for content ${contentId}.`,
-    {code: 'LIFERAY_RESOURCE_ERROR'},
   );
 }
 

@@ -1,7 +1,7 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
@@ -74,9 +74,7 @@ export async function runLiferayResourceGetTemplate(
   }
 
   if (!match) {
-    throw new CliError(`Template not found: ${options.id}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`Template not found: ${options.id}`);
   }
 
   return {

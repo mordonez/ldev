@@ -2,6 +2,7 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
@@ -78,9 +79,7 @@ export async function runLiferayResourceGetAdt(
       }
     }
 
-    throw new CliError(`ADT not found: ${identifier}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`ADT not found: ${identifier}`);
   }
 
   // No site specified: search across all accessible sites and detect ambiguity.
@@ -123,9 +122,7 @@ export async function runLiferayResourceGetAdt(
   }
 
   if (matches.length === 0) {
-    throw new CliError(`ADT not found: ${identifier}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`ADT not found: ${identifier}`);
   }
 
   if (matches.length > 1) {

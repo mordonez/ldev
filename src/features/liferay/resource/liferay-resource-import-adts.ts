@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError, normalizeCliError} from '../../../core/errors.js';
+import {normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from './artifact-paths.js';
 import type {LiferayResourceImportFailure} from './liferay-resource-import-structures.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
@@ -38,9 +39,8 @@ export async function runLiferayResourceImportAdts(
   const hasScopedFilter =
     adtKeys.length > 0 || Boolean(options?.widgetType?.trim()) || Boolean(options?.className?.trim());
   if (!options?.allSites && !options?.apply && !hasScopedFilter) {
-    throw new CliError(
+    throw LiferayErrors.resourceError(
       'resource import-adts requires --adt <key> (repeatable), --widget-type, --class-name, --apply for the resolved site, or --all-sites to avoid accidental mass imports.',
-      {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }
 
@@ -78,10 +78,10 @@ export async function runLiferayResourceImportAdts(
         const failure = toImportFailure(siteTokenToFriendlyUrl(siteToken), entry, file, error);
         failures.push(failure);
         if (!options?.continueOnError) {
-          throw new CliError(`Import failed for ADT '${entry}' in site '${failure.site}': ${failure.message}`, {
-            code: 'LIFERAY_RESOURCE_ERROR',
-            details: failure,
-          });
+          throw LiferayErrors.resourceError(
+            `Import failed for ADT '${entry}' in site '${failure.site}': ${failure.message}`,
+            {details: failure},
+          );
         }
       }
     }

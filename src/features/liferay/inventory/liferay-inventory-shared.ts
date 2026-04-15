@@ -5,6 +5,7 @@ import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '
 import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
+import {LiferayErrors} from '../errors/index.js';
 import {
   SiteResolutionPipeline,
   createByIdStep,
@@ -120,12 +121,11 @@ export async function fetchPagedItems<T>(
       if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
         // Check for 403 (permission) errors and provide scoped guidance
         if (error.message.includes('status=403')) {
-          throw new CliError(
+          throw LiferayErrors.inventoryError(
             `403 Forbidden on ${basePath} (check the bootstrap OAuth2 scopes for Data Engine/Headless Delivery).`,
-            {code: 'LIFERAY_INVENTORY_ERROR'},
           );
         }
-        throw new CliError(error.message, {code: 'LIFERAY_INVENTORY_ERROR'});
+        throw LiferayErrors.inventoryError(error.message);
       }
       throw error;
     }

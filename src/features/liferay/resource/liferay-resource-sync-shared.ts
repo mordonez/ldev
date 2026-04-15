@@ -1,10 +1,10 @@
 import {createHash} from 'node:crypto';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient, type HttpResponse} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {buildAuthOptions, ensureData, expectJsonSuccess} from '../liferay-http-shared.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 
@@ -51,9 +51,7 @@ export async function postFormCandidates<T>(
     errors.push(`status=${response.status} body=${response.body}`);
   }
 
-  throw new CliError(`${operation} failed on ${apiPath} (${errors.join(' | ')})`, {
-    code: 'LIFERAY_RESOURCE_ERROR',
-  });
+  throw LiferayErrors.resourceError(`${operation} failed on ${apiPath} (${errors.join(' | ')})`);
 }
 
 export async function authedPostMultipart<T>(
@@ -134,7 +132,7 @@ export function normalizeSyncStatus(checkOnly: boolean): 'checked' | 'updated' {
 export function ensureString(value: unknown, label: string): string {
   const normalized = String(value ?? '').trim();
   if (normalized === '') {
-    throw new CliError(`${label} is empty`, {code: 'LIFERAY_RESOURCE_ERROR'});
+    throw LiferayErrors.resourceError(`${label} is empty`);
   }
   return normalized;
 }

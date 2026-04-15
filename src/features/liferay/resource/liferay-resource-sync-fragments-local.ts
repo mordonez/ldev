@@ -1,8 +1,8 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
 import type {
   LocalFragment,
@@ -20,9 +20,7 @@ export async function readLocalFragmentsProject(
 ): Promise<LocalFragmentsProject> {
   const srcDir = path.join(projectDir, 'src');
   if (!(await fs.pathExists(srcDir))) {
-    throw new CliError(`src directory not found in ${projectDir}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`src directory not found in ${projectDir}`);
   }
 
   const collections: LocalFragmentCollection[] = [];
@@ -65,13 +63,9 @@ export async function readLocalFragmentsProject(
 
   if (collections.length === 0) {
     if (filter !== '') {
-      throw new CliError(`Fragment '${filter}' not found in ${projectDir}`, {
-        code: 'LIFERAY_RESOURCE_ERROR',
-      });
+      throw LiferayErrors.resourceError(`Fragment '${filter}' not found in ${projectDir}`);
     }
-    throw new CliError(`No fragments were found to import in ${projectDir}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`No fragments were found to import in ${projectDir}`);
   }
 
   return {

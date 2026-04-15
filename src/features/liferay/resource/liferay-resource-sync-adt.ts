@@ -1,7 +1,7 @@
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LiferayErrors} from '../errors/index.js';
 import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {
@@ -38,9 +38,7 @@ export async function runLiferayResourceSyncAdt(
   const resolvedWidget = normalizeAdtWidgetType(options.widgetType ?? inferAdtWidgetType(options.file ?? ''));
   const resolvedClassName = options.className?.trim() || ADT_CLASS_BY_WIDGET_TYPE[resolvedWidget];
   if (!resolvedWidget || !resolvedClassName) {
-    throw new CliError(`widget-type ADT no soportado: ${resolvedWidget || options.widgetType || ''}`, {
-      code: 'LIFERAY_RESOURCE_ERROR',
-    });
+    throw LiferayErrors.resourceError(`widget-type ADT no soportado: ${resolvedWidget || options.widgetType || ''}`);
   }
 
   const name = options.key?.trim() || inferAdtName(options.file ?? '');
@@ -130,9 +128,8 @@ function inferAdtWidgetType(file: string): string {
  */
 function inferAdtName(file: string): string {
   if (!file) {
-    throw new CliError(
+    throw LiferayErrors.resourceError(
       "ADT requires --file or (--key and --widget-type). Use 'resource adt --display-style ddmTemplate_<ID>' if you need to inspect it first.",
-      {code: 'LIFERAY_RESOURCE_ERROR'},
     );
   }
   return path.basename(file, path.extname(file));

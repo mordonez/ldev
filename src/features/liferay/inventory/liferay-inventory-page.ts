@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
-import {CliError} from '../../../core/errors.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
 import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
 import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
@@ -321,9 +321,7 @@ export async function resolveRegularLayoutPage(
 ): Promise<ResolvedRegularLayoutPage> {
   const request = resolveInventoryPageRequest(options);
   if (request.route !== 'regularPage') {
-    throw new CliError('Only a regular page can be resolved for this flow.', {
-      code: 'LIFERAY_INVENTORY_ERROR',
-    });
+    throw LiferayErrors.inventoryError('Only a regular page can be resolved for this flow.');
   }
 
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();

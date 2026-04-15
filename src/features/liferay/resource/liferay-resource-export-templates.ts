@@ -1,10 +1,10 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
+import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayInventoryTemplates, type LiferayInventoryTemplate} from '../inventory/liferay-inventory-templates.js';
 import {listDdmTemplates} from './liferay-resource-shared.js';
@@ -148,7 +148,7 @@ async function exportTemplatesForSite(
       const script = normalizeLiferayTemplateScript(String(template.templateScript ?? ''));
 
       if (script.trim() === '') {
-        throw new CliError('templateScript is empty', {code: 'LIFERAY_RESOURCE_ERROR'});
+        throw LiferayErrors.resourceError('templateScript is empty');
       }
 
       const outputName = `${sanitizeArtifactToken(resolveTemplateExportName(template))}.ftl`;

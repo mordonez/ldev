@@ -2,10 +2,10 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {LiferayApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
+import {LiferayErrors} from './errors/index.js';
 
 type ThemeDependencies = {
   apiClient?: LiferayApiClient;
@@ -49,7 +49,7 @@ export async function runLiferayThemeCheck(
   const sourceIconsExists = await fs.pathExists(sourceIconsFile);
 
   if (!sourceIconsExists) {
-    throw new CliError(`Falta fichero fuente: ${sourceIconsFile}`, {code: 'LIFERAY_THEME_ERROR'});
+    throw LiferayErrors.themeError(`Falta fichero fuente: ${sourceIconsFile}`);
   }
 
   const sourceIconsSvg = await fs.readFile(sourceIconsFile, 'utf8');
@@ -118,9 +118,8 @@ async function fetchText(
 ): Promise<string> {
   const response = await apiClient.get<string>('', url, {timeoutSeconds});
   if (!response.ok) {
-    throw new CliError(
+    throw LiferayErrors.themeError(
       `${label} failed with status=${response.status} at ${url}. Verify that the theme is deployed and the portal URL is reachable.`,
-      {code: 'LIFERAY_THEME_ERROR'},
     );
   }
 
@@ -135,16 +134,15 @@ async function requireHttp200(
 ): Promise<void> {
   const response = await apiClient.get('', url, {timeoutSeconds});
   if (!response.ok) {
-    throw new CliError(
+    throw LiferayErrors.themeError(
       `${label} failed with status=${response.status} at ${url}. Verify that the theme is deployed and the portal URL is reachable.`,
-      {code: 'LIFERAY_THEME_ERROR'},
     );
   }
 }
 
 function resolveSourceIconsFile(config: AppConfig, themeName: string): string {
   if (!config.repoRoot) {
-    throw new CliError('Could not resolve repo root for theme check.', {code: 'LIFERAY_THEME_ERROR'});
+    throw LiferayErrors.themeError('Could not resolve repo root for theme check.');
   }
 
   return path.join(config.repoRoot, 'liferay', 'themes', themeName, 'src', 'images', 'clay', 'icons.svg');

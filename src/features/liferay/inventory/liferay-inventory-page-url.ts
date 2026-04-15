@@ -1,4 +1,4 @@
-import {CliError} from '../../../core/errors.js';
+import {LiferayErrors} from '../errors/index.js';
 
 export type InventoryPageRoute = 'portalHome' | 'siteRoot' | 'displayPage' | 'regularPage';
 
@@ -53,9 +53,7 @@ export function resolveInventoryPageRequest(options: {
     );
   }
 
-  throw new CliError('Provide --url or both --site and --friendly-url.', {
-    code: 'LIFERAY_INVENTORY_ERROR',
-  });
+  throw LiferayErrors.inventoryError('Provide --url or both --site and --friendly-url.');
 }
 
 function buildRequest(siteSlug: string, friendlyUrl: string, privateLayout: boolean): InventoryPageRequest {

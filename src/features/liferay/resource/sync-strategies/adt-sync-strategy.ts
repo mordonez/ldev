@@ -8,6 +8,7 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
+import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
 import {resolveAdtFile} from '../liferay-resource-paths.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
@@ -223,9 +224,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     if (runtime?.script) {
       const runtimeHash = sha256(runtime.script);
       if (runtimeHash !== localArtifact.contentHash) {
-        throw new CliError(`Hash mismatch ADT '${remoteArtifact.name}'`, {
-          code: 'LIFERAY_RESOURCE_ERROR',
-        });
+        throw LiferayErrors.resourceError(`Hash mismatch ADT '${remoteArtifact.name}'`);
       }
     }
   },

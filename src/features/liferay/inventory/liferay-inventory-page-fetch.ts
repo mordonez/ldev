@@ -1,11 +1,11 @@
 /* eslint-disable max-lines -- inventory orchestration intentionally consolidated during active refactor */
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import path from 'node:path';
 import fs from 'fs-extra';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {firstNonEmptyString, firstPositiveNumber, toBoolean, toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
+import {LiferayErrors} from '../errors/index.js';
 import {authedGet, type ResolvedSite} from './liferay-inventory-shared.js';
 import {
   buildLayoutDetails,
@@ -111,9 +111,8 @@ async function resolveDisplayPageArticle(
   }
 
   if (!article) {
-    throw new CliError(
+    throw LiferayErrors.inventoryError(
       `No structured content found with friendlyUrlPath=${urlTitle}. Verify the article URL title and site visibility, or confirm JSONWS/headless permissions for this OAuth client.`,
-      {code: 'LIFERAY_INVENTORY_ERROR'},
     );
   }
 
@@ -256,9 +255,9 @@ export async function fetchRegularPageInventory(
     localeHint,
   );
   if (!match) {
-    throw new CliError(`Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`, {
-      code: 'LIFERAY_INVENTORY_ERROR',
-    });
+    throw LiferayErrors.inventoryError(
+      `Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`,
+    );
   }
   const {layout, locale: matchedLocale} = match;
 
@@ -715,9 +714,9 @@ export async function resolveRegularLayoutPageData(
 ): Promise<ResolvedRegularLayoutPage> {
   const match = await findLayoutByFriendlyUrl(config, apiClient, accessToken, site.id, friendlyUrl, privateLayout);
   if (!match) {
-    throw new CliError(`Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`, {
-      code: 'LIFERAY_INVENTORY_ERROR',
-    });
+    throw LiferayErrors.inventoryError(
+      `Layout not found for friendlyUrl=${friendlyUrl} in site=${site.friendlyUrlPath}.`,
+    );
   }
   const {layout} = match;
 
@@ -771,11 +770,8 @@ async function resolveClassNameId(
   );
   const resolved = Number(response.data?.classNameId ?? -1);
   if (!response.ok || resolved <= 0) {
-    throw new CliError(
+    throw LiferayErrors.inventoryError(
       `Unable to resolve classNameId for ${className}. Verify JSONWS access to /api/jsonws/classname/fetch-class-name and portal credentials/permissions.`,
-      {
-        code: 'LIFERAY_INVENTORY_ERROR',
-      },
     );
   }
 
