@@ -16,13 +16,12 @@ import {fetchStructureTemplateClassIds} from '../liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from '../liferay-resource-template-normalize.js';
 import {
   authedGetJson,
-  authedPostForm,
   ensureString,
   localizedMap,
   sha256,
   type ResourceSyncDependencies,
+  postFormCandidates,
 } from '../liferay-resource-sync-shared.js';
-import {expectJsonSuccess} from '../../liferay-http-shared.js';
 import {matchesInventoryTemplate} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
@@ -169,27 +168,29 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
       const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
       const structure = await fetchStructureByKey(config, site.id, opts.structureKey, dependencies);
 
-      const created = await authedPostForm<Record<string, unknown>>(
+      const created = await postFormCandidates<Record<string, unknown>>(
         config,
         '/api/jsonws/ddm.ddmtemplate/add-template',
-        {
-          externalReferenceCode: opts.key,
-          groupId: String(site.id),
-          classNameId: String(classNameId),
-          classPK: String(structure.id ?? ''),
-          resourceClassNameId: String(resourceClassNameId),
-          nameMap: localizedMap(opts.key),
-          descriptionMap: localizedMap(''),
-          type: 'display',
-          mode: '',
-          language: 'ftl',
-          script: localArtifact.normalizedContent,
-        },
+        [
+          {
+            externalReferenceCode: opts.key,
+            groupId: String(site.id),
+            classNameId: String(classNameId),
+            classPK: String(structure.id ?? ''),
+            resourceClassNameId: String(resourceClassNameId),
+            nameMap: localizedMap(opts.key),
+            descriptionMap: localizedMap(''),
+            type: 'display',
+            mode: '',
+            language: 'ftl',
+            script: localArtifact.normalizedContent,
+          },
+        ],
+        'template-create',
         dependencies,
       );
 
-      const success = await expectJsonSuccess(created, 'template-create', 'LIFERAY_RESOURCE_ERROR');
-      const createdId = String(success.data?.templateKey ?? success.data?.templateId ?? '');
+      const createdId = String(created.templateKey ?? created.templateId ?? '');
 
       return {
         id: createdId,
@@ -205,10 +206,10 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     const templateId = ensureString(remoteArtifact.data.templateId, 'templateId');
     const classPk = String(remoteArtifact.data.classPK ?? '0');
 
-    await expectJsonSuccess(
-      await authedPostForm(
-        config,
-        '/api/jsonws/ddm.ddmtemplate/update-template',
+    await postFormCandidates(
+      config,
+      '/api/jsonws/ddm.ddmtemplate/update-template',
+      [
         {
           templateId,
           classPK: classPk,
@@ -220,10 +221,9 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
           script: localArtifact.normalizedContent,
           cacheable: 'false',
         },
-        dependencies,
-      ),
+      ],
       'template-update',
-      'LIFERAY_RESOURCE_ERROR',
+      dependencies,
     );
 
     return remoteArtifact;

@@ -5,7 +5,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient, type HttpResponse} from '../../../core/http/client.js';
-import {buildAuthOptions, expectJsonSuccess} from '../liferay-http-shared.js';
+import {buildAuthOptions, ensureData, expectJsonSuccess} from '../liferay-http-shared.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 
 type ResourceDependencies = {
@@ -32,6 +32,28 @@ export async function authedPostForm<T>(
   const accessToken = await fetchAccessToken(config, dependencies);
 
   return apiClient.postForm<T>(config.liferay.url, path, form, buildAuthOptions(config, accessToken));
+}
+
+export async function postFormCandidates<T>(
+  config: AppConfig,
+  apiPath: string,
+  candidates: Record<string, string>[],
+  operation: string,
+  dependencies?: ResourceDependencies,
+): Promise<T> {
+  const errors: string[] = [];
+
+  for (const form of candidates) {
+    const response = await authedPostForm<T>(config, apiPath, form, dependencies);
+    if (response.ok) {
+      return ensureData(response.data, `${operation} invalid JSON in ${apiPath}`, 'LIFERAY_RESOURCE_ERROR');
+    }
+    errors.push(`status=${response.status} body=${response.body}`);
+  }
+
+  throw new CliError(`${operation} failed on ${apiPath} (${errors.join(' | ')})`, {
+    code: 'LIFERAY_RESOURCE_ERROR',
+  });
 }
 
 export async function authedPostMultipart<T>(

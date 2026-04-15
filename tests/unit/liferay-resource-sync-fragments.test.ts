@@ -252,6 +252,66 @@ describe('liferay resource fragments-sync', () => {
     expect(result.fragmentResults[0]?.fragment).toBe('hero-banner');
   });
 
+  test('retries candidates in order when first form fails and second succeeds', async () => {
+    const {config, repoRoot} = await createRepoFixture();
+    const projectDir = path.join(repoRoot, 'custom-fragments');
+    await writeFragmentProject(projectDir, {collection: 'ub-base', collectionName: 'UB Base'});
+
+    let addCollectionCalls = 0;
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          addCollectionCalls += 1;
+          const form = new URLSearchParams(String(init?.body ?? ''));
+
+          // First candidate includes serviceContext and fails; second candidate omits it and succeeds.
+          if (addCollectionCalls === 1) {
+            expect(form.get('serviceContext')).toBe('{}');
+            return new Response('{"message":"legacy endpoint rejects serviceContext"}', {status: 500});
+          }
+
+          expect(addCollectionCalls).toBe(2);
+          expect(form.get('serviceContext')).toBeNull();
+          return new Response('{"fragmentCollectionId":1100,"fragmentCollectionKey":"ub-base"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=1100')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
+          return new Response('{"fragmentEntryId":3002}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncFragments(
+      config,
+      {site: '/global', dir: 'custom-fragments', fragment: 'ub-base/fragments/hero-banner'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('oauth-jsonws-import');
+    if (result.mode !== 'oauth-jsonws-import') {
+      throw new Error('unexpected mode');
+    }
+    expect(addCollectionCalls).toBe(2);
+    expect(result.summary.importedFragments).toBe(1);
+    expect(result.summary.errors).toBe(0);
+  });
+
   test('supports all-sites and skips site projects without src', async () => {
     const {config, repoRoot} = await createRepoFixture();
     await writeFragmentProject(path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global'));
