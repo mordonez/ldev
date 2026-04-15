@@ -5,11 +5,14 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {ensureData} from '../liferay-http-shared.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {resolveFragmentsBaseDir, resolveRepoPath, resolveSiteToken} from './liferay-resource-paths.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-import {authedPostForm, authedPostMultipart, type ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
+import {
+  authedPostMultipart,
+  postFormCandidates,
+  type ResourceSyncDependencies,
+} from './liferay-resource-sync-shared.js';
 
 type LocalFragment = {
   slug: string;
@@ -724,28 +727,6 @@ function fragmentEntryBaseForm(
     icon: fragment.icon,
     type: String(fragment.type),
   };
-}
-
-async function postFormCandidates<T>(
-  config: AppConfig,
-  apiPath: string,
-  candidates: Record<string, string>[],
-  operation: string,
-  dependencies?: ResourceSyncDependencies,
-): Promise<T> {
-  const errors: string[] = [];
-
-  for (const form of candidates) {
-    const response = await authedPostForm<T>(config, apiPath, form, dependencies);
-    if (response.ok) {
-      return ensureData(response.data, `${operation} invalid JSON in ${apiPath}`, 'LIFERAY_RESOURCE_ERROR');
-    }
-    errors.push(`status=${response.status} body=${response.body}`);
-  }
-
-  throw new CliError(`${operation} fallo en ${apiPath} (${errors.join(' | ')})`, {
-    code: 'LIFERAY_RESOURCE_ERROR',
-  });
 }
 
 function resolveFragmentsProjectDir(config: AppConfig, dir: string | undefined, siteToken: string): string {
