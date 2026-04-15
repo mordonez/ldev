@@ -287,6 +287,87 @@ describe('LiferayGateway', () => {
     });
   });
 
+  describe('deleteJson', () => {
+    test('calls apiClient.delete with Authorization header', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(true, 200, {id: 1, deleted: true});
+
+      vi.mocked(apiClient.delete).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const result = await gateway.deleteJson<{id: number; deleted: boolean}>('/api/items/1', 'delete-item');
+
+      expect(result).toEqual({id: 1, deleted: true});
+      expect(apiClient.delete).toHaveBeenCalledWith(
+        'http://localhost:8080',
+        '/api/items/1',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-access-token',
+          }),
+          timeoutSeconds: 45,
+        }),
+      );
+    });
+
+    test('uses the token client to obtain the access token', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(true, 204, null);
+
+      vi.mocked(apiClient.delete).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      await gateway.deleteJson('/api/items/99', 'delete-item');
+
+      expect(tokenClient.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
+    });
+
+    test('returns null when response has no body', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(true, 204, null);
+
+      vi.mocked(apiClient.delete).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const result = await gateway.deleteJson('/api/items/99', 'delete-item');
+
+      expect(result).toBeNull();
+    });
+
+    test('handles error response (404)', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(false, 404, null);
+
+      vi.mocked(apiClient.delete).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+
+      await expect(gateway.deleteJson('/api/items/999', 'delete-missing')).rejects.toThrow(/status=404/);
+    });
+
+    test('throws CliError with LIFERAY_GATEWAY_ERROR code on failure', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(false, 500, null);
+
+      vi.mocked(apiClient.delete).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+
+      try {
+        await gateway.deleteJson('/api/items/1', 'delete-item');
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CliError);
+        expect((error as CliError).code).toBe('LIFERAY_GATEWAY_ERROR');
+      }
+    });
+  });
+
   describe('token caching', () => {
     test('caches access token and reuses it on subsequent calls', async () => {
       const apiClient = createMockApiClient();

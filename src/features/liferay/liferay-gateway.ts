@@ -143,6 +143,22 @@ export class LiferayGateway {
   }
 
   /**
+   * DELETE /path, parse JSON response if present, assert ok status, return data.
+   * @throws CliError if response not ok
+   */
+  async deleteJson<T>(path: string, label: string): Promise<T> {
+    const accessToken = await this.getAccessToken();
+    const response = await this.apiClient.delete<T>(
+      this.config.liferay.url,
+      path,
+      buildAuthOptions(this.config, accessToken),
+    );
+
+    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    return (success.data ?? null) as T;
+  }
+
+  /**
    * Clear the access token cache (useful for testing or explicit refresh).
    */
   clearTokenCache(): void {
