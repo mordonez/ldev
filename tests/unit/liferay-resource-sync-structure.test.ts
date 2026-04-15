@@ -73,6 +73,52 @@ async function createRepoFixture(): Promise<{
 }
 
 describe('liferay resource structure-sync', () => {
+  test('throws when structure is missing and createMissing is not enabled', async () => {
+    const {config} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response('{"message":"Not Found"}', {status: 404});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+    ).rejects.toThrow('does not exist and create-missing is not enabled');
+  });
+
+  test('returns checked_missing when structure is missing and checkOnly is enabled with createMissing', async () => {
+    const {config} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response('{"message":"Not Found"}', {status: 404});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncStructure(
+      config,
+      {site: '/global', key: 'BASIC', checkOnly: true, createMissing: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('checked_missing');
+    expect(result.id).toBe('');
+    expect(result.removedFieldReferences).toEqual([]);
+  });
+
   test('blocks breaking changes without migration-plan or allow-breaking-change', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
@@ -256,6 +302,48 @@ describe('liferay resource structure-sync', () => {
     expect(result.status).toBe('updated');
     expect(result.recoveredAfterTimeout).toBe(true);
     expect(formatLiferayResourceSyncStructure(result)).toContain('recoveredAfterTimeout=true');
+  });
+
+  test('throws recoverable timeout when PUT times out and shape-based recovery cannot prove the update', async () => {
+    const {config} = await createRepoFixture();
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          // Keep same shape before/after timeout to simulate unverifiable recovery.
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
+            }),
+            {status: 200},
+          );
+        }
+        if ((init?.method ?? 'GET') === 'PUT' && url.endsWith('/o/data-engine/v2.0/data-definitions/301')) {
+          throw new Error('The operation timed out');
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncStructure(
+        config,
+        {site: '/global', key: 'BASIC', allowBreakingChange: true},
+        {
+          apiClient,
+          tokenClient: TOKEN_CLIENT,
+          sleep: async () => undefined,
+        },
+      ),
+    ).rejects.toThrow('could not confirm whether the update eventually applied');
   });
 
   test('does not clean source fields during introduce even if the mapping requests cleanup', async () => {
