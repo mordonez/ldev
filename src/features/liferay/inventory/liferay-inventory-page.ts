@@ -4,7 +4,7 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {createInventoryGateway, fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
+import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
 import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
 import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
 import {
@@ -170,9 +170,8 @@ export async function runLiferayInventoryPage(
   const request = resolveInventoryPageRequest(options);
   const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(effectiveConfig, dependencies);
-  const gateway = createInventoryGateway(effectiveConfig, apiClient, {...dependencies, accessToken});
-  const siteDependencies = {...dependencies, accessToken, gateway};
+  const gateway = createInventoryGateway(effectiveConfig, apiClient, dependencies);
+  const siteDependencies = {...dependencies, gateway};
 
   if (request.route === 'portalHome') {
     const homeRequest = await resolvePortalHomeRequest(effectiveConfig);
@@ -182,7 +181,6 @@ export async function runLiferayInventoryPage(
         effectiveConfig,
         gateway,
         apiClient,
-        accessToken,
         site,
         homeRequest.friendlyUrl,
         homeRequest.privateLayout,
@@ -202,7 +200,6 @@ export async function runLiferayInventoryPage(
           effectiveConfig,
           gateway,
           apiClient,
-          accessToken,
           site,
           redirectedRequest.friendlyUrl,
           redirectedRequest.privateLayout,
@@ -215,14 +212,7 @@ export async function runLiferayInventoryPage(
 
   if (request.route === 'displayPage') {
     return finalizeResult(
-      await fetchDisplayPageInventory(
-        effectiveConfig,
-        gateway,
-        apiClient,
-        accessToken,
-        site,
-        request.displayPageUrlTitle ?? '',
-      ),
+      await fetchDisplayPageInventory(effectiveConfig, gateway, apiClient, site, request.displayPageUrlTitle ?? ''),
     );
   }
 
@@ -231,7 +221,6 @@ export async function runLiferayInventoryPage(
       effectiveConfig,
       gateway,
       apiClient,
-      accessToken,
       site,
       request.friendlyUrl,
       request.privateLayout,
@@ -334,19 +323,10 @@ export async function resolveRegularLayoutPage(
   }
 
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const gateway = createInventoryGateway(config, apiClient, {...dependencies, accessToken});
-  const site = await resolveSite(config, request.siteSlug, {...dependencies, accessToken, gateway});
+  const gateway = createInventoryGateway(config, apiClient, dependencies);
+  const site = await resolveSite(config, request.siteSlug, {...dependencies, gateway});
 
-  return resolveRegularLayoutPageData(
-    config,
-    gateway,
-    apiClient,
-    accessToken,
-    site,
-    request.friendlyUrl,
-    request.privateLayout,
-  );
+  return resolveRegularLayoutPageData(config, gateway, apiClient, site, request.friendlyUrl, request.privateLayout);
 }
 
 export function formatLiferayInventoryPage(result: LiferayInventoryPageResult, verbose = false): string {

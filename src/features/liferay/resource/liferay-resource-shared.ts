@@ -3,7 +3,7 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {createLiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {
   expectJsonSuccess,
   fetchAccessToken,
@@ -27,6 +27,7 @@ const ADT_RESOURCE_CLASS_NAME = 'com.liferay.portlet.display.template.PortletDis
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
+  gateway?: LiferayGateway;
   accessToken?: string;
   forceRefresh?: boolean;
 };
@@ -43,11 +44,19 @@ type GroupPayload = {
   companyId?: number;
 };
 
-function createResourceReadGateway(config: AppConfig, apiClient: LiferayApiClient, accessToken?: string) {
-  const gateway = createLiferayGateway(config, apiClient);
+function createResourceReadGateway(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  dependencies?: Pick<ResourceDependencies, 'gateway' | 'tokenClient' | 'accessToken'>,
+) {
+  if (dependencies?.gateway) {
+    return dependencies.gateway;
+  }
 
-  if (accessToken) {
-    gateway.seedAccessToken(accessToken);
+  const gateway = createLiferayGateway(config, apiClient, dependencies?.tokenClient);
+
+  if (dependencies?.accessToken) {
+    gateway.seedAccessToken(dependencies.accessToken);
   }
 
   return gateway;
@@ -59,9 +68,9 @@ export async function resolveResourceSite(
   dependencies?: ResourceDependencies,
 ): Promise<ResolvedResourceSite> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const resolvedSite = await resolveSite(config, site, dependencies);
-  const companyId = await resolveCompanyId(config, apiClient, accessToken, resolvedSite.id);
+  const gateway = createResourceReadGateway(config, apiClient, dependencies);
+  const resolvedSite = await resolveSite(config, site, {...dependencies, gateway});
+  const companyId = await resolveCompanyId(gateway, resolvedSite.id);
 
   if (companyId <= 0) {
     throw LiferayErrors.resourceError(`site sin companyId valido: ${site}`);
@@ -78,8 +87,26 @@ export async function fetchStructureTemplateClassIds(
   dependencies?: ResourceDependencies,
 ): Promise<{classNameId: number; resourceClassNameId: number}> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
   const forceRefresh = dependencies?.forceRefresh;
+
+  if (dependencies?.gateway) {
+    const classNameId = await fetchClassNameIdWithGateway(
+      config,
+      dependencies.gateway,
+      DDM_STRUCTURE_CLASS_NAME,
+      forceRefresh,
+    );
+    const resourceClassNameId = await fetchClassNameIdWithGateway(
+      config,
+      dependencies.gateway,
+      JOURNAL_ARTICLE_CLASS_NAME,
+      forceRefresh,
+    );
+
+    return {classNameId, resourceClassNameId};
+  }
+
+  const accessToken = await fetchAccessToken(config, dependencies);
 
   const classNameId = await fetchClassNameId(config, apiClient, accessToken, DDM_STRUCTURE_CLASS_NAME, forceRefresh);
   const resourceClassNameId = await fetchClassNameId(
@@ -99,6 +126,11 @@ export async function fetchClassNameIdForValue(
   dependencies?: ResourceDependencies,
 ): Promise<number> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+
+  if (dependencies?.gateway) {
+    return fetchClassNameIdWithGateway(config, dependencies.gateway, className, dependencies?.forceRefresh);
+  }
+
   const accessToken = await fetchAccessToken(config, dependencies);
   return fetchClassNameId(config, apiClient, accessToken, className, dependencies?.forceRefresh);
 }
@@ -117,18 +149,10 @@ export async function listDdmTemplates(
   options?: {includeCompanyFallback?: boolean},
 ): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createResourceReadGateway(config, apiClient, dependencies);
   const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
 
-  const siteTemplates = await fetchDdmTemplates(
-    config,
-    apiClient,
-    accessToken,
-    site.companyId,
-    site.id,
-    classNameId,
-    resourceClassNameId,
-  );
+  const siteTemplates = await fetchDdmTemplates(gateway, site.companyId, site.id, classNameId, resourceClassNameId);
 
   if (siteTemplates.length > 0) {
     return siteTemplates;
@@ -138,7 +162,7 @@ export async function listDdmTemplates(
     return [];
   }
 
-  return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, null, classNameId, resourceClassNameId);
+  return fetchDdmTemplates(gateway, site.companyId, null, classNameId, resourceClassNameId);
 }
 
 export async function listDdmTemplatesByClassName(
@@ -149,10 +173,22 @@ export async function listDdmTemplatesByClassName(
   dependencies?: ResourceDependencies,
 ): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
+
+  if (dependencies?.gateway) {
+    const classNameId = await fetchClassNameIdWithGateway(
+      config,
+      dependencies.gateway,
+      className,
+      dependencies?.forceRefresh,
+    );
+    return fetchDdmTemplates(dependencies.gateway, site.companyId, site.id, classNameId, resourceClassNameId);
+  }
+
   const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createResourceReadGateway(config, apiClient, {...dependencies, accessToken});
   const classNameId = await fetchClassNameId(config, apiClient, accessToken, className, dependencies?.forceRefresh);
 
-  return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, site.id, classNameId, resourceClassNameId);
+  return fetchDdmTemplates(gateway, site.companyId, site.id, classNameId, resourceClassNameId);
 }
 
 export async function listFragmentCollections(
@@ -162,7 +198,7 @@ export async function listFragmentCollections(
 ): Promise<FragmentCollectionPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const gateway = createResourceReadGateway(config, apiClient, {...dependencies, accessToken});
   const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=${siteId}`,
   );
@@ -177,7 +213,7 @@ export async function listFragments(
 ): Promise<FragmentEntryPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const gateway = createResourceReadGateway(config, apiClient, {...dependencies, accessToken});
   const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=${collectionId}`,
   );
@@ -196,7 +232,29 @@ async function fetchClassNameId(
   const cached = classNameIdLookupCache.get(cacheKey, forceRefresh);
   if (cached) return cached;
 
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const gateway = createResourceReadGateway(config, apiClient, {accessToken});
+  const response = await gateway.getRaw<ClassNamePayload>(
+    `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
+  );
+  const success = await expectJsonSuccess(response, `classname ${className}`);
+  const classNameId = success.data?.classNameId ?? -1;
+  if (classNameId <= 0) {
+    throw LiferayErrors.resourceError(`classNameId no resuelto para ${className}`);
+  }
+  classNameIdLookupCache.set(cacheKey, classNameId);
+  return classNameId;
+}
+
+async function fetchClassNameIdWithGateway(
+  config: AppConfig,
+  gateway: LiferayGateway,
+  className: string,
+  forceRefresh?: boolean,
+): Promise<number> {
+  const cacheKey = `${config.liferay.url}|${className}`;
+  const cached = classNameIdLookupCache.get(cacheKey, forceRefresh);
+  if (cached) return cached;
+
   const response = await gateway.getRaw<ClassNamePayload>(
     `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
   );
@@ -269,8 +327,7 @@ export async function fetchGroupInfo(
   dependencies?: ResourceDependencies,
 ): Promise<GroupInfo | null> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+  const gateway = createResourceReadGateway(config, apiClient, dependencies);
   const response = await gateway.getRaw<{
     friendlyURL?: string;
     friendlyUrl?: string;
@@ -296,13 +353,7 @@ export async function fetchGroupInfo(
   };
 }
 
-async function resolveCompanyId(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  siteId: number,
-): Promise<number> {
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
+async function resolveCompanyId(gateway: LiferayGateway, siteId: number): Promise<number> {
   const groupResponse = await gateway.getRaw<GroupPayload>(`/api/jsonws/group/get-group?groupId=${siteId}`);
 
   if (groupResponse.ok) {
@@ -322,16 +373,13 @@ async function resolveCompanyId(
 }
 
 async function fetchDdmTemplates(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   companyId: number,
   groupId: number | null,
   classNameId: number,
   resourceClassNameId: number,
 ): Promise<DdmTemplatePayload[]> {
   const groupQuery = groupId === null ? '0' : String(groupId);
-  const gateway = createResourceReadGateway(config, apiClient, accessToken);
   const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=${groupQuery}&classNameId=${classNameId}&resourceClassNameId=${resourceClassNameId}&status=0`,
   );
