@@ -51,6 +51,22 @@ export function resolveMigrationsBaseDir(config: AppConfig): string {
   return resolveRepoPath(config, config.paths?.migrations ?? 'liferay/resources/journal/migrations');
 }
 
+/**
+ * Creates a standardized error for missing .liferay-cli.yml configuration.
+ * Used when paths are not configured and --file is not provided.
+ */
+function createConfigIncompleteError(resourceType: string, exampleName: string): CliError {
+  return new CliError(
+    `${resourceType} file not found for '${exampleName}'.\n\n` +
+      `The project configuration is incomplete. To resolve this:\n` +
+      `  1. Use --file to specify the full path directly (quick workaround)\n` +
+      `  2. Create .liferay-cli.yml in the repository root with paths configuration\n` +
+      `  3. Run 'ldev project init' to scaffold the configuration file\n\n` +
+      `See: https://ldev.dev/reference/configuration#liferay-cli-yml`,
+    {code: 'LIFERAY_CONFIG_INCOMPLETE'},
+  );
+}
+
 export async function resolveStructureFile(config: AppConfig, key: string, file?: string): Promise<string> {
   if (file) {
     return resolveExistingResourceFile(config, file);
@@ -58,15 +74,7 @@ export async function resolveStructureFile(config: AppConfig, key: string, file?
 
   // Detect missing configuration before searching
   if (!config.paths?.structures) {
-    throw new CliError(
-      `Structure file not found for key '${key}'.\n\n` +
-        `The project configuration is incomplete. To resolve this:\n` +
-        `  1. Use --file to specify the full path directly (quick workaround)\n` +
-        `  2. Create .liferay-cli.yml in the repository root with paths configuration\n` +
-        `  3. Run 'ldev project init' to scaffold the configuration file\n\n` +
-        `See: https://ldev.dev/reference/configuration#liferay-cli-yml`,
-      {code: 'LIFERAY_CONFIG_INCOMPLETE'},
-    );
+    throw createConfigIncompleteError('Structure', key);
   }
 
   const baseDir = resolveStructuresBaseDir(config);
@@ -97,15 +105,7 @@ export async function resolveTemplateFile(
 
   // Detect missing configuration before searching
   if (!config.paths?.templates) {
-    throw new CliError(
-      `Template file not found for '${name}'.\n\n` +
-        `The project configuration is incomplete. To resolve this:\n` +
-        `  1. Use --file to specify the full path directly (quick workaround)\n` +
-        `  2. Create .liferay-cli.yml in the repository root with paths configuration\n` +
-        `  3. Run 'ldev project init' to scaffold the configuration file\n\n` +
-        `See: https://ldev.dev/reference/configuration#liferay-cli-yml`,
-      {code: 'LIFERAY_CONFIG_INCOMPLETE'},
-    );
+    throw createConfigIncompleteError('Template', name);
   }
 
   const baseDir = resolveTemplatesBaseDir(config);
@@ -148,15 +148,7 @@ export async function resolveAdtFile(
 
   // Detect missing configuration before searching
   if (!config.paths?.adts) {
-    throw new CliError(
-      `ADT file not found for '${name}' (${widgetType}).\n\n` +
-        `The project configuration is incomplete. To resolve this:\n` +
-        `  1. Use --file to specify the full path directly (quick workaround)\n` +
-        `  2. Create .liferay-cli.yml in the repository root with paths configuration\n` +
-        `  3. Run 'ldev project init' to scaffold the configuration file\n\n` +
-        `See: https://ldev.dev/reference/configuration#liferay-cli-yml`,
-      {code: 'LIFERAY_CONFIG_INCOMPLETE'},
-    );
+    throw createConfigIncompleteError(`ADT (${widgetType})`, name);
   }
 
   const baseDir = resolveAdtsBaseDir(config);
