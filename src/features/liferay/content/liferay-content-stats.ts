@@ -1,14 +1,15 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createConcurrencyLimiter, mapConcurrent} from '../../../core/concurrency.js';
+import {CliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
 import {LiferayErrors} from '../errors/index.js';
-import {fetchAccessToken, normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
+import {normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {runLiferayInventorySites} from '../inventory/liferay-inventory-sites.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {
-  authedGetWithRefresh,
   fetchJournalFoldersByParent,
   fetchJournalArticleRowsInFolder,
   hydrateMissingJournalStructureDefinitions,
@@ -77,11 +78,6 @@ type ContentStatsDependencies = {
   printer?: Printer;
 };
 
-type AuthState = {
-  accessToken: string;
-  tokenClient: OAuthTokenClient;
-};
-
 type HeadlessFolder = {
   id?: number;
   name?: string;
@@ -112,10 +108,18 @@ export async function runContentStats(
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const printer = dependencies?.printer;
-  const authState: AuthState = {
-    accessToken: await fetchAccessToken(config, {apiClient, tokenClient}),
+  const gateway = createLiferayGateway(config, apiClient, tokenClient);
+  const longRunningGateway = createLiferayGateway(
+    {
+      ...config,
+      liferay: {
+        ...config.liferay,
+        timeoutSeconds: Math.max(config.liferay.timeoutSeconds, 600),
+      },
+    },
+    apiClient,
     tokenClient,
-  };
+  );
   const limit = options.limit ?? DEFAULT_LIMIT;
   const sortBy = options.sortBy ?? 'content';
   const excludedSites = new Set(
@@ -125,20 +129,28 @@ export async function runContentStats(
 
   if (options.site || options.groupId !== undefined) {
     const site = options.site
-      ? await resolveSite(config, options.site, {apiClient, accessToken: authState.accessToken, tokenClient})
+      ? await resolveSite(config, options.site, {apiClient, tokenClient})
       : {id: options.groupId!, friendlyUrlPath: undefined, name: ''};
 
     const selected = await runStep(printer, 'Collecting content folders', async () => {
-      const roots = await collectJournalFolderTree(config, apiClient, authState, site.id, 0, runLimited);
+      const roots = await collectJournalFolderTree(gateway, site.id, 0, runLimited);
       const stats = await mapConcurrent(roots, JOURNAL_FOLDER_CONCURRENCY, (root) =>
-        buildJournalFolderStats(config, apiClient, authState, site.id, root, runLimited),
+        buildJournalFolderStats(longRunningGateway, site.id, root, runLimited),
       );
       return stats.sort(compareFoldersByVolume).slice(0, limit);
     });
 
     const folders = options.withStructures
       ? await runStep(printer, 'Collecting content structures', async () =>
-          enrichFoldersWithStructures(config, apiClient, authState, site.id, selected, runLimited),
+          enrichFoldersWithStructures(
+            config,
+            apiClient,
+            tokenClient,
+            longRunningGateway,
+            site.id,
+            selected,
+            runLimited,
+          ),
         )
       : selected.map(stripComputedFolderStats);
 
@@ -160,10 +172,8 @@ export async function runContentStats(
     const skippedSites: Array<{groupId: number; siteFriendlyUrl: string; reason: string}> = [];
     const rows = await mapConcurrent(filteredSites, SITE_CONCURRENCY, async (site) => {
       try {
-        const roots = await fetchRootFolders(config, apiClient, authState, site.groupId);
-        const folderStats = await Promise.all(
-          roots.map((root) => buildFolderStats(config, apiClient, authState, root)),
-        );
+        const roots = await fetchRootFolders(gateway, site.groupId);
+        const folderStats = await Promise.all(roots.map((root) => buildFolderStats(gateway, root)));
         const structuredContents = folderStats.reduce((sum, folder) => sum + folder.subtreeStructuredContents, 0);
         const folderCount = folderStats.reduce((sum, folder) => sum + folder.childFolderCount + 1, 0);
 
@@ -263,16 +273,9 @@ export function formatContentStats(result: ContentStatsResult): string {
   return lines.join('\n');
 }
 
-async function fetchRootFolders(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
-  groupId: number,
-): Promise<HeadlessFolder[]> {
+async function fetchRootFolders(gateway: LiferayGateway, groupId: number): Promise<HeadlessFolder[]> {
   const folders = await fetchHeadlessFoldersPageByPage(
-    config,
-    apiClient,
-    authState,
+    gateway,
     `/o/headless-delivery/v1.0/sites/${groupId}/structured-content-folders`,
   );
 
@@ -283,64 +286,53 @@ async function fetchRootFolders(
   return sameSiteFolders.length > 0 ? sameSiteFolders : folders;
 }
 
-async function fetchChildFolders(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
-  folderId: number,
-): Promise<HeadlessFolder[]> {
+async function fetchChildFolders(gateway: LiferayGateway, folderId: number): Promise<HeadlessFolder[]> {
   return fetchHeadlessFoldersPageByPage(
-    config,
-    apiClient,
-    authState,
+    gateway,
     `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-content-folders`,
   );
 }
 
-async function fetchHeadlessFoldersPageByPage(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
-  basePath: string,
-): Promise<HeadlessFolder[]> {
+async function fetchHeadlessFoldersPageByPage(gateway: LiferayGateway, basePath: string): Promise<HeadlessFolder[]> {
   const items: HeadlessFolder[] = [];
   let page = 1;
   let lastPage = 1;
 
   while (page <= lastPage) {
-    const response = await authedGetWithRefresh<{items?: HeadlessFolder[]; lastPage?: number}>(
-      config,
-      apiClient,
-      authState,
-      `${basePath}?page=${page}&pageSize=${PAGE_SIZE}`,
-    );
+    let response: {items?: HeadlessFolder[]; lastPage?: number};
 
-    if (!response.ok) {
-      throw LiferayErrors.contentStatsError(`${basePath} failed with status=${response.status}.`);
+    try {
+      response = await gateway.getJson<{items?: HeadlessFolder[]; lastPage?: number}>(
+        `${basePath}?page=${page}&pageSize=${PAGE_SIZE}`,
+        `content folders ${basePath}`,
+      );
+    } catch (error) {
+      if (isGatewayError(error)) {
+        throw LiferayErrors.contentStatsError(
+          `${basePath} failed with status=${getGatewayStatus(error) ?? 'unknown'}.`,
+        );
+      }
+
+      throw error;
     }
 
-    items.push(...(response.data?.items ?? []));
-    lastPage = response.data?.lastPage ?? 1;
+    items.push(...(response?.items ?? []));
+    lastPage = response?.lastPage ?? 1;
     page += 1;
   }
 
   return items.filter((item) => item.id !== undefined);
 }
 
-async function buildFolderStats(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
-  rootFolder: HeadlessFolder,
-): Promise<ComputedFolderStats> {
-  const children = await fetchChildFolders(config, apiClient, authState, rootFolder.id ?? 0);
+async function buildFolderStats(gateway: LiferayGateway, rootFolder: HeadlessFolder): Promise<ComputedFolderStats> {
+  const children = await fetchChildFolders(gateway, rootFolder.id ?? 0);
   let subtreeStructuredContents = rootFolder.numberOfStructuredContents ?? 0;
   let childFolderCount = children.length;
   const subtreeFolderIds = [rootFolder.id ?? 0];
   const childStatsList: ComputedFolderStats[] = [];
 
   for (const child of children) {
-    const childStats = await buildFolderStats(config, apiClient, authState, child);
+    const childStats = await buildFolderStats(gateway, child);
     childStatsList.push(childStats);
     subtreeStructuredContents += childStats.subtreeStructuredContents;
     childFolderCount += childStats.childFolderCount;
@@ -378,7 +370,8 @@ function stripComputedFolderStats(folder: ComputedFolderStats): ContentStatsFold
 async function enrichFoldersWithStructures(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  authState: AuthState,
+  tokenClient: OAuthTokenClient,
+  articleGateway: LiferayGateway,
   groupId: number,
   folders: ComputedFolderStats[],
   runLimited: <T>(task: () => Promise<T>) => Promise<T>,
@@ -386,20 +379,18 @@ async function enrichFoldersWithStructures(
   const structureMap = new Map<number, string>();
   const structureNameMap = new Map<string, string>();
 
-  await resolveJournalStructureDefinitions(config, apiClient, authState, groupId, structureMap, structureNameMap);
+  await resolveJournalStructureDefinitions(config, apiClient, tokenClient, groupId, structureMap, structureNameMap);
 
   return mapConcurrent(folders, JOURNAL_FOLDER_CONCURRENCY, async (folder) => {
     const counts = new Map<string, number>();
 
     await mapConcurrent(folder.subtreeFolderIds, JOURNAL_FOLDER_CONCURRENCY, async (folderId) => {
       const rows = await runLimited(() =>
-        fetchJournalArticleRowsInFolder(config, apiClient, authState, groupId, folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
+        fetchJournalArticleRowsInFolder(articleGateway, groupId, folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
       );
 
       await hydrateMissingJournalStructureDefinitions(
-        config,
-        apiClient,
-        authState,
+        articleGateway,
         rows
           .map((row) => (row.DDMStructureId !== undefined ? Number(row.DDMStructureId) : undefined))
           .filter((value): value is number => value !== undefined && Number.isFinite(value)),
@@ -433,45 +424,34 @@ async function enrichFoldersWithStructures(
 }
 
 async function collectJournalFolderTree(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
+  gateway: LiferayGateway,
   groupId: number,
   parentFolderId: number,
   runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<JournalFolderNode[]> {
   const folders = await runLimited(() =>
-    fetchJournalFoldersByParent(config, apiClient, authState, groupId, parentFolderId, 'LIFERAY_CONTENT_STATS_ERROR'),
+    fetchJournalFoldersByParent(gateway, groupId, parentFolderId, 'LIFERAY_CONTENT_STATS_ERROR'),
   );
 
   return mapConcurrent(folders, JOURNAL_FOLDER_CONCURRENCY, async (folder) => ({
     folderId: folder.folderId,
     name: folder.name,
-    children: await collectJournalFolderTree(config, apiClient, authState, groupId, folder.folderId, runLimited),
+    children: await collectJournalFolderTree(gateway, groupId, folder.folderId, runLimited),
   }));
 }
 
 async function buildJournalFolderStats(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: AuthState,
+  gateway: LiferayGateway,
   groupId: number,
   folder: JournalFolderNode,
   runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<ComputedFolderStats> {
   const rows = await runLimited(() =>
-    fetchJournalArticleRowsInFolder(
-      config,
-      apiClient,
-      authState,
-      groupId,
-      folder.folderId,
-      'LIFERAY_CONTENT_STATS_ERROR',
-    ),
+    fetchJournalArticleRowsInFolder(gateway, groupId, folder.folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
   );
 
   const childStats = await mapConcurrent(folder.children, JOURNAL_FOLDER_CONCURRENCY, (child) =>
-    buildJournalFolderStats(config, apiClient, authState, groupId, child, runLimited),
+    buildJournalFolderStats(gateway, groupId, child, runLimited),
   );
 
   return {
@@ -514,4 +494,18 @@ function compareSites(left: ContentStatsSite, right: ContentStatsSite, sortBy: '
   }
 
   return compareSitesByVolume(left, right);
+}
+
+function isGatewayError(error: unknown): error is CliError {
+  return error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR';
+}
+
+function getGatewayStatus(error: CliError): number | undefined {
+  const match = /status=(\d+)/.exec(error.message);
+  if (!match) {
+    return undefined;
+  }
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : undefined;
 }
