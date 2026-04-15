@@ -6,7 +6,7 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {resolveSiteToken} from './liferay-resource-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {readLocalFragmentsProject, resolveFragmentsProjectDir} from './liferay-resource-sync-fragments-local.js';
-import {runFragmentsImportLegacy} from './liferay-resource-sync-fragments-importer.js';
+import {runFragmentsImport as runFragmentsImportWithSyncEngine} from './liferay-resource-sync-fragments-importer.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import type {
   LiferayResourceSyncFragmentsAllSitesResult,
@@ -107,5 +107,5 @@ async function runFragmentsImport(
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceSyncFragmentsSingleResult> {
   const project = await readLocalFragmentsProject(projectDir, fragmentFilter);
-  return runFragmentsImportLegacy(config, groupId, siteFriendlyUrl, projectDir, project, dependencies);
+  return runFragmentsImportWithSyncEngine(config, groupId, siteFriendlyUrl, projectDir, project, dependencies);
 }

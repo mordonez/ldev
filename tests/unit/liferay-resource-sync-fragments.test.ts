@@ -420,4 +420,179 @@ describe('liferay resource fragments-sync', () => {
     });
     expect(formatLiferayResourceSyncFragments(result)).toBe('sites=1 imported=1 errors=0 mode=all-sites');
   });
+
+  test('verify passes when API echoes back content matching local files', async () => {
+    const {config, repoRoot} = await createRepoFixture();
+    const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');
+
+    // Write a fragment with a known configuration that normalizes predictably.
+    const collectionDir = path.join(projectDir, 'src', 'verify-col');
+    const fragmentDir = path.join(collectionDir, 'fragments', 'verify-frag');
+    await fs.ensureDir(fragmentDir);
+    await fs.writeFile(
+      path.join(collectionDir, 'collection.json'),
+      JSON.stringify({name: 'Verify Col', description: ''}),
+    );
+    await fs.writeFile(path.join(fragmentDir, 'index.html'), '<div>hello</div>');
+    await fs.writeFile(path.join(fragmentDir, 'index.css'), '.hello {}');
+    await fs.writeFile(path.join(fragmentDir, 'index.js'), '// noop');
+    // {"fieldSets":[]} normalizes to itself; avoids default-config expansion.
+    await fs.writeFile(path.join(fragmentDir, 'configuration.json'), '{"fieldSets":[]}');
+    await fs.writeFile(
+      path.join(fragmentDir, 'fragment.json'),
+      JSON.stringify({
+        htmlPath: 'index.html',
+        cssPath: 'index.css',
+        jsPath: 'index.js',
+        configurationPath: 'configuration.json',
+        icon: 'check',
+        name: 'Verify Frag',
+        type: 'component',
+      }),
+    );
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          return new Response('{"fragmentCollectionId":700,"fragmentCollectionKey":"verify-col"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=700')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
+          // Liferay echoes back content matching what was sent; verify should pass.
+          return new Response(
+            JSON.stringify({
+              fragmentEntryId: 800,
+              fragmentEntryKey: 'verify-frag',
+              name: 'Verify Frag',
+              html: '<div>hello</div>',
+              css: '.hello {}',
+              js: '// noop',
+              configuration: '{"fieldSets":[]}',
+              icon: 'check',
+              type: 0,
+            }),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncFragments(
+      config,
+      {site: '/global'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('oauth-jsonws-import');
+    if (result.mode !== 'oauth-jsonws-import') throw new Error('unexpected mode');
+    expect(result.summary.importedFragments).toBe(1);
+    expect(result.summary.errors).toBe(0);
+    expect(result.fragmentResults[0]).toMatchObject({
+      collection: 'verify-col',
+      fragment: 'verify-frag',
+      status: 'imported',
+      fragmentEntryId: 800,
+    });
+  });
+
+  test('verify detects hash mismatch and reports fragment as error', async () => {
+    const {config, repoRoot} = await createRepoFixture();
+    const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');
+
+    const collectionDir = path.join(projectDir, 'src', 'verify-col');
+    const fragmentDir = path.join(collectionDir, 'fragments', 'verify-frag');
+    await fs.ensureDir(fragmentDir);
+    await fs.writeFile(
+      path.join(collectionDir, 'collection.json'),
+      JSON.stringify({name: 'Verify Col', description: ''}),
+    );
+    await fs.writeFile(path.join(fragmentDir, 'index.html'), '<div>hello</div>');
+    await fs.writeFile(path.join(fragmentDir, 'index.css'), '.hello {}');
+    await fs.writeFile(path.join(fragmentDir, 'index.js'), '// noop');
+    await fs.writeFile(path.join(fragmentDir, 'configuration.json'), '{"fieldSets":[]}');
+    await fs.writeFile(
+      path.join(fragmentDir, 'fragment.json'),
+      JSON.stringify({
+        htmlPath: 'index.html',
+        cssPath: 'index.css',
+        jsPath: 'index.js',
+        configurationPath: 'configuration.json',
+        icon: 'check',
+        name: 'Verify Frag',
+        type: 'component',
+      }),
+    );
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          return new Response('{"fragmentCollectionId":700,"fragmentCollectionKey":"verify-col"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=700')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
+          // Liferay returns different HTML than what was sent; verify should detect the mismatch.
+          return new Response(
+            JSON.stringify({
+              fragmentEntryId: 800,
+              fragmentEntryKey: 'verify-frag',
+              name: 'Verify Frag',
+              html: '<div>TRANSFORMED BY SERVER</div>',
+              css: '.hello {}',
+              js: '// noop',
+              configuration: '{"fieldSets":[]}',
+              icon: 'check',
+              type: 0,
+            }),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceSyncFragments(
+      config,
+      {site: '/global'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.mode).toBe('oauth-jsonws-import');
+    if (result.mode !== 'oauth-jsonws-import') throw new Error('unexpected mode');
+    expect(result.summary.importedFragments).toBe(0);
+    expect(result.summary.errors).toBe(1);
+    expect(result.fragmentResults[0]).toMatchObject({
+      collection: 'verify-col',
+      fragment: 'verify-frag',
+      status: 'error',
+    });
+  });
 });
