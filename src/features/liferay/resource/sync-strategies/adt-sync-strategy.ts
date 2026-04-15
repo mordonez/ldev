@@ -19,6 +19,7 @@ import {
   type ResourceSyncDependencies,
 } from '../liferay-resource-sync-shared.js';
 import {expectJsonSuccess} from '../../liferay-http-shared.js';
+import {matchesAdtRow} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
 type AdtLocalData = {
@@ -95,7 +96,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
 
     // Match by key (templateKey, adtName, or displayName)
     const existing = adts.find((item) => {
-      return [item.templateKey, item.adtName, item.displayName].includes(opts.key);
+      return matchesAdtRow(item, opts.key);
     });
 
     if (!existing) {

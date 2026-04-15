@@ -12,6 +12,7 @@ import {
 import {resolveAdtFile, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {syncArtifact} from './sync-engine.js';
 import {adtSyncStrategy} from './sync-strategies/adt-sync-strategy.js';
+import {matchesAdtRow} from '../liferay-identifiers.js';
 
 export type LiferayResourceSyncAdtResult = ResourceSyncResult & {
   adtFile: string;
@@ -154,5 +155,5 @@ async function findAdtInSite(
     {site, widgetType, className, includeScript: true},
     dependencies,
   );
-  return adts.find((item) => [item.templateKey, item.adtName, item.displayName].includes(name)) ?? null;
+  return adts.find((item) => matchesAdtRow(item, name)) ?? null;
 }

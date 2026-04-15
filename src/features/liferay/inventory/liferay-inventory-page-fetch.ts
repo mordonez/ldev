@@ -47,6 +47,7 @@ import {
   listDdmTemplates,
   resolveResourceSite,
 } from '../resource/liferay-resource-shared.js';
+import {matchesDdmTemplate} from '../liferay-identifiers.js';
 
 type LayoutMatch = {layout: Layout; locale: string | null};
 type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
@@ -1443,21 +1444,11 @@ async function resolveTemplateSiteByKey(
     const templates = await listDdmTemplates(config, site, dependencies, {
       includeCompanyFallback: candidate.siteFriendlyUrl === '/global',
     });
-    if (templates.some((item) => matchesTemplateKey(item, templateKey))) {
+    if (templates.some((item) => matchesDdmTemplate(item, templateKey))) {
       return candidate.siteFriendlyUrl;
     }
   }
   return null;
-}
-
-function matchesTemplateKey(item: Record<string, unknown>, templateKey: string): boolean {
-  return (
-    templateKey === String(item.templateKey ?? '') ||
-    templateKey === String(item.templateId ?? '') ||
-    templateKey === String(item.externalReferenceCode ?? '') ||
-    templateKey === String(item.nameCurrentValue ?? '') ||
-    templateKey === String(item.name ?? '')
-  );
 }
 
 function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
