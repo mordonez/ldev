@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
-import {createLiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
 import {LiferayErrors} from '../errors/index.js';
 import {
@@ -24,6 +24,7 @@ export type {ResolvedSite};
 type InventoryDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
+  gateway?: LiferayGateway;
   accessToken?: string;
   forceRefresh?: boolean;
 };
@@ -181,7 +182,15 @@ function normalizeResolvedSite(payload: SiteLookupPayload | null, site: string):
   };
 }
 
-function createInventoryGateway(config: AppConfig, apiClient: LiferayApiClient, dependencies?: InventoryDependencies) {
+export function createInventoryGateway(
+  config: AppConfig,
+  apiClient: LiferayApiClient,
+  dependencies?: InventoryDependencies,
+) {
+  if (dependencies?.gateway) {
+    return dependencies.gateway;
+  }
+
   if (dependencies?.accessToken) {
     const fixedTokenClient: OAuthTokenClient = {
       fetchClientCredentialsToken: async () => ({

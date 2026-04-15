@@ -3,8 +3,9 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
-import {fetchAccessToken, resolveSite} from './liferay-inventory-shared.js';
+import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
 import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from '../page-layout/liferay-layout-shared.js';
+import type {LiferayGateway} from '../liferay-gateway.js';
 
 type InventoryPagesDependencies = {
   apiClient?: LiferayApiClient;
@@ -42,22 +43,12 @@ export async function runLiferayInventoryPages(
   options?: {site?: string; privateLayout?: boolean; maxDepth?: number},
   dependencies?: InventoryPagesDependencies,
 ): Promise<LiferayInventoryPagesResult> {
-  const site = await resolveSite(config, options?.site ?? '/global', dependencies);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createInventoryGateway(config, apiClient, dependencies);
+  const site = await resolveSite(config, options?.site ?? '/global', {...dependencies, gateway});
   const privateLayout = Boolean(options?.privateLayout);
   const maxDepth = Math.max(0, options?.maxDepth ?? 12);
-  const pages = await fetchLayoutTree(
-    config,
-    apiClient,
-    accessToken,
-    site.id,
-    site.friendlyUrlPath,
-    privateLayout,
-    0,
-    0,
-    maxDepth,
-  );
+  const pages = await fetchLayoutTree(gateway, site.id, site.friendlyUrlPath, privateLayout, 0, 0, maxDepth);
 
   return {
     inventoryType: 'pages',
@@ -106,9 +97,7 @@ function appendPageTree(lines: string[], pages: LiferayInventoryPagesNode[], dep
 }
 
 async function fetchLayoutTree(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   groupId: number,
   siteFriendlyUrl: string,
   privateLayout: boolean,
@@ -120,7 +109,7 @@ async function fetchLayoutTree(
     return [];
   }
 
-  const layouts = await fetchLayoutsByParent(config, apiClient, accessToken, groupId, privateLayout, parentLayoutId);
+  const layouts = await fetchLayoutsByParent(gateway, groupId, privateLayout, parentLayoutId);
   const pages: LiferayInventoryPagesNode[] = [];
 
   for (const layout of layouts) {
@@ -140,9 +129,7 @@ async function fetchLayoutTree(
       hidden: layout.hidden ?? false,
       ...(layoutDetails.targetUrl ? {targetUrl: layoutDetails.targetUrl} : {}),
       children: await fetchLayoutTree(
-        config,
-        apiClient,
-        accessToken,
+        gateway,
         groupId,
         siteFriendlyUrl,
         privateLayout,
