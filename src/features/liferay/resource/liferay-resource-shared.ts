@@ -10,6 +10,14 @@ import {
   resolveSite,
   type ResolvedSite,
 } from '../inventory/liferay-inventory-shared.js';
+import {
+  toDdmTemplatePayload,
+  toFragmentCollectionPayload,
+  toFragmentEntryPayload,
+  type DdmTemplatePayload,
+  type FragmentCollectionPayload,
+  type FragmentEntryPayload,
+} from './liferay-resource-payloads.js';
 
 const DDM_STRUCTURE_CLASS_NAME = 'com.liferay.dynamic.data.mapping.model.DDMStructure';
 const JOURNAL_ARTICLE_CLASS_NAME = 'com.liferay.journal.model.JournalArticle';
@@ -90,7 +98,7 @@ export async function listDdmTemplates(
   site: ResolvedResourceSite,
   dependencies?: ResourceDependencies,
   options?: {includeCompanyFallback?: boolean},
-): Promise<Record<string, unknown>[]> {
+): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
   const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
@@ -122,7 +130,7 @@ export async function listDdmTemplatesByClassName(
   className: string,
   resourceClassNameId: number,
   dependencies?: ResourceDependencies,
-): Promise<Record<string, unknown>[]> {
+): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
   const classNameId = await fetchClassNameId(config, apiClient, accessToken, className);
@@ -134,34 +142,34 @@ export async function listFragmentCollections(
   config: AppConfig,
   siteId: number,
   dependencies?: ResourceDependencies,
-): Promise<Record<string, unknown>[]> {
+): Promise<FragmentCollectionPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await authedGet<Record<string, unknown>[]>(
+  const response = await authedGet<unknown[]>(
     config,
     apiClient,
     accessToken,
     `/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=${siteId}`,
   );
   const success = await expectJsonSuccess(response, 'fragment collections');
-  return Array.isArray(success.data) ? success.data : [];
+  return Array.isArray(success.data) ? success.data.map(toFragmentCollectionPayload) : [];
 }
 
 export async function listFragments(
   config: AppConfig,
   collectionId: number,
   dependencies?: ResourceDependencies,
-): Promise<Record<string, unknown>[]> {
+): Promise<FragmentEntryPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const response = await authedGet<Record<string, unknown>[]>(
+  const response = await authedGet<unknown[]>(
     config,
     apiClient,
     accessToken,
     `/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=${collectionId}`,
   );
   const success = await expectJsonSuccess(response, 'fragments');
-  return Array.isArray(success.data) ? success.data : [];
+  return Array.isArray(success.data) ? success.data.map(toFragmentEntryPayload) : [];
 }
 
 async function fetchClassNameId(
@@ -314,9 +322,9 @@ async function fetchDdmTemplates(
   groupId: number | null,
   classNameId: number,
   resourceClassNameId: number,
-): Promise<Record<string, unknown>[]> {
+): Promise<DdmTemplatePayload[]> {
   const groupQuery = groupId === null ? '0' : String(groupId);
-  const response = await authedGet<Record<string, unknown>[]>(
+  const response = await authedGet<unknown[]>(
     config,
     apiClient,
     accessToken,
@@ -327,5 +335,5 @@ async function fetchDdmTemplates(
     return [];
   }
 
-  return Array.isArray(response.data) ? response.data : [];
+  return Array.isArray(response.data) ? response.data.map(toDdmTemplatePayload) : [];
 }
