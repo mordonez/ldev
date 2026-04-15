@@ -1,8 +1,8 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
-import {createLiferayApiClient, type LiferayApiClient} from '../../core/http/client.js';
+import {type LiferayApiClient} from '../../core/http/client.js';
+import {createLiferayGateway, type LiferayGateway} from './liferay-gateway.js';
 import {LiferayErrors} from './errors/index.js';
-import {authedGet} from './inventory/liferay-inventory-shared.js';
 
 const HEALTH_PATH = '/o/headless-admin-user/v1.0/my-user-account';
 
@@ -29,7 +29,8 @@ export async function runLiferayHealth(
 ): Promise<LiferayHealthResult> {
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   const token = await tokenClient.fetchClientCredentialsToken(config.liferay);
-  const health = await performLiferayHealthCheck(config, token.accessToken, dependencies?.apiClient);
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, tokenClient);
+  const health = await performLiferayHealthCheck(gateway);
 
   return {
     ok: true,
@@ -45,12 +46,9 @@ export async function runLiferayHealth(
 }
 
 export async function performLiferayHealthCheck(
-  config: AppConfig,
-  accessToken: string,
-  apiClient?: LiferayApiClient,
+  gateway: LiferayGateway,
 ): Promise<{status: number; checkedPath: string; permissionDenied: boolean; probeUnavailable: boolean}> {
-  const client = apiClient ?? createLiferayApiClient();
-  const response = await authedGet(config, client, accessToken, HEALTH_PATH);
+  const response = await gateway.getRaw<unknown>(HEALTH_PATH);
 
   if (response.ok) {
     return {

@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
-import type {HttpRequestOptions, LiferayApiClient} from '../../core/http/client.js';
+import type {HttpRequestOptions, HttpResponse, LiferayApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess} from './liferay-http-shared.js';
 
@@ -144,6 +144,16 @@ export class LiferayGateway {
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
+  }
+
+  /**
+   * GET /path, return the raw HTTP response without asserting ok status.
+   * Use when the caller needs to inspect specific status codes (e.g., 403, 404) instead of a unified error throw.
+   */
+  async getRaw<T>(path: string): Promise<HttpResponse<T>> {
+    const accessToken = await this.getAccessToken();
+    const authOptions = buildAuthOptions(this.config, accessToken);
+    return this.apiClient.get<T>(this.config.liferay.url, path, authOptions);
   }
 
   /**
