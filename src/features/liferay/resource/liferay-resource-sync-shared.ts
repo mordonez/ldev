@@ -77,12 +77,32 @@ export function sha256(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+/**
+ * Typed representation of a Liferay localized map.
+ * Use makeLocalizedMap to build instances and localizedMap to serialize at the JSONWS border.
+ */
+export type LocalizedMap = {
+  ca_ES: string;
+  es_ES: string;
+  en_US: string;
+};
+
+/**
+ * Creates a typed LocalizedMap with the default portal locales (ca_ES, es_ES, en_US).
+ * Serialize with localizedMap() only at the JSONWS form border.
+ */
+export function makeLocalizedMap(text: string): LocalizedMap {
+  return {ca_ES: text, es_ES: text, en_US: text};
+}
+
+/** Serializes a LocalizedMap to a JSON string for JSONWS form payloads. */
+export function serializeLocalizedMap(map: LocalizedMap): string {
+  return JSON.stringify(map);
+}
+
+/** Backward-compatible wrapper: builds and immediately serializes a localized map. */
 export function localizedMap(text: string): string {
-  return JSON.stringify({
-    ca_ES: text,
-    es_ES: text,
-    en_US: text,
-  });
+  return serializeLocalizedMap(makeLocalizedMap(text));
 }
 
 export function normalizeSyncStatus(checkOnly: boolean): 'checked' | 'updated' {
