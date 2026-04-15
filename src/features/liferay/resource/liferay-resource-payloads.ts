@@ -66,6 +66,7 @@ function asStr(v: unknown): string | undefined {
 
 function asNum(v: unknown): number | undefined {
   if (v == null) return undefined;
+  if (typeof v === 'string' && v.trim() === '') return undefined;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 }

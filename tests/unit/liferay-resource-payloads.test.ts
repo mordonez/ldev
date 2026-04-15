@@ -179,6 +179,12 @@ describe('toFragmentEntryPayload', () => {
     expect(result.fragmentEntryId).toBeUndefined();
   });
 
+  test('empty-string numeric fields return undefined (not 0)', () => {
+    const result = toFragmentEntryPayload({fragmentEntryId: '', type: '   '});
+    expect(result.fragmentEntryId).toBeUndefined();
+    expect(result.type).toBeUndefined();
+  });
+
   test('type coerced from string', () => {
     const result = toFragmentEntryPayload({type: '1'});
     expect(result.type).toBe(1);
