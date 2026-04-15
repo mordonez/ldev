@@ -13,7 +13,6 @@ import {
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
-  asRecord,
   collectPageElements,
   type ContentStructureSummary,
   type JournalArticleSummary,
@@ -21,10 +20,21 @@ import {
 } from './liferay-inventory-page-assemble.js';
 import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
 import type {
+  InventoryPageConfigurationCustomMetaTags,
+  InventoryPageConfigurationDesign,
+  InventoryPageConfigurationGeneral,
+  InventoryPageConfigurationOpenGraph,
+  InventoryPageConfigurationSeo,
+  InventoryPageConfigurationTabs,
+  InventoryPageRawLayout,
   LiferayInventoryPageResult,
   PagePortletSummary,
   ResolvedRegularLayoutPage,
 } from './liferay-inventory-page.js';
+import type {
+  HeadlessSitePagePayload,
+  HeadlessSitePageSettingsPayload,
+} from '../page-layout/liferay-site-page-shared.js';
 import {classNameIdLookupCache} from '../lookup-cache.js';
 import {resolveDisplayPageArticle, resolveStructuredContentData} from './liferay-inventory-page-fetch-article.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
@@ -150,7 +160,7 @@ export async function fetchRegularPageInventory(
   const pageUrl = buildPageUrl(site.friendlyUrlPath, canonicalFriendlyUrl, privateLayout);
   const componentInspectionSupported = String(layout.type ?? '').toLowerCase() === 'content';
   const layoutClassNameId = await resolveClassNameId(config, gateway, CLASS_NAME_LAYOUT);
-  let pageMetadata: Record<string, unknown> | null = null;
+  let pageMetadata: HeadlessSitePagePayload | null = null;
   let fragmentEntryLinks: PageFragmentEntry[] = [];
   let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> = [];
   let journalArticles: JournalArticleSummary[] = [];
@@ -365,35 +375,34 @@ function resolveRegularPageUiType(layoutType: string | undefined): string {
  */
 function extractConfigurationMetadata(
   layout: Layout,
-  pageMetadata?: Record<string, unknown> | null,
+  pageMetadata?: HeadlessSitePagePayload | null,
 ): {
-  typeSettings: Record<string, unknown>;
-  metadata: Record<string, unknown>;
-  metadataSettings: Record<string, unknown>;
-  customFieldsMap: Record<string, unknown>;
+  typeSettings: {[key: string]: string};
+  metadata: HeadlessSitePagePayload;
+  metadataSettings: HeadlessSitePageSettingsPayload;
+  customFieldsMap: {[key: string]: unknown};
   categories: string[];
   tags: string[];
 } {
   const typeSettings = parseTypeSettingsMap(layout.typeSettings ?? '');
-  const metadata = asRecord(pageMetadata ?? {});
-  const metadataSettings = asRecord(metadata.settings);
+  const metadata: HeadlessSitePagePayload = pageMetadata ?? {};
+  const metadataSettings: HeadlessSitePageSettingsPayload = metadata.settings ?? {};
 
-  const customFieldsMap: Record<string, unknown> = {};
-  for (const item of Array.isArray(metadata.customFields) ? metadata.customFields : []) {
-    const field = asRecord(item);
+  const customFieldsMap: {[key: string]: unknown} = {};
+  for (const field of metadata.customFields ?? []) {
     const name = String(field.name ?? '').trim();
     if (!name) {
       continue;
     }
-    customFieldsMap[name] = asRecord(field.customValue).data;
+    customFieldsMap[name] = field.customValue?.data;
   }
 
-  const categories = (Array.isArray(metadata.taxonomyCategoryBriefs) ? metadata.taxonomyCategoryBriefs : [])
-    .map((item) => asRecord(item).taxonomyCategoryName)
-    .filter((value): value is string => typeof value === 'string' && value.trim() !== '');
+  const categories = (metadata.taxonomyCategoryBriefs ?? [])
+    .map((item: {taxonomyCategoryName?: string}) => item.taxonomyCategoryName)
+    .filter((value: string | undefined): value is string => typeof value === 'string' && value.trim() !== '');
 
-  const tags = (Array.isArray(metadata.keywords) ? metadata.keywords : []).filter(
-    (item): item is string => typeof item === 'string' && item.trim() !== '',
+  const tags = (metadata.keywords ?? []).filter(
+    (item: string | undefined): item is string => typeof item === 'string' && item.trim() !== '',
   );
 
   return {typeSettings, metadata, metadataSettings, customFieldsMap, categories, tags};
@@ -403,20 +412,14 @@ function buildRegularPageConfigurationTabs(
   layout: Layout,
   layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
   privateLayout: boolean,
-  pageMetadata?: Record<string, unknown> | null,
-): {
-  general: Record<string, unknown>;
-  design: Record<string, unknown>;
-  seo: Record<string, unknown>;
-  openGraph: Record<string, unknown>;
-  customMetaTags: Record<string, unknown>;
-} {
+  pageMetadata?: HeadlessSitePagePayload | null,
+): InventoryPageConfigurationTabs {
   const {typeSettings, metadata, metadataSettings, customFieldsMap, categories, tags} = extractConfigurationMetadata(
     layout,
     pageMetadata,
   );
 
-  const general: Record<string, unknown> = {
+  const general: InventoryPageConfigurationGeneral = {
     type: layout.type ?? '',
     name: layout.nameCurrentValue ?? '',
     hiddenInNavigation: toBooleanOrFalse(layout.hidden),
@@ -429,7 +432,7 @@ function buildRegularPageConfigurationTabs(
     privateLayout,
   };
 
-  const design: Record<string, unknown> = {
+  const design: InventoryPageConfigurationDesign = {
     theme: {
       useInheritedTheme: false,
       themeId: layout.themeId ?? '',
@@ -439,42 +442,40 @@ function buildRegularPageConfigurationTabs(
       faviconFileEntryId: Number(layout.faviconFileEntryId ?? 0),
     },
     themeFlags: {
-      showHeader: toBoolean(typeSettings['lfr-theme:regular:show-header']),
-      showFooter: toBoolean(typeSettings['lfr-theme:regular:show-footer']),
-      showHeaderSearch: toBoolean(typeSettings['lfr-theme:regular:show-header-search']),
-      wrapWidgetPageContent: toBoolean(typeSettings['lfr-theme:regular:wrap-widget-page-content']),
-      layoutUpdateable: toBoolean(typeSettings.layoutUpdateable),
-      published: toBoolean(typeSettings.published),
+      showHeader: toBoolean(typeSettings['lfr-theme:regular:show-header']) ?? undefined,
+      showFooter: toBoolean(typeSettings['lfr-theme:regular:show-footer']) ?? undefined,
+      showHeaderSearch: toBoolean(typeSettings['lfr-theme:regular:show-header-search']) ?? undefined,
+      wrapWidgetPageContent: toBoolean(typeSettings['lfr-theme:regular:wrap-widget-page-content']) ?? undefined,
+      layoutUpdateable: toBoolean(typeSettings.layoutUpdateable) ?? undefined,
+      published: toBoolean(typeSettings.published) ?? undefined,
     },
     customCss: layout.css ?? '',
     customJavascript: layout.javascript ?? '',
     customFields: customFieldsMap,
   };
 
-  const seo: Record<string, unknown> = {
+  const seo: InventoryPageConfigurationSeo = {
     title: layout.titleCurrentValue ?? '',
     description: layout.descriptionCurrentValue ?? '',
     keywords: layout.keywordsCurrentValue ?? '',
     robots: layout.robotsCurrentValue ?? layout.robots ?? '',
     sitemap: {
-      include: toBoolean(typeSettings['sitemap-include']),
+      include: toBoolean(typeSettings['sitemap-include']) ?? undefined,
       changefreq: typeSettings['sitemap-changefreq'] ?? '',
     },
   };
 
-  const openGraph: Record<string, unknown> = {
+  const openGraph: InventoryPageConfigurationOpenGraph = {
     title: firstNonEmptyString(metadataSettings.openGraphTitle, metadata.openGraphTitle),
     description: firstNonEmptyString(metadataSettings.openGraphDescription, metadata.openGraphDescription),
     type: firstNonEmptyString(metadataSettings.openGraphType, metadata.openGraphType),
     url: firstNonEmptyString(metadataSettings.openGraphUrl, metadata.openGraphUrl),
     imageAlt: firstNonEmptyString(metadataSettings.openGraphImageAlt, metadata.openGraphImageAlt),
-    imageFileEntryId: firstPositiveNumber(
-      metadataSettings.openGraphImageFileEntryId,
-      metadata.openGraphImageFileEntryId,
-    ),
+    imageFileEntryId:
+      firstPositiveNumber(metadataSettings.openGraphImageFileEntryId, metadata.openGraphImageFileEntryId) ?? undefined,
   };
 
-  const customMetaTags: Record<string, unknown> = {
+  const customMetaTags: InventoryPageConfigurationCustomMetaTags = {
     values: metadata.customMetaTags ?? metadataSettings.customMetaTags ?? typeSettings.customMetaTags ?? null,
   };
 
@@ -487,7 +488,7 @@ function buildRegularPageConfigurationTabs(
   };
 }
 
-function buildConfigurationRawLayout(layout: Layout): Record<string, unknown> {
+function buildConfigurationRawLayout(layout: Layout): InventoryPageRawLayout {
   return {
     layoutId: Number(layout.layoutId ?? -1),
     plid: Number(layout.plid ?? -1),
@@ -509,19 +510,10 @@ function buildConfigurationRawLayout(layout: Layout): Record<string, unknown> {
   };
 }
 
-function buildConfigurationRawSitePage(pageMetadata: Record<string, unknown>): Record<string, unknown> {
-  const metadata = asRecord(pageMetadata);
-  return {
-    id: firstPositiveNumber(metadata.id),
-    friendlyUrlPath: firstNonEmptyString(metadata.friendlyUrlPath),
-    title: firstNonEmptyString(metadata.title),
-    availableLanguages: Array.isArray(metadata.availableLanguages) ? metadata.availableLanguages : [],
-    taxonomyCategoryBriefs: Array.isArray(metadata.taxonomyCategoryBriefs) ? metadata.taxonomyCategoryBriefs : [],
-    keywords: Array.isArray(metadata.keywords) ? metadata.keywords : [],
-    customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
-    settings: asRecord(metadata.settings),
-    viewableBy: asRecord(metadata.viewableBy),
-  };
+function buildConfigurationRawSitePage(pageMetadata: HeadlessSitePagePayload): HeadlessSitePagePayload {
+  // pageMetadata is already normalized by toHeadlessSitePagePayload — pass through directly
+  // to avoid introducing synthetic empty strings/arrays for absent fields.
+  return pageMetadata;
 }
 
 function parseTypeSettingsMap(rawTypeSettings: string): Record<string, string> {
