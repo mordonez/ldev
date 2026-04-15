@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {createConcurrencyLimiter, mapConcurrent} from '../../../core/concurrency.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
@@ -513,65 +514,4 @@ function compareSites(left: ContentStatsSite, right: ContentStatsSite, sortBy: '
   }
 
   return compareSitesByVolume(left, right);
-}
-
-function createConcurrencyLimiter(concurrency: number): <T>(task: () => Promise<T>) => Promise<T> {
-  let active = 0;
-  const queue: Array<() => void> = [];
-
-  const runNext = (): void => {
-    if (active >= concurrency) {
-      return;
-    }
-
-    const next = queue.shift();
-    if (!next) {
-      return;
-    }
-
-    active += 1;
-    next();
-  };
-
-  return async <T>(task: () => Promise<T>): Promise<T> =>
-    new Promise<T>((resolve, reject) => {
-      queue.push(() => {
-        void task()
-          .then(resolve, reject)
-          .finally(() => {
-            active -= 1;
-            runNext();
-          });
-      });
-      runNext();
-    });
-}
-
-async function mapConcurrent<TInput, TOutput>(
-  items: TInput[],
-  concurrency: number,
-  worker: (item: TInput, index: number) => Promise<TOutput>,
-): Promise<TOutput[]> {
-  if (items.length === 0) {
-    return [];
-  }
-
-  const results = new Array<TOutput>(items.length);
-  let nextIndex = 0;
-  const workerCount = Math.min(concurrency, items.length);
-
-  await Promise.all(
-    Array.from({length: workerCount}, async () => {
-      while (true) {
-        const currentIndex = nextIndex++;
-        if (currentIndex >= items.length) {
-          return;
-        }
-
-        results[currentIndex] = await worker(items[currentIndex]!, currentIndex);
-      }
-    }),
-  );
-
-  return results;
 }

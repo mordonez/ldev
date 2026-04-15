@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {runConcurrent} from '../../../core/concurrency.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
@@ -799,32 +800,6 @@ function isPresentNumber(value: number | undefined): value is number {
 
 function canDeleteWholeFolders(options: ContentPruneOptions): boolean {
   return (!options.structures || options.structures.length === 0) && (options.keep === undefined || options.keep === 0);
-}
-
-async function runConcurrent<T>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<void>,
-): Promise<void> {
-  if (items.length === 0) {
-    return;
-  }
-
-  let nextIndex = 0;
-  const workerCount = Math.min(concurrency, items.length);
-
-  await Promise.all(
-    Array.from({length: workerCount}, async () => {
-      while (true) {
-        const currentIndex = nextIndex++;
-        if (currentIndex >= items.length) {
-          return;
-        }
-
-        await worker(items[currentIndex]!, currentIndex);
-      }
-    }),
-  );
 }
 
 async function deleteWithRefresh<T>(
