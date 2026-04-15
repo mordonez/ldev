@@ -48,13 +48,13 @@ import {
   resolveResourceSite,
 } from '../resource/liferay-resource-shared.js';
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
+import {classNameIdLookupCache} from '../lookup-cache.js';
 
 type LayoutMatch = {layout: Layout; locale: string | null};
 type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
 
 const CLASS_NAME_LAYOUT = 'com.liferay.portal.kernel.model.Layout';
 const CLASS_NAME_JOURNAL_ARTICLE = 'com.liferay.journal.model.JournalArticle';
-const classNameIdCache = new Map<string, number>();
 
 export async function fetchSiteRootInventory(
   config: AppConfig,
@@ -763,7 +763,7 @@ async function resolveClassNameId(
   className: string,
 ): Promise<number> {
   const cacheKey = `${config.liferay.url}|${className}`;
-  const cached = classNameIdCache.get(cacheKey);
+  const cached = classNameIdLookupCache.get(cacheKey);
   if (cached && cached > 0) {
     return cached;
   }
@@ -784,7 +784,7 @@ async function resolveClassNameId(
     );
   }
 
-  classNameIdCache.set(cacheKey, resolved);
+  classNameIdLookupCache.set(cacheKey, resolved);
   return resolved;
 }
 

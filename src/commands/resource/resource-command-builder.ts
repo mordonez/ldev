@@ -1,6 +1,8 @@
 import {Command} from 'commander';
 
+import {createCommandContext} from '../../cli/command-context.js';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
+import {runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
 import {runLiferayResourceExportStructure} from '../../features/liferay/resource/liferay-resource-export-structure.js';
 import {runLiferayResourceExportTemplate} from '../../features/liferay/resource/liferay-resource-export-template.js';
 import {
@@ -90,11 +92,24 @@ export type ResourceCommandOptions = {
 };
 
 export function buildResourceCommand(options: ResourceCommandOptions): Command {
-  const resource = new Command('resource').description(options.description).addHelpText('after', options.helpText);
+  const resource = new Command('resource')
+    .description(options.description)
+    .option('--preflight', 'Run API surface preflight before executing resource subcommands')
+    .addHelpText('after', options.helpText);
 
   if (options.helpGroup) {
     resource.helpGroup(options.helpGroup);
   }
+
+  resource.hook('preAction', async (_thisCommand, actionCommand) => {
+    const options = actionCommand.optsWithGlobals<{preflight?: boolean; format?: string; strict?: boolean}>();
+    if (!options.preflight) {
+      return;
+    }
+
+    const context = createCommandContext(options);
+    await runLiferayPreflight(context.config);
+  });
 
   addOutputFormatOption(
     resource

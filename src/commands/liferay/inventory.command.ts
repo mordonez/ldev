@@ -1,6 +1,7 @@
 import {Command} from 'commander';
 
 import {CliError} from '../../core/errors.js';
+import {createCommandContext} from '../../cli/command-context.js';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {
   formatContentStats,
@@ -28,6 +29,7 @@ import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
 } from '../../features/liferay/inventory/liferay-inventory-templates.js';
+import {formatLiferayPreflight, runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
 
 function collect(value: string, previous: string[]): string[] {
   return [...previous, value];
@@ -41,6 +43,7 @@ export function createInventoryCommands(parent: Command): void {
   const inventory = new Command('inventory')
     .helpGroup('Discovery:')
     .description('Discovery commands for sites, pages and web content metadata')
+    .option('--preflight', 'Run API surface preflight before executing inventory subcommands')
     .addHelpText(
       'after',
       `
@@ -54,6 +57,20 @@ Commands:
   templates   List web content templates
 `,
     );
+
+  inventory.hook('preAction', async (_thisCommand, actionCommand) => {
+    if (actionCommand.name() === 'preflight') {
+      return;
+    }
+
+    const options = actionCommand.optsWithGlobals<{preflight?: boolean; format?: string; strict?: boolean}>();
+    if (!options.preflight) {
+      return;
+    }
+
+    const context = createCommandContext(options);
+    await runLiferayPreflight(context.config);
+  });
 
   addOutputFormatOption(
     inventory
@@ -234,6 +251,19 @@ Notes:
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
         }),
       {text: formatLiferayInventoryTemplates},
+    ),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('preflight')
+      .description('Check availability of adminSite, adminUser and jsonws API surfaces')
+      .option('--force-refresh', 'Bypass cached result and re-probe surfaces'),
+    'text',
+  ).action(
+    createFormattedAction(
+      async (context, options) => runLiferayPreflight(context.config, {forceRefresh: Boolean(options.forceRefresh)}),
+      {text: formatLiferayPreflight},
     ),
   );
 

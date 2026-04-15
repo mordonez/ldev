@@ -1,4 +1,4 @@
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, beforeEach} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
@@ -9,7 +9,15 @@ import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
 } from '../../src/features/liferay/inventory/liferay-inventory-templates.js';
-import {normalizeLocalizedName, resolveSite} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
+import {
+  normalizeLocalizedName,
+  resolveSite,
+  resolvedSiteCache,
+} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
+
+beforeEach(() => {
+  resolvedSiteCache.clear();
+});
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -154,6 +162,72 @@ describe('liferay inventory shared', () => {
   test('normalizes localized name values', () => {
     expect(normalizeLocalizedName('Guest')).toBe('Guest');
     expect(normalizeLocalizedName({es_ES: 'Invitado', en_US: 'Guest'})).toBe('Invitado');
+  });
+
+  test('resolveSite cache is segmented by oauth client/scope context', async () => {
+    let lookupCalls = 0;
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          lookupCalls += 1;
+          return new Response(
+            JSON.stringify({id: 20_000 + lookupCalls, friendlyUrlPath: '/global', name: `Global ${lookupCalls}`}),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const configA = {...CONFIG};
+    const configB = {
+      ...CONFIG,
+      liferay: {
+        ...CONFIG.liferay,
+        oauth2ClientId: 'another-client',
+        scopeAliases: 'scope-b',
+      },
+    };
+
+    const resultA = await resolveSite(configA, '/global', {apiClient, tokenClient: TOKEN_CLIENT});
+    const resultB = await resolveSite(configB, '/global', {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(resultA.id).toBe(20_001);
+    expect(resultB.id).toBe(20_002);
+    expect(lookupCalls).toBe(2);
+  });
+
+  test('resolveSite forceRefresh bypasses cached site lookup', async () => {
+    let lookupCalls = 0;
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          lookupCalls += 1;
+          return new Response(
+            JSON.stringify({id: 30_000 + lookupCalls, friendlyUrlPath: '/global', name: `Global ${lookupCalls}`}),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const first = await resolveSite(CONFIG, '/global', {apiClient, tokenClient: TOKEN_CLIENT});
+    const second = await resolveSite(CONFIG, '/global', {
+      apiClient,
+      tokenClient: TOKEN_CLIENT,
+      forceRefresh: true,
+    });
+
+    expect(first.id).toBe(30_001);
+    expect(second.id).toBe(30_002);
+    expect(lookupCalls).toBe(2);
   });
 });
 

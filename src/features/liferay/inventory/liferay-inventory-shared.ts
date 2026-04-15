@@ -4,6 +4,7 @@ import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/
 import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
+import {LookupCache} from '../lookup-cache.js';
 import {
   SiteResolutionPipeline,
   createByIdStep,
@@ -26,7 +27,10 @@ type InventoryDependencies = {
   forceRefresh?: boolean;
 };
 
-const accessTokenCache = new Map<string, string>();
+// Tokens are valid for ~1 h; cache matches that lifetime to avoid redundant OAuth requests.
+const accessTokenCache = new LookupCache<string>({ttlMs: 3_600_000});
+// Site resolution is expensive (multi-step pipeline); 5-min TTL avoids repeated lookups.
+export const resolvedSiteCache = new LookupCache<ResolvedSite>();
 
 export async function fetchAccessToken(config: AppConfig, dependencies?: InventoryDependencies): Promise<string> {
   if (dependencies?.accessToken) {
@@ -39,8 +43,8 @@ export async function fetchAccessToken(config: AppConfig, dependencies?: Invento
     config.liferay.oauth2ClientSecret,
     config.liferay.scopeAliases,
   ].join('|');
-  const cached = accessTokenCache.get(cacheKey);
-  if (cached && !dependencies?.forceRefresh) {
+  const cached = accessTokenCache.get(cacheKey, dependencies?.forceRefresh);
+  if (cached) {
     return cached;
   }
 
@@ -55,6 +59,10 @@ export async function resolveSite(
   site: string,
   dependencies?: InventoryDependencies,
 ): Promise<ResolvedSite> {
+  const cacheKey = [config.liferay.url, config.liferay.oauth2ClientId, config.liferay.scopeAliases, site].join('|');
+  const cached = resolvedSiteCache.get(cacheKey, dependencies?.forceRefresh);
+  if (cached) return cached;
+
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createInventoryGateway(config, apiClient, dependencies);
 
@@ -74,7 +82,9 @@ export async function resolveSite(
       createJsonwsFallbackStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
     );
 
-  return pipeline.execute(site, `Could not resolve site "${site}".`);
+  const result = await pipeline.execute(site, `Could not resolve site "${site}".`);
+  resolvedSiteCache.set(cacheKey, result);
+  return result;
 }
 
 export async function fetchPagedItems<T>(
