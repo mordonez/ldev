@@ -264,6 +264,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       runtimeId,
       opts.key,
       payload,
+      remoteArtifact.data.runtimeDefinition,
       dependencies,
     );
     recoveredAfterTimeout = updated.recoveredAfterTimeout;
@@ -326,6 +327,7 @@ async function updateStructureWithRecovery(
   runtimeId: string,
   key: string,
   payload: Record<string, unknown>,
+  previousRuntimeDefinition: Record<string, unknown>,
   dependencies?: StructureResourceDependencies,
 ): Promise<{data: Record<string, unknown> | null; recoveredAfterTimeout: boolean}> {
   try {
@@ -352,6 +354,7 @@ async function updateStructureWithRecovery(
       siteId,
       key,
       payload,
+      previousRuntimeDefinition,
       dependencies?.sleep ?? defaultSleep,
     );
 
@@ -376,11 +379,19 @@ async function pollStructureUpdateRecovery(
   siteId: number,
   key: string,
   payload: Record<string, unknown>,
+  previousRuntimeDefinition: Record<string, unknown>,
   sleepImpl: (ms: number) => Promise<void>,
 ): Promise<Record<string, unknown> | null> {
   const maxAttempts = 4;
   const retryDelayMs = 1500;
   const expectedShape = extractStructureShapeSignature(payload);
+  const previousShape = extractStructureShapeSignature(previousRuntimeDefinition);
+
+  // If expected and previous signatures are identical, shape-based polling cannot
+  // prove that the timed-out update was applied; fail closed as recoverable timeout.
+  if (expectedShape === previousShape) {
+    return null;
+  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const runtime = await fetchStructureByKey(config, apiClient, accessToken, siteId, key);

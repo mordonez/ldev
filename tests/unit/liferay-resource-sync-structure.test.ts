@@ -304,6 +304,48 @@ describe('liferay resource structure-sync', () => {
     expect(formatLiferayResourceSyncStructure(result)).toContain('recoveredAfterTimeout=true');
   });
 
+  test('throws recoverable timeout when PUT times out and shape-based recovery cannot prove the update', async () => {
+    const {config} = await createRepoFixture();
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          // Keep same shape before/after timeout to simulate unverifiable recovery.
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
+            }),
+            {status: 200},
+          );
+        }
+        if ((init?.method ?? 'GET') === 'PUT' && url.endsWith('/o/data-engine/v2.0/data-definitions/301')) {
+          throw new Error('The operation timed out');
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await expect(
+      runLiferayResourceSyncStructure(
+        config,
+        {site: '/global', key: 'BASIC', allowBreakingChange: true},
+        {
+          apiClient,
+          tokenClient: TOKEN_CLIENT,
+          sleep: async () => undefined,
+        },
+      ),
+    ).rejects.toThrow('could not confirm whether the update eventually applied');
+  });
+
   test('does not clean source fields during introduce even if the mapping requests cleanup', async () => {
     const {config, migrationPlanFile} = await createRepoFixture();
     await fs.writeJson(migrationPlanFile, {
