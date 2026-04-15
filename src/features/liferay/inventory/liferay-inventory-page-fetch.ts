@@ -159,7 +159,6 @@ export async function fetchDisplayPageInventory(
   config: AppConfig,
   gateway: LiferayGateway,
   apiClient: LiferayApiClient,
-  accessToken: string,
   site: ResolvedSite,
   urlTitle: string,
 ): Promise<LiferayInventoryPageResult> {
@@ -172,7 +171,7 @@ export async function fetchDisplayPageInventory(
     article.contentStructureId = structuredContent.contentStructureId;
   }
 
-  const journalArticle = await buildJournalArticleSummary(gateway, config, apiClient, accessToken, articleRef, {
+  const journalArticle = await buildJournalArticleSummary(gateway, config, apiClient, articleRef, {
     article: jsonwsArticle,
     structuredContent,
     fallbackSite: site,
@@ -180,9 +179,7 @@ export async function fetchDisplayPageInventory(
     fallbackContentStructureId: article.contentStructureId,
     includeHeadlessInventoryFields: true,
   });
-  const contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, accessToken, [
-    journalArticle,
-  ]);
+  const contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, [journalArticle]);
   const articleClassPK = Number(article.id ?? jsonwsArticle?.resourcePrimKey ?? jsonwsArticle?.id ?? -1);
   const articleClassNameId = await resolveClassNameId(config, gateway, CLASS_NAME_JOURNAL_ARTICLE);
   const articleAdminUrls =
@@ -224,7 +221,6 @@ export async function fetchRegularPageInventory(
   config: AppConfig,
   gateway: LiferayGateway,
   apiClient: LiferayApiClient,
-  accessToken: string,
   site: ResolvedSite,
   friendlyUrl: string,
   privateLayout: boolean,
@@ -261,7 +257,7 @@ export async function fetchRegularPageInventory(
     configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
     enrichRegularPageFragmentSummaries(fragmentEntryLinks);
-    await enrichFragmentEntryExportPaths(config, accessToken, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
+    await enrichFragmentEntryExportPaths(config, gateway, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
     widgets = fragmentEntryLinks
       .filter((entry) => entry.type === 'widget' && entry.widgetName)
       .map((entry) => ({
@@ -269,15 +265,8 @@ export async function fetchRegularPageInventory(
         ...(entry.portletId ? {portletId: entry.portletId} : {}),
         ...(entry.configuration ? {configuration: entry.configuration} : {}),
       }));
-    journalArticles = await collectLayoutJournalArticles(
-      gateway,
-      config,
-      apiClient,
-      accessToken,
-      site.id,
-      rawFragmentLinks,
-    );
-    contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, accessToken, journalArticles);
+    journalArticles = await collectLayoutJournalArticles(gateway, config, apiClient, site.id, rawFragmentLinks);
+    contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
   }
 
   function buildRegularPageSummary(
@@ -692,7 +681,6 @@ export async function resolveRegularLayoutPageData(
   config: AppConfig,
   gateway: LiferayGateway,
   apiClient: LiferayApiClient,
-  accessToken: string,
   site: ResolvedSite,
   friendlyUrl: string,
   privateLayout: boolean,
@@ -965,7 +953,6 @@ async function collectLayoutJournalArticles(
   gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
   defaultGroupId: number,
   fragmentEntryLinks: Array<Record<string, unknown>>,
 ): Promise<JournalArticleSummary[]> {
@@ -973,7 +960,7 @@ async function collectLayoutJournalArticles(
   const result: JournalArticleSummary[] = [];
 
   for (const ref of refs.values()) {
-    result.push(await buildJournalArticleSummary(gateway, config, apiClient, accessToken, ref));
+    result.push(await buildJournalArticleSummary(gateway, config, apiClient, ref));
   }
 
   return result;
@@ -983,7 +970,6 @@ async function buildJournalArticleSummary(
   gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
   ref: ArticleRef,
   options?: {
     article?: Record<string, unknown> | null;
@@ -996,7 +982,7 @@ async function buildJournalArticleSummary(
 ): Promise<JournalArticleSummary> {
   const article = options?.article ?? (await fetchLatestJournalArticle(gateway, ref.groupId, ref.articleId));
   const articleSite =
-    (await safeFetchGroupInfo(config, ref.groupId, {apiClient, accessToken})) ??
+    (await safeFetchGroupInfo(config, ref.groupId, {apiClient, gateway})) ??
     (options?.fallbackSite
       ? {
           friendlyUrl: options.fallbackSite.friendlyUrlPath,
@@ -1067,7 +1053,6 @@ async function buildJournalArticleSummary(
       gateway,
       config,
       apiClient,
-      accessToken,
       articleSite.friendlyUrl,
       summary.ddmStructureKey,
     );
@@ -1085,7 +1070,7 @@ async function buildJournalArticleSummary(
   if (articleSite?.friendlyUrl && ddmTemplateKey) {
     const templateSite = await resolveTemplateSiteByKey(config, articleSite.friendlyUrl, ddmTemplateKey, {
       apiClient,
-      accessToken,
+      gateway,
     });
     if (templateSite) {
       summary.ddmTemplateSiteFriendlyUrl = templateSite;
@@ -1100,7 +1085,6 @@ async function collectLayoutContentStructures(
   gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
   journalArticles: JournalArticleSummary[],
 ): Promise<ContentStructureSummary[]> {
   const seen = new Set<number>();
@@ -1295,11 +1279,10 @@ async function resolveStructureSiteByKey(
   gateway: LiferayGateway,
   config: AppConfig,
   apiClient: LiferayApiClient,
-  accessToken: string,
   startSite: string,
   structureKey: string,
 ): Promise<{siteFriendlyUrl: string} | null> {
-  const siteChain = await buildResourceSiteChain(config, startSite, {apiClient, accessToken});
+  const siteChain = await buildResourceSiteChain(config, startSite, {apiClient, gateway});
   for (const site of siteChain) {
     const response = await safeGatewayGet<Record<string, unknown>>(
       gateway,
@@ -1316,7 +1299,7 @@ async function resolveStructureSiteByKey(
 async function safeFetchGroupInfo(
   config: AppConfig,
   groupId: number,
-  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
 ) {
   try {
     return await fetchGroupInfo(config, groupId, dependencies);
@@ -1329,7 +1312,7 @@ async function resolveTemplateSiteByKey(
   config: AppConfig,
   startSite: string,
   templateKey: string,
-  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
 ): Promise<string | null> {
   const siteChain = await buildResourceSiteChain(config, startSite, dependencies);
   for (const candidate of siteChain) {
@@ -1362,7 +1345,7 @@ function buildTemplateExportPath(config: AppConfig, siteFriendlyUrl: string, key
 
 async function enrichFragmentEntryExportPaths(
   config: AppConfig,
-  accessToken: string,
+  gateway: LiferayGateway,
   startSite: string,
   entries: PageFragmentEntry[],
   apiClient: LiferayApiClient,
@@ -1380,7 +1363,7 @@ async function enrichFragmentEntryExportPaths(
         fragmentKey,
         await findFragmentExportPath(config, startSite, fragmentKey, {
           apiClient,
-          accessToken,
+          gateway,
         }),
       );
     }
@@ -1396,7 +1379,7 @@ async function findFragmentExportPath(
   config: AppConfig,
   startSite: string,
   fragmentKey: string,
-  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
 ): Promise<{siteFriendlyUrl: string; exportPath: string} | null> {
   const baseDirs = await resolveFragmentSearchBaseDirs(config);
   const siteChain = await safeBuildFragmentSiteChain(config, startSite, dependencies);
@@ -1429,7 +1412,7 @@ async function resolveFragmentSearchBaseDirs(config: AppConfig): Promise<string[
 async function safeBuildFragmentSiteChain(
   config: AppConfig,
   startSite: string,
-  dependencies: {apiClient: LiferayApiClient; accessToken: string},
+  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
 ): Promise<Array<{siteFriendlyUrl: string}>> {
   try {
     return await buildResourceSiteChain(config, startSite, dependencies);
