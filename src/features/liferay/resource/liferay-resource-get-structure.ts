@@ -1,9 +1,9 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
-import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {authedGet, fetchAccessToken, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
+import {normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
 import {buildResourceSiteChain, resolveResourceSite} from './liferay-resource-shared.js';
 import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
 
@@ -27,8 +27,7 @@ export async function runLiferayResourceGetStructure(
   options: {site?: string; key?: string; id?: string},
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceStructureResult> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
   const identifier = String(options.key ?? options.id ?? '').trim();
   if (identifier === '') {
@@ -39,10 +38,7 @@ export async function runLiferayResourceGetStructure(
   let lastKeyLookupStatus: number | null = null;
 
   if (options.id || /^\d+$/.test(identifier)) {
-    const byIdResponse = await authedGet<DataDefinitionPayload>(
-      config,
-      apiClient,
-      accessToken,
+    const byIdResponse = await gateway.getRaw<DataDefinitionPayload>(
       `/o/data-engine/v2.0/data-definitions/${encodeURIComponent(String(options.id ?? identifier))}`,
     );
 
@@ -56,10 +52,7 @@ export async function runLiferayResourceGetStructure(
     const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
 
     for (const candidate of siteChain) {
-      const response = await authedGet<DataDefinitionPayload>(
-        config,
-        apiClient,
-        accessToken,
+      const response = await gateway.getRaw<DataDefinitionPayload>(
         `/o/data-engine/v2.0/sites/${candidate.siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodedKey}`,
       );
       if (!response.ok) {
