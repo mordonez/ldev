@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
 import path from 'node:path';
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, beforeEach} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {classNameIdLookupCache} from '../../src/features/liferay/lookup-cache.js';
 import {runLiferayResourceExportStructure} from '../../src/features/liferay/resource/liferay-resource-export-structure.js';
 import {
   formatLiferayResourceExportStructures,
@@ -16,6 +17,10 @@ import {
   runLiferayResourceExportTemplates,
 } from '../../src/features/liferay/resource/liferay-resource-export-templates.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
+
+beforeEach(() => {
+  classNameIdLookupCache.clear();
+});
 
 const CONFIG = {
   cwd: '/tmp/repo',

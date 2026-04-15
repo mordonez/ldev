@@ -18,6 +18,7 @@ import {
   type FragmentCollectionPayload,
   type FragmentEntryPayload,
 } from './liferay-resource-payloads.js';
+import {classNameIdLookupCache} from '../lookup-cache.js';
 
 const DDM_STRUCTURE_CLASS_NAME = 'com.liferay.dynamic.data.mapping.model.DDMStructure';
 const JOURNAL_ARTICLE_CLASS_NAME = 'com.liferay.journal.model.JournalArticle';
@@ -27,6 +28,7 @@ type ResourceDependencies = {
   apiClient?: LiferayApiClient;
   tokenClient?: OAuthTokenClient;
   accessToken?: string;
+  forceRefresh?: boolean;
 };
 
 export type ResolvedResourceSite = ResolvedSite & {
@@ -69,9 +71,16 @@ export async function fetchStructureTemplateClassIds(
 ): Promise<{classNameId: number; resourceClassNameId: number}> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
+  const forceRefresh = dependencies?.forceRefresh;
 
-  const classNameId = await fetchClassNameId(config, apiClient, accessToken, DDM_STRUCTURE_CLASS_NAME);
-  const resourceClassNameId = await fetchClassNameId(config, apiClient, accessToken, JOURNAL_ARTICLE_CLASS_NAME);
+  const classNameId = await fetchClassNameId(config, apiClient, accessToken, DDM_STRUCTURE_CLASS_NAME, forceRefresh);
+  const resourceClassNameId = await fetchClassNameId(
+    config,
+    apiClient,
+    accessToken,
+    JOURNAL_ARTICLE_CLASS_NAME,
+    forceRefresh,
+  );
 
   return {classNameId, resourceClassNameId};
 }
@@ -83,7 +92,7 @@ export async function fetchClassNameIdForValue(
 ): Promise<number> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  return fetchClassNameId(config, apiClient, accessToken, className);
+  return fetchClassNameId(config, apiClient, accessToken, className, dependencies?.forceRefresh);
 }
 
 export async function fetchAdtResourceClassNameId(
@@ -133,7 +142,7 @@ export async function listDdmTemplatesByClassName(
 ): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const accessToken = await fetchAccessToken(config, dependencies);
-  const classNameId = await fetchClassNameId(config, apiClient, accessToken, className);
+  const classNameId = await fetchClassNameId(config, apiClient, accessToken, className, dependencies?.forceRefresh);
 
   return fetchDdmTemplates(config, apiClient, accessToken, site.companyId, site.id, classNameId, resourceClassNameId);
 }
@@ -177,7 +186,12 @@ async function fetchClassNameId(
   apiClient: LiferayApiClient,
   accessToken: string,
   className: string,
+  forceRefresh?: boolean,
 ): Promise<number> {
+  const cacheKey = `${config.liferay.url}|${className}`;
+  const cached = classNameIdLookupCache.get(cacheKey, forceRefresh);
+  if (cached) return cached;
+
   const response = await authedGet<ClassNamePayload>(
     config,
     apiClient,
@@ -191,6 +205,7 @@ async function fetchClassNameId(
       code: 'LIFERAY_RESOURCE_ERROR',
     });
   }
+  classNameIdLookupCache.set(cacheKey, classNameId);
   return classNameId;
 }
 
