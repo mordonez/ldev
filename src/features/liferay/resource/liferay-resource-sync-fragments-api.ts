@@ -11,48 +11,86 @@ import {
   type FragmentEntryPayload,
 } from './liferay-resource-payloads.js';
 
+export type FragmentSyncRuntimeState = {
+  collectionsByKey?: Map<string, FragmentCollectionPayload>;
+  fragmentsByCollectionId: Map<number, Map<string, FragmentEntryPayload>>;
+};
+
+export function createFragmentSyncRuntimeState(): FragmentSyncRuntimeState {
+  return {
+    fragmentsByCollectionId: new Map(),
+  };
+}
+
 export async function listRuntimeCollectionsByKey(
   config: AppConfig,
   groupId: number,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<Map<string, FragmentCollectionPayload>> {
+  if (runtimeState?.collectionsByKey) {
+    return runtimeState.collectionsByKey;
+  }
+
   const collections = await listFragmentCollections(config, groupId, dependencies);
   const byKey = new Map<string, FragmentCollectionPayload>();
 
   for (const collection of collections) {
-    const key = String(collection.fragmentCollectionKey ?? '').trim();
-    const name = String(collection.name ?? '').trim();
-    if (key !== '') {
-      byKey.set(key.toLowerCase(), collection);
-    }
-    if (name !== '') {
-      byKey.set(sanitizeFileToken(name).toLowerCase(), collection);
-    }
+    cacheRuntimeCollection(byKey, collection);
+  }
+
+  if (runtimeState) {
+    runtimeState.collectionsByKey = byKey;
   }
 
   return byKey;
+}
+
+export async function findRuntimeCollection(
+  config: AppConfig,
+  groupId: number,
+  collectionSlug: string,
+  dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
+): Promise<FragmentCollectionPayload | null> {
+  const byKey = await listRuntimeCollectionsByKey(config, groupId, dependencies, runtimeState);
+  return byKey.get(collectionSlug.toLowerCase()) ?? null;
 }
 
 export async function listRuntimeFragmentsByKey(
   config: AppConfig,
   fragmentCollectionId: number,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<Map<string, FragmentEntryPayload>> {
+  const cached = runtimeState?.fragmentsByCollectionId.get(fragmentCollectionId);
+  if (cached) {
+    return cached;
+  }
+
   const runtimeFragments = await listFragments(config, fragmentCollectionId, dependencies);
   const byKey = new Map<string, FragmentEntryPayload>();
 
   for (const runtimeFragment of runtimeFragments) {
-    const runtimeKey = String(runtimeFragment.fragmentEntryKey ?? '').trim();
-    const runtimeName = String(runtimeFragment.name ?? '').trim();
-    if (runtimeKey !== '') {
-      byKey.set(runtimeKey.toLowerCase(), runtimeFragment);
-    }
-    if (runtimeName !== '') {
-      byKey.set(sanitizeFileToken(runtimeName).toLowerCase(), runtimeFragment);
-    }
+    cacheRuntimeFragment(byKey, runtimeFragment);
+  }
+
+  if (runtimeState) {
+    runtimeState.fragmentsByCollectionId.set(fragmentCollectionId, byKey);
   }
 
   return byKey;
+}
+
+export async function findRuntimeFragment(
+  config: AppConfig,
+  fragmentCollectionId: number,
+  fragmentSlug: string,
+  dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
+): Promise<FragmentEntryPayload | null> {
+  const byKey = await listRuntimeFragmentsByKey(config, fragmentCollectionId, dependencies, runtimeState);
+  return byKey.get(fragmentSlug.toLowerCase()) ?? null;
 }
 
 export async function createFragmentCollection(
@@ -60,6 +98,7 @@ export async function createFragmentCollection(
   groupId: number,
   collection: LocalFragmentCollection,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentCollectionPayload> {
   const base = {
     groupId: String(groupId),
@@ -89,7 +128,14 @@ export async function createFragmentCollection(
     dependencies,
   );
 
-  return toFragmentCollectionPayload(response);
+  const payload = toFragmentCollectionPayload({
+    ...response,
+    fragmentCollectionKey: collection.slug,
+    name: collection.name,
+    description: collection.description,
+  });
+  cacheRuntimeCollection(ensureCollectionRuntimeCache(runtimeState), payload);
+  return payload;
 }
 
 export async function updateFragmentCollection(
@@ -97,6 +143,7 @@ export async function updateFragmentCollection(
   fragmentCollectionId: number,
   collection: LocalFragmentCollection,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<void> {
   if (fragmentCollectionId <= 0) {
     return;
@@ -122,6 +169,12 @@ export async function updateFragmentCollection(
       'fragment-collection-update',
       dependencies,
     );
+    cacheRuntimeCollection(ensureCollectionRuntimeCache(runtimeState), {
+      fragmentCollectionId,
+      fragmentCollectionKey: collection.slug,
+      name: collection.name,
+      description: collection.description,
+    });
   } catch {
     // Legacy command ignored collection metadata update failures.
   }
@@ -133,6 +186,7 @@ export async function createFragmentEntry(
   fragmentCollectionId: number,
   fragment: LocalFragment,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentEntryPayload> {
   const base = fragmentEntryBaseForm(groupId, fragmentCollectionId, fragment);
 
@@ -153,7 +207,13 @@ export async function createFragmentEntry(
     dependencies,
   );
 
-  return toFragmentEntryPayload(response);
+  const payload = toFragmentEntryPayload({
+    ...response,
+    fragmentEntryKey: fragment.slug,
+    name: fragment.name,
+  });
+  cacheFragmentInRuntimeState(runtimeState, fragmentCollectionId, payload);
+  return payload;
 }
 
 export async function updateFragmentEntry(
@@ -163,6 +223,7 @@ export async function updateFragmentEntry(
   fragmentEntryId: number,
   fragment: LocalFragment,
   dependencies?: ResourceSyncDependencies,
+  runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentEntryPayload> {
   if (fragmentEntryId <= 0) {
     throw LiferayErrors.resourceError(`fragmentEntryId invalido para ${fragment.slug}`);
@@ -198,7 +259,69 @@ export async function updateFragmentEntry(
     dependencies,
   );
 
-  return toFragmentEntryPayload(response);
+  const payload = toFragmentEntryPayload({
+    ...response,
+    fragmentEntryId,
+    fragmentEntryKey: fragment.slug,
+    name: fragment.name,
+  });
+  cacheFragmentInRuntimeState(runtimeState, fragmentCollectionId, payload);
+  return payload;
+}
+
+function cacheRuntimeCollection(
+  byKey: Map<string, FragmentCollectionPayload> | undefined,
+  collection: FragmentCollectionPayload,
+): void {
+  if (!byKey) {
+    return;
+  }
+
+  const key = String(collection.fragmentCollectionKey ?? '').trim();
+  const name = String(collection.name ?? '').trim();
+  if (key !== '') {
+    byKey.set(key.toLowerCase(), collection);
+  }
+  if (name !== '') {
+    byKey.set(sanitizeFileToken(name).toLowerCase(), collection);
+  }
+}
+
+function ensureCollectionRuntimeCache(
+  runtimeState: FragmentSyncRuntimeState | undefined,
+): Map<string, FragmentCollectionPayload> | undefined {
+  if (!runtimeState) {
+    return undefined;
+  }
+
+  runtimeState.collectionsByKey ??= new Map<string, FragmentCollectionPayload>();
+  return runtimeState.collectionsByKey;
+}
+
+function cacheFragmentInRuntimeState(
+  runtimeState: FragmentSyncRuntimeState | undefined,
+  fragmentCollectionId: number,
+  fragment: FragmentEntryPayload,
+): void {
+  if (!runtimeState) {
+    return;
+  }
+
+  const byKey =
+    runtimeState.fragmentsByCollectionId.get(fragmentCollectionId) ?? new Map<string, FragmentEntryPayload>();
+  cacheRuntimeFragment(byKey, fragment);
+  runtimeState.fragmentsByCollectionId.set(fragmentCollectionId, byKey);
+}
+
+function cacheRuntimeFragment(byKey: Map<string, FragmentEntryPayload>, fragment: FragmentEntryPayload): void {
+  const runtimeKey = String(fragment.fragmentEntryKey ?? '').trim();
+  const runtimeName = String(fragment.name ?? '').trim();
+  if (runtimeKey !== '') {
+    byKey.set(runtimeKey.toLowerCase(), fragment);
+  }
+  if (runtimeName !== '') {
+    byKey.set(sanitizeFileToken(runtimeName).toLowerCase(), fragment);
+  }
 }
 
 function fragmentEntryBaseForm(

@@ -1,22 +1,21 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
+import type {ResolvedSite} from '../inventory/liferay-site-resolver.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
-import {
-  createFragmentCollection,
-  createFragmentEntry,
-  listRuntimeCollectionsByKey,
-  listRuntimeFragmentsByKey,
-  updateFragmentCollection,
-  updateFragmentEntry,
-} from './liferay-resource-sync-fragments-api.js';
+import {createFragmentSyncRuntimeState} from './liferay-resource-sync-fragments-api.js';
 import {toErrorMessage} from './liferay-resource-sync-fragments-local.js';
 import type {
   LiferayResourceSyncFragmentItemResult,
   LiferayResourceSyncFragmentsSingleResult,
+  LocalFragment,
+  LocalFragmentCollection,
   LocalFragmentsProject,
 } from './liferay-resource-sync-fragments-types.js';
+import {syncArtifact} from './sync-engine.js';
+import {fragmentCollectionSyncStrategy} from './sync-strategies/fragment-collection-sync-strategy.js';
+import {fragmentEntrySyncStrategy} from './sync-strategies/fragment-entry-sync-strategy.js';
 
-export async function runFragmentsImportLegacy(
+export async function runFragmentsImport(
   config: AppConfig,
   groupId: number,
   siteFriendlyUrl: string,
@@ -24,53 +23,35 @@ export async function runFragmentsImportLegacy(
   project: LocalFragmentsProject,
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceSyncFragmentsSingleResult> {
-  const collectionByKey = await listRuntimeCollectionsByKey(config, groupId, dependencies);
-
+  const site = toResolvedSite(groupId, siteFriendlyUrl);
+  const runtimeState = createFragmentSyncRuntimeState();
   let imported = 0;
   let errors = 0;
   const fragmentResults: LiferayResourceSyncFragmentItemResult[] = [];
 
   for (const localCollection of project.collections) {
     try {
-      let runtimeCollection = collectionByKey.get(localCollection.slug.toLowerCase());
-      if (!runtimeCollection) {
-        runtimeCollection = await createFragmentCollection(config, groupId, localCollection, dependencies);
-        collectionByKey.set(localCollection.slug.toLowerCase(), runtimeCollection);
-      } else {
-        await updateFragmentCollection(
-          config,
-          Number(runtimeCollection.fragmentCollectionId ?? -1),
-          localCollection,
-          dependencies,
-        );
-      }
-
-      const collectionId = Number(runtimeCollection.fragmentCollectionId ?? -1);
-      if (collectionId <= 0) {
+      const collectionId = await syncFragmentCollection(config, site, localCollection, runtimeState, dependencies);
+      if (!Number.isFinite(collectionId) || collectionId <= 0) {
         throw LiferayErrors.resourceError(`fragmentCollectionId invalido para ${localCollection.slug}`);
       }
 
-      const runtimeByKey = await listRuntimeFragmentsByKey(config, collectionId, dependencies);
-
       for (const localFragment of localCollection.fragments) {
         try {
-          const runtimeFragment = runtimeByKey.get(localFragment.slug.toLowerCase());
-          const syncedFragment = runtimeFragment
-            ? await updateFragmentEntry(
-                config,
-                groupId,
-                collectionId,
-                Number(runtimeFragment.fragmentEntryId ?? -1),
-                localFragment,
-                dependencies,
-              )
-            : await createFragmentEntry(config, groupId, collectionId, localFragment, dependencies);
+          const syncedFragmentId = await syncFragmentEntry(
+            config,
+            site,
+            collectionId,
+            localFragment,
+            runtimeState,
+            dependencies,
+          );
 
           fragmentResults.push({
             collection: localCollection.slug,
             fragment: localFragment.slug,
             status: 'imported',
-            fragmentEntryId: Number(syncedFragment.fragmentEntryId ?? -1),
+            fragmentEntryId: syncedFragmentId,
           });
           imported += 1;
         } catch (error) {
@@ -109,5 +90,66 @@ export async function runFragmentsImportLegacy(
     },
     fragmentResults,
     pageTemplateResults: [],
+  };
+}
+
+export const runFragmentsImportLegacy = runFragmentsImport;
+
+async function syncFragmentCollection(
+  config: AppConfig,
+  site: ResolvedSite,
+  collection: LocalFragmentCollection,
+  runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
+  dependencies?: ResourceSyncDependencies,
+): Promise<number> {
+  const result = await syncArtifact(
+    config,
+    site,
+    fragmentCollectionSyncStrategy,
+    {
+      createMissing: true,
+      strategyOptions: {
+        collection,
+        runtimeState,
+      },
+    },
+    dependencies,
+  );
+
+  return Number(result.id);
+}
+
+async function syncFragmentEntry(
+  config: AppConfig,
+  site: ResolvedSite,
+  collectionId: number,
+  fragment: LocalFragment,
+  runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
+  dependencies?: ResourceSyncDependencies,
+): Promise<number> {
+  const result = await syncArtifact(
+    config,
+    site,
+    fragmentEntrySyncStrategy,
+    {
+      createMissing: true,
+      strategyOptions: {
+        collectionId,
+        fragment,
+        runtimeState,
+      },
+    },
+    dependencies,
+  );
+
+  const fragmentEntryId = Number(result.id);
+  return Number.isFinite(fragmentEntryId) ? fragmentEntryId : -1;
+}
+
+function toResolvedSite(groupId: number, siteFriendlyUrl: string): ResolvedSite {
+  return {
+    id: groupId,
+    friendlyUrlPath: siteFriendlyUrl,
+    name: siteFriendlyUrl,
   };
 }
