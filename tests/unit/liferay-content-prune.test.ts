@@ -908,9 +908,8 @@ describe('liferay-content-prune: apply mode', () => {
     expect(maxInflightDeletes).toBeGreaterThan(1);
   });
 
-  test('apply mode refreshes token and retries article deletion on 401', async () => {
+  test('apply mode does not retry article deletion manually on 401', async () => {
     let tokenFetches = 0;
-    let firstDeleteAttempt = true;
     const deleteAuthHeaders: string[] = [];
 
     function getAuthorizationHeader(init: RequestInit | undefined): string {
@@ -935,12 +934,7 @@ describe('liferay-content-prune: apply mode', () => {
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
           deleteAuthHeaders.push(getAuthorizationHeader(init as RequestInit | undefined));
-          if (firstDeleteAttempt) {
-            firstDeleteAttempt = false;
-            return new Response('unauthorized', {status: 401});
-          }
-
-          return new Response('{}', {status: 200});
+          return new Response('unauthorized', {status: 401});
         }
 
         if (method === 'DELETE' && url.includes('/structured-content-folders/12345')) {
@@ -996,9 +990,18 @@ describe('liferay-content-prune: apply mode', () => {
     );
 
     expect(result.mode).toBe('apply');
-    expect(firstDeleteAttempt).toBe(false);
-    expect(tokenFetches).toBe(2);
-    expect(deleteAuthHeaders).toEqual(['Bearer token-1', 'Bearer token-2']);
+    expect(tokenFetches).toBeGreaterThan(0);
+    expect(deleteAuthHeaders).toHaveLength(1);
+    expect(deleteAuthHeaders[0]).toMatch(/^Bearer token-\d+$/);
+    expect(result.failedArticles).toEqual([
+      {
+        id: 1001,
+        articleId: '1001',
+        status: 401,
+        operation: 'delete-article',
+      },
+    ]);
+    expect(result.removedFolders).toEqual([]);
   });
 
   test('apply mode records failed deletes and keeps going when delete-article fails', async () => {

@@ -2,38 +2,8 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
-import {
-  authedGet,
-  fetchAccessToken,
-  fetchPagedItems,
-  normalizeLocalizedName,
-} from '../inventory/liferay-inventory-shared.js';
-
-export type JournalAuthState = {
-  accessToken: string;
-  tokenClient: OAuthTokenClient;
-};
-
-export async function authedGetWithRefresh<T>(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: JournalAuthState,
-  path: string,
-) {
-  const response = await authedGet<T>(config, apiClient, authState.accessToken, path);
-
-  if (response.status !== 401) {
-    return response;
-  }
-
-  authState.accessToken = await fetchAccessToken(config, {
-    apiClient,
-    tokenClient: authState.tokenClient,
-    forceRefresh: true,
-  });
-
-  return authedGet<T>(config, apiClient, authState.accessToken, path);
-}
+import type {LiferayGateway} from '../liferay-gateway.js';
+import {fetchPagedItems, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
 
 export type JsonwsJournalArticleRow = {
   resourcePrimKey?: string;
@@ -61,7 +31,7 @@ export type JsonwsJournalFolder = {
 export async function resolveJournalStructureDefinitions(
   config: AppConfig,
   apiClient: LiferayApiClient,
-  authState: JournalAuthState,
+  tokenClient: OAuthTokenClient,
   groupId: number,
   structureMap: Map<number, string>,
   structureNameMap: Map<string, string>,
@@ -70,7 +40,7 @@ export async function resolveJournalStructureDefinitions(
     config,
     `/o/data-engine/v2.0/sites/${groupId}/data-definitions/by-content-type/journal`,
     200,
-    {apiClient, tokenClient: authState.tokenClient, accessToken: authState.accessToken},
+    {apiClient, tokenClient},
   );
 
   for (const definition of definitions) {
@@ -82,9 +52,7 @@ export async function resolveJournalStructureDefinitions(
 }
 
 export async function hydrateMissingJournalStructureDefinitions(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: JournalAuthState,
+  gateway: LiferayGateway,
   structureIds: number[],
   structureMap: Map<number, string>,
   structureNameMap: Map<string, string>,
@@ -94,18 +62,21 @@ export async function hydrateMissingJournalStructureDefinitions(
   );
 
   for (const structureId of missingIds) {
-    const response = await authedGetWithRefresh<JournalStructureDefinition>(
-      config,
-      apiClient,
-      authState,
-      `/o/data-engine/v2.0/data-definitions/${structureId}`,
-    );
+    let definition: JournalStructureDefinition;
 
-    if (!response.ok) {
-      continue;
+    try {
+      definition = await gateway.getJson<JournalStructureDefinition>(
+        `/o/data-engine/v2.0/data-definitions/${structureId}`,
+        `journal structure ${structureId}`,
+      );
+    } catch (error) {
+      if (isGatewayError(error)) {
+        continue;
+      }
+
+      throw error;
     }
 
-    const definition = response.data;
     if (!definition?.id || !definition.dataDefinitionKey) {
       continue;
     }
@@ -116,46 +87,49 @@ export async function hydrateMissingJournalStructureDefinitions(
 }
 
 export async function fetchJournalArticleRowsInFolder(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: JournalAuthState,
+  gateway: LiferayGateway,
   groupId: number,
   folderId: number,
   errorCode: string,
 ): Promise<JsonwsJournalArticleRow[]> {
   const pageSize = 200;
-  const timeoutSeconds = Math.max(config.liferay.timeoutSeconds, 600);
   const rows: JsonwsJournalArticleRow[] = [];
   let start = 0;
 
   while (true) {
     const end = start + pageSize;
-    const response = await authedGetWithRefresh<JsonwsJournalArticleRow[]>(
-      {
-        ...config,
-        liferay: {
-          ...config.liferay,
-          timeoutSeconds,
-        },
-      },
-      apiClient,
-      authState,
-      `/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=${groupId}&folderId=${folderId}&start=${start}&end=${end}&-orderByComparator=`,
-    );
+    let rawPage: JsonwsJournalArticleRow[];
 
-    if (response.status === 403) {
-      throw new CliError(`403 Forbidden on journal.journalfolder/get-folders-and-articles for folder ${folderId}.`, {
+    try {
+      rawPage = await gateway.getJson<JsonwsJournalArticleRow[]>(
+        `/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=${groupId}&folderId=${folderId}&start=${start}&end=${end}&-orderByComparator=`,
+        `journal folder articles ${folderId}`,
+      );
+    } catch (error) {
+      if (isGatewayStatus(error, 403)) {
+        throw new CliError(`403 Forbidden on journal.journalfolder/get-folders-and-articles for folder ${folderId}.`, {
+          code: errorCode,
+        });
+      }
+
+      if (isGatewayError(error)) {
+        throw new CliError(
+          `journal folder articles for folder ${folderId} failed with status=${getGatewayStatus(error) ?? 'unknown'}.`,
+          {
+            code: errorCode,
+          },
+        );
+      }
+
+      throw error;
+    }
+
+    if (!Array.isArray(rawPage)) {
+      throw new CliError(`journal folder articles for folder ${folderId} failed with status=unknown.`, {
         code: errorCode,
       });
     }
 
-    if (!response.ok || !Array.isArray(response.data)) {
-      throw new CliError(`journal folder articles for folder ${folderId} failed with status=${response.status}.`, {
-        code: errorCode,
-      });
-    }
-
-    const rawPage = response.data ?? [];
     const page = dedupeJournalRows(rawPage.filter(isJournalArticleRow));
     rows.push(...page);
 
@@ -170,27 +144,38 @@ export async function fetchJournalArticleRowsInFolder(
 }
 
 export async function fetchJournalFoldersByParent(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  authState: JournalAuthState,
+  gateway: LiferayGateway,
   groupId: number,
   parentFolderId: number,
   errorCode: string,
 ): Promise<Array<{folderId: number; name: string}>> {
-  const response = await authedGetWithRefresh<JsonwsJournalFolder[]>(
-    config,
-    apiClient,
-    authState,
-    `/api/jsonws/journal.journalfolder/get-folders?groupId=${groupId}&parentFolderId=${parentFolderId}`,
-  );
+  let folders: JsonwsJournalFolder[];
 
-  if (!response.ok || !Array.isArray(response.data)) {
-    throw new CliError(`journal folders for parent ${parentFolderId} failed with status=${response.status}.`, {
+  try {
+    folders = await gateway.getJson<JsonwsJournalFolder[]>(
+      `/api/jsonws/journal.journalfolder/get-folders?groupId=${groupId}&parentFolderId=${parentFolderId}`,
+      `journal folders ${parentFolderId}`,
+    );
+  } catch (error) {
+    if (isGatewayError(error)) {
+      throw new CliError(
+        `journal folders for parent ${parentFolderId} failed with status=${getGatewayStatus(error) ?? 'unknown'}.`,
+        {
+          code: errorCode,
+        },
+      );
+    }
+
+    throw error;
+  }
+
+  if (!Array.isArray(folders)) {
+    throw new CliError(`journal folders for parent ${parentFolderId} failed with status=unknown.`, {
       code: errorCode,
     });
   }
 
-  return (response.data ?? [])
+  return folders
     .map((folder) => ({
       folderId: Number(folder.folderId ?? folder.id ?? 0),
       name: folder.name ?? '',
@@ -215,4 +200,22 @@ function dedupeJournalRows(rows: JsonwsJournalArticleRow[]): JsonwsJournalArticl
   }
 
   return [...unique.values()];
+}
+
+function isGatewayError(error: unknown): error is CliError {
+  return error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR';
+}
+
+function isGatewayStatus(error: unknown, status: number): boolean {
+  return isGatewayError(error) && error.message.includes(`status=${status}`);
+}
+
+function getGatewayStatus(error: CliError): number | undefined {
+  const match = /status=(\d+)/.exec(error.message);
+  if (!match) {
+    return undefined;
+  }
+
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : undefined;
 }
