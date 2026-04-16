@@ -168,6 +168,13 @@ describe('Liferay Error Codes', () => {
     expect(LiferayErrorCode.RESOURCE_ERROR).toBe('LIFERAY_RESOURCE_ERROR');
     expect(LiferayErrorCode.RESOURCE_BREAKING_CHANGE).toBe('LIFERAY_RESOURCE_BREAKING_CHANGE');
     expect(LiferayErrorCode.GATEWAY_ERROR).toBe('LIFERAY_GATEWAY_ERROR');
+    expect(LiferayErrorCode.MCP_ENDPOINT_NOT_FOUND).toBe('LIFERAY_MCP_ENDPOINT_NOT_FOUND');
+    expect(LiferayErrorCode.MCP_INITIALIZE_FAILED).toBe('LIFERAY_MCP_INITIALIZE_FAILED');
+    expect(LiferayErrorCode.MCP_INITIALIZE_SESSION_ID_MISSING).toBe('LIFERAY_MCP_INITIALIZE_SESSION_ID_MISSING');
+    expect(LiferayErrorCode.MCP_INITIALIZE_INVALID_PAYLOAD).toBe('LIFERAY_MCP_INITIALIZE_INVALID_PAYLOAD');
+    expect(LiferayErrorCode.MCP_REQUEST_FAILED).toBe('LIFERAY_MCP_REQUEST_FAILED');
+    expect(LiferayErrorCode.MCP_NOTIFICATION_FAILED).toBe('LIFERAY_MCP_NOTIFICATION_FAILED');
+    expect(LiferayErrorCode.MCP_PARSE_ERROR).toBe('LIFERAY_MCP_PARSE_ERROR');
   });
 
   it('has metadata for all error codes', () => {
@@ -310,6 +317,39 @@ describe('Liferay Error Factory', () => {
     });
   });
 
+  describe('mcp errors', () => {
+    it('creates endpoint not found error with MCP code', () => {
+      const error = LiferayErrors.mcpEndpointNotFound('No MCP endpoint responded successfully.');
+      expect(error.code).toBe(LiferayErrorCode.MCP_ENDPOINT_NOT_FOUND);
+    });
+
+    it('creates initialize failed error with MCP code', () => {
+      const error = LiferayErrors.mcpInitializeFailed('MCP initialize failed (403): forbidden');
+      expect(error.code).toBe(LiferayErrorCode.MCP_INITIALIZE_FAILED);
+    });
+
+    it('creates initialize session id missing error with MCP code', () => {
+      const error = LiferayErrors.mcpInitializeSessionIdMissing('MCP initialize did not return Mcp-Session-Id.');
+      expect(error.code).toBe(LiferayErrorCode.MCP_INITIALIZE_SESSION_ID_MISSING);
+    });
+
+    it('creates initialize invalid payload error with MCP code', () => {
+      const error = LiferayErrors.mcpInitializeInvalidPayload('MCP initialize returned an unexpected payload.');
+      expect(error.code).toBe(LiferayErrorCode.MCP_INITIALIZE_INVALID_PAYLOAD);
+    });
+
+    it('creates notification failed error with MCP code', () => {
+      const error = LiferayErrors.mcpNotificationFailed('MCP notification failed (500): server error');
+      expect(error.code).toBe(LiferayErrorCode.MCP_NOTIFICATION_FAILED);
+    });
+
+    it('sanitizes MCP parse messages by default', () => {
+      const error = LiferayErrors.mcpParseError('Invalid MCP JSON payload: {"authorization":"Bearer secret"}');
+      expect(error.code).toBe(LiferayErrorCode.MCP_PARSE_ERROR);
+      expect(error.message).toContain('Bearer [TOKEN]');
+    });
+  });
+
   describe('configRepoRequired', () => {
     it('creates error with config repo required code', () => {
       const error = LiferayErrors.configRepoRequired();
@@ -345,6 +385,7 @@ describe('Error invariants', () => {
       LiferayErrors.resourceError('test'),
       LiferayErrors.resourceBreakingChange('test'),
       LiferayErrors.resourceFileNotFound('test'),
+      LiferayErrors.mcpRequestFailed('test'),
       LiferayErrors.configRepoRequired(),
     ];
 

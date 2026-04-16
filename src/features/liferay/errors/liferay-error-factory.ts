@@ -127,6 +127,48 @@ export const LiferayErrors = {
     createLiferayError(message, LiferayErrorCode.GATEWAY_ERROR, options),
 
   /**
+   * MCP endpoint could not be reached or discovered.
+   */
+  mcpEndpointNotFound: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_ENDPOINT_NOT_FOUND, options),
+
+  /**
+   * MCP initialize request returned a non-ok HTTP status.
+   */
+  mcpInitializeFailed: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_INITIALIZE_FAILED, options),
+
+  /**
+   * MCP initialize succeeded but did not return a session id.
+   */
+  mcpInitializeSessionIdMissing: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_INITIALIZE_SESSION_ID_MISSING, options),
+
+  /**
+   * MCP initialize returned a response shape that does not match the expected protocol payload.
+   */
+  mcpInitializeInvalidPayload: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_INITIALIZE_INVALID_PAYLOAD, options),
+
+  /**
+   * MCP request failed.
+   */
+  mcpRequestFailed: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_REQUEST_FAILED, options),
+
+  /**
+   * MCP notification failed.
+   */
+  mcpNotificationFailed: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_NOTIFICATION_FAILED, options),
+
+  /**
+   * MCP response could not be parsed as JSON or SSE-framed JSON.
+   */
+  mcpParseError: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.MCP_PARSE_ERROR, options),
+
+  /**
    * Configuration error.
    */
   configError: (message: string, options?: LiferayErrorOptions): CliError =>

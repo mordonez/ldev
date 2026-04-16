@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
+import {LiferayErrors} from '../liferay/errors/index.js';
 
 const MCP_PROTOCOL_VERSION = '2025-03-26';
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -147,7 +147,7 @@ async function resolveMcpEndpoint(config: AppConfig, authHeaders: Record<string,
       return url;
     }
   }
-  throw new CliError('No MCP endpoint responded successfully.', {code: 'LIFERAY_MCP_INIT_ERROR'});
+  throw LiferayErrors.mcpEndpointNotFound('No MCP endpoint responded successfully.');
 }
 
 function buildEndpointCandidates(baseUrl: string): string[] {
@@ -260,21 +260,19 @@ async function initializeMcpSession(
 
   const body = await response.text();
   if (!response.ok) {
-    throw new CliError(`MCP initialize failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_INIT_ERROR',
-    });
+    throw LiferayErrors.mcpInitializeFailed(`MCP initialize failed (${response.status}): ${sanitizeBody(body)}`);
   }
 
   const sessionId = response.headers.get('Mcp-Session-Id')?.trim() ?? '';
   if (sessionId === '') {
-    throw new CliError('MCP initialize did not return Mcp-Session-Id.', {code: 'LIFERAY_MCP_INIT_ERROR'});
+    throw LiferayErrors.mcpInitializeSessionIdMissing('MCP initialize did not return Mcp-Session-Id.');
   }
 
   const parsed = parseJson(body);
   const result = (parsed as {result?: {protocolVersion?: string; serverInfo?: {name?: string; version?: string}}})
     .result;
   if (!result?.protocolVersion) {
-    throw new CliError('MCP initialize returned an unexpected payload.', {code: 'LIFERAY_MCP_INIT_ERROR'});
+    throw LiferayErrors.mcpInitializeInvalidPayload('MCP initialize returned an unexpected payload.');
   }
 
   return {
@@ -311,9 +309,7 @@ async function sendMcpNotification(
 
   const body = await response.text();
   if (!response.ok) {
-    throw new CliError(`MCP notification failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_NOTIFICATION_ERROR',
-    });
+    throw LiferayErrors.mcpNotificationFailed(`MCP notification failed (${response.status}): ${sanitizeBody(body)}`);
   }
 }
 
@@ -343,9 +339,7 @@ async function sendMcpRequest(
 
   const body = await response.text();
   if (!response.ok) {
-    throw new CliError(`MCP request failed (${response.status}): ${sanitizeBody(body)}`, {
-      code: 'LIFERAY_MCP_REQUEST_ERROR',
-    });
+    throw LiferayErrors.mcpRequestFailed(`MCP request failed (${response.status}): ${sanitizeBody(body)}`);
   }
 
   return parseJson(body);
@@ -371,7 +365,7 @@ function parseJson(body: string): unknown {
       return ssePayload;
     }
 
-    throw new CliError(`Invalid MCP JSON payload: ${sanitizeBody(body)}`, {code: 'LIFERAY_MCP_SSE_PARSE_ERROR'});
+    throw LiferayErrors.mcpParseError(`Invalid MCP JSON payload: ${sanitizeBody(body)}`);
   }
 }
 
