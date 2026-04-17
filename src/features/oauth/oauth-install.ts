@@ -164,14 +164,14 @@ export function formatOAuthInstall(result: OAuthInstallResult): string {
 
   if (result.readOnly) {
     lines.push('');
-    lines.push('--- App read-only (solo lectura) ---');
+    lines.push('--- App read-only ---');
     lines.push(`LIFERAY_CLI_OAUTH2_READONLY_CLIENT_ID=${result.readOnly.clientId}`);
     lines.push(`LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET=${result.readOnly.clientSecret}`);
   }
 
   if (result.localProfileUpdated && result.localProfileFile) {
     lines.push('');
-    lines.push(`.liferay-cli.local.yml actualizado: ${result.localProfileFile}`);
+    lines.push(`.liferay-cli.local.yml updated: ${result.localProfileFile}`);
   }
 
   if (result.verification.attempted) {

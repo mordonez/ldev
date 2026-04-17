@@ -29,7 +29,7 @@ export async function runDbSync(
   });
 
   if (!download.databaseBackupFile) {
-    throw new Error('db sync esperaba un backup de base de datos descargado.');
+    throw new Error('db sync expected a downloaded database backup.');
   }
 
   const importResult = await runDbImport(config, {

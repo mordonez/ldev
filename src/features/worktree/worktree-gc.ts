@@ -85,7 +85,7 @@ export function formatWorktreeGc(result: WorktreeGcResult): string {
   if (!result.apply) {
     return result.candidates.map((candidate) => `DRY-RUN GC candidate: ${candidate}`).join('\n');
   }
-  return result.cleaned.map((candidate) => `GC eliminado: ${candidate}`).join('\n');
+  return result.cleaned.map((candidate) => `GC removed: ${candidate}`).join('\n');
 }
 
 function loadComposePrefix(mainRepoRoot: string): string {

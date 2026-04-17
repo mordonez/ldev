@@ -68,7 +68,7 @@ export async function waitForServiceHealthy(
 
         if (current.state === 'exited' || current.state === 'dead') {
           throw new Error(
-            `Servicio ${service} no pudo arrancar (state=${current.state}, health=${current.health ?? 'n/a'}).`,
+            `Service ${service} failed to start (state=${current.state}, health=${current.health ?? 'n/a'}).`,
           );
         }
 
@@ -77,16 +77,13 @@ export async function waitForServiceHealthy(
       {timeout: timeoutSeconds * 1000, interval: pollIntervalSeconds * 1000},
     );
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes('no pudo arrancar') || !error.message.includes('Timed out'))
-    ) {
+    if (error instanceof Error && (error.message.includes('failed to start') || !error.message.includes('Timed out'))) {
       throw error;
     }
 
     const last = lastStatus ?? (await inspectComposeService(context, service, processOptions));
     throw new Error(
-      `Timeout esperando ${service} healthy/running (state=${last.state ?? 'unknown'}, health=${last.health ?? 'n/a'}).`,
+      `Timed out waiting for ${service} healthy/running (state=${last.state ?? 'unknown'}, health=${last.health ?? 'n/a'}).`,
       {cause: error},
     );
   }

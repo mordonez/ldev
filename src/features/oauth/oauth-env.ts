@@ -8,7 +8,7 @@ export async function writeCredentialsToLocalProfile(
   scopeAliases?: string[],
 ): Promise<boolean> {
   if (!localProfileFile) {
-    throw new CliError('No se ha detectado .liferay-cli.local.yml para persistir las credenciales OAuth2.', {
+    throw new CliError('No .liferay-cli.local.yml was detected to persist OAuth2 credentials.', {
       code: 'OAUTH_LOCAL_PROFILE_NOT_FOUND',
     });
   }

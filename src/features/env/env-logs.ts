@@ -24,7 +24,7 @@ export async function runEnvLogs(config: AppConfig, options?: EnvLogsOptions): P
   const capabilities = await detectCapabilities(config.cwd);
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
-    throw new CliError('Docker y docker compose son obligatorios para env logs.', {code: 'ENV_CAPABILITY_MISSING'});
+    throw new CliError('Docker and docker compose are required for env logs.', {code: 'ENV_CAPABILITY_MISSING'});
   }
 
   const args = ['logs'];
