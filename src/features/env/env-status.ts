@@ -14,7 +14,7 @@ export async function runEnvStatus(
 
 export function formatEnvStatus(report: EnvStatusReport): string {
   if (!report.liferay) {
-    throw new CliError('No se ha podido resolver el servicio liferay del compose.', {code: 'ENV_SERVICE_NOT_FOUND'});
+    throw new CliError('Could not resolve the liferay service from compose.', {code: 'ENV_SERVICE_NOT_FOUND'});
   }
 
   return [

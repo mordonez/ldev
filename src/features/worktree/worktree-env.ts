@@ -142,7 +142,7 @@ export async function runWorktreeEnv(options: {
   await ensurePortalExtLocalOverride(target.worktreeDir, ports.httpPort);
 
   if (options.printer) {
-    options.printer.info(`Worktree env preparado: ${target.name} (${ports.httpPort})`);
+    options.printer.info(`Worktree env prepared: ${target.name} (${ports.httpPort})`);
   }
 
   return {
@@ -178,7 +178,7 @@ function resolveTarget(context: ReturnType<typeof resolveWorktreeContext>, name?
   }
 
   if (!context.isWorktree || !context.currentWorktreeName) {
-    throw new CliError('worktree env debe ejecutarse dentro de un worktree o recibir --name.', {
+    throw new CliError('worktree env must run inside a worktree or receive --name.', {
       code: 'WORKTREE_NAME_REQUIRED',
     });
   }

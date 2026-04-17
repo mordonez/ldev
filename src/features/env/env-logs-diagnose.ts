@@ -50,7 +50,7 @@ export async function runEnvLogsDiagnose(
   const capabilities = await detectCapabilities(config.cwd);
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
-    throw new CliError('Docker y docker compose son obligatorios para logs diagnose.', {
+    throw new CliError('Docker and docker compose are required for logs diagnose.', {
       code: 'ENV_CAPABILITY_MISSING',
     });
   }
@@ -204,16 +204,16 @@ function suggestCauses(exceptionClass: string, stackTrace: string): string[] {
     causes.add('Validate permissions, content references, or missing data');
   }
   if (lowerClass.includes('nullpointer')) {
-    causes.add('Revisar nulls en el cambio reciente y servicios OSGi no inicializados');
+    causes.add('Review recent null-handling changes and uninitialized OSGi services');
   }
   if (lowerClass.includes('nosuch') || lowerTrace.includes('nosuch')) {
     causes.add('The requested resource does not exist or the reference is stale');
   }
   if (lowerClass.includes('sql') || lowerTrace.includes('postgres') || lowerTrace.includes('jdbc')) {
-    causes.add('Inspeccionar cambios de esquema, consultas y conectividad con PostgreSQL');
+    causes.add('Inspect schema changes, queries, and PostgreSQL connectivity');
   }
   if (lowerTrace.includes('unsatisfied') || lowerTrace.includes('unresolved constraint')) {
-    causes.add('Hay bundles OSGi con dependencias sin resolver');
+    causes.add('There are OSGi bundles with unresolved dependencies');
   }
   if (lowerTrace.includes('permission') || lowerTrace.includes('principal')) {
     causes.add('Check permissions, technical user, and OAuth2 scope');

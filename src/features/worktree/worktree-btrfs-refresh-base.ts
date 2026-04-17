@@ -40,7 +40,7 @@ export async function runWorktreeBtrfsRefreshBase(options: {
     });
 
   const refreshedSubdirs = options.printer
-    ? await withProgress(options.printer, 'Actualizando BTRFS_BASE desde el entorno principal', refresh)
+    ? await withProgress(options.printer, 'Refreshing BTRFS_BASE from the main environment', refresh)
     : await refresh();
 
   if (!btrfs.baseDir) {
@@ -60,8 +60,8 @@ export async function runWorktreeBtrfsRefreshBase(options: {
 
 export function formatWorktreeBtrfsRefreshBase(result: WorktreeBtrfsRefreshBaseResult): string {
   return [
-    `BTRFS_BASE actualizada: ${result.baseDataRoot}`,
-    `Origen: ${result.sourceDataRoot}`,
-    `Subdirectorios refrescados: ${result.refreshedSubdirs.join(', ')}`,
+    `BTRFS_BASE refreshed: ${result.baseDataRoot}`,
+    `Source: ${result.sourceDataRoot}`,
+    `Refreshed subdirectories: ${result.refreshedSubdirs.join(', ')}`,
   ].join('\n');
 }

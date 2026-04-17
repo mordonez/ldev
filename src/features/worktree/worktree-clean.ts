@@ -81,7 +81,7 @@ export async function runWorktreeClean(options: {
     !worktreeDirExists &&
     !isOwnedBtrfsWorktreeDataRoot(path.join(btrfs.envsDir ?? '', target.name), target.name, btrfs.envsDir)
   ) {
-    throw new CliError(`El path no es un git worktree registrado: ${target.worktreeDir}`, {
+    throw new CliError(`Path is not a registered git worktree: ${target.worktreeDir}`, {
       code: 'WORKTREE_NOT_REGISTERED',
     });
   }
@@ -167,7 +167,7 @@ export async function runWorktreeClean(options: {
   };
 
   if (options.printer) {
-    await withProgress(options.printer, `Eliminando worktree ${target.name}`, cleanTask);
+    await withProgress(options.printer, `Removing worktree ${target.name}`, cleanTask);
   } else {
     await cleanTask();
   }
@@ -234,12 +234,12 @@ export async function runWorktreeClean(options: {
 }
 
 export function formatWorktreeClean(result: WorktreeCleanResult): string {
-  const lines = [`Worktree eliminado: ${result.worktreeName}`];
+  const lines = [`Worktree removed: ${result.worktreeName}`];
   if (result.branchDeleted) {
     lines.push('Local branch deleted: yes');
   }
   if (result.dataRootsDeleted.length > 0) {
-    lines.push(`Data roots eliminados: ${result.dataRootsDeleted.length}`);
+    lines.push(`Data roots removed: ${result.dataRootsDeleted.length}`);
   }
   if (result.dataRootsSkipped.length > 0) {
     lines.push(`Data roots kept outside the cleanup perimeter: ${result.dataRootsSkipped.length}`);
@@ -257,7 +257,7 @@ function resolveTarget(
   if (context.isWorktree && context.currentWorktreeName) {
     return resolveWorktreeTarget(context.mainRepoRoot, context.currentWorktreeName);
   }
-  throw new CliError('worktree clean necesita un NAME o ejecutarse dentro del worktree objetivo.', {
+  throw new CliError('worktree clean requires a NAME or must run inside the target worktree.', {
     code: 'WORKTREE_NAME_REQUIRED',
   });
 }
