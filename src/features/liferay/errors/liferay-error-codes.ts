@@ -23,6 +23,7 @@ export enum LiferayErrorCode {
   // Content errors
   CONTENT_PRUNE_ERROR = 'LIFERAY_CONTENT_PRUNE_ERROR',
   CONTENT_STATS_ERROR = 'LIFERAY_CONTENT_STATS_ERROR',
+  CONTENT_JOURNAL_ERROR = 'LIFERAY_CONTENT_JOURNAL_ERROR',
 
   // Gateway/HTTP errors
   GATEWAY_ERROR = 'LIFERAY_GATEWAY_ERROR',
@@ -72,6 +73,7 @@ export const errorCodeMetadata: Record<
 
   [LiferayErrorCode.CONTENT_PRUNE_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.CONTENT_STATS_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
+  [LiferayErrorCode.CONTENT_JOURNAL_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
 
   [LiferayErrorCode.GATEWAY_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
 

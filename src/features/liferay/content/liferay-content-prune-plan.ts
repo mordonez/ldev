@@ -52,7 +52,7 @@ export async function fetchJournalArticlesInFolder(
   groupId: number,
   folderId: number,
 ): Promise<ArticleWithFolder[]> {
-  const rows = await fetchJournalArticleRowsInFolder(gateway, groupId, folderId, 'LIFERAY_CONTENT_PRUNE_ERROR');
+  const rows = await fetchJournalArticleRowsInFolder(gateway, groupId, folderId);
 
   return rows.map((article) => ({
     id: Number(article.resourcePrimKey ?? 0),

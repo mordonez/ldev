@@ -62,7 +62,7 @@ describe('SiteResolutionPipeline', () => {
         throw new Error('Should not reach here');
       });
 
-    const result = await pipeline.execute('test-site', 'Not found');
+    const result = await pipeline.execute('test-site');
 
     expect(result).toEqual({id: 123, friendlyUrlPath: '/test', name: 'Test'});
   });
@@ -75,9 +75,7 @@ describe('SiteResolutionPipeline', () => {
       .addStep('step2', async () => null)
       .addStep('step3', async () => null);
 
-    await expect(pipeline.execute('missing', 'Custom error message')).rejects.toThrow(
-      new RegExp('Custom error message'),
-    );
+    await expect(pipeline.execute('missing')).rejects.toThrow(new RegExp('Site not found'));
   });
 
   test('calls onStepSuccess hook when step succeeds', async () => {
@@ -86,7 +84,7 @@ describe('SiteResolutionPipeline', () => {
 
     pipeline.addStep('success-step', async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
 
-    await pipeline.execute('test', 'Not found');
+    await pipeline.execute('test');
 
     expect(onStepSuccess).toHaveBeenCalledWith('success-step', 'test');
   });
@@ -101,7 +99,7 @@ describe('SiteResolutionPipeline', () => {
       })
       .addStep('recovery-step', async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
 
-    await expect(pipeline.execute('test', 'Not found')).rejects.toThrow('Test error');
+    await expect(pipeline.execute('test')).rejects.toThrow('Test error');
 
     expect(onStepFailure).toHaveBeenCalledWith('failing-step', expect.any(Error));
   });
@@ -113,7 +111,7 @@ describe('SiteResolutionPipeline', () => {
     const pipeline = new SiteResolutionPipeline();
     pipeline.addStep('step1', step1).addStep('step2', step2);
 
-    await pipeline.execute('test', 'Not found');
+    await pipeline.execute('test');
 
     expect(step1).toHaveBeenCalledWith('test');
     expect(step2).toHaveBeenCalledWith('test');
@@ -129,7 +127,7 @@ describe('SiteResolutionPipeline', () => {
     const pipeline = new SiteResolutionPipeline({onStepFailure});
     pipeline.addStep('step1', step1).addStep('step2', step2);
 
-    await expect(pipeline.execute('test', 'Not found')).rejects.toThrow('Transient error');
+    await expect(pipeline.execute('test')).rejects.toThrow('Transient error');
 
     expect(step1).toHaveBeenCalled();
     expect(step2).not.toHaveBeenCalled();
@@ -401,7 +399,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         });
 
       // Use numeric input that matches by-id, so it succeeds on first step
-      const result = await pipeline.execute('123', 'not found');
+      const result = await pipeline.execute('123');
 
       expect(callOrder).toEqual(['by-id']);
       expect(result.id).toBe(123);
@@ -422,7 +420,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         });
 
       // Use non-numeric input so by-id returns null and falls through to by-friendly-url
-      const result = await pipeline.execute('guest', 'not found');
+      const result = await pipeline.execute('guest');
 
       expect(callOrder).toEqual(['by-id', 'by-friendly-url']);
       expect(result.id).toBe(456);
@@ -446,7 +444,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
           return {id: 999, friendlyUrlPath: '/other', name: 'Other'};
         });
 
-      const result = await pipeline.execute('test', 'not found');
+      const result = await pipeline.execute('test');
 
       expect(result.id).toBe(789);
       expect(callOrder).toEqual(['step1', 'step2']);
@@ -472,7 +470,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
           return {id: 123, friendlyUrlPath: '/fallback', name: 'Fallback'};
         });
 
-      const result = await pipeline.execute('test', 'not found');
+      const result = await pipeline.execute('test');
 
       expect(result.id).toBe(123);
       expect(callOrder).toEqual(['step1', 'step2', 'step3']);
@@ -484,7 +482,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         throw new CliError('resolve-site-by-id failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
       });
 
-      await expect(pipeline.execute('test', 'custom not found message')).rejects.toThrow('status=500');
+      await expect(pipeline.execute('test')).rejects.toThrow('status=500');
     });
 
     test('all steps return miss (null/404/403) results in site-not-found', async () => {
@@ -498,9 +496,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
           throw new CliError('status=403', {code: 'LIFERAY_GATEWAY_ERROR'});
         });
 
-      await expect(pipeline.execute('missing', 'Could not find site "missing".')).rejects.toThrow(
-        'Could not find site "missing".',
-      );
+      await expect(pipeline.execute('missing')).rejects.toThrow('Site not found: missing.');
     });
 
     test('connection errors (non-gateway) propagate unchanged', async () => {
@@ -509,7 +505,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         throw new Error('Connection timeout');
       });
 
-      await expect(pipeline.execute('test', 'not found')).rejects.toThrow('Connection timeout');
+      await expect(pipeline.execute('test')).rejects.toThrow('Connection timeout');
     });
   });
 
@@ -523,7 +519,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         .addStep('step1', async () => null) // miss, skipped
         .addStep('step2', async () => ({id: 123, friendlyUrlPath: '/site', name: 'Site'})); // winner
 
-      await pipeline.execute('test', 'not found');
+      await pipeline.execute('test');
 
       expect(onStepSuccess).toHaveBeenCalledTimes(1);
       expect(onStepSuccess).toHaveBeenCalledWith('step2', 'test');
@@ -539,7 +535,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         throw customError;
       });
 
-      await expect(pipeline.execute('test', 'not found')).rejects.toThrow();
+      await expect(pipeline.execute('test')).rejects.toThrow();
 
       expect(onStepFailure).toHaveBeenCalledTimes(1);
       expect(onStepFailure).toHaveBeenCalledWith('step1', expect.any(Error));
@@ -555,7 +551,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         })
         .addStep('step2', async () => ({id: 123, friendlyUrlPath: '/site', name: 'Site'}));
 
-      await pipeline.execute('test', 'not found');
+      await pipeline.execute('test');
 
       expect(onStepSuccess).toHaveBeenCalledTimes(1);
       expect(onStepSuccess).toHaveBeenCalledWith('step2', 'test');
@@ -655,7 +651,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         });
       });
 
-      const result = await pipeline.execute('test', 'not found');
+      const result = await pipeline.execute('test');
 
       expect(result.id).toBe(999);
       expect(callOrder).toEqual(['by-id', 'by-friendly-url-site', 'by-friendly-url-user', 'paginated-search']);
@@ -688,7 +684,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
           ),
         );
 
-      const result = await pipeline.execute('/global', 'not found');
+      const result = await pipeline.execute('/global');
 
       expect(result.id).toBe(777);
     });

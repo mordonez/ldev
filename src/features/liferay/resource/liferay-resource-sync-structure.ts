@@ -1,5 +1,4 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
@@ -58,10 +57,7 @@ export async function runLiferayResourceSyncStructure(
   // Call strategy methods
   const local = await structureSyncStrategy.resolveLocal(config, site, strategyOptions);
   if (!local) {
-    throw new CliError(`Structure file not found for key '${options.key}'.`, {
-      code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND',
-      details: {key: options.key, structureFile},
-    });
+    throw LiferayErrors.resourceFileNotFound(options.key, {details: {key: options.key, structureFile}});
   }
 
   const remote = await structureSyncStrategy.findRemote(config, site, local, strategyOptions, dependencies);

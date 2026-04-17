@@ -121,6 +121,12 @@ export const LiferayErrors = {
     createLiferayError(message, LiferayErrorCode.CONTENT_STATS_ERROR, options),
 
   /**
+   * Journal transport operation failed (folder traversal, article fetch, folder fetch).
+   */
+  contentJournalError: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.CONTENT_JOURNAL_ERROR, options),
+
+  /**
    * HTTP gateway operation failed.
    */
   gatewayError: (message: string, options?: LiferayErrorOptions): CliError =>

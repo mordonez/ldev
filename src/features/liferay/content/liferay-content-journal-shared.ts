@@ -3,6 +3,7 @@ import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
+import {LiferayErrors} from '../errors/index.js';
 import {fetchPagedItems, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
 
 export type JsonwsJournalArticleRow = {
@@ -90,7 +91,6 @@ export async function fetchJournalArticleRowsInFolder(
   gateway: LiferayGateway,
   groupId: number,
   folderId: number,
-  errorCode: string,
 ): Promise<JsonwsJournalArticleRow[]> {
   const pageSize = 200;
   const rows: JsonwsJournalArticleRow[] = [];
@@ -107,17 +107,14 @@ export async function fetchJournalArticleRowsInFolder(
       );
     } catch (error) {
       if (isGatewayStatus(error, 403)) {
-        throw new CliError(`403 Forbidden on journal.journalfolder/get-folders-and-articles for folder ${folderId}.`, {
-          code: errorCode,
-        });
+        throw LiferayErrors.contentJournalError(
+          `403 Forbidden on journal.journalfolder/get-folders-and-articles for folder ${folderId}.`,
+        );
       }
 
       if (isGatewayError(error)) {
-        throw new CliError(
+        throw LiferayErrors.contentJournalError(
           `journal folder articles for folder ${folderId} failed with status=${getGatewayStatus(error) ?? 'unknown'}.`,
-          {
-            code: errorCode,
-          },
         );
       }
 
@@ -125,9 +122,9 @@ export async function fetchJournalArticleRowsInFolder(
     }
 
     if (!Array.isArray(rawPage)) {
-      throw new CliError(`journal folder articles for folder ${folderId} failed with status=unknown.`, {
-        code: errorCode,
-      });
+      throw LiferayErrors.contentJournalError(
+        `journal folder articles for folder ${folderId} failed with status=unknown.`,
+      );
     }
 
     const page = dedupeJournalRows(rawPage.filter(isJournalArticleRow));
@@ -147,7 +144,6 @@ export async function fetchJournalFoldersByParent(
   gateway: LiferayGateway,
   groupId: number,
   parentFolderId: number,
-  errorCode: string,
 ): Promise<Array<{folderId: number; name: string}>> {
   let folders: JsonwsJournalFolder[];
 
@@ -158,11 +154,8 @@ export async function fetchJournalFoldersByParent(
     );
   } catch (error) {
     if (isGatewayError(error)) {
-      throw new CliError(
+      throw LiferayErrors.contentJournalError(
         `journal folders for parent ${parentFolderId} failed with status=${getGatewayStatus(error) ?? 'unknown'}.`,
-        {
-          code: errorCode,
-        },
       );
     }
 
@@ -170,9 +163,7 @@ export async function fetchJournalFoldersByParent(
   }
 
   if (!Array.isArray(folders)) {
-    throw new CliError(`journal folders for parent ${parentFolderId} failed with status=unknown.`, {
-      code: errorCode,
-    });
+    throw LiferayErrors.contentJournalError(`journal folders for parent ${parentFolderId} failed with status=unknown.`);
   }
 
   return folders

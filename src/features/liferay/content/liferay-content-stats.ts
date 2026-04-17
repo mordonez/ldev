@@ -385,9 +385,7 @@ async function enrichFoldersWithStructures(
     const counts = new Map<string, number>();
 
     await mapConcurrent(folder.subtreeFolderIds, JOURNAL_FOLDER_CONCURRENCY, async (folderId) => {
-      const rows = await runLimited(() =>
-        fetchJournalArticleRowsInFolder(articleGateway, groupId, folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
-      );
+      const rows = await runLimited(() => fetchJournalArticleRowsInFolder(articleGateway, groupId, folderId));
 
       await hydrateMissingJournalStructureDefinitions(
         articleGateway,
@@ -429,9 +427,7 @@ async function collectJournalFolderTree(
   parentFolderId: number,
   runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<JournalFolderNode[]> {
-  const folders = await runLimited(() =>
-    fetchJournalFoldersByParent(gateway, groupId, parentFolderId, 'LIFERAY_CONTENT_STATS_ERROR'),
-  );
+  const folders = await runLimited(() => fetchJournalFoldersByParent(gateway, groupId, parentFolderId));
 
   return mapConcurrent(folders, JOURNAL_FOLDER_CONCURRENCY, async (folder) => ({
     folderId: folder.folderId,
@@ -446,9 +442,7 @@ async function buildJournalFolderStats(
   folder: JournalFolderNode,
   runLimited: <T>(task: () => Promise<T>) => Promise<T>,
 ): Promise<ComputedFolderStats> {
-  const rows = await runLimited(() =>
-    fetchJournalArticleRowsInFolder(gateway, groupId, folder.folderId, 'LIFERAY_CONTENT_STATS_ERROR'),
-  );
+  const rows = await runLimited(() => fetchJournalArticleRowsInFolder(gateway, groupId, folder.folderId));
 
   const childStats = await mapConcurrent(folder.children, JOURNAL_FOLDER_CONCURRENCY, (child) =>
     buildJournalFolderStats(gateway, groupId, child, runLimited),

@@ -156,7 +156,7 @@ describe('liferay inventory shared', () => {
     });
 
     await expect(resolveSite(CONFIG, '/global', {apiClient, tokenClient: TOKEN_CLIENT})).rejects.toThrow(
-      'Could not resolve site "/global".',
+      'Site not found: /global.',
     );
   });
 
