@@ -1,8 +1,9 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
-import {buildComposeEnv, resolveEnvContext} from '../env/env-files.js';
+import {formatProcessError} from '../../core/platform/process.js';
+import {buildComposeEnv, resolveEnvContext} from '../env/env-shared.js';
 import {escapeShellArg, uniquePaths} from './deploy-artifacts.js';
 
 const DEPLOY_TARGET_DIR = '/opt/liferay/deploy';
@@ -44,7 +45,7 @@ export async function hotDeployArtifactsToRunningLiferay(
     if (result.ok) {
       copied += 1;
     } else {
-      failures.push(result.stderr.trim() || result.stdout.trim() || `could not copy ${fileName}`);
+      failures.push(formatProcessError(result, `could not copy ${fileName}`));
     }
   }
 

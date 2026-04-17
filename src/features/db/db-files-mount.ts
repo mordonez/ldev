@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 import path from 'node:path';
 
 import {CliError} from '../../core/errors.js';
@@ -6,7 +6,8 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runDocker} from '../../core/platform/docker.js';
-import {resolveEnvContext, resolveDataRoot} from '../env/env-files.js';
+import {formatProcessError} from '../../core/platform/process.js';
+import {resolveEnvContext, resolveDataRoot} from '../env/env-shared.js';
 
 export type DbFilesMountResult = {
   ok: true;
@@ -145,7 +146,7 @@ async function createLocalBindVolume(volume: string, localPath: string): Promise
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not create volume ${volume}`, {
+    throw new CliError(formatProcessError(result, `Could not create volume ${volume}`), {
       code: 'DB_DOCLIB_VOLUME_ERROR',
     });
   }
@@ -178,7 +179,7 @@ async function createNasVolume(
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not create CIFS volume ${volume}`, {
+    throw new CliError(formatProcessError(result, `Could not create CIFS volume ${volume}`), {
       code: 'DB_DOCLIB_VOLUME_ERROR',
     });
   }

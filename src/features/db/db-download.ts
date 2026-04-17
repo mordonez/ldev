@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 import path from 'node:path';
 
 import {CliError} from '../../core/errors.js';
@@ -6,7 +6,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {runProcess} from '../../core/platform/process.js';
+import {formatProcessError, runProcess} from '../../core/platform/process.js';
 
 export type DbDownloadResult = {
   ok: true;
@@ -145,7 +145,7 @@ async function ensureDatabaseBackup(
       {reject: false},
     );
     if (!result.ok) {
-      throw new CliError(result.stderr.trim() || result.stdout.trim() || 'lcp backup download --database', {
+      throw new CliError(formatProcessError(result, 'lcp backup download --database'), {
         code: 'DB_LCP_BACKUP_DOWNLOAD_FAILED',
       });
     }

@@ -1,4 +1,4 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
@@ -7,7 +7,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {measureHttpLatency} from '../../core/http/latency.js';
 import {resolveEsUrl} from '../reindex/reindex-shared.js';
 
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 
 export type PerfSnapshot = {
   capturedAt: string;

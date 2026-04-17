@@ -1,11 +1,11 @@
-import net from 'node:net';
+﻿import net from 'node:net';
 import {setTimeout as delay} from 'node:timers/promises';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {runProcess} from '../../core/platform/process.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 
 export function resolveOsgiContext(config: AppConfig) {
   const envContext = resolveEnvContext(config);

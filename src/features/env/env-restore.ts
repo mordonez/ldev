@@ -1,4 +1,4 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
@@ -8,7 +8,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {runProcess} from '../../core/platform/process.js';
+import {formatProcessError, runProcess} from '../../core/platform/process.js';
 import {resolveDeployContext, restoreArtifactsFromDeployCache} from '../deploy/deploy-shared.js';
 import {buildComposeEnv, resolvePostgresStorage} from './env-files.js';
 import {resolveBtrfsConfig} from '../worktree/worktree-state.js';
@@ -153,7 +153,7 @@ async function restoreDataSubdir(sourceDir: string, targetDir: string, processEn
     {env: processEnv, reject: false},
   );
   if (!result.ok) {
-    throw new Error(result.stderr.trim() || result.stdout.trim() || `Could not restore ${sourceDir}`);
+    throw new Error(formatProcessError(result, `Could not restore ${sourceDir}`));
   }
 }
 
@@ -207,7 +207,7 @@ async function restorePostgresStorage(
     {env: processEnv, reject: false},
   );
   if (!result.ok) {
-    throw new Error(result.stderr.trim() || result.stdout.trim() || 'Could not restore PostgreSQL storage');
+    throw new Error(formatProcessError(result, 'Could not restore PostgreSQL storage'));
   }
 
   return true;

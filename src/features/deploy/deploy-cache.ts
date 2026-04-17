@@ -1,11 +1,12 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDocker} from '../../core/platform/docker.js';
-import {resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-files.js';
+import {formatProcessError} from '../../core/platform/process.js';
+import {resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-shared.js';
 import {listDeployArtifacts, syncArtifactsToDirectory, escapeSingleQuotes} from './deploy-artifacts.js';
 import {writePrepareCommit, readPrepareCommit, currentArtifactCommit, type DeployContext} from './deploy-gradle.js';
 
@@ -128,7 +129,7 @@ async function syncCachedArtifactsToBuildDeploy(
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'Could not restore deploy cache artifacts.', {
+    throw new CliError(formatProcessError(result, 'Could not restore deploy cache artifacts.'), {
       code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
     });
   }
@@ -157,7 +158,7 @@ async function syncBuildArtifactsToCachedStorage(
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'Could not update deploy cache.', {
+    throw new CliError(formatProcessError(result, 'Could not update deploy cache.'), {
       code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
     });
   }
@@ -210,7 +211,7 @@ async function writeCachedPrepareCommit(storage: RuntimeStorage, commit: string)
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'Could not write deploy cache commit.', {
+    throw new CliError(formatProcessError(result, 'Could not write deploy cache commit.'), {
       code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
     });
   }
@@ -240,7 +241,7 @@ async function clearCachedDeployArtifacts(storage: RuntimeStorage): Promise<void
     {reject: false},
   );
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'Could not clear deploy cache.', {
+    throw new CliError(formatProcessError(result, 'Could not clear deploy cache.'), {
       code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
     });
   }
@@ -253,12 +254,9 @@ async function ensureStorageVolume(storage: RuntimeStorage): Promise<void> {
 
   const result = await runDocker(['volume', 'create', storage.volumeName], {reject: false});
   if (!result.ok) {
-    throw new CliError(
-      result.stderr.trim() || result.stdout.trim() || `Could not create volume ${storage.volumeName}`,
-      {
-        code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
-      },
-    );
+    throw new CliError(formatProcessError(result, `Could not create volume ${storage.volumeName}`), {
+      code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
+    });
   }
 }
 

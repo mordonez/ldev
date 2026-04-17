@@ -1,4 +1,4 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
@@ -6,9 +6,9 @@ import {CliError} from '../../core/errors.js';
 import {runDockerCompose} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDocker} from '../../core/platform/docker.js';
-import {runProcess} from '../../core/platform/process.js';
-import type {EnvContext} from '../env/env-files.js';
-import {resolveManagedStorages, resolveRuntimeStorage, type RuntimeStorageKey} from '../env/env-files.js';
+import {formatProcessError, runProcess} from '../../core/platform/process.js';
+import type {EnvContext} from '../env/env-shared.js';
+import {resolveManagedStorages, resolveRuntimeStorage, type RuntimeStorageKey} from '../env/env-shared.js';
 
 export const WORKTREE_STATE_SUBDIRS = [
   'postgres-data',
@@ -264,7 +264,7 @@ async function emptyDirRobust(targetDir: string, processEnv?: NodeJS.ProcessEnv)
   );
 
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not empty ${targetDir}`, {
+    throw new CliError(formatProcessError(result, `Could not empty ${targetDir}`), {
       code: 'WORKTREE_STATE_CLEAR_FAILED',
     });
   }
@@ -300,7 +300,7 @@ async function copyDirContents(sourceDir: string, targetDir: string, processEnv?
   );
 
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not clone ${sourceDir}`, {
+    throw new CliError(formatProcessError(result, `Could not clone ${sourceDir}`), {
       code: 'WORKTREE_CLONE_FAILED',
     });
   }
@@ -368,7 +368,7 @@ async function cloneManagedRuntimeStorage(
   );
 
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not clone ${key} storage`, {
+    throw new CliError(formatProcessError(result, `Could not clone ${key} storage`), {
       code: 'WORKTREE_CLONE_FAILED',
     });
   }
