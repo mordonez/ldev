@@ -43,6 +43,24 @@ ldev db files-mount --path /path/to/manual/doclib
 
 Yes. If you already have a running Liferay instance and credentials, you can use `portal`, `resource`, and `ai` workflows without adopting the full local runtime.
 
+## Which Liferay versions are supported?
+
+`ldev` is designed for modern Liferay DXP 7.4 environments (including common quarterly/update lines).
+
+Practical guidance:
+
+- If your project is on DXP 7.4, `ldev` commands and workflows are the primary supported target.
+- If your environment is older or heavily customized, some endpoints/behaviors may differ and require command-level workarounds.
+- When in doubt, validate in your target runtime with:
+
+```bash
+ldev portal check
+ldev portal inventory sites
+ldev resource list --site guest
+```
+
+If one of these baseline commands fails due to version-specific API differences, treat that runtime as partially compatible and document the gap in your project notes.
+
 ## Why are resource commands important?
 
 Because they let you export, review, import, and migrate structures, templates, ADTs, and fragments as files instead of manual UI steps.
