@@ -2,7 +2,6 @@ import {describe, expect, test, beforeEach} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
-  formatLiferayInventoryStructuresBySite,
   runLiferayInventoryStructuresAllSites,
   formatLiferayInventoryStructures,
   runLiferayInventoryStructures,
@@ -266,10 +265,20 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([
-      {id: 301, key: 'BASIC', name: 'Basic Web Content'},
-      {id: 302, key: 'NEWS', name: 'News'},
-    ]);
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {id: 301, key: 'BASIC', name: 'Basic Web Content'},
+            {id: 302, key: 'NEWS', name: 'News'},
+          ],
+        },
+      ],
+      summary: {totalSites: 1, totalStructures: 2},
+    });
     expect(formatLiferayInventoryStructures(result)).toContain('id=301 key=BASIC name=Basic Web Content');
   });
 
@@ -312,15 +321,25 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([
-      {id: 301, key: 'BASIC', name: 'Basic Web Content', templates: []},
-      {
-        id: 302,
-        key: 'NEWS',
-        name: 'News',
-        templates: [{id: '40801', name: 'News Template', externalReferenceCode: 'news-template'}],
-      },
-    ]);
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {id: 301, key: 'BASIC', name: 'Basic Web Content', templates: []},
+            {
+              id: 302,
+              key: 'NEWS',
+              name: 'News',
+              templates: [{id: '40801', name: 'News Template', externalReferenceCode: 'news-template'}],
+            },
+          ],
+        },
+      ],
+      summary: {totalSites: 1, totalStructures: 2},
+    });
 
     expect(formatLiferayInventoryStructures(result)).toContain('id=302 key=NEWS name=News templates=1');
   });
@@ -387,39 +406,40 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([
-      {
-        siteGroupId: 20121,
-        siteFriendlyUrl: '/global',
-        siteName: 'Global',
-        structures: [
-          {
-            id: 301,
-            key: 'GLOBAL_BASIC',
-            name: 'Global Basic',
-            templates: [{id: '41001', name: 'Global Template', externalReferenceCode: 'global-template'}],
-          },
-        ],
-      },
-      {
-        siteGroupId: 20122,
-        siteFriendlyUrl: '/ub',
-        siteName: 'UB',
-        structures: [
-          {
-            id: 302,
-            key: 'UB_NEWS',
-            name: 'UB News',
-            templates: [{id: '41002', name: 'UB Template', externalReferenceCode: 'ub-template'}],
-          },
-        ],
-      },
-    ]);
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {
+              id: 301,
+              key: 'GLOBAL_BASIC',
+              name: 'Global Basic',
+              templates: [{id: '41001', name: 'Global Template', externalReferenceCode: 'global-template'}],
+            },
+          ],
+        },
+        {
+          siteGroupId: 20122,
+          siteFriendlyUrl: '/ub',
+          siteName: 'UB',
+          structures: [
+            {
+              id: 302,
+              key: 'UB_NEWS',
+              name: 'UB News',
+              templates: [{id: '41002', name: 'UB Template', externalReferenceCode: 'ub-template'}],
+            },
+          ],
+        },
+      ],
+      summary: {totalSites: 2, totalStructures: 2},
+    });
 
-    expect(formatLiferayInventoryStructuresBySite(result)).toContain(
-      'site=/global groupId=20121 name=Global structures=1',
-    );
-    expect(formatLiferayInventoryStructuresBySite(result)).toContain('site=/ub groupId=20122 name=UB structures=1');
+    expect(formatLiferayInventoryStructures(result)).toContain('site=/global groupId=20121 name=Global structures=1');
+    expect(formatLiferayInventoryStructures(result)).toContain('site=/ub groupId=20122 name=UB structures=1');
   });
 
   test('lists templates for a site', async () => {

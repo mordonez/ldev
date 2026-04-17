@@ -18,11 +18,19 @@ export type LiferayInventoryStructure = {
   templates?: LiferayStructureTemplateRef[];
 };
 
-export type LiferayInventoryStructuresBySite = {
+export type LiferayInventoryStructuresSite = {
   siteGroupId: number;
   siteFriendlyUrl: string;
   siteName: string;
   structures: LiferayInventoryStructure[];
+};
+
+export type LiferayInventoryStructuresResult = {
+  sites: LiferayInventoryStructuresSite[];
+  summary: {
+    totalSites: number;
+    totalStructures: number;
+  };
 };
 
 type DataDefinition = {
@@ -35,16 +43,31 @@ export async function runLiferayInventoryStructures(
   config: AppConfig,
   options?: {site?: string; pageSize?: number; withTemplates?: boolean},
   dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
-): Promise<LiferayInventoryStructure[]> {
+): Promise<LiferayInventoryStructuresResult> {
   const site = await resolveSite(config, options?.site ?? '/global', dependencies);
-  return runLiferayInventoryStructuresForSiteId(config, site.id, options, dependencies);
+  const structures = await runLiferayInventoryStructuresForSiteId(config, site.id, options, dependencies);
+
+  return {
+    sites: [
+      {
+        siteGroupId: site.id,
+        siteFriendlyUrl: site.friendlyUrlPath,
+        siteName: site.name,
+        structures,
+      },
+    ],
+    summary: {
+      totalSites: 1,
+      totalStructures: structures.length,
+    },
+  };
 }
 
 export async function runLiferayInventoryStructuresAllSites(
   config: AppConfig,
   options?: {pageSize?: number; withTemplates?: boolean},
   dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
-): Promise<LiferayInventoryStructuresBySite[]> {
+): Promise<LiferayInventoryStructuresResult> {
   const sites = await runLiferayInventorySitesIncludingGlobal(
     config,
     {pageSize: options?.pageSize ?? 200},
@@ -65,7 +88,13 @@ export async function runLiferayInventoryStructuresAllSites(
     })),
   );
 
-  return rows;
+  return {
+    sites: rows,
+    summary: {
+      totalSites: rows.length,
+      totalStructures: rows.reduce((acc, row) => acc + row.structures.length, 0),
+    },
+  };
 }
 
 async function runLiferayInventoryStructuresForSiteId(
@@ -115,33 +144,18 @@ async function runLiferayInventoryStructuresForSiteId(
   }));
 }
 
-export function formatLiferayInventoryStructures(rows: LiferayInventoryStructure[]): string {
-  if (rows.length === 0) {
-    return 'No structure data';
-  }
-
-  const lines = rows.map((row) => {
-    if (!row.templates) {
-      return `- id=${row.id} key=${row.key} name=${row.name}`;
-    }
-
-    return `- id=${row.id} key=${row.key} name=${row.name} templates=${row.templates.length}`;
-  });
-  lines.push(`total=${rows.length}`);
-  return lines.join('\n');
-}
-
-export function formatLiferayInventoryStructuresBySite(rows: LiferayInventoryStructuresBySite[]): string {
-  if (rows.length === 0) {
+export function formatLiferayInventoryStructures(result: LiferayInventoryStructuresResult): string {
+  if (result.sites.length === 0) {
     return 'No structure data';
   }
 
   const lines: string[] = [];
 
-  for (const site of rows) {
+  for (const site of result.sites) {
     lines.push(
       `site=${site.siteFriendlyUrl} groupId=${site.siteGroupId} name=${site.siteName} structures=${site.structures.length}`,
     );
+
     for (const structure of site.structures) {
       if (!structure.templates) {
         lines.push(`  - id=${structure.id} key=${structure.key} name=${structure.name}`);
@@ -153,6 +167,7 @@ export function formatLiferayInventoryStructuresBySite(rows: LiferayInventoryStr
     }
   }
 
-  lines.push(`totalSites=${rows.length}`);
+  lines.push(`totalSites=${result.summary.totalSites}`);
+  lines.push(`totalStructures=${result.summary.totalStructures}`);
   return lines.join('\n');
 }

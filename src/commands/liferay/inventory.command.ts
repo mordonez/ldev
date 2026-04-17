@@ -22,10 +22,8 @@ import {
   runLiferayInventorySites,
 } from '../../features/liferay/inventory/liferay-inventory-sites.js';
 import {
-  formatLiferayInventoryStructuresBySite,
   formatLiferayInventoryStructures,
-  type LiferayInventoryStructuresBySite,
-  type LiferayInventoryStructure,
+  type LiferayInventoryStructuresResult,
   runLiferayInventoryStructuresAllSites,
   runLiferayInventoryStructures,
 } from '../../features/liferay/inventory/liferay-inventory-structures.js';
@@ -41,12 +39,6 @@ function collect(value: string, previous: string[]): string[] {
 
 function formatInventorySitesResult(result: LiferayInventorySite[] | ContentStatsResult): string {
   return Array.isArray(result) ? formatLiferayInventorySites(result) : formatContentStats(result);
-}
-
-function isStructuresBySiteArray(
-  result: LiferayInventoryStructure[] | LiferayInventoryStructuresBySite[],
-): result is LiferayInventoryStructuresBySite[] {
-  return result.length === 0 || 'siteGroupId' in result[0];
 }
 
 export function createInventoryCommands(parent: Command): void {
@@ -257,10 +249,7 @@ Notes:
         });
       },
       {
-        text: (result) =>
-          isStructuresBySiteArray(result)
-            ? formatLiferayInventoryStructuresBySite(result)
-            : formatLiferayInventoryStructures(result),
+        text: (result: LiferayInventoryStructuresResult) => formatLiferayInventoryStructures(result),
       },
     ),
   );

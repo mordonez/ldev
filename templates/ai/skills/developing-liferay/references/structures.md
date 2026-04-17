@@ -60,6 +60,9 @@ For a one-shot inventory across all sites:
 ldev portal inventory structures --all-sites --with-templates --json
 ```
 
+The JSON output is site-aware in both modes (`--site` and `--all-sites`) and
+always returns a `sites` array with site metadata plus `summary` totals.
+
 This is preferred over maintaining static structure-template catalogs in
 project docs.
 
