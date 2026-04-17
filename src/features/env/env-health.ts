@@ -1,5 +1,6 @@
 import pWaitFor from 'p-wait-for';
 
+import {CliError} from '../../core/errors.js';
 import type {RunProcessOptions} from '../../core/platform/process.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {parseLines} from '../../core/utils/text.js';
@@ -67,8 +68,9 @@ export async function waitForServiceHealthy(
         lastStatus = current;
 
         if (current.state === 'exited' || current.state === 'dead') {
-          throw new Error(
+          throw new CliError(
             `Service ${service} failed to start (state=${current.state}, health=${current.health ?? 'n/a'}).`,
+            {code: 'ENV_SERVICE_FAILED_TO_START'},
           );
         }
 
@@ -82,9 +84,9 @@ export async function waitForServiceHealthy(
     }
 
     const last = lastStatus ?? (await inspectComposeService(context, service, processOptions));
-    throw new Error(
+    throw new CliError(
       `Timed out waiting for ${service} healthy/running (state=${last.state ?? 'unknown'}, health=${last.health ?? 'n/a'}).`,
-      {cause: error},
+      {code: 'ENV_SERVICE_TIMEOUT'},
     );
   }
 

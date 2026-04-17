@@ -12,6 +12,8 @@
  * - jsonws: Legacy Liferay JSONWS RPC API (/api/jsonws)
  */
 
+import {CliError} from '../../../core/errors.js';
+
 export type OperationName = 'site.resolve' | 'inventory.listSites' | 'inventory.listTemplates';
 
 export type TransportSurface = 'headless-admin-site' | 'headless-admin-user' | 'headless-delivery' | 'jsonws';
@@ -58,7 +60,7 @@ const POLICIES: ReadonlyMap<OperationName, OperationPolicy> = new Map<OperationN
 export function getOperationPolicy(operation: OperationName): OperationPolicy {
   const policy = POLICIES.get(operation);
   if (!policy) {
-    throw new Error(`No transport policy defined for operation: ${operation}`);
+    throw new CliError(`No transport policy defined for operation: ${operation}`, {code: 'LIFERAY_INVENTORY_ERROR'});
   }
   return policy;
 }

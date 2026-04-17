@@ -1,6 +1,8 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 
+import {CliError} from '../../core/errors.js';
+
 import {runDbDownload, type DbDownloadResult} from './db-download.js';
 import {runDbImport, type DbImportResult} from './db-import.js';
 
@@ -29,7 +31,7 @@ export async function runDbSync(
   });
 
   if (!download.databaseBackupFile) {
-    throw new Error('db sync expected a downloaded database backup.');
+    throw new CliError('db sync expected a downloaded database backup.', {code: 'DB_SYNC_STATE_MISSING'});
   }
 
   const importResult = await runDbImport(config, {

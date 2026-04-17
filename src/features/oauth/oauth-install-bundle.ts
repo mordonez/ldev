@@ -150,7 +150,9 @@ function findPackageRoot(fromFile: string): string {
 
     const parent = path.dirname(current);
     if (parent === current) {
-      throw new Error(`Could not resolve the ldev package root from ${fromFile}`);
+      throw new CliError(`Could not resolve the ldev package root from ${fromFile}`, {
+        code: 'OAUTH_PACKAGE_ROOT_NOT_FOUND',
+      });
     }
     current = parent;
   }
