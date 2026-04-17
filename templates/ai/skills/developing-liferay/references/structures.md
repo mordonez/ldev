@@ -54,6 +54,15 @@ ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 issue triage and migration planning. Use `--page-size` only when you need to
 override the default page size.
 
+For a one-shot inventory across all sites:
+
+```bash
+ldev portal inventory structures --all-sites --with-templates --json
+```
+
+This is preferred over maintaining static structure-template catalogs in
+project docs.
+
 2. Export current state if needed:
 
 ```bash
