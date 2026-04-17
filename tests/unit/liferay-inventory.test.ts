@@ -271,6 +271,58 @@ describe('liferay inventory structures and templates', () => {
     expect(formatLiferayInventoryStructures(result)).toContain('id=301 key=BASIC name=Basic Web Content');
   });
 
+  test('lists structures with associated templates when requested', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites?pageSize=100&page=1')) {
+          return new Response('{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"}],"lastPage":1}', {
+            status: 200,
+          });
+        }
+
+        if (url.includes('/data-definitions/by-content-type/journal?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC","name":{"en_US":"Basic Web Content"}},{"id":302,"dataDefinitionKey":"NEWS","name":{"en_US":"News"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/sites/20121/content-templates?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":302,"externalReferenceCode":"news-template"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryStructures(
+      CONFIG,
+      {site: '/global', pageSize: 2, withTemplates: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toEqual([
+      {id: 301, key: 'BASIC', name: 'Basic Web Content', templates: []},
+      {
+        id: 302,
+        key: 'NEWS',
+        name: 'News',
+        templates: [{id: '40801', name: 'News Template', externalReferenceCode: 'news-template'}],
+      },
+    ]);
+
+    expect(formatLiferayInventoryStructures(result)).toContain('id=302 key=NEWS name=News templates=1');
+  });
+
   test('lists templates for a site', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async (input) => {

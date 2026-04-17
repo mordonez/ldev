@@ -225,13 +225,15 @@ Notes:
       .command('structures')
       .description('List journal structures for a site')
       .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
-      .option('--page-size <pageSize>', 'Headless page size', '200'),
+      .option('--page-size <pageSize>', 'Headless page size', '200')
+      .option('--with-templates', 'Include associated templates for each structure'),
   ).action(
     createFormattedAction(
       async (context, options) =>
         runLiferayInventoryStructures(context.config, {
           site: options.site,
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
+          withTemplates: Boolean(options.withTemplates),
         }),
       {text: formatLiferayInventoryStructures},
     ),
