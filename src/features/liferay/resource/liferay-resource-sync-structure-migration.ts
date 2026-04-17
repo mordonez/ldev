@@ -1,11 +1,8 @@
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
-import {authOptions, expectJsonSuccess} from './liferay-resource-sync-structure-utils.js';
+import type {LiferayGateway} from '../liferay-gateway.js';
 
 export type MigrationRule = {
   source: string;
@@ -43,21 +40,18 @@ export async function runStructureMigration(
   siteId: number,
   migrationPlanPath: string,
   options: {
-    apiClient: HttpApiClient;
-    tokenClient?: OAuthTokenClient;
+    gateway: LiferayGateway;
     dryRun: boolean;
     cleanupSource: boolean;
     sourceSnapshots?: Map<string, LocalizedContentSnapshots>;
     fetchStructureByKeyFn: (
       config: AppConfig,
-      apiClient: HttpApiClient,
-      accessToken: string,
+      gateway: LiferayGateway,
       siteId: number,
       key: string,
     ) => Promise<Record<string, unknown> | null>;
   },
 ): Promise<MigrationStats> {
-  const accessToken = await fetchAccessToken(config, {apiClient: options.apiClient, tokenClient: options.tokenClient});
   const planRoot = await fs.readJson(migrationPlanPath);
   const plan =
     typeof planRoot === 'object' && planRoot && 'plan' in planRoot
@@ -68,19 +62,12 @@ export async function runStructureMigration(
     throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
   }
 
-  const structure = await options.fetchStructureByKeyFn(config, options.apiClient, accessToken, siteId, structureKey);
+  const structure = await options.fetchStructureByKeyFn(config, options.gateway, siteId, structureKey);
   if (!structure?.id) {
     throw LiferayErrors.resourceError(`Could not resolve structure ${structureKey}`);
   }
 
-  const selected = await selectStructureContents(
-    config,
-    options.apiClient,
-    accessToken,
-    siteId,
-    String(structure.id),
-    planData,
-  );
+  const selected = await selectStructureContents(options.gateway, siteId, String(structure.id), planData);
 
   const migratedArticleKeys = new Set<string>();
   const failures: MigrationFailure[] = [];
@@ -98,16 +85,14 @@ export async function runStructureMigration(
     try {
       const contentId = String(item.id ?? '');
       const articleKey = String(item.key ?? '').trim();
-      const before = await fetchStructuredContentForMigration(config, options.apiClient, accessToken, contentId);
+      const before = await fetchStructuredContentForMigration(options.gateway, contentId);
       const sourceSnapshots = options.sourceSnapshots?.get(contentId);
       const locales = resolveMigrationLocales(before, sourceSnapshots);
       let changedAcrossLocales = false;
 
       for (const locale of locales) {
         const beforeLocalized =
-          locale === ''
-            ? before
-            : await fetchStructuredContentForMigration(config, options.apiClient, accessToken, contentId, locale);
+          locale === '' ? before : await fetchStructuredContentForMigration(options.gateway, contentId, locale);
         const source = sourceSnapshots?.get(locale) ?? beforeLocalized;
         const after = structuredClone(beforeLocalized);
         const changed = applyMappings(after, source, planData.rules, options.cleanupSource);
@@ -124,17 +109,13 @@ export async function runStructureMigration(
             'title',
             'contentFields',
           ]);
-          await expectJsonSuccess(
-            await options.apiClient.putJson(
-              config.liferay.url,
-              `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}`,
-              payload,
-              authOptions(config, accessToken, locale),
-            ),
+          await options.gateway.putJson(
+            `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}`,
+            payload,
             'structure-migrate update',
-            'LIFERAY_RESOURCE_ERROR',
+            locale !== '' ? {headers: {'Accept-Language': locale}} : undefined,
           );
-          await verifyStructuredContentPersistence(config, options.apiClient, accessToken, contentId, after, locale);
+          await verifyStructuredContentPersistence(options.gateway, contentId, after, locale);
         }
       }
 
@@ -177,32 +158,28 @@ export async function captureMigrationSourceSnapshots(
   siteId: number,
   migrationPlanPath: string,
   options: {
-    apiClient: HttpApiClient;
-    tokenClient?: OAuthTokenClient;
+    gateway: LiferayGateway;
   },
 ): Promise<Map<string, LocalizedContentSnapshots>> {
-  const accessToken = await fetchAccessToken(config, {apiClient: options.apiClient, tokenClient: options.tokenClient});
   const planRoot = await fs.readJson(migrationPlanPath);
   const plan =
     typeof planRoot === 'object' && planRoot && 'plan' in planRoot
       ? (planRoot.plan as Record<string, unknown>)
       : planRoot;
   const planData = parseMigrationPlan(plan);
-  const selected = await selectStructureContents(config, options.apiClient, accessToken, siteId, structureId, planData);
+  const selected = await selectStructureContents(options.gateway, siteId, structureId, planData);
   const snapshots = new Map<string, LocalizedContentSnapshots>();
   for (const item of selected) {
     const contentId = String(item.id ?? '').trim();
     if (contentId === '') {
       continue;
     }
-    const baseSnapshot = await fetchStructuredContentForMigration(config, options.apiClient, accessToken, contentId);
+    const baseSnapshot = await fetchStructuredContentForMigration(options.gateway, contentId);
     const localizedSnapshots: LocalizedContentSnapshots = new Map();
     for (const locale of resolveMigrationLocales(baseSnapshot)) {
       localizedSnapshots.set(
         locale,
-        locale === ''
-          ? baseSnapshot
-          : await fetchStructuredContentForMigration(config, options.apiClient, accessToken, contentId, locale),
+        locale === '' ? baseSnapshot : await fetchStructuredContentForMigration(options.gateway, contentId, locale),
       );
     }
     snapshots.set(contentId, localizedSnapshots);
@@ -211,9 +188,7 @@ export async function captureMigrationSourceSnapshots(
 }
 
 async function selectStructureContents(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   structureId: string,
   planData: MigrationPlanData,
@@ -221,14 +196,14 @@ async function selectStructureContents(
   const scopedFolderIds = new Set<number>([
     ...planData.scopedFolderIds,
     ...(planData.scopedRootFolderIds.length > 0
-      ? await expandRootFolderScope(config, apiClient, accessToken, siteId, planData.scopedRootFolderIds)
+      ? await expandRootFolderScope(gateway, siteId, planData.scopedRootFolderIds)
       : []),
   ]);
   const articleIds = new Set(planData.articleIds);
   const contents =
     scopedFolderIds.size > 0
-      ? await listStructureContentsByFolders(config, apiClient, accessToken, [...scopedFolderIds], structureId)
-      : await listStructureContents(config, apiClient, accessToken, structureId);
+      ? await listStructureContentsByFolders(gateway, [...scopedFolderIds], structureId)
+      : await listStructureContents(gateway, structureId);
 
   return contents.filter((item) => {
     const folderId = Number(item.structuredContentFolderId ?? Number.MIN_SAFE_INTEGER);
@@ -240,9 +215,7 @@ async function selectStructureContents(
 }
 
 async function listStructureContents(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   structureId: string,
 ): Promise<Array<Record<string, unknown>>> {
   const rows: Array<Record<string, unknown>> = [];
@@ -251,17 +224,12 @@ async function listStructureContents(
   const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   do {
-    const response = await expectJsonSuccess(
-      await apiClient.get<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
-        config.liferay.url,
-        `/o/headless-delivery/v1.0/content-structures/${structureId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
-        authOptions(config, accessToken),
-      ),
+    const response = await gateway.getJson<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
+      `/o/headless-delivery/v1.0/content-structures/${structureId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
       'structure-migrate list',
-      'LIFERAY_RESOURCE_ERROR',
     );
-    rows.push(...(response.data?.items ?? []));
-    lastPage = response.data?.lastPage ?? 1;
+    rows.push(...((response as {items?: Array<Record<string, unknown>>} | null)?.items ?? []));
+    lastPage = (response as {lastPage?: number} | null)?.lastPage ?? 1;
     page += 1;
   } while (page <= lastPage);
 
@@ -269,9 +237,7 @@ async function listStructureContents(
 }
 
 async function listStructureContentsByFolders(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   folderIds: number[],
   structureId: string,
 ): Promise<Array<Record<string, unknown>>> {
@@ -282,16 +248,11 @@ async function listStructureContentsByFolders(
     let page = 1;
     let lastPage = 1;
     do {
-      const response = await expectJsonSuccess(
-        await apiClient.get<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
-          config.liferay.url,
-          `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
-          authOptions(config, accessToken),
-        ),
+      const response = await gateway.getJson<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
+        `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
         'structure-migrate list-by-folder',
-        'LIFERAY_RESOURCE_ERROR',
       );
-      for (const item of response.data?.items ?? []) {
+      for (const item of (response as {items?: Array<Record<string, unknown>>} | null)?.items ?? []) {
         if (String(item.contentStructureId ?? '') !== structureId) {
           continue;
         }
@@ -300,7 +261,7 @@ async function listStructureContentsByFolders(
           deduped.set(id, item);
         }
       }
-      lastPage = response.data?.lastPage ?? 1;
+      lastPage = (response as {lastPage?: number} | null)?.lastPage ?? 1;
       page += 1;
     } while (page <= lastPage);
   }
@@ -309,31 +270,24 @@ async function listStructureContentsByFolders(
 }
 
 async function fetchStructuredContentForMigration(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   contentId: string,
   acceptLanguage = '',
 ): Promise<Record<string, unknown>> {
   const fields = encodeURIComponent(
     'id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,availableLanguages,contentFields',
   );
-  const response = await expectJsonSuccess(
-    await apiClient.get<Record<string, unknown>>(
-      config.liferay.url,
+  return (
+    (await gateway.getJson<Record<string, unknown>>(
       `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
-      authOptions(config, accessToken, acceptLanguage),
-    ),
-    'structure-migrate get',
-    'LIFERAY_RESOURCE_ERROR',
+      'structure-migrate get',
+      acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
+    )) ?? {}
   );
-  return response.data ?? {};
 }
 
 async function expandRootFolderScope(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   siteId: number,
   rootFolderIds: number[],
 ): Promise<number[]> {
@@ -346,16 +300,11 @@ async function expandRootFolderScope(
       continue;
     }
     scoped.add(current);
-    const response = await expectJsonSuccess(
-      await apiClient.get<Array<{folderId?: number}>>(
-        config.liferay.url,
-        `/api/jsonws/journal.journalfolder/get-folders?groupId=${siteId}&parentFolderId=${current}`,
-        authOptions(config, accessToken),
-      ),
+    const response = await gateway.getJson<Array<{folderId?: number}>>(
+      `/api/jsonws/journal.journalfolder/get-folders?groupId=${siteId}&parentFolderId=${current}`,
       'journal-folder-get-folders',
-      'LIFERAY_RESOURCE_ERROR',
     );
-    for (const row of response.data ?? []) {
+    for (const row of (response as Array<{folderId?: number}> | null) ?? []) {
       const childId = Number(row.folderId ?? -1);
       if (childId > 0 && !scoped.has(childId)) {
         queue.push(childId);
@@ -367,9 +316,7 @@ async function expandRootFolderScope(
 }
 
 async function verifyStructuredContentPersistence(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  gateway: LiferayGateway,
   contentId: string,
   expected: Record<string, unknown>,
   acceptLanguage = '',
@@ -378,13 +325,7 @@ async function verifyStructuredContentPersistence(
   const retryDelayMs = 500;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const persisted = await fetchStructuredContentForMigration(
-      config,
-      apiClient,
-      accessToken,
-      contentId,
-      acceptLanguage,
-    );
+    const persisted = await fetchStructuredContentForMigration(gateway, contentId, acceptLanguage);
     if (contentFieldsEqual(expected, persisted)) {
       return;
     }

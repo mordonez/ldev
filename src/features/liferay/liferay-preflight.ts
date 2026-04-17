@@ -11,12 +11,9 @@
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
-import {createOAuthTokenClient} from '../../core/http/auth.js';
 import type {HttpApiClient} from '../../core/http/client.js';
-import {createLiferayApiClient} from '../../core/http/client.js';
-import {buildAuthOptions} from './liferay-http-shared.js';
+import {createLiferayGateway, type LiferayGateway} from './liferay-gateway.js';
 import {LookupCache} from './lookup-cache.js';
-import {fetchAccessToken} from './inventory/liferay-inventory-shared.js';
 
 export type SurfaceStatus = 'ok' | 'forbidden' | 'unavailable' | 'unknown';
 
@@ -37,6 +34,7 @@ export type PreflightResult = {
 type PreflightDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
+  gateway?: LiferayGateway;
   accessToken?: string;
   forceRefresh?: boolean;
 };
@@ -44,14 +42,9 @@ type PreflightDependencies = {
 // Cache preflight results per base URL for 5 minutes to avoid redundant probes.
 const preflightCache = new LookupCache<PreflightResult>();
 
-async function probeUrl(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
-  path: string,
-): Promise<SurfaceStatus> {
+async function probeUrl(gateway: LiferayGateway, path: string): Promise<SurfaceStatus> {
   try {
-    const response = await apiClient.get<unknown>(config.liferay.url, path, buildAuthOptions(config, accessToken));
+    const response = await gateway.getRaw<unknown>(path);
 
     if (response.ok) return 'ok';
     if (response.status === 403) return 'forbidden';
@@ -79,16 +72,16 @@ export async function runLiferayPreflight(
   const cached = preflightCache.get(cacheKey, dependencies?.forceRefresh);
   if (cached) return cached;
 
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
-  const accessToken =
-    dependencies?.accessToken ??
-    (await fetchAccessToken(config, {tokenClient, forceRefresh: dependencies?.forceRefresh}));
+  const gateway =
+    dependencies?.gateway ?? createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+  if (dependencies?.accessToken) {
+    gateway.seedAccessToken(dependencies.accessToken);
+  }
 
   const [adminSite, adminUser, jsonws] = await Promise.all([
-    probeUrl(config, apiClient, accessToken, '/o/headless-admin-site/v1.0/sites?pageSize=1&page=1'),
-    probeUrl(config, apiClient, accessToken, '/o/headless-admin-user/v1.0/my-user-account'),
-    probeUrl(config, apiClient, accessToken, '/api/jsonws/portal/get-build-number'),
+    probeUrl(gateway, '/o/headless-admin-site/v1.0/sites?pageSize=1&page=1'),
+    probeUrl(gateway, '/o/headless-admin-user/v1.0/my-user-account'),
+    probeUrl(gateway, '/api/jsonws/portal/get-build-number'),
   ]);
 
   const partial = {adminSite, adminUser, jsonws};
