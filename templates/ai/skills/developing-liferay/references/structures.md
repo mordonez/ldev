@@ -28,11 +28,11 @@ Always verify before exporting or importing:
 ldev portal inventory page --url <fullUrl> --json
 
 # Check global site first for shared resources
-ldev portal inventory structures --site /global --json
+ldev portal inventory structures --site /global --with-templates --json
 ldev portal inventory templates --site /global --json
 
 # Then check the concrete site
-ldev portal inventory structures --site /<site> --json
+ldev portal inventory structures --site /<site> --with-templates --json
 ldev portal inventory templates --site /<site> --json
 ```
 
@@ -45,10 +45,14 @@ will create a duplicate instead of updating the intended one.
 1. Discover first in portal:
 
 ```bash
-ldev portal inventory structures --site /<site> --json
+ldev portal inventory structures --site /<site> --with-templates --json
 ldev portal inventory templates --site /<site> --json
 ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
+
+`--with-templates` is the fastest way to build a structure-template map for
+issue triage and migration planning. Use `--page-size` only when you need to
+override the default page size.
 
 2. Export current state if needed:
 

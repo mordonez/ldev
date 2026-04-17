@@ -98,7 +98,13 @@ Agents can inspect the portal without screen scraping or UI navigation:
 ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
+ldev portal inventory structures --site /global --with-templates --json
 ```
+
+For structure/template incidents, prefer `inventory structures --with-templates`
+as the first discovery step. It returns the structure list enriched with
+associated templates in one call, so agents can route directly to the correct
+export/import commands.
 
 ## Keeping rules and skills up to date
 

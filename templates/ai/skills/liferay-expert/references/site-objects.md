@@ -37,9 +37,12 @@ Always verify the owning site before editing or importing:
 
 ```bash
 ldev portal inventory page --url <fullUrl> --json
-ldev portal inventory structures --site /global --json
-ldev portal inventory structures --site /<site> --json
+ldev portal inventory structures --site /global --with-templates --json
+ldev portal inventory structures --site /<site> --with-templates --json
 ```
+
+Use `--with-templates` to get the structure-template relationship in one
+inventory pass before choosing export/import commands.
 
 Do not assume the browser URL site is the source of truth. Export from the
 site that actually owns the object.
