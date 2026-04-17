@@ -2,7 +2,7 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
-import {buildAuthOptions, expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
+import {expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
 import {LiferayErrors} from '../errors/index.js';
@@ -133,15 +133,6 @@ export async function fetchPagedItems<T>(
   }
 
   return items;
-}
-
-export async function authedGet<T>(
-  config: AppConfig,
-  apiClient: LiferayApiClient,
-  accessToken: string,
-  path: string,
-): Promise<HttpResponse<T>> {
-  return apiClient.get<T>(config.liferay.url, path, buildAuthOptions(config, accessToken));
 }
 
 export async function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): Promise<HttpResponse<T>> {
