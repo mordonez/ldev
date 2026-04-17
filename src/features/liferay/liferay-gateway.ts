@@ -167,6 +167,15 @@ export class LiferayGateway {
   }
 
   /**
+   * POST form /path, return the raw HTTP response without asserting ok status.
+   * Use when callers need to inspect status/body across multiple fallback payload candidates.
+   */
+  async postFormRaw<T>(path: string, form: Record<string, string>): Promise<HttpResponse<T>> {
+    const accessToken = await this.getAccessToken();
+    return this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken));
+  }
+
+  /**
    * DELETE /path, parse JSON response if present, assert ok status, return data.
    * @throws CliError if response not ok
    */

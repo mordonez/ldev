@@ -3,10 +3,10 @@ import {createHash} from 'node:crypto';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {LiferayApiClient} from '../../../core/http/client.js';
-import {createLiferayApiClient, type HttpResponse} from '../../../core/http/client.js';
+import type {HttpResponse} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {buildAuthOptions, ensureData} from '../liferay-http-shared.js';
-import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
+import {ensureData} from '../liferay-http-shared.js';
 
 type ResourceDependencies = {
   apiClient?: LiferayApiClient;
@@ -28,10 +28,8 @@ async function postFormCandidateResponse<T>(
   form: Record<string, string>,
   dependencies?: ResourceDependencies,
 ): Promise<HttpResponse<T>> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const accessToken = await fetchAccessToken(config, dependencies);
-
-  return apiClient.postForm<T>(config.liferay.url, path, form, buildAuthOptions(config, accessToken));
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+  return gateway.postFormRaw<T>(path, form);
 }
 
 export async function postFormCandidates<T>(
