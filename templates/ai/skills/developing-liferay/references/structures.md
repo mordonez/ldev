@@ -84,6 +84,30 @@ ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 
 4. If validation is correct, rerun without `--check-only`
 
+## Post-import verification (read-after-write)
+
+Do not rely only on runtime logs for resource imports. Verify by reading the
+current portal state after mutation:
+
+```bash
+# Structure: confirm current remote payload
+ldev resource get-structure --site /<site> --key <STRUCTURE_KEY> --json
+
+# Template: confirm current remote payload
+ldev resource get-template --site /<site> --id <TEMPLATE_ID> --json
+
+# ADT: confirm current remote payload
+ldev resource get-adt --site /<site> --id <ADT_ID> --json
+
+# Cross-check mapping and ownership
+ldev portal inventory structures --site /<site> --with-templates --json
+ldev portal inventory templates --site /<site> --json
+```
+
+Use `ldev logs diagnose --since 5m --json` mainly for deploy/runtime issues
+(modules/themes/startup faults), not as the primary signal for resource-import
+success.
+
 ## Guardrails
 
 - Do not guess keys or IDs

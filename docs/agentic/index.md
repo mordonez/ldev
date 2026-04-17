@@ -136,7 +136,7 @@ Summary of the six phases a well-behaved agent follows:
 | Discovery | Task mentions portal surface | `ldev portal inventory ...` |
 | Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
 | Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
-| Post-mutation verify | After any mutation | `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
+| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`; runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
 
 Key invariants (full list in `AGENTS.md → Safety Invariants`):
 
@@ -144,6 +144,7 @@ Key invariants (full list in `AGENTS.md → Safety Invariants`):
 - Always consume `--json`. Never parse human-readable output.
 - Always run `--check-only` before resource mutations.
 - Never use plural resource commands without explicit human approval.
+- Do not treat `ldev logs diagnose` as universal verification for resource imports; prefer read-after-write evidence from `ldev resource` / `ldev portal inventory`.
 - Diagnose before retrying a failed command.
 
 ## Execution, not hype

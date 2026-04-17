@@ -12,7 +12,7 @@ When a change affects deployable code or assets:
 
 1. confirm the runtime is healthy with `ldev status --json`
 2. deploy with the narrowest suitable deploy command
-3. verify with `ldev logs diagnose --since 5m --json`
+3. verify runtime/deploy behavior with `ldev logs diagnose --since 5m --json`
 4. use `ldev portal inventory ... --json` when the change affects page behavior or content rendering
 
 Use deploy commands only for deployable artifacts:
@@ -26,7 +26,9 @@ Prefer atomic deploys. Do not use a broad deploy as a default validation step.
 
 Do not use deploy commands for Journal templates, ADTs, fragments, or
 structures. Those require a prepared runtime and `ldev resource import-*`, then
-browser validation with `playwright-cli` when rendering is affected.
+read-after-write verification with `ldev resource get-*` / `ldev resource export-*`
+and `ldev portal inventory ... --json`; use browser validation with `playwright-cli`
+when rendering is affected.
 
 For the full deploy and verification workflow, route to:
 

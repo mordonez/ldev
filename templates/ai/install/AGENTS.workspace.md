@@ -51,7 +51,9 @@ These rules apply to every task, regardless of the skill in use:
 3. Always run `--check-only` before any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`, `migration-pipeline`).
 4. Always use the smallest deploy or import that proves the change. Never broad-deploy as a default validation step.
 5. Never use plural resource commands (`import-structures`, `export-templates`, etc.) or broad deploys without explicit human approval.
-6. After any mutation, verify with `ldev logs diagnose --since 5m --json`.
+6. After any mutation, verify with operation-specific evidence:
+  - Resource imports (`import-structure`, `import-template`, `import-adt`, `import-fragment`): read back the updated resource with `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`.
+  - Deploy/runtime changes (modules, themes, startup/runtime faults): use `ldev logs diagnose --since 5m --json`.
 7. When the change affects rendered pages or UI, verify with browser automation after the runtime settles.
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
@@ -125,7 +127,7 @@ Before using MCP:
   - `ldev context --json`
   - `ldev portal check --json`
   - `ldev portal inventory ... --json`
-  - `ldev logs diagnose --json`
+  - `ldev logs diagnose --json` for runtime/deploy diagnosis
   - `ldev doctor --json` when runtime or tool readiness matters
   - `ldev mcp check --json` when MCP is part of the plan
 
