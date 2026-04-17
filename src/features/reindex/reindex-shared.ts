@@ -1,9 +1,10 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose} from '../../core/platform/docker.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {formatProcessError} from '../../core/platform/process.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 
 export type ReindexIndexRow = {
   health: string;
@@ -109,7 +110,7 @@ export async function queryReindexTasks(config: AppConfig, processEnv?: NodeJS.P
   );
 
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'No se pudieron consultar tareas de reindex.', {
+    throw new CliError(formatProcessError(result, 'No se pudieron consultar tareas de reindex.'), {
       code: 'REINDEX_TASKS_FAILED',
     });
   }

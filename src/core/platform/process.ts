@@ -76,6 +76,10 @@ export function resolveSpawnCommand(command: string, env?: NodeJS.ProcessEnv): s
   return command;
 }
 
+export function formatProcessError(result: RunProcessResult, fallback: string): string {
+  return result.stderr.trim() || result.stdout.trim() || fallback;
+}
+
 export async function runProcess(
   command: string,
   args: string[] = [],

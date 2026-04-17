@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 
@@ -9,7 +9,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
-import {normalizeProcessEnv, runProcess} from '../../core/platform/process.js';
+import {formatProcessError, normalizeProcessEnv, runProcess} from '../../core/platform/process.js';
 
 export type DbFilesDownloadResult = {
   ok: true;
@@ -165,7 +165,7 @@ async function ensureDoclibBackup(options: {
       {reject: false},
     );
     if (!result.ok) {
-      throw new CliError(result.stderr.trim() || result.stdout.trim() || 'lcp backup download --doclib', {
+      throw new CliError(formatProcessError(result, 'lcp backup download --doclib'), {
         code: 'DB_LCP_DOCLIB_DOWNLOAD_FAILED',
       });
     }

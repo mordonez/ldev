@@ -1,4 +1,4 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
@@ -6,7 +6,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {runProcess} from '../../core/platform/process.js';
+import {formatProcessError, runProcess} from '../../core/platform/process.js';
 
 export type DeployContext = {
   repoRoot: string;
@@ -56,7 +56,7 @@ export async function runDeployStep<T>(printer: Printer | undefined, label: stri
 export async function runGradleTask(context: DeployContext, args: string[]): Promise<void> {
   const result = await runProcess(context.gradlewPath, ['--console=plain', ...args], {cwd: context.liferayDir});
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `${context.gradlewPath} ${args.join(' ')}`, {
+    throw new CliError(formatProcessError(result, `${context.gradlewPath} ${args.join(' ')}`), {
       code: 'DEPLOY_GRADLE_ERROR',
     });
   }
@@ -65,7 +65,7 @@ export async function runGradleTask(context: DeployContext, args: string[]): Pro
 export async function resolveHeadCommit(repoRoot: string): Promise<string> {
   const result = await runProcess('git', ['rev-parse', 'HEAD'], {cwd: repoRoot});
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || 'git rev-parse HEAD', {
+    throw new CliError(formatProcessError(result, 'git rev-parse HEAD'), {
       code: 'GIT_ERROR',
     });
   }
