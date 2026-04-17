@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
@@ -8,7 +8,7 @@ import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifie
 import type {DdmTemplatePayload} from './liferay-resource-payloads.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

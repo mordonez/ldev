@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
-import type {HttpRequestOptions, HttpResponse, LiferayApiClient} from '../../core/http/client.js';
+import type {HttpRequestOptions, HttpResponse, HttpApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
 import {buildAuthOptions, expectJsonSuccess} from './liferay-http-shared.js';
 
@@ -29,7 +29,7 @@ export class LiferayGateway {
 
   constructor(
     private config: AppConfig,
-    private apiClient: LiferayApiClient,
+    private apiClient: HttpApiClient,
     private tokenClient: OAuthTokenClient,
   ) {}
 
@@ -210,7 +210,7 @@ export class LiferayGateway {
  */
 export function createLiferayGateway(
   config: AppConfig,
-  apiClient?: LiferayApiClient,
+  apiClient?: HttpApiClient,
   tokenClient?: OAuthTokenClient,
 ): LiferayGateway {
   return new LiferayGateway(config, apiClient ?? createLiferayApiClient(), tokenClient ?? createOAuthTokenClient());

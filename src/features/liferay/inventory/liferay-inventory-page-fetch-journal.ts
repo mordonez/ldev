@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {
   asRecord,
   assignOptionalBoolean,
@@ -42,7 +42,7 @@ type TemplateInfo = {
 export async function collectLayoutJournalArticles(
   gateway: LiferayGateway,
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   defaultGroupId: number,
   fragmentEntryLinks: Array<Record<string, unknown>>,
 ): Promise<JournalArticleSummary[]> {
@@ -59,7 +59,7 @@ export async function collectLayoutJournalArticles(
 export async function buildJournalArticleSummary(
   gateway: LiferayGateway,
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   ref: ArticleRef,
   options?: {
     article?: Record<string, unknown> | null;
@@ -166,7 +166,7 @@ export async function buildJournalArticleSummary(
 export async function collectLayoutContentStructures(
   gateway: LiferayGateway,
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   journalArticles: JournalArticleSummary[],
 ): Promise<ContentStructureSummary[]> {
   const seen = new Set<number>();
@@ -266,7 +266,7 @@ function collectArticleRefFromPreferences(
 async function resolveStructureSiteByKey(
   gateway: LiferayGateway,
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   startSite: string,
   structureKey: string,
 ): Promise<{siteFriendlyUrl: string} | null> {
@@ -287,7 +287,7 @@ async function resolveStructureSiteByKey(
 async function safeFetchGroupInfo(
   config: AppConfig,
   groupId: number,
-  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
+  dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ) {
   try {
     return await fetchGroupInfo(config, groupId, dependencies);
@@ -300,7 +300,7 @@ async function resolveTemplateSiteByKey(
   config: AppConfig,
   startSite: string,
   templateKey: string,
-  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
+  dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ): Promise<string | null> {
   const siteChain = await buildResourceSiteChain(config, startSite, dependencies);
   for (const candidate of siteChain) {

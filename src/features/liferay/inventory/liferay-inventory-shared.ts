@@ -1,7 +1,7 @@
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
-import {createLiferayApiClient, type HttpResponse, type LiferayApiClient} from '../../../core/http/client.js';
+import {createLiferayApiClient, type HttpResponse, type HttpApiClient} from '../../../core/http/client.js';
 import {expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
@@ -22,7 +22,7 @@ import {
 export type {ResolvedSite};
 
 type InventoryDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
   gateway?: LiferayGateway;
   accessToken?: string;
@@ -175,7 +175,7 @@ function normalizeResolvedSite(payload: SiteLookupPayload | null, site: string):
 
 export function createInventoryGateway(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   dependencies?: InventoryDependencies,
 ) {
   if (dependencies?.gateway) {

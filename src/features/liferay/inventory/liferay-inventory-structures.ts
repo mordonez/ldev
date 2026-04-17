@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {fetchPagedItems, normalizeLocalizedName, resolveSite} from './liferay-inventory-shared.js';
 import {runLiferayInventoryTemplates} from './liferay-inventory-templates.js';
@@ -42,7 +42,7 @@ type DataDefinition = {
 export async function runLiferayInventoryStructures(
   config: AppConfig,
   options?: {site?: string; pageSize?: number; withTemplates?: boolean},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventoryStructuresResult> {
   const site = await resolveSite(config, options?.site ?? '/global', dependencies);
   const structures = await runLiferayInventoryStructuresForSiteId(config, site.id, options, dependencies);
@@ -66,7 +66,7 @@ export async function runLiferayInventoryStructures(
 export async function runLiferayInventoryStructuresAllSites(
   config: AppConfig,
   options?: {pageSize?: number; withTemplates?: boolean},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventoryStructuresResult> {
   const sites = await runLiferayInventorySitesIncludingGlobal(
     config,
@@ -101,7 +101,7 @@ async function runLiferayInventoryStructuresForSiteId(
   config: AppConfig,
   siteId: number,
   options?: {site?: string; pageSize?: number; withTemplates?: boolean},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventoryStructure[]> {
   const rows = await fetchPagedItems<DataDefinition>(
     config,

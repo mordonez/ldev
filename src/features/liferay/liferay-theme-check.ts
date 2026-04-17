@@ -3,12 +3,12 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../core/http/client.js';
+import type {HttpApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
 import {LiferayErrors} from './errors/index.js';
 
 type ThemeDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
 };
 
 export type LiferayThemeCheckResult = {
@@ -111,7 +111,7 @@ export function parseIconIds(svg: string): Set<string> {
 }
 
 async function fetchText(
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   url: string,
   timeoutSeconds: number,
   label: string,
@@ -127,7 +127,7 @@ async function fetchText(
 }
 
 async function requireHttp200(
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   url: string,
   timeoutSeconds: number,
   label: string,

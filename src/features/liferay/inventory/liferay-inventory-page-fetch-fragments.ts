@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'fs-extra';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildResourceSiteChain} from '../resource/liferay-resource-shared.js';
@@ -29,7 +29,7 @@ export async function enrichFragmentEntryExportPaths(
   gateway: LiferayGateway,
   startSite: string,
   entries: PageFragmentEntry[],
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
 ): Promise<void> {
   const fragmentEntries = entries.filter((entry) => entry.type === 'fragment' && entry.fragmentKey);
   if (fragmentEntries.length === 0) {
@@ -60,7 +60,7 @@ async function findFragmentExportPath(
   config: AppConfig,
   startSite: string,
   fragmentKey: string,
-  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
+  dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ): Promise<{siteFriendlyUrl: string; exportPath: string} | null> {
   const baseDirs = await resolveFragmentSearchBaseDirs(config);
   const siteChain = await safeBuildFragmentSiteChain(config, startSite, dependencies);
@@ -93,7 +93,7 @@ async function resolveFragmentSearchBaseDirs(config: AppConfig): Promise<string[
 async function safeBuildFragmentSiteChain(
   config: AppConfig,
   startSite: string,
-  dependencies: {apiClient: LiferayApiClient; gateway: LiferayGateway},
+  dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ): Promise<Array<{siteFriendlyUrl: string}>> {
   try {
     return await buildResourceSiteChain(config, startSite, dependencies);

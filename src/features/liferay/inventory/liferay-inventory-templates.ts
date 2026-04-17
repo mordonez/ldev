@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {fetchPagedItems, resolveSite} from './liferay-inventory-shared.js';
 import {listDdmTemplates, resolveResourceSite} from '../resource/liferay-resource-shared.js';
@@ -24,7 +24,7 @@ type ContentTemplate = {
 export async function runLiferayInventoryTemplates(
   config: AppConfig,
   options?: {site?: string; pageSize?: number},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventoryTemplate[]> {
   const site = await resolveSite(config, options?.site ?? '/global', dependencies);
   const policy = getOperationPolicy('inventory.listTemplates');

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayInventoryTemplates, type LiferayInventoryTemplate} from '../inventory/liferay-inventory-templates.js';
@@ -14,7 +14,7 @@ import {resolveResourceSite} from './liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

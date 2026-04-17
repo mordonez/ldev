@@ -1,4 +1,4 @@
-import {resolveLiferayConfig} from '../http/config.js';
+import {resolveLiferayConfig} from '../../features/liferay/liferay-connection-config.js';
 import {appConfigSchema, type AppConfig} from './schema.js';
 import {resolveLiferayProfileFiles} from './liferay-profile.js';
 import type {ProjectDetection} from './project-type.js';

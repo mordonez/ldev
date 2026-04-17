@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {CliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
-import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
+import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
@@ -9,13 +9,13 @@ import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import type {ContentPruneOptions} from './liferay-content-prune.js';
 
 export type PruneDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
   printer?: Printer;
 };
 
 export type PruneContext = {
-  apiClient: LiferayApiClient;
+  apiClient: HttpApiClient;
   tokenClient: OAuthTokenClient;
   printer?: Printer;
   gateway: LiferayGateway;

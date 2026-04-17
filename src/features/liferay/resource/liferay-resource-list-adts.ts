@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {
   fetchAdtResourceClassNameId,
   listDdmTemplatesByClassName,
@@ -23,7 +23,7 @@ export const ADT_CLASS_BY_WIDGET_TYPE: Record<string, string> = {
 };
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

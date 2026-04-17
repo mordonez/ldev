@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import path from 'node:path';
 import {resolveSiteToken} from './liferay-resource-paths.js';
 import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js';
@@ -9,7 +9,7 @@ import {normalizeLiferayTemplateScript} from './liferay-resource-template-normal
 import {resolveArtifactSiteDir} from './artifact-paths.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

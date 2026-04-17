@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {fetchAccessToken} from '../inventory/liferay-inventory-shared.js';
 import {authOptions, expectJsonSuccess} from './liferay-resource-sync-structure-utils.js';
@@ -43,14 +43,14 @@ export async function runStructureMigration(
   siteId: number,
   migrationPlanPath: string,
   options: {
-    apiClient: LiferayApiClient;
+    apiClient: HttpApiClient;
     tokenClient?: OAuthTokenClient;
     dryRun: boolean;
     cleanupSource: boolean;
     sourceSnapshots?: Map<string, LocalizedContentSnapshots>;
     fetchStructureByKeyFn: (
       config: AppConfig,
-      apiClient: LiferayApiClient,
+      apiClient: HttpApiClient,
       accessToken: string,
       siteId: number,
       key: string,
@@ -177,7 +177,7 @@ export async function captureMigrationSourceSnapshots(
   siteId: number,
   migrationPlanPath: string,
   options: {
-    apiClient: LiferayApiClient;
+    apiClient: HttpApiClient;
     tokenClient?: OAuthTokenClient;
   },
 ): Promise<Map<string, LocalizedContentSnapshots>> {
@@ -212,7 +212,7 @@ export async function captureMigrationSourceSnapshots(
 
 async function selectStructureContents(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   siteId: number,
   structureId: string,
@@ -241,7 +241,7 @@ async function selectStructureContents(
 
 async function listStructureContents(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   structureId: string,
 ): Promise<Array<Record<string, unknown>>> {
@@ -270,7 +270,7 @@ async function listStructureContents(
 
 async function listStructureContentsByFolders(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   folderIds: number[],
   structureId: string,
@@ -310,7 +310,7 @@ async function listStructureContentsByFolders(
 
 async function fetchStructuredContentForMigration(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   contentId: string,
   acceptLanguage = '',
@@ -332,7 +332,7 @@ async function fetchStructuredContentForMigration(
 
 async function expandRootFolderScope(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   siteId: number,
   rootFolderIds: number[],
@@ -368,7 +368,7 @@ async function expandRootFolderScope(
 
 async function verifyStructuredContentPersistence(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   contentId: string,
   expected: Record<string, unknown>,

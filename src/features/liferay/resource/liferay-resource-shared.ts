@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
@@ -20,7 +20,7 @@ const JOURNAL_ARTICLE_CLASS_NAME = 'com.liferay.journal.model.JournalArticle';
 const ADT_RESOURCE_CLASS_NAME = 'com.liferay.portlet.display.template.PortletDisplayTemplate';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
   gateway?: LiferayGateway;
   accessToken?: string;
@@ -41,7 +41,7 @@ type GroupPayload = {
 
 function createResourceReadGateway(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   dependencies?: Pick<ResourceDependencies, 'gateway' | 'tokenClient' | 'accessToken'>,
 ) {
   if (dependencies?.gateway) {

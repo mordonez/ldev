@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
@@ -8,7 +8,7 @@ import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from '../page-la
 import type {LiferayGateway} from '../liferay-gateway.js';
 
 type InventoryPagesDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 
