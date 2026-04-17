@@ -102,6 +102,68 @@ ldev portal check                  # Retry
 
 **Fix**: Manually complete setup at http://localhost:8080, then retry OAuth install.
 
+### OAuth quick diagnosis checklist
+
+When OAuth keeps failing, run this sequence in order:
+
+```bash
+ldev context --json
+ldev portal check
+ldev liferay auth check
+ldev oauth install --write-env
+ldev portal check
+```
+
+What to verify in the output:
+- `liferay.url` points to the expected portal host/port.
+- `liferay.oauth2ClientId` and `liferay.oauth2ClientSecret` are present after install.
+- `ldev portal check` returns success after reinstalling OAuth.
+
+### OAuth error signatures and fixes
+
+#### `invalid_client` or `401` during token fetch
+
+**Cause**: Stale or mismatched OAuth credentials.
+
+**Fix**:
+```bash
+ldev oauth install --write-env
+ldev portal check
+```
+
+If it persists, check for conflicting shell variables overriding local config and unset them before retrying.
+
+#### `403 Forbidden` on API calls after successful token fetch
+
+**Cause**: OAuth app exists but scopes/permissions are incomplete for the endpoint.
+
+**Fix**:
+1. Re-run `ldev oauth install --write-env`.
+2. Retry the failing command.
+3. If still failing, confirm portal-side OAuth app permissions for the target API.
+
+#### Connection refused / timeout during OAuth install
+
+**Cause**: Portal is not reachable at the configured URL.
+
+**Fix**:
+```bash
+ldev doctor
+ldev status
+ldev logs diagnose
+```
+
+Then verify `.liferay-cli.local.yml` points to the active local portal URL.
+
+#### OAuth install succeeds but later commands still fail
+
+**Cause**: Credentials were written correctly, but another config source is overriding them.
+
+**Fix**:
+1. Check environment variables first (highest precedence).
+2. Confirm `.liferay-cli.local.yml` contains the expected OAuth values.
+3. Re-run `ldev context --json` to confirm the effective resolved values.
+
 ---
 
 ## Database & Import Issues
