@@ -1,5 +1,6 @@
 import {CliError} from '../../../core/errors.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
+import {LiferayErrors} from '../errors/index.js';
 
 /**
  * Resolved site payload from Liferay API.
@@ -81,7 +82,7 @@ export class SiteResolutionPipeline {
    * - Steps throw 404/403 to continue (miss)
    * - Steps throw other errors to propagate (unexpected)
    */
-  async execute(site: string, fallbackErrorMessage: string): Promise<ResolvedSite> {
+  async execute(site: string): Promise<ResolvedSite> {
     for (const {name, step} of this.steps) {
       try {
         const result = await step(site);
@@ -101,7 +102,7 @@ export class SiteResolutionPipeline {
       }
     }
 
-    throw new CliError(fallbackErrorMessage, {code: 'LIFERAY_SITE_NOT_FOUND'});
+    throw LiferayErrors.siteNotFound(site);
   }
 }
 

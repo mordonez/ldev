@@ -13,7 +13,6 @@
  */
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import type {ResolvedSite} from '../inventory/liferay-site-resolver.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
@@ -131,7 +130,7 @@ export async function syncArtifact<Local = Record<string, unknown>, Remote = Rec
   // 1. Resolve local artifact
   const localArtifact = await strategy.resolveLocal(config, site, strategyOpts);
   if (!localArtifact) {
-    throw new CliError('Local artifact not found', {code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND'});
+    throw LiferayErrors.resourceFileNotFound('local artifact');
   }
 
   // 2. Find remote artifact

@@ -84,7 +84,7 @@ export async function resolveSite(
       createJsonwsFallbackStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
     );
 
-  const result = await pipeline.execute(site, `Could not resolve site "${site}".`);
+  const result = await pipeline.execute(site);
   resolvedSiteCache.set(cacheKey, result);
   return result;
 }
@@ -163,7 +163,7 @@ export function normalizeFriendlyUrl(value: string): string {
 function normalizeResolvedSite(payload: SiteLookupPayload | null, site: string): ResolvedSite {
   const id = payload?.id ?? -1;
   if (id <= 0) {
-    throw new CliError(`Site not found: ${site}.`, {code: 'LIFERAY_SITE_NOT_FOUND'});
+    throw LiferayErrors.siteNotFound(site);
   }
 
   return {
