@@ -221,6 +221,46 @@ describe('LiferayGateway', () => {
     });
   });
 
+  describe('postFormRaw', () => {
+    test('calls apiClient.postForm with Authorization header and returns raw response', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(true, 201, {id: 123});
+
+      vi.mocked(apiClient.postForm).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const form = {name: 'value'};
+      const result = await gateway.postFormRaw('/api/raw-submit', form);
+
+      expect(result).toBe(response);
+      expect(apiClient.postForm).toHaveBeenCalledWith(
+        'http://localhost:8080',
+        '/api/raw-submit',
+        form,
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-access-token',
+          }),
+        }),
+      );
+    });
+
+    test('does not throw for non-ok responses', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(false, 409, null);
+
+      vi.mocked(apiClient.postForm).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const result = await gateway.postFormRaw('/api/raw-submit', {key: 'x'});
+
+      expect(result.ok).toBe(false);
+      expect(result.status).toBe(409);
+    });
+  });
+
   describe('postMultipart', () => {
     test('calls apiClient.postMultipart with Authorization header', async () => {
       const apiClient = createMockApiClient();
