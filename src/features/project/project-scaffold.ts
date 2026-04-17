@@ -3,6 +3,8 @@ import {fileURLToPath} from 'node:url';
 
 import fs from 'fs-extra';
 
+import {CliError} from '../../core/errors.js';
+
 export type ProjectAssets = {
   repoRoot: string;
   scaffoldDir: string;
@@ -161,7 +163,7 @@ async function copyMissingFileFromCandidates(sourceCandidates: string[], destina
     }
   }
 
-  throw new Error(`Missing scaffold asset for ${destination}`);
+  throw new CliError(`Missing scaffold asset for ${destination}`, {code: 'PROJECT_SCAFFOLD_ASSET_MISSING'});
 }
 
 async function copyAsset(sourceRoot: string, destinationRoot: string, relativePath: string): Promise<void> {
@@ -182,7 +184,9 @@ async function copyAssetFromCandidates(
     }
   }
 
-  throw new Error(`Missing scaffold asset for ${destinationRelativePath} in ${sourceRoot}`);
+  throw new CliError(`Missing scaffold asset for ${destinationRelativePath} in ${sourceRoot}`, {
+    code: 'PROJECT_SCAFFOLD_ASSET_MISSING',
+  });
 }
 
 async function ensureFile(filePath: string): Promise<void> {
@@ -202,7 +206,9 @@ function findPackageRoot(fromFile: string): string {
 
     const parent = path.dirname(current);
     if (parent === current) {
-      throw new Error(`Could not resolve the ldev package root from ${fromFile}`);
+      throw new CliError(`Could not resolve the ldev package root from ${fromFile}`, {
+        code: 'PROJECT_PACKAGE_ROOT_NOT_FOUND',
+      });
     }
     current = parent;
   }

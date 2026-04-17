@@ -1,5 +1,7 @@
 import {Command} from 'commander';
 
+import {CliError} from '../../core/errors.js';
+
 import {createCommandContext} from '../../cli/command-context.js';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
@@ -258,7 +260,7 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
     createFormattedAction(
       async (context, options) => {
         if (!options.key && !options.name) {
-          throw new Error('export-adt requires --key or --name');
+          throw new CliError('export-adt requires --key or --name', {code: 'RESOURCE_FLAG_REQUIRED'});
         }
         return runLiferayResourceExportAdts(context.config, {
           site: options.site,

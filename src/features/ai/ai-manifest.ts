@@ -4,6 +4,8 @@ import {fileURLToPath} from 'node:url';
 
 import fs from 'fs-extra';
 
+import {CliError} from '../../core/errors.js';
+
 export type ManagedRuleNamespace = 'ldev' | 'ldev-workspace' | 'ldev-native';
 
 export type RuleLayer = 'ldev-common' | 'project-type';
@@ -169,7 +171,9 @@ function findPackageRoot(fromFile: string): string {
 
     const parent = path.dirname(current);
     if (parent === current) {
-      throw new Error(`Could not resolve the ldev package root from ${fromFile}`);
+      throw new CliError(`Could not resolve the ldev package root from ${fromFile}`, {
+        code: 'AI_PACKAGE_ROOT_NOT_FOUND',
+      });
     }
     current = parent;
   }

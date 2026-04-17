@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
+import {CliError} from '../../core/errors.js';
 import type {ProjectType} from '../../core/config/project-type.js';
 import type {AiAssets} from './ai-manifest.js';
 import {copyAiTemplatePath, writeTextFileLf} from './ai-install-fs.js';
@@ -138,7 +139,9 @@ export function resolveSelectedSkills(vendorSkills: string[], requestedSkills: s
 
   const invalid = requestedSkills.filter((skillName) => !vendorSkills.includes(skillName));
   if (invalid.length > 0) {
-    throw new Error(`Unknown vendor skill(s): ${invalid.join(', ')}. Available skills: ${vendorSkills.join(', ')}`);
+    throw new CliError(`Unknown vendor skill(s): ${invalid.join(', ')}. Available skills: ${vendorSkills.join(', ')}`, {
+      code: 'AI_INSTALL_INVALID_VENDOR',
+    });
   }
 
   return requestedSkills;

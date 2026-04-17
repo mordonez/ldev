@@ -153,7 +153,7 @@ async function restoreDataSubdir(sourceDir: string, targetDir: string, processEn
     {env: processEnv, reject: false},
   );
   if (!result.ok) {
-    throw new Error(formatProcessError(result, `Could not restore ${sourceDir}`));
+    throw new CliError(formatProcessError(result, `Could not restore ${sourceDir}`), {code: 'ENV_RESTORE_FAILED'});
   }
 }
 
@@ -207,7 +207,9 @@ async function restorePostgresStorage(
     {env: processEnv, reject: false},
   );
   if (!result.ok) {
-    throw new Error(formatProcessError(result, 'Could not restore PostgreSQL storage'));
+    throw new CliError(formatProcessError(result, 'Could not restore PostgreSQL storage'), {
+      code: 'ENV_RESTORE_FAILED',
+    });
   }
 
   return true;
