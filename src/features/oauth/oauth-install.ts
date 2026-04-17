@@ -1,27 +1,24 @@
-import {randomUUID} from 'node:crypto';
-import {fileURLToPath} from 'node:url';
+﻿import {randomUUID} from 'node:crypto';
 import path from 'node:path';
-import {setTimeout as delay} from 'node:timers/promises';
-
-import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {LIFERAY_LOCAL_PROFILE_FILE} from '../../core/config/liferay-profile.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
 import type {Printer} from '../../core/output/printer.js';
-import {withProgress} from '../../core/output/printer.js';
-import {createOAuthTokenClient} from '../../core/http/auth.js';
-import {resolveEnvContext} from '../env/env-files.js';
-import {runGogoCommand} from '../osgi/osgi-shared.js';
-import {writeCredentialsToLocalProfile} from './oauth-env.js';
 import {
   resolveManagedOAuthScopeAliases,
   resolveOAuthScopeProfileAliases,
   type OAuthScopeProfileName,
 } from './oauth-scope-aliases.js';
-
-const BUNDLE_FILE_NAME = 'dev.mordonez.ldev.oauth2.app-1.0.0.jar';
+import {writeCredentialsToLocalProfile} from './oauth-env.js';
+import {deployBundledOAuthInstallerJar, writeOAuthInstallerOsgiConfig} from './oauth-install-bundle.js';
+import {executeOAuthInstallerCommand, buildOAuthInstallGogoCommand, parseKeyValueOutput} from './oauth-install-gogo.js';
+import {
+  verifyProvisionedOAuthInstall,
+  shouldSanitizeProvisionedOAuthConfig,
+  shouldPersistProvisionedOAuthCredentials,
+} from './oauth-install-verify.js';
 
 export type OAuthInstallResult = {
   ok: true;
@@ -68,6 +65,13 @@ export type OAuthAdminUnblockResult = {
   rawOutput: string;
 };
 
+export {deployBundledOAuthInstallerJar} from './oauth-install-bundle.js';
+export {executeOAuthInstallerCommand, buildOAuthInstallGogoCommand, parseKeyValueOutput} from './oauth-install-gogo.js';
+export {
+  shouldSanitizeProvisionedOAuthConfig,
+  shouldPersistProvisionedOAuthCredentials,
+} from './oauth-install-verify.js';
+
 export async function runOAuthInstall(
   config: AppConfig,
   options?: {
@@ -103,7 +107,7 @@ export async function runOAuthInstall(
 
   const bundleTargetFile = await deployBundledOAuthInstallerJar(config, options?.printer);
 
-  const command = buildGogoCommand(options?.companyId, options?.userId);
+  const command = buildOAuthInstallGogoCommand(options?.companyId, options?.userId);
   const rawOutput = await executeOAuthInstallCommand(config, command);
   const parsed = parseOAuthInstallOutput(rawOutput);
 
@@ -270,280 +274,8 @@ async function provisionOAuthViaOsgiConfig(
   };
 }
 
-async function deployBundledOAuthInstaller(sourceFile: string, targetFile: string, printer?: Printer): Promise<void> {
-  const deploy = async () => {
-    await fs.ensureDir(path.dirname(targetFile));
-    await fs.copy(sourceFile, targetFile, {overwrite: true});
-  };
-
-  if (printer) {
-    await withProgress(printer, 'Deploying bundled OAuth installer', deploy);
-    return;
-  }
-
-  await deploy();
-}
-
-export async function deployBundledOAuthInstallerJar(config: AppConfig, printer?: Printer): Promise<string> {
-  const bundleSourceFile = resolveBundledOAuthInstallerJar();
-  const bundleTargetFiles = resolveOAuthBundleDeployFiles(config);
-
-  for (const bundleTargetFile of bundleTargetFiles) {
-    await deployBundledOAuthInstaller(bundleSourceFile, bundleTargetFile, printer);
-  }
-
-  return bundleTargetFiles[0];
-}
-
-function resolveOAuthBundleDeployFiles(config: AppConfig): string[] {
-  if (config.dockerDir && config.liferayDir && config.repoRoot) {
-    const envContext = resolveEnvContext(config);
-    return [path.join(envContext.repoRoot, 'liferay', 'build', 'docker', 'deploy', BUNDLE_FILE_NAME)];
-  }
-
-  if (config.repoRoot) {
-    return [
-      path.join(config.repoRoot, 'bundles', 'deploy', BUNDLE_FILE_NAME),
-      path.join(config.repoRoot, 'configs', 'local', 'deploy', BUNDLE_FILE_NAME),
-    ];
-  }
-
-  throw new CliError('Could not resolve the deploy directory for the OAuth installer bundle.', {
-    code: 'OAUTH_INSTALL_DEPLOY_DIR_NOT_FOUND',
-  });
-}
-
-function resolveOAuthLocalProfileFile(config: AppConfig): string | null {
-  if (config.files.liferayLocalProfile) {
-    return config.files.liferayLocalProfile;
-  }
-
-  if (config.repoRoot) {
-    return path.join(config.repoRoot, LIFERAY_LOCAL_PROFILE_FILE);
-  }
-
-  return null;
-}
-
-async function writeOAuthInstallerOsgiConfig(
-  config: AppConfig,
-  options: {
-    enabled: boolean;
-    externalReferenceCode: string;
-    appName: string;
-    clientId: string;
-    clientSecret: string;
-    rotateClientSecret: boolean;
-    scopeAliases: string[];
-    companyId?: number;
-    userId?: number;
-  },
-): Promise<void> {
-  const fileName = 'dev.mordonez.ldev.oauth2.app.configuration.LdevOAuth2AppConfiguration.config';
-  const content = buildOAuthInstallerConfig(options);
-
-  for (const targetFile of resolveOAuthInstallerConfigFiles(config, fileName)) {
-    await fs.ensureDir(path.dirname(targetFile));
-    await fs.writeFile(targetFile, content, 'utf8');
-  }
-}
-
-function resolveOAuthInstallerConfigFiles(config: AppConfig, fileName: string): string[] {
-  if (config.dockerDir && config.liferayDir && config.repoRoot) {
-    return [
-      path.join(config.liferayDir, 'configs', 'dockerenv', 'osgi', 'configs', fileName),
-      path.join(config.liferayDir, 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'configs', fileName),
-    ];
-  }
-
-  if (config.repoRoot) {
-    return [
-      path.join(config.repoRoot, 'configs', 'local', 'osgi', 'configs', fileName),
-      path.join(config.repoRoot, 'bundles', 'osgi', 'configs', fileName),
-    ];
-  }
-
-  return [];
-}
-
-function buildOAuthInstallerConfig(options: {
-  enabled: boolean;
-  externalReferenceCode: string;
-  appName: string;
-  clientId: string;
-  clientSecret: string;
-  rotateClientSecret: boolean;
-  scopeAliases: string[];
-  companyId?: number;
-  userId?: number;
-}): string {
-  const lines = [
-    `enabled=B"${String(options.enabled)}"`,
-    `externalReferenceCode=${quoteOsgiConfigValue(options.externalReferenceCode)}`,
-    `appName=${quoteOsgiConfigValue(options.appName)}`,
-    `clientId=${quoteOsgiConfigValue(options.clientId)}`,
-    `clientSecret=${quoteOsgiConfigValue(options.clientSecret)}`,
-    `rotateClientSecret=B"${String(options.rotateClientSecret)}"`,
-    `scopeAliases=${quoteOsgiConfigStringArray(options.scopeAliases)}`,
-  ];
-
-  if (options.companyId && options.companyId > 0) {
-    lines.push(`companyId=L"${options.companyId}"`);
-  }
-
-  if (options.userId && options.userId > 0) {
-    lines.push(`userId=L"${options.userId}"`);
-  }
-
-  return `${lines.join('\n')}\n`;
-}
-
-function quoteOsgiConfigValue(value: string): string {
-  return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
-}
-
-function quoteOsgiConfigStringArray(values: string[]): string {
-  return `[${values.map(quoteOsgiConfigValue).join(',')}]`;
-}
-
-function resolveConfiguredOAuthScopeAliases(
-  config: AppConfig,
-  extraScopeAliases?: string[],
-  extraScopeProfiles?: OAuthScopeProfileName[],
-): string[] {
-  return resolveManagedOAuthScopeAliases([
-    ...config.liferay.scopeAliases.split(','),
-    ...resolveOAuthScopeProfileAliases(extraScopeProfiles ?? []),
-    ...(extraScopeAliases ?? []),
-  ]);
-}
-
-function shouldProvisionOAuthViaOsgiConfig(config: AppConfig): boolean {
-  if (!config.repoRoot) {
-    return false;
-  }
-
-  return resolveProjectContext({cwd: config.cwd}).projectType === 'blade-workspace';
-}
-
-function buildGeneratedClientId(prefix: string): string {
-  return `${prefix}-${randomUUID().replaceAll('-', '').slice(0, 12)}`;
-}
-
-function buildGeneratedClientSecret(): string {
-  return `secret-${randomUUID()}`;
-}
-
-async function verifyProvisionedOAuthInstall(
-  config: AppConfig,
-  credentials: {
-    clientId: string;
-    clientSecret: string;
-  },
-): Promise<OAuthInstallResult['verification']> {
-  if (!config.liferay.url || config.liferay.url.trim() === '') {
-    return {
-      attempted: false,
-      verified: false,
-      sanitized: false,
-      tokenType: null,
-      expiresIn: null,
-      error: null,
-    };
-  }
-
-  try {
-    const tokenClient = createOAuthTokenClient({
-      invalidClientRetryDelayMs: 3000,
-      invalidClientMaxWaitMs: 30000,
-    });
-    const token = await tokenClient.fetchClientCredentialsToken({
-      ...config.liferay,
-      oauth2ClientId: credentials.clientId,
-      oauth2ClientSecret: credentials.clientSecret,
-    });
-
-    return {
-      attempted: true,
-      verified: true,
-      sanitized: false,
-      tokenType: token.tokenType,
-      expiresIn: token.expiresIn,
-      error: null,
-    };
-  } catch (error) {
-    return {
-      attempted: true,
-      verified: false,
-      sanitized: false,
-      tokenType: null,
-      expiresIn: null,
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
-}
-
 async function executeOAuthInstallCommand(config: AppConfig, command: string): Promise<string> {
   return executeOAuthInstallerCommand(config, command, (output) => output.includes('LIFERAY_CLI_OAUTH2_CLIENT_ID='));
-}
-
-export async function executeOAuthInstallerCommand(
-  config: AppConfig,
-  command: string,
-  successPredicate: (output: string) => boolean,
-): Promise<string> {
-  let lastOutput = '';
-
-  for (let attempt = 1; attempt <= 12; attempt++) {
-    const output = await runGogoCommand(config, command, process.env);
-    lastOutput = output;
-
-    if (output.includes('CommandNotFoundException')) {
-      await delay(2000);
-      continue;
-    }
-
-    if (output.includes('Unrecognized client authentication method')) {
-      throw new CliError(
-        'OAuth installer bundle is deployed, but the portal rejected the client authentication method.',
-        {
-          code: 'OAUTH_INSTALL_CLIENT_AUTH_METHOD',
-        },
-      );
-    }
-
-    if (output.includes('PortalException:')) {
-      throw new CliError(output.trim(), {
-        code: 'OAUTH_INSTALL_FAILED',
-      });
-    }
-
-    if (successPredicate(output)) {
-      return output;
-    }
-
-    await delay(2000);
-  }
-
-  throw new CliError(lastOutput.trim() || 'OAuth installer command did not become available in Gogo.', {
-    code: 'OAUTH_INSTALL_GOGO_UNAVAILABLE',
-  });
-}
-
-function buildGogoCommand(companyId?: number, userId?: number): string {
-  if (companyId && userId) {
-    return `ldev:oauthInstall ${companyId} ${userId}`;
-  }
-
-  if (companyId) {
-    return `ldev:oauthInstall ${companyId}`;
-  }
-
-  return 'ldev:oauthInstall';
-}
-
-export function buildOAuthInstallGogoCommand(companyId?: number, userId?: number): string {
-  return buildGogoCommand(companyId, userId);
 }
 
 function parseOAuthInstallOutput(output: string): {
@@ -561,25 +293,7 @@ function parseOAuthInstallOutput(output: string): {
     clientSecret: string;
   } | null;
 } {
-  const values: Record<string, string> = {};
-
-  for (const rawLine of output.split(/\r?\n/)) {
-    const trimmedLine = rawLine.trim();
-    if (
-      !trimmedLine.includes('=') ||
-      trimmedLine.startsWith('Trying ') ||
-      trimmedLine.startsWith('Connected') ||
-      trimmedLine.startsWith('Escape character')
-    ) {
-      continue;
-    }
-
-    const line = trimmedLine.startsWith('g! ') ? trimmedLine.slice(3).trim() : trimmedLine;
-    const separatorIndex = line.indexOf('=');
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    values[key] = value;
-  }
+  const values = parseKeyValueOutput(output);
 
   const requiredKeys = [
     'companyId',
@@ -619,77 +333,42 @@ function parseOAuthInstallOutput(output: string): {
   };
 }
 
-function resolveBundledOAuthInstallerJar(): string {
-  const packageRoot = findPackageRoot(fileURLToPath(import.meta.url));
-  const filePath = path.join(packageRoot, 'templates', 'bundles', BUNDLE_FILE_NAME);
-
-  if (!fs.existsSync(filePath)) {
-    throw new CliError(`Bundled OAuth installer not found: ${filePath}`, {
-      code: 'OAUTH_INSTALL_BUNDLE_NOT_FOUND',
-    });
+function resolveOAuthLocalProfileFile(config: AppConfig): string | null {
+  if (config.files.liferayLocalProfile) {
+    return config.files.liferayLocalProfile;
   }
 
-  return filePath;
+  if (config.repoRoot) {
+    return path.join(config.repoRoot, LIFERAY_LOCAL_PROFILE_FILE);
+  }
+
+  return null;
 }
 
-export function parseKeyValueOutput(output: string): Record<string, string> {
-  const values: Record<string, string> = {};
-
-  for (const rawLine of output.split(/\r?\n/)) {
-    const trimmedLine = rawLine.trim();
-    if (
-      !trimmedLine.includes('=') ||
-      trimmedLine.startsWith('Trying ') ||
-      trimmedLine.startsWith('Connected') ||
-      trimmedLine.startsWith('Escape character')
-    ) {
-      continue;
-    }
-
-    const line = trimmedLine.startsWith('g! ') ? trimmedLine.slice(3).trim() : trimmedLine;
-    const separatorIndex = line.indexOf('=');
-    const key = line.slice(0, separatorIndex).trim();
-    const value = line.slice(separatorIndex + 1).trim();
-    values[key] = value;
-  }
-
-  return values;
+function resolveConfiguredOAuthScopeAliases(
+  config: AppConfig,
+  extraScopeAliases?: string[],
+  extraScopeProfiles?: OAuthScopeProfileName[],
+): string[] {
+  return resolveManagedOAuthScopeAliases([
+    ...config.liferay.scopeAliases.split(','),
+    ...resolveOAuthScopeProfileAliases(extraScopeProfiles ?? []),
+    ...(extraScopeAliases ?? []),
+  ]);
 }
 
-export function shouldSanitizeProvisionedOAuthConfig(verification: OAuthInstallResult['verification']): boolean {
-  if (verification.verified) {
-    return true;
-  }
-
-  if (!verification.attempted || !verification.error) {
+function shouldProvisionOAuthViaOsgiConfig(config: AppConfig): boolean {
+  if (!config.repoRoot) {
     return false;
   }
 
-  const normalized = verification.error.toLowerCase();
-
-  return normalized.includes('token request failed (');
+  return resolveProjectContext({cwd: config.cwd}).projectType === 'blade-workspace';
 }
 
-export function shouldPersistProvisionedOAuthCredentials(verification: OAuthInstallResult['verification']): boolean {
-  if (verification.verified || !verification.attempted) {
-    return true;
-  }
-
-  return Boolean(verification.error) && !shouldSanitizeProvisionedOAuthConfig(verification);
+function buildGeneratedClientId(prefix: string): string {
+  return `${prefix}-${randomUUID().replaceAll('-', '').slice(0, 12)}`;
 }
 
-function findPackageRoot(fromFile: string): string {
-  let current = path.dirname(fromFile);
-
-  while (true) {
-    if (fs.existsSync(path.join(current, 'package.json')) && fs.existsSync(path.join(current, 'templates'))) {
-      return current;
-    }
-
-    const parent = path.dirname(current);
-    if (parent === current) {
-      throw new Error(`Could not resolve the ldev package root from ${fromFile}`);
-    }
-    current = parent;
-  }
+function buildGeneratedClientSecret(): string {
+  return `secret-${randomUUID()}`;
 }
