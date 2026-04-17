@@ -162,7 +162,7 @@ function main(): void {
   check('liferayResourceSyncFragmentsResultSchema discriminates union', () => {
     const schema = contracts.liferayResourceSyncFragmentsResultSchema;
     const singleResult = schema.safeParse({
-      mode: 'oauth-zip-import',
+      mode: 'oauth-jsonws-import',
       site: '/site',
       siteId: 1,
       projectDir: '/dir',

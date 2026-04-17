@@ -58,7 +58,7 @@ export type LiferayResourceSyncFragmentsAllSitesResult = z.infer<
 /**
  * LiferayResourceSyncFragmentsResult: discriminated union of single-site vs all-sites results.
  */
-export const liferayResourceSyncFragmentsResultSchema = z.union([
+export const liferayResourceSyncFragmentsResultSchema = z.discriminatedUnion('mode', [
   liferayResourceSyncFragmentsSingleResultSchema,
   liferayResourceSyncFragmentsAllSitesResultSchema,
 ]);
