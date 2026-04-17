@@ -22,8 +22,8 @@ export const ADT_WIDGET_DIR_BY_TYPE: Record<string, string> = {
 
 export function requireRepoRoot(config: AppConfig): string {
   if (!config.repoRoot) {
-    throw new CliError('This command must be run inside a project repository.', {
-      code: 'LIFERAY_REPO_NOT_FOUND',
+    throw LiferayErrors.resourceRepoNotFound('project repository', {
+      details: {hint: 'This command must be run inside a project repository.'},
     });
   }
 
@@ -201,13 +201,13 @@ async function resolveStructureArtifactFile(config: AppConfig, key: string): Pro
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`Ambiguous structure file for ${key}: ${matches.join(', ')}`, {
-      code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
+    throw LiferayErrors.resourceFileAmbiguous(`structure:${key}`, matches, {
+      details: {key, type: 'structure', matches},
     });
   }
 
-  throw new CliError(`Structure file not found for ${key} in ${baseDir}. Use --file.`, {
-    code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND',
+  throw LiferayErrors.resourceFileNotFound(`structure:${key} in ${baseDir} (use --file)`, {
+    details: {key, type: 'structure', baseDir},
   });
 }
 
@@ -234,13 +234,13 @@ async function resolveTemplateArtifactFile(config: AppConfig, siteToken: string,
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`Ambiguous template file for ${key}: ${matches.join(', ')}`, {
-      code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
+    throw LiferayErrors.resourceFileAmbiguous(`template:${key}`, matches, {
+      details: {key, type: 'template', siteToken, matches},
     });
   }
 
-  throw new CliError(`Template file not found for ${key} in ${baseDir}. Use --file.`, {
-    code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND',
+  throw LiferayErrors.resourceFileNotFound(`template:${key} in ${baseDir} (use --file)`, {
+    details: {key, type: 'template', siteToken, baseDir},
   });
 }
 
@@ -260,13 +260,13 @@ async function resolveAdtArtifactFile(config: AppConfig, key: string, widgetType
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`Ambiguous ADT file for ${key} (${widgetType}): ${matches.join(', ')}`, {
-      code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
+    throw LiferayErrors.resourceFileAmbiguous(`adt:${key}:${widgetType}`, matches, {
+      details: {key, type: 'adt', widgetType, matches},
     });
   }
 
-  throw new CliError(`ADT file not found for ${key} (${widgetType}) in ${baseDir}. Use --file.`, {
-    code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND',
+  throw LiferayErrors.resourceFileNotFound(`adt:${key}:${widgetType} in ${baseDir} (use --file)`, {
+    details: {key, type: 'adt', widgetType, baseDir},
   });
 }
 
@@ -293,8 +293,8 @@ async function resolveExistingArtifactFile(config: AppConfig, candidate: string)
     }
   }
 
-  throw new CliError(`File not found: ${candidate}`, {
-    code: 'LIFERAY_RESOURCE_FILE_NOT_FOUND',
+  throw LiferayErrors.resourceFileNotFound(candidate, {
+    details: {candidate},
   });
 }
 
