@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "coverage": "starter-sample",
+  "description": "Entrypoint for localized admin menu maps used by agents and browser workflows.",
+  "menus": {
+    "admin": "docs/ai/menu/menu_admin.i18n.json",
+    "sidebar": "docs/ai/menu/sidebar_menu.i18n.json"
+  },
+  "placeholders": {
+    "portalUrl": "Portal base URL from ldev context --json",
+    "site": "Site friendly URL without locale prefix",
+    "siteGroupId": "Site group ID used in p_v_l_s_g_id params"
+  },
+  "notes": [
+    "Path is configurable per project; keep this file as your single canonical entrypoint wherever you place it.",
+    "Use project-owned literals only. Do not assume values from other repositories.",
+    "Admin and sidebar menu paths require an authenticated admin session.",
+    "Do not assume locale keys; projects may use a flat label/path contract."
+  ]
+}

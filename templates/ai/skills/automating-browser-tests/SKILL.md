@@ -7,6 +7,9 @@ description: "Use when a project needs Playwright-based browser checks, visual e
 
 Use `ldev` for portal discovery and runtime state, `playwright-cli` for browser actions.
 
+Read `REFERENCE.md` next to this skill for command syntax, browser installation,
+mobile viewport, login flows, page layout mutations, and cleanup patterns.
+
 ## Required bootstrap
 
 ```bash
@@ -18,131 +21,65 @@ ldev portal inventory page --url <fullUrl> --json
 
 Before opening Playwright, lock these fields from bootstrap:
 
-- `env.portalUrl`: use this exact host for the whole browser session
-- `ldev portal inventory page --url <fullUrl> --json`:
-  - `adminUrls.*` for candidate admin targets
-  - `siteFriendlyUrl`, `groupId`, `layout.plid` for manual fallback
-
-Do not mix `localhost` and `127.0.0.1` in the same browser flow. Liferay auth
-cookies are host-scoped, so a login on one host will not authenticate the
-other.
+- `env.portalUrl`: use this exact host for the whole browser session — do not mix `localhost` and `127.0.0.1`.
+- `ldev portal inventory page --url <fullUrl> --json` → `adminUrls.*`, `siteFriendlyUrl`, `groupId`, `layout.plid`.
 
 Check `ldev doctor --json` → `tools.playwrightCli.available` before starting any browser flow.
 
-If `tools.playwrightCli.available` is `false`, install it first and do not proceed until it is available:
+If `tools.playwrightCli.available` is `false`:
 
 ```bash
 npm install -g @playwright/cli@latest
 ```
 
-Then re-run `ldev doctor --json` to confirm `tools.playwrightCli.available` is `true` before continuing.
-All browser flows in this skill require `playwright-cli`.
-
-Install the official `playwright-cli` agent skills before using ad-hoc command
-syntax from memory:
+Re-confirm before continuing. Then install official skills:
 
 ```bash
 playwright-cli install --skills
 ```
 
-If this command fails, stop and report the tool-skills install failure instead of
-guessing unsupported flags. Then use `playwright-cli <command> --help` and this
-skill's `REFERENCE.md` for the current session.
+If that fails, stop and report the install failure. Use `playwright-cli <command> --help`
+and `REFERENCE.md` for the current session.
 
-Known wrapper caveats and safe shell patterns live in `REFERENCE.md` next to this skill. Read it when the browser flow starts failing for reasons that look tooling-related rather than product-related.
+For chromium install details or browser selection fallback policy, see `REFERENCE.md`.
 
-## Install Playwright Chromium (run first if browser is missing)
+## Project menu maps (optional)
 
-If `playwright-cli` reports that `chromium` is not installed:
+Some projects keep localized admin menu maps to speed up issue reproduction and
+browser navigation.
 
-PowerShell:
+Use the project-defined menu entrypoint path from `docs/ai/project-context.md`.
+If the project does not define one, the default suggestion is
+`docs/ai/menu/navigation.i18n.json`.
 
-```powershell
-$playwrightCli = Join-Path (npm root -g) '@playwright/cli/node_modules/playwright/cli.js'
-node $playwrightCli install chromium
-```
+If the menu entrypoint exists:
 
-Bash:
-
-```bash
-node "$(npm root -g)/@playwright/cli/node_modules/playwright/cli.js" install chromium
-```
-
-This installs the exact browser revision that the globally installed `playwright-cli` wrapper expects.
-
-## Browser Selection
-
-Do not assume Chrome is available on the machine.
-
-Before spending time on login or editor flows, check what the wrapper supports:
-
-```bash
-playwright-cli open --help
-```
-
-If browser startup fails with Chrome/Chromium errors, use this policy:
-
-1. If the issue is explicitly Chrome-specific, say Chrome validation is blocked by missing runtime and only use another browser for non-blocking functional checks.
-2. If the issue is not browser-specific, try alternate browsers and keep the first browser that actually opens:
-
-```bash
-playwright-cli -s=<session-name> open --browser firefox "<url>"
-playwright-cli -s=<session-name> open --browser webkit "<url>"
-```
-
-3. Do not burn time retrying browser installs without privileges. Move to `firefox` or `webkit` and continue validating the flow.
-
-Use `--browser chrome` only when Chrome is genuinely required. For generic runtime or editor validation, `firefox` is an acceptable alternate browser if it launches and reproduces the page.
-
-## Mobile viewport
-
-Do not pass viewport flags to `playwright-cli screenshot`; the screenshot command
-does not own navigation or viewport setup. Open the URL first, set the viewport
-on the existing page with `run-code`, then capture the screenshot.
-
-PowerShell:
-
-```powershell
-playwright-cli -s=mobile-<issue> open "<url>"
-$CODE = @'
-async function (page) {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.reload({ waitUntil: "domcontentloaded" });
-}
-'@
-playwright-cli -s=mobile-<issue> run-code "$CODE"
-playwright-cli -s=mobile-<issue> screenshot --filename=.tmp/<issue>/mobile.png
-playwright-cli -s=mobile-<issue> close
-```
+- Prefer those map paths for direct admin navigation instead of brittle label clicks.
+- Resolve placeholders from runtime facts:
+  - `portalUrl` from `ldev context --json`
+  - `site` and `siteGroupId` from `ldev portal inventory sites --json`
+- Start an authenticated admin session before opening admin map paths.
+- Keep map data project-owned. Do not copy project literals into vendor skills.
 
 ## Typical flow
 
 ```bash
-# Create evidence directory first (PowerShell: New-Item -ItemType Directory -Force .tmp/<issue-or-session>)
+# Create evidence directory (PowerShell: New-Item -ItemType Directory -Force .tmp/<issue>)
 mkdir -p .tmp/<issue-or-session>/
 
-# Open session
 playwright-cli -s=<session-name> open "<url>"
-
-# Capture before state
 playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/before.png
-
-# Snapshot only after navigation is stable; skip it if the page is still redirecting
 playwright-cli -s=<session-name> snapshot
-
-# After fix: capture post state
+# after fix:
 playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/after.png
-
-# Close session
 playwright-cli -s=<session-name> close
 ```
 
 Do not run `open`, `snapshot`, `screenshot`, `goto`, or `run-code` in parallel
 against the same session. Open first, then continue sequentially.
 
-When the browser flow starts from an issue URL, do not jump from `open` straight
-to grep or code edits. Use the browser and `ldev portal inventory page --url`
-together to inspect the actual loaded page first:
+When the browser flow starts from an issue URL, inspect the loaded page before
+deciding what code or resource to edit:
 
 ```bash
 playwright-cli -s=<session-name> open "<localUrl>"
@@ -150,143 +87,33 @@ playwright-cli -s=<session-name> snapshot
 ldev portal inventory page --url <localUrl> --json
 ```
 
-Use that inspection to answer:
-
-- did the expected local page load?
-- which page/resource/component is actually backing the visible UI?
-- which exact symptom is still present in `Red`?
-
-Do not treat "screenshot command succeeded" as evidence that the right page or
-component was validated.
-
-If the project provides a `.playwright/cli.config.json`, pass it:
-
-```bash
-playwright-cli -s=<session-name> open "<url>" --config=.playwright/cli.config.json
-```
-
-If the default config path does not exist, locate the actual config once before retrying:
-
-```bash
-rg --files . | rg '(^|/)cli\\.config\\.json$|playwright\\.config\\.'
-```
-
 ## Liferay login and editor auth
 
-Before attempting Page Editor actions, determine whether you need an authenticated admin session.
+Before Page Editor actions, determine whether an authenticated admin session is needed.
+Default local portal credentials are in `ldev-liferay-core.md`.
 
-Default local portal credentials are documented in `ldev-liferay-core.md`. Use those values
-in the login script below rather than assuming them from memory.
+Use DOM-id selectors inside `run-code` for login (localized pages are unreliable
+with text-matching wrappers). Full login script is in `REFERENCE.md`.
 
-For admin URLs from navigation maps, `adminUrls.*`, or Control Panel paths:
-
-- assume authentication is required unless the task proves otherwise
-- open the login page on the same host as `env.portalUrl`
-- finish login before navigating to the admin URL
-- if `ldev portal inventory page --url ... --json` returns `adminUrls.*` on a
-  different host spelling than the browser session, normalize the URL to the
-  browser host before opening it
-
-Manual `playwright-cli` login flow:
-
-```bash
-playwright-cli -s=page-editor-<issue> open "http://127.0.0.1:8080/c/portal/login"
-CODE=$(cat <<'EOF'
-async function (page) {
-  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_login").fill("test@liferay.com");
-  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_password").fill("test");
-  await page.locator("button[type=submit]").first().click();
-}
-EOF
-)
-playwright-cli -s=page-editor-<issue> run-code "$CODE"
-```
-
-Prefer `run-code` for login over ad-hoc `fill`/`click` wrapper commands when the
-login page is localized or wrapper text matching is unstable. Use DOM ids like:
-
-- `#_com_liferay_login_web_portlet_LoginPortlet_login`
-- `#_com_liferay_login_web_portlet_LoginPortlet_password`
-
-After login, immediately confirm the current page:
+After login, confirm the current page before navigating to admin URLs:
 
 ```bash
 playwright-cli -s=<session-name> run-code "async function (page) { return { url: page.url(), title: await page.title() }; }"
 ```
 
-If login lands on another site such as `edicioweb`, that only confirms the auth
-session. You may still need to navigate explicitly to the target site's admin
-URL afterwards.
-
-If a direct `adminUrls.translate` or `adminUrls.configure` URL does not land on
-the expected page and instead falls back to a generic "Pàgines del lloc web"
-screen, treat that URL as a hint rather than a guaranteed deep-link.
-
-Project-specific wrappers can document their own historical helper commands in a local `REFERENCE.md`.
-
-## Page layout mutations
-
-When the issue involves content page composition:
-
-```bash
-# 1. Export before touching
-ldev portal page-layout export --url <pageUrl>
-
-# 2. Separate sessions for runtime and editor
-playwright-cli -s=runtime-<issue> open "<runtimeUrl>"
-playwright-cli -s=editor-<issue> open "<editUrl>"
-
-# 3. If editor auth is needed, login first
-playwright-cli -s=editor-<issue> open "http://127.0.0.1:8080/c/portal/login"
-
-# 4. Make changes via run-code
-CODE=$(cat <<'EOF'
-async function (page) {
-  /* action */
-}
-EOF
-)
-playwright-cli -s=editor-<issue> run-code "$CODE"
-
-# 5. Capture and close
-playwright-cli -s=editor-<issue> screenshot --filename=.tmp/<issue>/after-edit.png
-playwright-cli -s=editor-<issue> close
-```
-
-Rules:
-- Keep runtime and editor in separate named sessions
-- Never run two helpers against the same session in parallel
-- If a session reports `session-busy`, wait and retry sequentially
-
-## Runtime verification
-
-```bash
-playwright-cli -s=runtime-check open "<url>"
-playwright-cli -s=runtime-check screenshot --filename=.tmp/<issue>/runtime-check.png
-playwright-cli -s=runtime-check close
-```
-
-Then check logs:
-```bash
-ldev logs --since 2m --no-follow
-```
-
-## Cleanup between sessions
-
-```bash
-playwright-cli close-all || true
-playwright-cli kill-all || true
-```
+For `adminUrls.*` on a different host spelling than the browser session, normalize the URL
+to the browser host before opening. Full page layout mutation pattern is in `REFERENCE.md`.
 
 ## Guardrails
 
-- Use semantic session names (`issue-NUM`, `page-editor-NUM`), not generic ones
-- Store evidence under `.tmp/<issue>/` before uploading anywhere
-- For flaky failures, use `tracing-start`/`tracing-stop` before guessing
-- Never validate against production; always reproduce locally first
-- For issue work, inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url` before deciding what code/resource to edit
-- If browser navigation lands on the wrong local site because of virtual host routing, treat browser evidence as blocked for that URL and use `curl`, `ldev portal inventory ...`, and runtime logs instead of forcing a misleading screenshot
-- If the browser is authenticated but lands in the wrong site admin context, do
-  not treat that as a login failure. Rebuild the admin URL from the intended
-  site context and continue on the same host.
-- If Chrome is unavailable but Firefox/WebKit works, report that explicitly instead of treating the whole validation as blocked
+- Use semantic session names (`issue-NUM`, `page-editor-NUM`), not generic ones.
+- Store evidence under `.tmp/<issue>/` before uploading anywhere.
+- For flaky failures, use `tracing-start`/`tracing-stop` before guessing.
+- Never validate against production; always reproduce locally first.
+- Inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url`
+  before deciding what code or resource to edit.
+- If browser navigation lands on the wrong site due to virtual host routing, use
+  `curl`, `ldev portal inventory ...`, and runtime logs instead of a misleading screenshot.
+- If Chrome is unavailable but Firefox/WebKit works, report that explicitly.
+- If a session reports `session-busy`, wait and retry sequentially.
+

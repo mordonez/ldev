@@ -45,6 +45,8 @@ ldev portal inventory templates --site /<site> --json
     - `../troubleshooting-liferay/references/reindex-after-import.md`
     - `../troubleshooting-liferay/references/reindex-journal.md`
     - `../troubleshooting-liferay/references/ddm-migration.md`
+    - `../troubleshooting-liferay/references/search-debug.md` — for buscador / search widget failures
+    - `../troubleshooting-liferay/references/content-versions.md` — for version accumulation or empty language versions
 - If the change is known and you need to edit source or portal resources:
   - use `developing-liferay`
   - useful references there:
@@ -53,6 +55,8 @@ ldev portal inventory templates --site /<site> --json
     - `../developing-liferay/references/fragments.md`
     - `../developing-liferay/references/osgi.md`
     - `../developing-liferay/references/extending-liferay.md`
+    - `../developing-liferay/references/groovy-console.md` — for portal console scripts, ERC vocabulary fixes
+    - `../developing-liferay/references/workflow.md` — for publish failures and workflow approval issues
 - If the change already exists and you need to build, deploy or verify runtime:
   - use `deploying-liferay`
   - useful reference there:
@@ -71,57 +75,9 @@ ldev portal inventory pages --site /<site> --json
 ldev portal inventory page --url <fullUrl> --json
 ```
 
-### Display Page Templates
-
-`ldev` does not expose dedicated Display Page Template commands yet.
-Verify MCP availability and use it for inspection:
-
-```bash
-ldev mcp check --json
-```
-
-If MCP is available, use OpenAPI discovery to find the relevant endpoint.
-Without MCP, `ldev portal inventory page --url <url> --json` can still confirm
-whether the URL resolves as a display page (`pageType: displayPage`) and which
-article/structure it serves, but it does not expose dedicated Display Page
-Template metadata yet.
-
-### Navigation Menus
-
-`ldev` does not expose dedicated Navigation Menu commands yet.
-Use `ldev mcp check --json` to verify MCP availability and route through
-the headless delivery API (`/o/headless-delivery/v2.0/navigation-menus`).
-
-### Multi-site resource origin
-
-Structures and templates are not always owned by the site visible in the
-browser URL. Shared or global structures live in `/global` or a shared site.
-
-Always verify the owning site before editing or importing:
-
-```bash
-ldev portal inventory page --url <fullUrl> --json
-ldev portal inventory structures --site /global --json
-ldev portal inventory structures --site /<site> --json
-```
-
-Do not assume the browser URL site is the source of truth. Export from the
-site that actually owns the object.
-
-See also: `../developing-liferay/references/structures.md` for the full
-export/import workflow.
-
-### Content volume per site
-
-When investigating large datasets after a production import:
-
-```bash
-ldev portal inventory sites --with-content --sort-by content
-ldev portal inventory sites --site /<site> --with-structures --limit 20
-```
-
-If volume is too high for local work, route to `troubleshooting-liferay`
-for the post-import content prune workflow.
+For details on Display Page Templates, Navigation Menus, multi-site resource
+ownership, and content volume inspection, see
+`references/site-objects.md`.
 
 ## Shared guardrails
 

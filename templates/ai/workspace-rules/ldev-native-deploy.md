@@ -18,12 +18,8 @@ Primary deploy model:
   change cannot be proved with a narrower deploy
 - `ldev deploy status` to verify what the runtime observed
 
-Prefer atomic deploys. Do not use a broad deploy as a default validation step.
-
-Do not use deploy commands for Journal templates, ADTs, fragments, or
-structures. Those live in the portal runtime; apply them with
-`ldev resource import-*` and validate the affected portal flow with
-`playwright-cli`.
+For universal deploy invariants (atomic-first policy, journal/ADT/fragment
+exclusions, post-mutation verification), see `ldev-deploy-verification.md`.
 
 If you reused a fix from another branch or commit, that does not waive local
 validation. Re-run the same `Red -> Green` flow in the current runtime before

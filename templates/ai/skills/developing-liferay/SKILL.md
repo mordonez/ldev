@@ -161,6 +161,7 @@ References:
 - `references/structures.md` — CLI workflow (export, validate, import)
 - `references/structure-field-catalog.md` — field type JSON catalog (use when authoring or editing structure JSON directly)
 - `references/workflow.md` — approval workflow states, inspection, and publish failures
+- `references/groovy-console.md` — portal console scripts, ERC vocabulary fixes, bulk operations with no `ldev` equivalent
 
 ```bash
 ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only

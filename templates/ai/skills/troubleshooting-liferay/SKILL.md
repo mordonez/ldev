@@ -163,6 +163,21 @@ References:
 - `references/reindex-after-import.md`
 - `references/reindex-journal.md`
 
+### Search and buscadores not working
+
+Reference: `references/search-debug.md`
+
+Covers: search widget returning 0 results, filter widgets (category/tag) not
+working, persistent visual bugs such as a hidden "Limpiar" button, and guest
+vs. authenticated result differences.
+
+### Content version accumulation or empty language versions
+
+Reference: `references/content-versions.md`
+
+Covers: articles with excessive version history, empty linguistic versions
+added by bulk sync processes, and Groovy-based bulk version cleanup.
+
 ```bash
 ldev portal reindex status --json
 ldev portal reindex tasks --json

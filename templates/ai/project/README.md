@@ -13,6 +13,9 @@ Rules for this folder:
 - Optional project context scaffolding is installed with `ldev ai install --project-context`
   or `ldev ai install --project`:
   `docs/ai/project-context.md`, `docs/ai/project-context.md.sample`.
+- Optional project menu-map scaffolding (for localized admin navigation) is
+  installed with `ldev ai install --project-context` or `ldev ai install --project`:
+  `docs/ai/menu/README.md`, `docs/ai/menu/navigation.i18n.json`.
 - Project-owned skills and agents remain optional overlays installed only with
   `ldev ai install --project`.
 - Project-owned overlays should stay focused on repository-specific process and
@@ -41,6 +44,9 @@ ldev ai install --target /path/to/project --local --project-context
 ```bash
 ldev ai install --target /path/to/project --project-context
 ```
+
+This also installs optional `docs/ai/menu/` scaffolding so projects can store
+localized admin menu maps for agent/browser workflows.
 
 3. If the repository wants the project-owned issue workflow overlay, add it:
 

@@ -18,12 +18,8 @@ Primary deploy model:
 - use a a broad deploy only when a human explicitly asks for a full deploy and
   the change cannot be proved with a narrower deploy
 
-Prefer atomic deploys. Do not use a broad deploy as a default validation step.
-
-Do not use deploy commands for Journal templates, ADTs, fragments, or
-structures. Those live in the portal runtime; apply them with
-`ldev resource import-*` and validate browser-visible behavior with
-`playwright-cli`.
+For universal deploy invariants (atomic-first policy, journal/ADT/fragment
+exclusions, post-mutation verification), see `ldev-deploy-verification.md`.
 
 For Client Extensions:
 

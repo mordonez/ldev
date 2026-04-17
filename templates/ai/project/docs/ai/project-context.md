@@ -54,3 +54,5 @@ List only what cannot live in a reusable vendor skill:
 - [TODO] site-building workflow
 - [TODO] fragment import workflow
 - [TODO] CI/deploy caveats
+- [TODO] localized admin menu maps under docs/ai/menu/
+- [TODO] menu map entrypoint path for agents (for example: docs/ai/menu/navigation.i18n.json)

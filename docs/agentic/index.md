@@ -50,6 +50,7 @@ What this prepares:
 - `AGENTS.md`
 - vendor-managed skills under `.agents/skills`
 - optional project context scaffolding
+- optional project menu-map scaffolding under `docs/ai/menu/`
 - optional project-owned skills and agents
 
 Real example:
@@ -114,6 +115,30 @@ This updates `.agents/skills/` and all tool-specific rule directories
 > (symlinks require Developer Mode). Re-running the command above refreshes
 > those copies. If you later enable Developer Mode, the next run replaces the
 > copies with proper symlinks automatically.
+
+## Runtime Contract
+
+The full execution contract lives in `AGENTS.md` (installed by `ldev ai install`). The
+canonical Safety Invariants section of that file applies to every task regardless of skill.
+
+Summary of the six phases a well-behaved agent follows:
+
+| Phase | When | Commands |
+|-------|------|----------|
+| Pre-flight | Always, before any task | `ldev context --json` |
+| Health check | Task touches runtime | `ldev doctor --json`, `ldev status --json` |
+| Discovery | Task mentions portal surface | `ldev portal inventory ...` |
+| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
+| Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
+| Post-mutation verify | After any mutation | `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
+
+Key invariants (full list in `AGENTS.md → Safety Invariants`):
+
+- Always read `env.portalUrl` from context — never assume.
+- Always consume `--json`. Never parse human-readable output.
+- Always run `--check-only` before resource mutations.
+- Never use plural resource commands without explicit human approval.
+- Diagnose before retrying a failed command.
 
 ## Execution, not hype
 
