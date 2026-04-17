@@ -103,6 +103,31 @@ Notes:
 
 ## Project Runbooks
 
+- Optional: localized admin menu maps for browser workflows:
+
+If your project uses complex or localized back office menus, keep a project-owned
+menu map contract under `docs/ai/menu/`:
+
+- `docs/ai/menu/navigation.i18n.json` (entrypoint)
+- `docs/ai/menu/menu_admin.i18n.json` (admin/control-panel paths)
+- `docs/ai/menu/sidebar_menu.i18n.json` (site-scoped sidebar paths)
+
+Use placeholders (`{site}`, `{siteGroupId}`) and resolve them with:
+
+```bash
+ldev context --json
+ldev portal inventory sites --json
+```
+
+Declare a canonical entrypoint path in this document so agents do not assume
+a hardcoded location, for example:
+
+```md
+Menu map entrypoint: docs/ai/menu/navigation.i18n.json
+```
+
+These files are project-owned context and should be adapted in each repository.
+
 - Build and deploy the smallest affected artifact:
 
 ```bash

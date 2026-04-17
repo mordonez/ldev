@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "coverage": "starter-sample",
+  "menuId": "admin",
+  "description": "Localized admin menu paths for direct control-panel navigation.",
+  "notes": [
+    "Starter sample only: replace with your full admin menu inventory.",
+    "Include standard Liferay and project custom entries relevant to your runtime.",
+    "Use a flat label/path contract unless your project explicitly needs localized keys."
+  ],
+  "sections": [
+    {
+      "sectionId": "section_1",
+      "title": "Applications",
+      "groups": [
+        {
+          "groupId": "group_1_1",
+          "title": "Example",
+          "items": [
+            {
+              "itemId": "item_1_1_1",
+              "label": "Navigation Menus",
+              "path": "/group/{site}/~/control_panel/manage?p_p_id=com_liferay_site_navigation_admin_web_portlet_SiteNavigationAdminPortlet&p_p_lifecycle=0&p_p_state=maximized&p_v_l_s_g_id={siteGroupId}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

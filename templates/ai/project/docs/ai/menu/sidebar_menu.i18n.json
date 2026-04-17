@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "coverage": "starter-sample",
+  "menuId": "sidebar",
+  "description": "Localized site-sidebar menu paths for direct admin navigation.",
+  "notes": [
+    "Starter sample only: replace with your full sidebar menu inventory.",
+    "Use a flat label/path contract unless your project explicitly needs localized keys."
+  ],
+  "sections": [
+    {
+      "sectionId": "section_1",
+      "title": "Site",
+      "groups": [
+        {
+          "groupId": "group_1_1",
+          "title": "Builder",
+          "items": [
+            {
+              "itemId": "item_1_1_1",
+              "label": "Pages",
+              "path": "/group/{site}/~/control_panel/manage?p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet&p_p_lifecycle=0&p_p_state=maximized&p_v_l_s_g_id={siteGroupId}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -23,6 +23,8 @@ import {
 } from '../../features/liferay/inventory/liferay-inventory-sites.js';
 import {
   formatLiferayInventoryStructures,
+  type LiferayInventoryStructuresResult,
+  runLiferayInventoryStructuresAllSites,
   runLiferayInventoryStructures,
 } from '../../features/liferay/inventory/liferay-inventory-structures.js';
 import {
@@ -223,17 +225,32 @@ Notes:
   addOutputFormatOption(
     inventory
       .command('structures')
-      .description('List journal structures for a site')
+      .description('List journal structures for a site or for all sites')
       .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
-      .option('--page-size <pageSize>', 'Headless page size', '200'),
+      .option('--page-size <pageSize>', 'Headless page size', '200')
+      .option('--with-templates', 'Include associated templates for each structure')
+      .option('--all-sites', 'List structures for all accessible sites in one run'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
-        runLiferayInventoryStructures(context.config, {
+      async (context, options) => {
+        const pageSize = Number.parseInt(options.pageSize, 10) || 200;
+
+        if (options.allSites) {
+          return runLiferayInventoryStructuresAllSites(context.config, {
+            pageSize,
+            withTemplates: Boolean(options.withTemplates),
+          });
+        }
+
+        return runLiferayInventoryStructures(context.config, {
           site: options.site,
-          pageSize: Number.parseInt(options.pageSize, 10) || 200,
-        }),
-      {text: formatLiferayInventoryStructures},
+          pageSize,
+          withTemplates: Boolean(options.withTemplates),
+        });
+      },
+      {
+        text: (result: LiferayInventoryStructuresResult) => formatLiferayInventoryStructures(result),
+      },
     ),
   );
 

@@ -109,7 +109,8 @@ async function exportStructuresForSite(
   checkOnly: boolean,
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportStructuresSiteResult> {
-  const rows = await runLiferayInventoryStructures(config, {site}, dependencies);
+  const inventory = await runLiferayInventoryStructures(config, {site}, dependencies);
+  const rows = inventory.sites[0]?.structures ?? [];
   const siteToken = resolveSiteToken(site);
   const outputDir = resolveArtifactSiteDir(config, 'structure', siteToken, dir);
   let processed = 0;

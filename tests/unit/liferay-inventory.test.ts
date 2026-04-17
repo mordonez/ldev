@@ -2,6 +2,7 @@ import {describe, expect, test, beforeEach} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
+  runLiferayInventoryStructuresAllSites,
   formatLiferayInventoryStructures,
   runLiferayInventoryStructures,
 } from '../../src/features/liferay/inventory/liferay-inventory-structures.js';
@@ -264,11 +265,181 @@ describe('liferay inventory structures and templates', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    expect(result).toEqual([
-      {id: 301, key: 'BASIC', name: 'Basic Web Content'},
-      {id: 302, key: 'NEWS', name: 'News'},
-    ]);
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {id: 301, key: 'BASIC', name: 'Basic Web Content'},
+            {id: 302, key: 'NEWS', name: 'News'},
+          ],
+        },
+      ],
+      summary: {totalSites: 1, totalStructures: 2},
+    });
     expect(formatLiferayInventoryStructures(result)).toContain('id=301 key=BASIC name=Basic Web Content');
+  });
+
+  test('lists structures with associated templates when requested', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites?pageSize=100&page=1')) {
+          return new Response('{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"}],"lastPage":1}', {
+            status: 200,
+          });
+        }
+
+        if (url.includes('/data-definitions/by-content-type/journal?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"BASIC","name":{"en_US":"Basic Web Content"}},{"id":302,"dataDefinitionKey":"NEWS","name":{"en_US":"News"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/sites/20121/content-templates?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":"40801","name":"News Template","contentStructureId":302,"externalReferenceCode":"news-template"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryStructures(
+      CONFIG,
+      {site: '/global', pageSize: 2, withTemplates: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {id: 301, key: 'BASIC', name: 'Basic Web Content', templates: []},
+            {
+              id: 302,
+              key: 'NEWS',
+              name: 'News',
+              templates: [{id: '40801', name: 'News Template', externalReferenceCode: 'news-template'}],
+            },
+          ],
+        },
+      ],
+      summary: {totalSites: 1, totalStructures: 2},
+    });
+
+    expect(formatLiferayInventoryStructures(result)).toContain('id=302 key=NEWS name=News templates=1');
+  });
+
+  test('lists structures for all sites in one run', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"},{"id":20122,"friendlyUrlPath":"/ub","name":"UB"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/ub')) {
+          return new Response('{"id":20122,"friendlyUrlPath":"/ub","name":"UB"}', {status: 200});
+        }
+
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=2')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"GLOBAL_BASIC","name":{"en_US":"Global Basic"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20122/data-definitions/by-content-type/journal?page=1&pageSize=2')
+        ) {
+          return new Response(
+            '{"items":[{"id":302,"dataDefinitionKey":"UB_NEWS","name":{"en_US":"UB News"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/sites/20121/content-templates?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":"41001","name":"Global Template","contentStructureId":301,"externalReferenceCode":"global-template"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/sites/20122/content-templates?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":"41002","name":"UB Template","contentStructureId":302,"externalReferenceCode":"ub-template"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryStructuresAllSites(
+      CONFIG,
+      {pageSize: 2, withTemplates: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {
+              id: 301,
+              key: 'GLOBAL_BASIC',
+              name: 'Global Basic',
+              templates: [{id: '41001', name: 'Global Template', externalReferenceCode: 'global-template'}],
+            },
+          ],
+        },
+        {
+          siteGroupId: 20122,
+          siteFriendlyUrl: '/ub',
+          siteName: 'UB',
+          structures: [
+            {
+              id: 302,
+              key: 'UB_NEWS',
+              name: 'UB News',
+              templates: [{id: '41002', name: 'UB Template', externalReferenceCode: 'ub-template'}],
+            },
+          ],
+        },
+      ],
+      summary: {totalSites: 2, totalStructures: 2},
+    });
+
+    expect(formatLiferayInventoryStructures(result)).toContain('site=/global groupId=20121 name=Global structures=1');
+    expect(formatLiferayInventoryStructures(result)).toContain('site=/ub groupId=20122 name=UB structures=1');
   });
 
   test('lists templates for a site', async () => {

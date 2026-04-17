@@ -62,9 +62,12 @@ If a page, site, structure or template is involved, resolve it from the portal:
 
 ```bash
 ldev portal inventory page --url <fullUrl> --json
-ldev portal inventory structures --site /<site> --json
+ldev portal inventory structures --site /<site> --with-templates --json
 ldev portal inventory templates --site /<site> --json
 ```
+
+For structure/template incidents, treat `--with-templates` as the default
+discovery path to avoid separate lookup rounds.
 
 ### Production reproduction
 
@@ -162,6 +165,21 @@ Use a worktree when:
 References:
 - `references/reindex-after-import.md`
 - `references/reindex-journal.md`
+
+### Search and buscadores not working
+
+Reference: `references/search-debug.md`
+
+Covers: search widget returning 0 results, filter widgets (category/tag) not
+working, persistent visual bugs such as a hidden "Limpiar" button, and guest
+vs. authenticated result differences.
+
+### Content version accumulation or empty language versions
+
+Reference: `references/content-versions.md`
+
+Covers: articles with excessive version history, empty linguistic versions
+added by bulk sync processes, and Groovy-based bulk version cleanup.
 
 ```bash
 ldev portal reindex status --json

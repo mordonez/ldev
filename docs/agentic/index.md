@@ -50,6 +50,7 @@ What this prepares:
 - `AGENTS.md`
 - vendor-managed skills under `.agents/skills`
 - optional project context scaffolding
+- optional project menu-map scaffolding under `docs/ai/menu/`
 - optional project-owned skills and agents
 
 Real example:
@@ -97,7 +98,13 @@ Agents can inspect the portal without screen scraping or UI navigation:
 ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
+ldev portal inventory structures --site /global --with-templates --json
 ```
+
+For structure/template incidents, prefer `inventory structures --with-templates`
+as the first discovery step. It returns the structure list enriched with
+associated templates in one call, so agents can route directly to the correct
+export/import commands.
 
 ## Keeping rules and skills up to date
 
@@ -114,6 +121,31 @@ This updates `.agents/skills/` and all tool-specific rule directories
 > (symlinks require Developer Mode). Re-running the command above refreshes
 > those copies. If you later enable Developer Mode, the next run replaces the
 > copies with proper symlinks automatically.
+
+## Runtime Contract
+
+The full execution contract lives in `AGENTS.md` (installed by `ldev ai install`). The
+canonical Safety Invariants section of that file applies to every task regardless of skill.
+
+Summary of the six phases a well-behaved agent follows:
+
+| Phase | When | Commands |
+|-------|------|----------|
+| Pre-flight | Always, before any task | `ldev context --json` |
+| Health check | Task touches runtime | `ldev doctor --json`, `ldev status --json` |
+| Discovery | Task mentions portal surface | `ldev portal inventory ...` |
+| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
+| Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
+| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`; runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
+
+Key invariants (full list in `AGENTS.md → Safety Invariants`):
+
+- Always read `env.portalUrl` from context — never assume.
+- Always consume `--json`. Never parse human-readable output.
+- Always run `--check-only` before resource mutations.
+- Never use plural resource commands without explicit human approval.
+- Do not treat `ldev logs diagnose` as universal verification for resource imports; prefer read-after-write evidence from `ldev resource` / `ldev portal inventory`.
+- Diagnose before retrying a failed command.
 
 ## Execution, not hype
 
