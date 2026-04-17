@@ -2,7 +2,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {createConcurrencyLimiter, mapConcurrent} from '../../../core/concurrency.js';
 import {CliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
-import {createLiferayApiClient, type LiferayApiClient} from '../../../core/http/client.js';
+import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
 import {LiferayErrors} from '../errors/index.js';
@@ -73,7 +73,7 @@ export type ContentStatsResult =
     };
 
 type ContentStatsDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
   printer?: Printer;
 };
@@ -369,7 +369,7 @@ function stripComputedFolderStats(folder: ComputedFolderStats): ContentStatsFold
 
 async function enrichFoldersWithStructures(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   tokenClient: OAuthTokenClient,
   articleGateway: LiferayGateway,
   groupId: number,

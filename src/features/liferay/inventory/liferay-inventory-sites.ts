@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../../core/http/auth.js';
@@ -26,7 +26,7 @@ type HeadlessSite = {
 export async function runLiferayInventorySites(
   config: AppConfig,
   options?: {pageSize?: number},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventorySite[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
@@ -80,7 +80,7 @@ export async function runLiferayInventorySites(
 export async function runLiferayInventorySitesIncludingGlobal(
   config: AppConfig,
   options?: {pageSize?: number},
-  dependencies?: {apiClient?: LiferayApiClient; tokenClient?: OAuthTokenClient},
+  dependencies?: {apiClient?: HttpApiClient; tokenClient?: OAuthTokenClient},
 ): Promise<LiferayInventorySite[]> {
   const sites = await runLiferayInventorySites(config, options, dependencies);
   const byFriendlyUrl = new Map<string, LiferayInventorySite>();

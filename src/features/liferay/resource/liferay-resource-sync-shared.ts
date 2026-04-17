@@ -2,14 +2,14 @@ import {createHash} from 'node:crypto';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import type {HttpResponse} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {ensureData} from '../liferay-http-shared.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

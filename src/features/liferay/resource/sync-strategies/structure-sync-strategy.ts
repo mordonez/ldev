@@ -7,7 +7,7 @@ import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
-import type {LiferayApiClient} from '../../../../core/http/client.js';
+import type {HttpApiClient} from '../../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
@@ -319,7 +319,7 @@ async function fetchStructureByKeyViaGateway(
 
 async function fetchStructureByKey(
   config: AppConfig,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   accessToken: string,
   siteId: number,
   key: string,
@@ -456,7 +456,7 @@ function isRecoverableTimeoutError(error: unknown): boolean {
     return false;
   }
 
-  if (error.code !== 'LIFERAY_HTTP_ERROR') {
+  if (error.code !== 'HTTP_ERROR') {
     return false;
   }
 

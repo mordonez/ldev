@@ -5,10 +5,10 @@ import path from 'node:path';
 
 import pRetry, {AbortError} from 'p-retry';
 
-import {CliError} from '../../core/errors.js';
-import {createLiferayApiClient, type LiferayApiClient} from './client.js';
+import {CliError} from '../errors.js';
+import {createLiferayApiClient, type HttpApiClient} from './client.js';
 
-export type LiferayAuthConfig = {
+export type OAuthClientCredentialsConfig = {
   url: string;
   oauth2ClientId: string;
   oauth2ClientSecret: string;
@@ -23,11 +23,11 @@ export type TokenResponse = {
 };
 
 export type OAuthTokenClient = {
-  fetchClientCredentialsToken: (settings: LiferayAuthConfig) => Promise<TokenResponse>;
+  fetchClientCredentialsToken: (settings: OAuthClientCredentialsConfig) => Promise<TokenResponse>;
 };
 
 export function createOAuthTokenClient(options?: {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   invalidClientRetryDelayMs?: number;
   invalidClientMaxWaitMs?: number;
   cacheDir?: string;
@@ -43,7 +43,7 @@ export function createOAuthTokenClient(options?: {
     async fetchClientCredentialsToken(settings) {
       if (settings.oauth2ClientId.trim() === '' || settings.oauth2ClientSecret.trim() === '') {
         throw new CliError('Missing OAuth2 credentials: set oauth2ClientId and oauth2ClientSecret.', {
-          code: 'LIFERAY_AUTH_CONFIG_ERROR',
+          code: 'AUTH_CONFIG_ERROR',
         });
       }
 
@@ -99,7 +99,7 @@ type CachedTokenPayload = {
   expiresAt: number;
 };
 
-async function requestWithFallback(apiClient: LiferayApiClient, settings: LiferayAuthConfig, scope: string) {
+async function requestWithFallback(apiClient: HttpApiClient, settings: OAuthClientCredentialsConfig, scope: string) {
   const baseForm = {
     grant_type: 'client_credentials',
     ...(scope === '' ? {} : {scope}),
@@ -135,11 +135,11 @@ function parseTokenResponse(body: string, clientId: string): TokenResponse {
   try {
     parsed = JSON.parse(body);
   } catch {
-    throw new CliError(`Invalid OAuth2 response for clientId=${clientId}.`, {code: 'LIFERAY_AUTH_ERROR'});
+    throw new CliError(`Invalid OAuth2 response for clientId=${clientId}.`, {code: 'AUTH_ERROR'});
   }
 
   if (!isTokenPayload(parsed)) {
-    throw new CliError(`OAuth2 response missing access_token for clientId=${clientId}.`, {code: 'LIFERAY_AUTH_ERROR'});
+    throw new CliError(`OAuth2 response missing access_token for clientId=${clientId}.`, {code: 'AUTH_ERROR'});
   }
 
   return {
@@ -180,7 +180,7 @@ function isInvalidClient(status: number, body: string): boolean {
 
 function buildTokenError(status: number, body: string, clientId: string): CliError {
   return new CliError(`Token request failed (${status}) for clientId=${clientId}: ${sanitizeBody(body)}`, {
-    code: 'LIFERAY_AUTH_ERROR',
+    code: 'AUTH_ERROR',
   });
 }
 
@@ -204,7 +204,7 @@ function isTokenPayload(value: unknown): value is {
 
 async function readCachedToken(
   cacheDir: string,
-  settings: LiferayAuthConfig,
+  settings: OAuthClientCredentialsConfig,
   now: () => number,
 ): Promise<TokenResponse | null> {
   const file = tokenCacheFile(cacheDir, settings);
@@ -240,7 +240,7 @@ async function readCachedToken(
 
 async function writeCachedToken(
   cacheDir: string,
-  settings: LiferayAuthConfig,
+  settings: OAuthClientCredentialsConfig,
   token: TokenResponse,
   now: () => number,
 ): Promise<void> {
@@ -256,7 +256,7 @@ async function writeCachedToken(
   await fs.writeFile(file, JSON.stringify(payload), {mode: 0o600});
 }
 
-function tokenCacheFile(cacheDir: string, settings: LiferayAuthConfig): string {
+function tokenCacheFile(cacheDir: string, settings: OAuthClientCredentialsConfig): string {
   const key = crypto
     .createHash('sha256')
     .update(

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines -- inventory orchestration intentionally consolidated during active refactor */
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {ResolvedSite} from './liferay-inventory-shared.js';
@@ -73,7 +73,7 @@ export async function fetchSiteRootInventory(
 export async function fetchDisplayPageInventory(
   config: AppConfig,
   gateway: LiferayGateway,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   site: ResolvedSite,
   urlTitle: string,
 ): Promise<LiferayInventoryPageResult> {
@@ -135,7 +135,7 @@ export async function fetchDisplayPageInventory(
 export async function fetchRegularPageInventory(
   config: AppConfig,
   gateway: LiferayGateway,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   site: ResolvedSite,
   friendlyUrl: string,
   privateLayout: boolean,
@@ -411,7 +411,7 @@ function extractPortletInstance(portletId: string): {instanceId?: string} {
 export async function resolveRegularLayoutPageData(
   config: AppConfig,
   gateway: LiferayGateway,
-  apiClient: LiferayApiClient,
+  apiClient: HttpApiClient,
   site: ResolvedSite,
   friendlyUrl: string,
   privateLayout: boolean,

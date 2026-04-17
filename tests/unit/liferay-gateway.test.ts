@@ -2,7 +2,7 @@ import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {OAuthTokenClient, TokenResponse} from '../../src/core/http/auth.js';
-import type {HttpResponse, LiferayApiClient} from '../../src/core/http/client.js';
+import type {HttpResponse, HttpApiClient} from '../../src/core/http/client.js';
 import {CliError} from '../../src/core/errors.js';
 import {LiferayGateway} from '../../src/features/liferay/liferay-gateway.js';
 
@@ -30,7 +30,7 @@ const mockToken: TokenResponse = {
   expiresIn: 3600,
 };
 
-const createMockApiClient = (): LiferayApiClient => ({
+const createMockApiClient = (): HttpApiClient => ({
   get: vi.fn(),
   delete: vi.fn(),
   postJson: vi.fn(),

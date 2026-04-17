@@ -1,6 +1,6 @@
 import pRetry from 'p-retry';
 
-import {CliError} from '../../core/errors.js';
+import {CliError} from '../errors.js';
 import {parseJsonSafely} from '../utils/json.js';
 
 export type FetchLike = typeof fetch;
@@ -18,7 +18,7 @@ export type HttpResponse<T = unknown> = {
   data: T | null;
 };
 
-export type LiferayApiClient = {
+export type HttpApiClient = {
   get: <T = unknown>(baseUrl: string, path: string, options?: HttpRequestOptions) => Promise<HttpResponse<T>>;
   delete: <T = unknown>(baseUrl: string, path: string, options?: HttpRequestOptions) => Promise<HttpResponse<T>>;
   postForm: <T = unknown>(
@@ -47,7 +47,7 @@ export type LiferayApiClient = {
   ) => Promise<HttpResponse<T>>;
 };
 
-export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAttempts?: number}): LiferayApiClient {
+export function createLiferayApiClient(options?: {fetchImpl?: FetchLike; maxAttempts?: number}): HttpApiClient {
   const fetchImpl = options?.fetchImpl ?? fetch;
   const maxAttempts = options?.maxAttempts ?? 3;
 
@@ -192,7 +192,7 @@ async function sendWithRetry<T>(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'HTTP request failed';
-    throw new CliError(`${message}: ${url}`, {code: 'LIFERAY_HTTP_ERROR'});
+    throw new CliError(`${message}: ${url}`, {code: 'HTTP_ERROR'});
   }
 }
 

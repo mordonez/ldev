@@ -1,7 +1,7 @@
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
@@ -10,7 +10,7 @@ import {buildResourceSiteChain} from './liferay-resource-shared.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
@@ -17,7 +17,7 @@ const EXPORT_KIND = 'liferay-page-layout-export';
 const EXPORT_SCHEMA_VERSION = 1;
 
 type PageLayoutExportDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
   now?: () => Date;
 };

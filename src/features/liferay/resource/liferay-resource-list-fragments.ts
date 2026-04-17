@@ -1,10 +1,10 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
 
 type ResourceDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

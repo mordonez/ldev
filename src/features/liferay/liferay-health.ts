@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../core/http/auth.js';
-import {type LiferayApiClient} from '../../core/http/client.js';
+import {type HttpApiClient} from '../../core/http/client.js';
 import {createLiferayGateway, type LiferayGateway} from './liferay-gateway.js';
 import {LiferayErrors} from './errors/index.js';
 
@@ -19,7 +19,7 @@ export type LiferayHealthResult = {
 };
 
 type HealthDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 

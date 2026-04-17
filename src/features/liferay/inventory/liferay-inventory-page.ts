@@ -1,7 +1,7 @@
 /* eslint-disable max-lines -- inventory result contract and formatter remain co-located intentionally */
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {LiferayApiClient} from '../../../core/http/client.js';
+import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
@@ -24,7 +24,7 @@ import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-sha
 export {resolveInventoryPageRequest};
 
 type InventoryPageDependencies = {
-  apiClient?: LiferayApiClient;
+  apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 
