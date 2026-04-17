@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 import path from 'node:path';
 import {createGunzip} from 'node:zlib';
 import {pipeline} from 'node:stream/promises';
@@ -13,8 +13,8 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {normalizeProcessEnv} from '../../core/platform/process.js';
-import {buildComposeEnv, ensureEnvDataLayout, resolveEnvContext, resolvePostgresStorage} from '../env/env-files.js';
+import {formatProcessError, normalizeProcessEnv} from '../../core/platform/process.js';
+import {buildComposeEnv, ensureEnvDataLayout, resolveEnvContext, resolvePostgresStorage} from '../env/env-shared.js';
 
 export type DbImportResult = {
   ok: true;
@@ -129,7 +129,7 @@ async function resolvePostImportFiles(dockerDir: string): Promise<string[]> {
     .sort((left, right) => path.basename(left).localeCompare(path.basename(right)));
 }
 
-async function resolveBackupFile(dockerDir: string, explicitFile?: string): Promise<string> {
+export async function resolveBackupFile(dockerDir: string, explicitFile?: string): Promise<string> {
   if (explicitFile && explicitFile.trim() !== '') {
     const candidate = path.resolve(explicitFile);
     if (!(await fs.pathExists(candidate))) {
@@ -150,7 +150,7 @@ async function resolveBackupFile(dockerDir: string, explicitFile?: string): Prom
   return candidates[0].file;
 }
 
-async function findBackupFiles(root: string): Promise<Array<{file: string; mtimeMs: number}>> {
+export async function findBackupFiles(root: string): Promise<Array<{file: string; mtimeMs: number}>> {
   if (!(await fs.pathExists(root))) {
     return [];
   }
@@ -215,7 +215,7 @@ async function hasDirectoryContents(directory: string, processEnv?: NodeJS.Proce
   );
 
   if (!result.ok) {
-    throw new CliError(result.stderr.trim() || result.stdout.trim() || `Could not inspect ${directory}`, {
+    throw new CliError(formatProcessError(result, `Could not inspect ${directory}`), {
       code: 'DB_IMPORT_POSTGRES_CHECK_FAILED',
     });
   }
@@ -263,16 +263,17 @@ async function waitForPostgresReady(
   }
 }
 
-async function streamSqlIntoPostgres(
+export async function streamSqlIntoPostgres(
   dockerDir: string,
   sqlFile: string,
   envValues: Record<string, string>,
   processEnv?: NodeJS.ProcessEnv,
+  spawnFn: typeof spawn = spawn,
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
   const normalizedEnv = normalizeProcessEnv(processEnv);
-  const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
+  const child = spawnFn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
     cwd: dockerDir,
     env: normalizedEnv,
     shell: process.platform === 'win32',
@@ -301,7 +302,7 @@ async function streamSqlIntoPostgres(
   } catch (error) {
     // EPIPE / ERR_STREAM_PREMATURE_CLOSE: the child closed its stdin before we
     // finished writing (e.g. fake docker in tests or a quick psql exit).
-    // This is expected — wait for the actual exit code rather than aborting.
+    // This is expected â€” wait for the actual exit code rather than aborting.
     const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
     const isExpected = errorCode === 'EPIPE' || errorCode === 'ERR_STREAM_PREMATURE_CLOSE';
     if (!isExpected) {
