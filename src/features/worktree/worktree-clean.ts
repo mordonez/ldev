@@ -1,4 +1,4 @@
-import path from 'node:path';
+﻿import path from 'node:path';
 
 import fs from 'fs-extra';
 
@@ -16,7 +16,7 @@ import {
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
-import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../env/env-files.js';
+import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../env/env-shared.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 
@@ -116,7 +116,7 @@ export async function runWorktreeClean(options: {
   const doclibVolumesRemoved: string[] = [];
 
   const cleanTask = async () => {
-    // === Docker cleanup first: containers → volumes → images ===
+    // === Docker cleanup first: containers â†’ volumes â†’ images ===
     // Must run before any filesystem operations so that Docker resources are
     // always freed even if a later git/file removal throws EBUSY.
     if (await fs.pathExists(target.dockerDir)) {
@@ -139,7 +139,7 @@ export async function runWorktreeClean(options: {
     // === Filesystem cleanup ===
     if (isRegistered) {
       // Remove the directory first (with EBUSY retries), then let git prune the
-      // stale reference — avoids git's own rmdir attempt racing with Docker handle release.
+      // stale reference â€” avoids git's own rmdir attempt racing with Docker handle release.
       if (await fs.pathExists(target.worktreeDir)) {
         await removePathRobust(target.worktreeDir, {processEnv: options.processEnv}).catch(async () => {
           // Fallback: let git try its own force-remove

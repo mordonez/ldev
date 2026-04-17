@@ -1,10 +1,10 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 
 export type DbQueryResult = {
   ok: true;

@@ -1,11 +1,11 @@
-import os from 'node:os';
+﻿import os from 'node:os';
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import {measureHttpLatency} from '../../core/http/latency.js';
 import {runProcess} from '../../core/platform/process.js';
 import {parseLines} from '../../core/utils/text.js';
 import {collectEnvStatus} from '../env/env-health.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 
 export type HealthResult = {
   ok: true;

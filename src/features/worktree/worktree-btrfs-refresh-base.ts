@@ -1,8 +1,8 @@
-import {CliError} from '../../core/errors.js';
+﻿import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 import {resolveWorktreeContext} from './worktree-paths.js';
 import {refreshBtrfsBaseFromMain, resolveBtrfsConfig} from './worktree-state.js';
 

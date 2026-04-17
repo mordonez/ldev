@@ -1,4 +1,4 @@
-import type {AppConfig} from '../../core/config/load-config.js';
+﻿import type {AppConfig} from '../../core/config/load-config.js';
 import type {ProjectContext} from '../../core/config/project-context.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
@@ -6,7 +6,7 @@ import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {getCurrentBranchName, getGitCommonDir, isWorktree} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
 import {collectEnvStatus} from '../env/env-health.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 import {runAiStatus} from '../ai/ai-status.js';
 import {runAgentCapabilities, type AgentCapabilitiesReport} from './agent-capabilities.js';
 

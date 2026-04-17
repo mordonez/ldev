@@ -1,10 +1,10 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {readEnvFile} from '../../core/config/env-file.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../env/env-shared.js';
 import {addGitWorktree, isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
