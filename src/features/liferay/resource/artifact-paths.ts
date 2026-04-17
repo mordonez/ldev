@@ -201,7 +201,7 @@ async function resolveStructureArtifactFile(config: AppConfig, key: string): Pro
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`Structure file ambiguo para ${key}: ${matches.join(', ')}`, {
+    throw new CliError(`Ambiguous structure file for ${key}: ${matches.join(', ')}`, {
       code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
     });
   }
@@ -234,7 +234,7 @@ async function resolveTemplateArtifactFile(config: AppConfig, siteToken: string,
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`Template file ambiguo para ${key}: ${matches.join(', ')}`, {
+    throw new CliError(`Ambiguous template file for ${key}: ${matches.join(', ')}`, {
       code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
     });
   }
@@ -260,7 +260,7 @@ async function resolveAdtArtifactFile(config: AppConfig, key: string, widgetType
     return matches[0]!;
   }
   if (matches.length > 1) {
-    throw new CliError(`ADT file ambiguo para ${key} (${widgetType}): ${matches.join(', ')}`, {
+    throw new CliError(`Ambiguous ADT file for ${key} (${widgetType}): ${matches.join(', ')}`, {
       code: 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
     });
   }
