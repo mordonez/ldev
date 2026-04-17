@@ -1,4 +1,4 @@
-import fs from 'fs-extra';
+﻿import fs from 'fs-extra';
 import path from 'node:path';
 import {spawn} from 'node:child_process';
 import os from 'node:os';
@@ -12,7 +12,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {normalizeProcessEnv} from '../../core/platform/process.js';
-import {buildComposeEnv, resolveEnvContext} from '../env/env-files.js';
+import {buildComposeEnv, resolveEnvContext} from '../env/env-shared.js';
 import {
   resolveAdtsBaseDir,
   resolveFragmentsBaseDir,
@@ -104,7 +104,7 @@ export function formatSnapshot(result: SnapshotResult): string {
   ].join('\n');
 }
 
-function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): string {
+export function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): string {
   if (explicitOutput?.trim()) {
     return path.resolve(explicitOutput);
   }
@@ -116,7 +116,7 @@ function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): string 
   return path.join(config.repoRoot, '.ldev', 'snapshots', stamp);
 }
 
-async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
+export async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
   if (!config.liferayDir) {
     throw new CliError('snapshot requires liferayDir.', {code: 'SNAPSHOT_REPO_REQUIRED'});
   }
@@ -130,15 +130,16 @@ async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
   ];
 }
 
-async function writePostgresDump(
+export async function writePostgresDump(
   envContext: ReturnType<typeof resolveEnvContext>,
   outputFile: string,
   processEnv?: NodeJS.ProcessEnv,
+  spawnFn: typeof spawn = spawn,
 ): Promise<void> {
   const user = envContext.envValues.POSTGRES_USER || 'liferay';
   const db = envContext.envValues.POSTGRES_DB || 'liferay';
   const normalizedEnv = normalizeProcessEnv(processEnv);
-  const child = spawn('docker', ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', user, '-d', db], {
+  const child = spawnFn('docker', ['compose', 'exec', '-T', 'postgres', 'pg_dump', '-U', user, '-d', db], {
     cwd: envContext.dockerDir,
     env: normalizedEnv,
     shell: process.platform === 'win32',
