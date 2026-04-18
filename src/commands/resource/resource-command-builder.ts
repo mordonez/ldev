@@ -113,6 +113,19 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
     await runLiferayPreflight(context.config);
   });
 
+  // Build all resource subcommands organized by category
+  buildResourceGetSubcommands(resource);
+  buildResourceExportSubcommands(resource);
+  buildResourceImportSubcommands(resource);
+  buildResourceMigrationSubcommands(resource);
+
+  return resource;
+}
+
+/**
+ * Add read (get/list) commands: structure, template, adt, adts, fragments
+ */
+function buildResourceGetSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('structure')
@@ -151,6 +164,80 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
     ),
   );
 
+  addOutputFormatOption(
+    resource
+      .command('adt')
+      .description('Inspect one ADT in detail')
+      .option('--site <site>', 'Site friendly URL or numeric ID; omit to search accessible sites')
+      .option('--display-style <displayStyle>', 'Runtime display style like ddmTemplate_19690804')
+      .option('--id <id>', 'Numeric template id')
+      .option('--key <key>', 'ADT template key')
+      .option('--name <name>', 'ADT visible name')
+      .option('--widget-type <widgetType>', 'Optional widget type filter')
+      .option(
+        '--class-name <className>',
+        'Explicit Java class name to query when the widget type is not in the built-in map',
+      ),
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runLiferayResourceGetAdt(context.config, {
+          site: options.site,
+          displayStyle: options.displayStyle,
+          id: options.id,
+          key: options.key,
+          name: options.name,
+          widgetType: options.widgetType,
+          className: options.className,
+        }),
+      {text: formatLiferayResourceAdt},
+    ),
+  );
+
+  addOutputFormatOption(
+    resource
+      .command('adts')
+      .description('List application display templates for a site')
+      .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
+      .option('--widget-type <widgetType>', 'Optional widget type filter')
+      .option(
+        '--class-name <className>',
+        'Explicit Java class name to query when the widget type is not in the built-in map',
+      )
+      .option('--include-script', 'Include template script in JSON output'),
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runLiferayResourceListAdts(context.config, {
+          site: options.site,
+          widgetType: options.widgetType,
+          className: options.className,
+          includeScript: Boolean(options.includeScript),
+        }),
+      {text: formatLiferayResourceAdts},
+    ),
+  );
+
+  addOutputFormatOption(
+    resource
+      .command('fragments')
+      .description('List fragment collections and fragment entries for a site')
+      .option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
+  ).action(
+    createFormattedAction(
+      async (context, options) =>
+        runLiferayResourceListFragments(context.config, {
+          site: options.site,
+        }),
+      {text: formatLiferayResourceFragments},
+    ),
+  );
+}
+
+/**
+ * Add export commands: export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments
+ */
+function buildResourceExportSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('export-structure')
@@ -351,7 +438,12 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
       {text: formatLiferayResourceExportFragments},
     ),
   );
+}
 
+/**
+ * Add import commands: import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts
+ */
+function buildResourceImportSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('import-structure')
@@ -605,7 +697,12 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
       {text: formatLiferayResourceImportAdts, exitCode: getLiferayResourceImportAdtsExitCode},
     ),
   );
+}
 
+/**
+ * Add migration commands: migration-init, migration-run, migration-pipeline
+ */
+function buildResourceMigrationSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('migration-init')
@@ -684,77 +781,6 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
       {text: formatLiferayResourceMigrationPipeline},
     ),
   );
-
-  addOutputFormatOption(
-    resource
-      .command('adt')
-      .description('Inspect one ADT in detail')
-      .option('--site <site>', 'Site friendly URL or numeric ID; omit to search accessible sites')
-      .option('--display-style <displayStyle>', 'Runtime display style like ddmTemplate_19690804')
-      .option('--id <id>', 'Numeric template id')
-      .option('--key <key>', 'ADT template key')
-      .option('--name <name>', 'ADT visible name')
-      .option('--widget-type <widgetType>', 'Optional widget type filter')
-      .option(
-        '--class-name <className>',
-        'Explicit Java class name to query when the widget type is not in the built-in map',
-      ),
-  ).action(
-    createFormattedAction(
-      async (context, options) =>
-        runLiferayResourceGetAdt(context.config, {
-          site: options.site,
-          displayStyle: options.displayStyle,
-          id: options.id,
-          key: options.key,
-          name: options.name,
-          widgetType: options.widgetType,
-          className: options.className,
-        }),
-      {text: formatLiferayResourceAdt},
-    ),
-  );
-
-  addOutputFormatOption(
-    resource
-      .command('adts')
-      .description('List application display templates for a site')
-      .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
-      .option('--widget-type <widgetType>', 'Optional widget type filter')
-      .option(
-        '--class-name <className>',
-        'Explicit Java class name to query when the widget type is not in the built-in map',
-      )
-      .option('--include-script', 'Include template script in JSON output'),
-  ).action(
-    createFormattedAction(
-      async (context, options) =>
-        runLiferayResourceListAdts(context.config, {
-          site: options.site,
-          widgetType: options.widgetType,
-          className: options.className,
-          includeScript: Boolean(options.includeScript),
-        }),
-      {text: formatLiferayResourceAdts},
-    ),
-  );
-
-  addOutputFormatOption(
-    resource
-      .command('fragments')
-      .description('List fragment collections and fragment entries for a site')
-      .option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
-  ).action(
-    createFormattedAction(
-      async (context, options) =>
-        runLiferayResourceListFragments(context.config, {
-          site: options.site,
-        }),
-      {text: formatLiferayResourceFragments},
-    ),
-  );
-
-  return resource;
 }
 
 function collectRepeatableOption(value: string, previous: string[] = []): string[] {
