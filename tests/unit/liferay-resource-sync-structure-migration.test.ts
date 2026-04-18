@@ -284,6 +284,99 @@ describe('structure migration', () => {
       expect(stats.articleKeys).toBeDefined();
       expect(Array.isArray(stats.articleKeys)).toBe(true);
     });
+
+    test('scans paginated structure contents across multiple pages', async () => {
+      tempDir = createTempDir('migration-pagination-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      const plan = {
+        plan: {
+          mappings: [{source: 'oldField', target: 'newField', cleanupSource: false}],
+        },
+      };
+
+      await fs.writeJson(planPath, plan);
+
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/content-structures/') && requestPath.includes('page=1')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 2,
+            };
+          }
+          if (requestPath.includes('/content-structures/') && requestPath.includes('page=2')) {
+            return {
+              items: [{id: 'content-2', key: 'article-2', contentStructureId: 'struct-123'}],
+              lastPage: 2,
+            };
+          }
+          if (requestPath.includes('/structured-contents/content-')) {
+            return {id: 'content-1', contentFields: []};
+          }
+          return {};
+        }),
+        putJson: vi.fn(),
+      } as any;
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: true,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+      });
+
+      expect(stats.scanned).toBe(2);
+      expect(mockGateway.getJson).toHaveBeenCalledWith(
+        expect.stringContaining('page=2'),
+        expect.stringContaining('structure-migrate list'),
+      );
+    });
+
+    test('throws summarized failure when putJson fails for one content item', async () => {
+      tempDir = createTempDir('migration-putjson-failure-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      const plan = {
+        plan: {
+          mappings: [{source: 'oldField', target: 'newField', cleanupSource: false}],
+        },
+      };
+
+      await fs.writeJson(planPath, plan);
+
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/content-structures/')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 1,
+            };
+          }
+          if (requestPath.includes('/structured-contents/content-1')) {
+            return {
+              id: 'content-1',
+              key: 'article-1',
+              contentStructureId: 'struct-123',
+              contentFields: [{name: 'oldField', contentFieldValue: {data: 'value'}}],
+            };
+          }
+          return {};
+        }),
+        putJson: vi.fn(async () => {
+          throw new Error('upsert failed');
+        }),
+      } as any;
+
+      await expect(
+        runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+          gateway: mockGateway,
+          dryRun: false,
+          cleanupSource: false,
+          fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        }),
+      ).rejects.toThrow('Structure migration failed for 1 content item');
+    });
   });
 
   describe('captureMigrationSourceSnapshots', () => {
