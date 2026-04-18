@@ -80,6 +80,24 @@ describe('runLiferayPreflight', () => {
     expect(result.expectedFallback).toBe('jsonws');
   });
 
+  test('adminSite 403 with adminUser ok and jsonws ok → expectedFallback is admin-user (priority)', async () => {
+    const apiClient = makeApiClient({
+      '/o/headless-admin-site/v1.0/sites': {status: 403, body: 'forbidden'},
+      '/o/headless-admin-user/v1.0/my-user-account': {status: 200, body: '{}'},
+      '/api/jsonws/portal/get-build-number': {status: 200, body: '7400'},
+    });
+
+    const result = await runLiferayPreflight(
+      {...CONFIG, liferay: {...CONFIG.liferay, url: 'http://localhost:9010'}},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.adminSite).toBe('forbidden');
+    expect(result.adminUser).toBe('ok');
+    expect(result.jsonws).toBe('ok');
+    expect(result.expectedFallback).toBe('admin-user');
+  });
+
   test('adminSite 404 with adminUser ok → expectedFallback is admin-user', async () => {
     const apiClient = makeApiClient({
       '/o/headless-admin-site/v1.0/sites': {status: 404, body: 'not found'},
@@ -94,6 +112,24 @@ describe('runLiferayPreflight', () => {
 
     expect(result.adminSite).toBe('unavailable');
     expect(result.expectedFallback).toBe('admin-user');
+  });
+
+  test('adminSite 404 and adminUser 403 with jsonws ok → expectedFallback is jsonws', async () => {
+    const apiClient = makeApiClient({
+      '/o/headless-admin-site/v1.0/sites': {status: 404, body: 'not found'},
+      '/o/headless-admin-user/v1.0/my-user-account': {status: 403, body: 'forbidden'},
+      '/api/jsonws/portal/get-build-number': {status: 200, body: '7400'},
+    });
+
+    const result = await runLiferayPreflight(
+      {...CONFIG, liferay: {...CONFIG.liferay, url: 'http://localhost:9011'}},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.adminSite).toBe('unavailable');
+    expect(result.adminUser).toBe('forbidden');
+    expect(result.jsonws).toBe('ok');
+    expect(result.expectedFallback).toBe('jsonws');
   });
 
   test('all surfaces return 403 → expectedFallback is none', async () => {
