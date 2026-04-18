@@ -1,12 +1,12 @@
 import fs from 'fs-extra';
 
-import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runEnvSetup} from '../env/env-setup.js';
 import {runEnvStart} from '../env/env-start.js';
+import {WorktreeErrors} from './errors/index.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
@@ -27,14 +27,12 @@ export async function runWorktreeStart(options: {
 }): Promise<WorktreeStartResult> {
   const config = loadConfig({cwd: options.cwd, env: process.env});
   if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
-    throw new CliError('worktree start must be run inside a valid git repository.', {
-      code: 'WORKTREE_REPO_NOT_FOUND',
-    });
+    throw WorktreeErrors.repoNotFound('worktree start must be run inside a valid git repository.');
   }
 
   const capabilities = await detectCapabilities(config.cwd);
   if (!capabilities.supportsWorktrees) {
-    throw new CliError('Git worktrees are not available in this environment.', {code: 'WORKTREE_CAPABILITY_MISSING'});
+    throw WorktreeErrors.capabilityMissing('Git worktrees are not available in this environment.');
   }
 
   const context = resolveWorktreeContext(config.repoRoot);
@@ -47,23 +45,18 @@ export async function runWorktreeStart(options: {
       : null;
 
   if (!target) {
-    throw new CliError('worktree start requires a NAME or execution inside the target worktree.', {
-      code: 'WORKTREE_NAME_REQUIRED',
-    });
+    throw WorktreeErrors.nameRequired('worktree start requires a NAME or execution inside the target worktree.');
   }
 
   if (!(await fs.pathExists(target.worktreeDir)) || !(await fs.pathExists(target.dockerDir))) {
-    throw new CliError(
+    throw WorktreeErrors.notFound(
       `Worktree not found: ${target.worktreeDir}\nCreate it first with 'ldev worktree setup --name ${target.name}'.`,
-      {code: 'WORKTREE_NOT_FOUND'},
     );
   }
 
   const existing = await listGitWorktrees(context.mainRepoRoot);
   if (!existing.includes(target.worktreeDir)) {
-    throw new CliError(`The path exists but is not a registered git worktree: ${target.worktreeDir}`, {
-      code: 'WORKTREE_NOT_REGISTERED',
-    });
+    throw WorktreeErrors.notRegistered(`The path exists but is not a registered git worktree: ${target.worktreeDir}`);
   }
 
   const envResult = await runWorktreeEnv({
