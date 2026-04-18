@@ -1,6 +1,5 @@
 import fs from 'fs-extra';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
@@ -11,6 +10,7 @@ import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
 
 import {ensureActivationKeyPrepared} from './env-activation-key.js';
+import {EnvErrors} from './errors/index.js';
 import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
 import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
 
@@ -40,7 +40,7 @@ export async function runEnvStart(
   const capabilities = await detectCapabilities(config.cwd, {processEnv: options?.processEnv});
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
-    throw new CliError('Docker and docker compose are required for env start.', {code: 'ENV_CAPABILITY_MISSING'});
+    throw EnvErrors.capabilityMissing('Docker and docker compose are required for env start.');
   }
 
   const activationKey = await ensureActivationKeyPrepared(config, options?.activationKeyFile);
@@ -87,7 +87,7 @@ export async function runEnvStart(
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Timed out while waiting for the Liferay service health.';
-      throw new CliError(message, {code: 'ENV_START_TIMEOUT'});
+      throw EnvErrors.startTimeout(message);
     }
   }
 

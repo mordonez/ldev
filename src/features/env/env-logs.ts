@@ -1,7 +1,7 @@
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import {EnvErrors} from './errors/index.js';
 
 import {resolveEnvContext} from './env-files.js';
 
@@ -24,7 +24,7 @@ export async function runEnvLogs(config: AppConfig, options?: EnvLogsOptions): P
   const capabilities = await detectCapabilities(config.cwd);
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
-    throw new CliError('Docker and docker compose are required for env logs.', {code: 'ENV_CAPABILITY_MISSING'});
+    throw EnvErrors.capabilityMissing('Docker and docker compose are required for env logs.');
   }
 
   const args = ['logs'];
