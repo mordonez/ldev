@@ -1,12 +1,12 @@
 import path from 'node:path';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDockerOrThrow, runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import {EnvErrors} from './errors/index.js';
 import {buildComposeEnv, resolveEnvContext, resolveManagedStorages} from './env-files.js';
 
 export type EnvCleanResult = {
@@ -23,14 +23,14 @@ export async function runEnvClean(
   options?: {force?: boolean; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
 ): Promise<EnvCleanResult> {
   if (!(options?.force ?? false)) {
-    throw new CliError('env clean is destructive; run it again with --force.', {code: 'ENV_FORCE_REQUIRED'});
+    throw EnvErrors.forceRequired('env clean is destructive; run it again with --force.');
   }
 
   const context = resolveEnvContext(config);
   const capabilities = await detectCapabilities(config.cwd);
 
   if (!capabilities.hasDocker || !capabilities.hasDockerCompose) {
-    throw new CliError('Docker and docker compose are required for env clean.', {code: 'ENV_CAPABILITY_MISSING'});
+    throw EnvErrors.capabilityMissing('Docker and docker compose are required for env clean.');
   }
 
   const cleanTask = async () => {
