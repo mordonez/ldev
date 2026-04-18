@@ -7,7 +7,6 @@ import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
-import type {HttpApiClient} from '../../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
@@ -26,12 +25,7 @@ import {
   runStructureMigration,
   type MigrationStats,
 } from '../liferay-resource-sync-structure-migration.js';
-import {
-  authOptions,
-  expectJsonSuccess,
-  normalizeMigrationPhase,
-  shouldRunPostMigration,
-} from '../liferay-resource-sync-structure-utils.js';
+import {normalizeMigrationPhase, shouldRunPostMigration} from '../liferay-resource-sync-structure-utils.js';
 import type {ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
@@ -136,7 +130,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData>> {
     const opts = options as StructureSyncOptions;
-    const {apiClient, tokenClient, gateway} = createStructureTransport(config, dependencies);
+    const {gateway} = createStructureTransport(config, dependencies);
 
     const payload = await fs.readJson(localArtifact.data.filePath);
     const payloadFieldRefs = collectFieldReferences(payload);
@@ -154,8 +148,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     const phase = normalizeMigrationPhase(opts.migrationPhase);
     let migration: MigrationStats | undefined;
     const migrationOptions = {
-      apiClient,
-      tokenClient,
+      gateway,
       cleanupSource: Boolean(opts.cleanupMigration),
       dryRun: Boolean(opts.migrationDryRun),
       fetchStructureByKeyFn: fetchStructureByKey,
@@ -226,8 +219,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
 
     if (autoTransition) {
       const sourceSnapshots = await captureMigrationSourceSnapshots(config, runtimeId, site.id, opts.migrationPlan!, {
-        apiClient,
-        tokenClient,
+        gateway,
       });
       updatePayload = buildTransitionPayload(remoteArtifact.data.runtimeDefinition, payload);
       await putJsonAsResource<Record<string, unknown>>(
@@ -318,22 +310,12 @@ async function fetchStructureByKeyViaGateway(
 }
 
 async function fetchStructureByKey(
-  config: AppConfig,
-  apiClient: HttpApiClient,
-  accessToken: string,
+  _config: AppConfig,
+  gateway: LiferayGateway,
   siteId: number,
   key: string,
 ): Promise<Record<string, unknown> | null> {
-  const response = await apiClient.get<Record<string, unknown>>(
-    config.liferay.url,
-    `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
-    authOptions(config, accessToken),
-  );
-  if (response.status === 404) {
-    return null;
-  }
-  const success = await expectJsonSuccess(response, 'resource structure-sync get', 'LIFERAY_RESOURCE_ERROR');
-  return (success.data as Record<string, unknown>) ?? {};
+  return fetchStructureByKeyViaGateway(gateway, siteId, key);
 }
 
 async function postJsonAsResource<T>(

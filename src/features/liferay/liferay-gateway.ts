@@ -143,14 +143,17 @@ export class LiferayGateway {
    * PUT JSON /path, parse JSON response, assert ok status, return data.
    * @throws CliError if response not ok
    */
-  async putJson<T>(path: string, payload: unknown, label: string): Promise<T> {
+  async putJson<T>(path: string, payload: unknown, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
     const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.putJson<T>(
-      this.config.liferay.url,
-      path,
-      payload,
-      buildAuthOptions(this.config, accessToken),
-    );
+    const authOpts = buildAuthOptions(this.config, accessToken);
+    const response = await this.apiClient.putJson<T>(this.config.liferay.url, path, payload, {
+      ...authOpts,
+      ...requestOptions,
+      headers: {
+        ...authOpts.headers,
+        ...requestOptions?.headers,
+      },
+    });
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
