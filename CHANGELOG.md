@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0](https://github.com/mordonez/ldev/compare/ldev-v0.4.0...ldev-v0.5.0) (2026-04-18)
+
+### Miscellaneous Chores
+
+* align package version metadata with release-please workflow
+
 ## [0.4.0](https://github.com/mordonez/ldev/compare/ldev-v0.3.0...ldev-v0.4.0) (2026-04-13)
 
 
