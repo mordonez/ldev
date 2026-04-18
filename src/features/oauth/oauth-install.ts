@@ -1,7 +1,6 @@
 ﻿import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {LIFERAY_LOCAL_PROFILE_FILE} from '../../core/config/liferay-profile.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
@@ -11,6 +10,7 @@ import {
   resolveOAuthScopeProfileAliases,
   type OAuthScopeProfileName,
 } from './oauth-scope-aliases.js';
+import {OAuthErrors} from './errors/index.js';
 import {writeCredentialsToLocalProfile} from './oauth-env.js';
 import {deployBundledOAuthInstallerJar, writeOAuthInstallerOsgiConfig} from './oauth-install-bundle.js';
 import {executeOAuthInstallerCommand, buildOAuthInstallGogoCommand, parseKeyValueOutput} from './oauth-install-gogo.js';
@@ -307,9 +307,7 @@ function parseOAuthInstallOutput(output: string): {
 
   for (const key of requiredKeys) {
     if (!values[key]) {
-      throw new CliError(`OAuth installer output is missing '${key}'.`, {
-        code: 'OAUTH_INSTALL_PARSE_ERROR',
-      });
+      throw OAuthErrors.installParseError(`OAuth installer output is missing '${key}'.`);
     }
   }
 
