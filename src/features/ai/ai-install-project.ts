@@ -10,7 +10,7 @@ import {copyAiTemplatePath, writeTextFileLf} from './ai-install-fs.js';
 export type AgentsInstallStatus = 'installed' | 'overwritten' | 'kept' | 'skipped';
 
 export function normalizeRelativePath(value: string): string {
-  return value.split(path.sep).join('/');
+  return value.replace(/\\+/g, '/').split(path.sep).join('/');
 }
 
 export function currentVerifiedProducts(projectType: ProjectType, targetDir: string): string[] {
