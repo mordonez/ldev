@@ -1,6 +1,6 @@
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
+import {OAuthErrors} from './errors/index.js';
 import {
   deployBundledOAuthInstallerJar,
   executeOAuthInstallerCommand,
@@ -23,9 +23,7 @@ export async function runOAuthAdminUnblock(
 
   for (const key of ['companyId', 'companyWebId', 'userId', 'userEmail', 'passwordReset']) {
     if (!values[key]) {
-      throw new CliError(`OAuth admin-unblock output is missing '${key}'.`, {
-        code: 'OAUTH_INSTALL_PARSE_ERROR',
-      });
+      throw OAuthErrors.installParseError(`OAuth admin-unblock output is missing '${key}'.`);
     }
   }
 

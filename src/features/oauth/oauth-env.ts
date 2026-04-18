@@ -1,4 +1,4 @@
-import {CliError} from '../../core/errors.js';
+import {OAuthErrors} from './errors/index.js';
 import {writeLocalLiferayProfile} from '../../core/config/liferay-profile.js';
 
 export async function writeCredentialsToLocalProfile(
@@ -8,9 +8,7 @@ export async function writeCredentialsToLocalProfile(
   scopeAliases?: string[],
 ): Promise<boolean> {
   if (!localProfileFile) {
-    throw new CliError('No .liferay-cli.local.yml was detected to persist OAuth2 credentials.', {
-      code: 'OAUTH_LOCAL_PROFILE_NOT_FOUND',
-    });
+    throw OAuthErrors.localProfileNotFound('No .liferay-cli.local.yml was detected to persist OAuth2 credentials.');
   }
 
   await writeLocalLiferayProfile(localProfileFile, {
