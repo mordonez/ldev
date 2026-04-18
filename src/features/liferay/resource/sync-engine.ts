@@ -49,7 +49,7 @@ export type RemoteArtifact<T = Record<string, unknown>> = {
  * Strategy for syncing a specific artifact type.
  * Implement for templates, ADTs, structures, etc.
  */
-export type SyncStrategy<Local = Record<string, unknown>, Remote = Record<string, unknown>> = {
+export type SyncStrategy<Local = never, Remote = never> = {
   /**
    * Resolve local artifact from filesystem or config.
    * @returns LocalArtifact or null if not found
@@ -118,7 +118,7 @@ export type SyncEngineResult = ResourceSyncResult;
 /**
  * Orchestrate artifact synchronization using a strategy.
  */
-export async function syncArtifact<Local = Record<string, unknown>, Remote = Record<string, unknown>>(
+export async function syncArtifact<Local = never, Remote = never>(
   config: AppConfig,
   site: ResolvedSite,
   strategy: SyncStrategy<Local, Remote>,
