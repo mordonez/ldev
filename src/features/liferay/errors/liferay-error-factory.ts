@@ -10,7 +10,7 @@
  */
 
 import {CliError} from '../../../core/errors.js';
-import {sanitizeErrorMessage, sanitizeErrorDetails} from './error-sanitizer.js';
+import {sanitizeErrorMessage, sanitizeErrorDetails} from '../../../core/errors-sanitize.js';
 import {LiferayErrorCode, getErrorCodeMetadata} from './liferay-error-codes.js';
 
 /**

@@ -9,4 +9,4 @@
 
 export {LiferayErrors, withErrorMetadata, type LiferayErrorOptions} from './liferay-error-factory.js';
 export {LiferayErrorCode, getErrorCodeMetadata} from './liferay-error-codes.js';
-export {sanitizeErrorMessage, sanitizeErrorDetails} from './error-sanitizer.js';
+export {sanitizeErrorMessage, sanitizeErrorDetails} from '../../../core/errors-sanitize.js';

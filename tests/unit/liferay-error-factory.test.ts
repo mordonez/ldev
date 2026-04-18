@@ -1,7 +1,7 @@
 import {describe, it, expect} from 'vitest';
 import {CliError} from '../../src/core/errors.js';
 import {LiferayErrors, withErrorMetadata} from '../../src/features/liferay/errors/liferay-error-factory.js';
-import {sanitizeErrorMessage, sanitizeErrorDetails} from '../../src/features/liferay/errors/error-sanitizer.js';
+import {sanitizeErrorMessage, sanitizeErrorDetails} from '../../src/core/errors-sanitize.js';
 import {LiferayErrorCode, getErrorCodeMetadata} from '../../src/features/liferay/errors/liferay-error-codes.js';
 
 describe('Error Sanitizer', () => {
