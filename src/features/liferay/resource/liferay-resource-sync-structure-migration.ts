@@ -32,7 +32,35 @@ export type MigrationPlanData = {
   articleIds: string[];
 };
 
-type LocalizedContentSnapshots = Map<string, Record<string, unknown>>;
+type JsonMap = Record<string, unknown>;
+
+type StructuredContentRow = JsonMap & {
+  id?: string | number;
+  key?: string;
+  contentStructureId?: string | number;
+  structuredContentFolderId?: number | string;
+  contentFields?: unknown;
+  availableLanguages?: string[];
+};
+
+type StructuredContentsPage = {
+  items?: StructuredContentRow[];
+  lastPage?: number;
+};
+
+type StructureLookup = {
+  id?: string | number;
+  dataDefinitionKey?: string;
+};
+
+type MigrationPlanShape = {
+  mappings?: unknown;
+  rootFolderIds?: unknown;
+  folderIds?: unknown;
+  articleIds?: unknown;
+};
+
+type LocalizedContentSnapshots = Map<string, StructuredContentRow>;
 
 export async function runStructureMigration(
   config: AppConfig,
@@ -49,14 +77,14 @@ export async function runStructureMigration(
       gateway: LiferayGateway,
       siteId: number,
       key: string,
-    ) => Promise<Record<string, unknown> | null>;
+    ) => Promise<StructureLookup | null>;
   },
 ): Promise<MigrationStats> {
   const planRoot = await fs.readJson(migrationPlanPath);
   const plan =
     typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as Record<string, unknown>)
-      : planRoot;
+      ? (planRoot.plan as MigrationPlanShape)
+      : (planRoot as MigrationPlanShape);
   const planData = parseMigrationPlan(plan);
   if (planData.rules.length === 0) {
     throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
@@ -164,8 +192,8 @@ export async function captureMigrationSourceSnapshots(
   const planRoot = await fs.readJson(migrationPlanPath);
   const plan =
     typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as Record<string, unknown>)
-      : planRoot;
+      ? (planRoot.plan as MigrationPlanShape)
+      : (planRoot as MigrationPlanShape);
   const planData = parseMigrationPlan(plan);
   const selected = await selectStructureContents(options.gateway, siteId, structureId, planData);
   const snapshots = new Map<string, LocalizedContentSnapshots>();
@@ -192,7 +220,7 @@ async function selectStructureContents(
   siteId: number,
   structureId: string,
   planData: MigrationPlanData,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<StructuredContentRow[]> {
   const scopedFolderIds = new Set<number>([
     ...planData.scopedFolderIds,
     ...(planData.scopedRootFolderIds.length > 0
@@ -214,22 +242,19 @@ async function selectStructureContents(
   });
 }
 
-async function listStructureContents(
-  gateway: LiferayGateway,
-  structureId: string,
-): Promise<Array<Record<string, unknown>>> {
-  const rows: Array<Record<string, unknown>> = [];
+async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
+  const rows: StructuredContentRow[] = [];
   let page = 1;
   let lastPage = 1;
   const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   do {
-    const response = await gateway.getJson<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
+    const response = await gateway.getJson<StructuredContentsPage>(
       `/o/headless-delivery/v1.0/content-structures/${structureId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
       'structure-migrate list',
     );
-    rows.push(...((response as {items?: Array<Record<string, unknown>>} | null)?.items ?? []));
-    lastPage = (response as {lastPage?: number} | null)?.lastPage ?? 1;
+    rows.push(...((response as StructuredContentsPage | null)?.items ?? []));
+    lastPage = (response as StructuredContentsPage | null)?.lastPage ?? 1;
     page += 1;
   } while (page <= lastPage);
 
@@ -240,19 +265,19 @@ async function listStructureContentsByFolders(
   gateway: LiferayGateway,
   folderIds: number[],
   structureId: string,
-): Promise<Array<Record<string, unknown>>> {
-  const deduped = new Map<number, Record<string, unknown>>();
+): Promise<StructuredContentRow[]> {
+  const deduped = new Map<number, StructuredContentRow>();
   const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   for (const folderId of folderIds.sort((left, right) => left - right)) {
     let page = 1;
     let lastPage = 1;
     do {
-      const response = await gateway.getJson<{items?: Array<Record<string, unknown>>; lastPage?: number}>(
+      const response = await gateway.getJson<StructuredContentsPage>(
         `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
         'structure-migrate list-by-folder',
       );
-      for (const item of (response as {items?: Array<Record<string, unknown>>} | null)?.items ?? []) {
+      for (const item of (response as StructuredContentsPage | null)?.items ?? []) {
         if (String(item.contentStructureId ?? '') !== structureId) {
           continue;
         }
@@ -273,12 +298,12 @@ async function fetchStructuredContentForMigration(
   gateway: LiferayGateway,
   contentId: string,
   acceptLanguage = '',
-): Promise<Record<string, unknown>> {
+): Promise<StructuredContentRow> {
   const fields = encodeURIComponent(
     'id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,availableLanguages,contentFields',
   );
   return (
-    (await gateway.getJson<Record<string, unknown>>(
+    (await gateway.getJson<StructuredContentRow>(
       `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
       'structure-migrate get',
       acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
@@ -318,7 +343,7 @@ async function expandRootFolderScope(
 async function verifyStructuredContentPersistence(
   gateway: LiferayGateway,
   contentId: string,
-  expected: Record<string, unknown>,
+  expected: StructuredContentRow,
   acceptLanguage = '',
 ): Promise<void> {
   const maxAttempts = 4;
@@ -339,7 +364,7 @@ async function verifyStructuredContentPersistence(
   );
 }
 
-function resolveMigrationLocales(content: Record<string, unknown>, snapshots?: LocalizedContentSnapshots): string[] {
+function resolveMigrationLocales(content: StructuredContentRow, snapshots?: LocalizedContentSnapshots): string[] {
   const fromSnapshots = snapshots ? [...snapshots.keys()].filter(Boolean) : [];
   if (fromSnapshots.length > 0) {
     return fromSnapshots.sort();
@@ -353,7 +378,7 @@ function resolveMigrationLocales(content: Record<string, unknown>, snapshots?: L
   return [''];
 }
 
-export function parseMigrationPlan(plan: Record<string, unknown>): MigrationPlanData {
+export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData {
   const rules = parseMappings(plan?.mappings);
   return {
     rules,
@@ -372,10 +397,9 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
     if (!row || typeof row !== 'object') {
       return [];
     }
-    const source = String(
-      (row as Record<string, unknown>).source ?? (row as Record<string, unknown>).from ?? '',
-    ).trim();
-    const target = String((row as Record<string, unknown>).target ?? (row as Record<string, unknown>).to ?? '').trim();
+    const mapping = row as JsonMap;
+    const source = String(mapping.source ?? mapping.from ?? '').trim();
+    const target = String(mapping.target ?? mapping.to ?? '').trim();
     if (!source || !target) {
       return [];
     }
@@ -383,7 +407,7 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
       {
         source,
         target,
-        cleanupSource: Boolean((row as Record<string, unknown>).cleanupSource),
+        cleanupSource: Boolean(mapping.cleanupSource),
       },
     ];
   });
@@ -404,8 +428,8 @@ function parseStringList(value: unknown): string[] {
 }
 
 function applyMappings(
-  item: Record<string, unknown>,
-  sourceItem: Record<string, unknown>,
+  item: StructuredContentRow,
+  sourceItem: StructuredContentRow,
   mappings: MigrationRule[],
   cleanupSource: boolean,
 ): boolean {
