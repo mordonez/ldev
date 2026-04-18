@@ -1,0 +1,9 @@
+export const DeployErrorCode = {
+  MODULE_REQUIRED: 'DEPLOY_MODULE_REQUIRED',
+  MODULE_NOT_FOUND: 'DEPLOY_MODULE_NOT_FOUND',
+  GRADLE_ERROR: 'DEPLOY_GRADLE_ERROR',
+  ARTIFACTS_NOT_FOUND: 'DEPLOY_ARTIFACTS_NOT_FOUND',
+  WORKSPACE_ROOT_NOT_FOUND: 'WORKSPACE_ROOT_NOT_FOUND',
+} as const;
+
+export type DeployErrorCode = (typeof DeployErrorCode)[keyof typeof DeployErrorCode];

@@ -1,6 +1,6 @@
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
+import {DeployErrors} from './errors/index.js';
 
 import {
   currentArtifactCommit,
@@ -29,9 +29,9 @@ export async function runDeployCacheUpdate(
 
   const artifacts = await listDeployArtifacts(context.buildDeployDir);
   if (artifacts.length === 0) {
-    throw new CliError(`No artifacts were found in ${context.buildDeployDir}. Run 'ldev deploy prepare'.`, {
-      code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
-    });
+    throw DeployErrors.artifactsNotFound(
+      `No artifacts were found in ${context.buildDeployDir}. Run 'ldev deploy prepare'.`,
+    );
   }
 
   const cache = await runDeployStep(options?.printer, 'Updating deploy cache', async () =>

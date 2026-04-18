@@ -1,9 +1,9 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
+import {DeployErrors} from './errors/index.js';
 
 import {
   collectModuleArtifacts,
@@ -37,7 +37,7 @@ export async function runDeployModule(
 ): Promise<DeployModuleResult> {
   const module = options.module.trim();
   if (module === '') {
-    throw new CliError('deploy module requires a MODULE.', {code: 'DEPLOY_MODULE_REQUIRED'});
+    throw DeployErrors.moduleRequired('deploy module requires a MODULE.');
   }
 
   const context = resolveDeployContext(config);
@@ -111,7 +111,5 @@ async function runGradleTasksForModule(
     return;
   }
 
-  throw new CliError(`No module or theme named ${module} exists.`, {
-    code: 'DEPLOY_MODULE_NOT_FOUND',
-  });
+  throw DeployErrors.moduleNotFound(`No module or theme named ${module} exists.`);
 }

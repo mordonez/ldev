@@ -4,7 +4,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runProcess} from '../../core/platform/process.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
-import {CliError} from '../../core/errors.js';
+import {DeployErrors} from './errors/index.js';
 
 import {
   ensureGradleWrapper,
@@ -93,7 +93,7 @@ async function runWorkspaceDeployAll(config: AppConfig, options?: {printer?: Pri
   const repoRoot = config.repoRoot;
 
   if (!repoRoot) {
-    throw new CliError('deploy all requires a workspace root.', {code: 'WORKSPACE_ROOT_NOT_FOUND'});
+    throw DeployErrors.workspaceRootNotFound('deploy all requires a workspace root.');
   }
 
   await runDeployStep(options?.printer, 'Running workspace deploy', async () => {
@@ -110,14 +110,11 @@ async function runWorkspaceDeployAll(config: AppConfig, options?: {printer?: Pri
     });
 
     if (!gradleResult.ok) {
-      throw new CliError(
+      throw DeployErrors.gradleError(
         gradleResult.stderr.trim() ||
           gradleResult.stdout.trim() ||
           bladeResult.stderr.trim() ||
           bladeResult.stdout.trim(),
-        {
-          code: 'DEPLOY_GRADLE_ERROR',
-        },
       );
     }
   });
