@@ -17,6 +17,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../env/env-shared.js';
+import {WorktreeErrors} from './errors/index.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 
@@ -39,16 +40,12 @@ export async function runWorktreeClean(options: {
   printer?: Printer;
 }): Promise<WorktreeCleanResult> {
   if (!(options.force ?? false)) {
-    throw new CliError('worktree clean is destructive; re-run with --force to confirm.', {
-      code: 'WORKTREE_FORCE_REQUIRED',
-    });
+    throw WorktreeErrors.forceRequired('worktree clean is destructive; re-run with --force to confirm.');
   }
 
   const config = loadConfig({cwd: options.cwd, env: process.env});
   if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
-    throw new CliError('worktree clean must be run inside a valid git repository.', {
-      code: 'WORKTREE_REPO_NOT_FOUND',
-    });
+    throw WorktreeErrors.repoNotFound('worktree clean must be run inside a valid git repository.');
   }
 
   const context = resolveWorktreeContext(config.repoRoot);
@@ -81,9 +78,7 @@ export async function runWorktreeClean(options: {
     !worktreeDirExists &&
     !isOwnedBtrfsWorktreeDataRoot(path.join(btrfs.envsDir ?? '', target.name), target.name, btrfs.envsDir)
   ) {
-    throw new CliError(`Path is not a registered git worktree: ${target.worktreeDir}`, {
-      code: 'WORKTREE_NOT_REGISTERED',
-    });
+    throw WorktreeErrors.notRegistered(`Path is not a registered git worktree: ${target.worktreeDir}`);
   }
 
   const envValues = (await fs.pathExists(target.envFile)) ? readEnvFile(target.envFile) : {};
@@ -257,9 +252,7 @@ function resolveTarget(
   if (context.isWorktree && context.currentWorktreeName) {
     return resolveWorktreeTarget(context.mainRepoRoot, context.currentWorktreeName);
   }
-  throw new CliError('worktree clean requires a NAME or must run inside the target worktree.', {
-    code: 'WORKTREE_NAME_REQUIRED',
-  });
+  throw WorktreeErrors.nameRequired('worktree clean requires a NAME or must run inside the target worktree.');
 }
 
 async function listComposeContainers(composeProjectName: string, processEnv?: NodeJS.ProcessEnv): Promise<string[]> {
