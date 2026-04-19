@@ -140,11 +140,18 @@ export async function runStructureMigration(
       const before = await fetchStructuredContentForMigration(options.gateway, contentId);
       const sourceSnapshots = options.sourceSnapshots?.get(contentId);
       const locales = resolveMigrationLocales(before, sourceSnapshots);
+      const localizedSnapshots = new Map<string, StructuredContentRow>();
+      for (const locale of locales) {
+        localizedSnapshots.set(
+          locale,
+          locale === '' ? before : await fetchStructuredContentForMigration(options.gateway, contentId, locale),
+        );
+      }
+      const titleI18n = buildTitleI18n(localizedSnapshots);
       let changedAcrossLocales = false;
 
       for (const locale of locales) {
-        const beforeLocalized =
-          locale === '' ? before : await fetchStructuredContentForMigration(options.gateway, contentId, locale);
+        const beforeLocalized = localizedSnapshots.get(locale) ?? before;
         const source = sourceSnapshots?.get(locale) ?? beforeLocalized;
         const after = structuredClone(beforeLocalized);
         const changed = applyMappings(after, source, planData.rules, options.cleanupSource);
@@ -163,6 +170,9 @@ export async function runStructureMigration(
           ]);
           if (payload.contentFields !== undefined) {
             payload.contentFields = toApiContentFields(payload.contentFields, runtimeDefinitionFields);
+          }
+          if (Object.keys(titleI18n).length > 0) {
+            payload.title_i18n = titleI18n;
           }
           await options.gateway.putJson(
             `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}`,
@@ -486,6 +496,26 @@ function resolveMigrationLocales(content: StructuredContentRow, snapshots?: Loca
   }
 
   return [''];
+}
+
+function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): Record<string, string> {
+  const titles: Record<string, string> = {};
+
+  for (const [locale, snapshot] of localizedSnapshots) {
+    const normalizedLocale = locale.trim();
+    if (normalizedLocale === '') {
+      continue;
+    }
+
+    const title = String(snapshot.title ?? '').trim();
+    if (title === '') {
+      continue;
+    }
+
+    titles[normalizedLocale] = title;
+  }
+
+  return titles;
 }
 
 export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData {
