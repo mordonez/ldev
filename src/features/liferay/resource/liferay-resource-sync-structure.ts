@@ -122,6 +122,9 @@ export function formatLiferayResourceSyncStructure(result: LiferayResourceSyncSt
     lines.push(
       `migration scanned=${result.migration.scanned} migrated=${result.migration.migrated} unchanged=${result.migration.unchanged} failed=${result.migration.failed} dryRun=${result.migration.dryRun}`,
     );
+    lines.push(
+      `migration reasons copied=${result.migration.reasonBreakdown.copiedToNewField} alreadyTarget=${result.migration.reasonBreakdown.alreadyHadTargetValue} sourceEmpty=${result.migration.reasonBreakdown.sourceEmpty} noDelta=${result.migration.reasonBreakdown.noEffectiveChange} sourceCleaned=${result.migration.reasonBreakdown.sourceCleaned}`,
+    );
   }
   return lines.join('\n');
 }
