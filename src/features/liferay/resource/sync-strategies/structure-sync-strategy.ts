@@ -238,6 +238,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     const updated = await updateStructureWithRecovery(
       gateway,
       site.id,
+      site.friendlyUrlPath,
       runtimeId,
       opts.key,
       payload,
@@ -347,6 +348,7 @@ async function putJsonAsResource<T>(
 async function updateStructureWithRecovery(
   gateway: LiferayGateway,
   siteId: number,
+  siteFriendlyUrl: string,
   runtimeId: string,
   key: string,
   payload: Record<string, unknown>,
@@ -380,7 +382,7 @@ async function updateStructureWithRecovery(
     }
 
     throw LiferayErrors.resourceTimeoutRecoverable(
-      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource get-structure --site ${siteId} --key ${key}' or retry the import once the portal is responsive again.`,
+      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource structure --site ${siteFriendlyUrl} --key ${key}' or retry the import once the portal is responsive again.`,
       {details: {operation: 'structure-update', key, siteId, recoverable: true}},
     );
   }

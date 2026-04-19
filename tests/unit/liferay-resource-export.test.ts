@@ -471,7 +471,7 @@ describe('liferay resource export', () => {
         {site: '/global', key: 'MISSING', output: outputPath},
         {apiClient, tokenClient: TOKEN_CLIENT},
       ),
-    ).rejects.toThrow('resource get-structure failed with status=404');
+    ).rejects.toThrow('structure lookup failed with status=404');
   });
 
   test('exports all structures of a site to the local structures layout', async () => {

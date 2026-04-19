@@ -67,7 +67,7 @@ export async function runLiferayResourceGetStructure(
 
   if (!payload) {
     if (lastKeyLookupStatus !== null) {
-      throw LiferayErrors.resourceError(`resource get-structure failed with status=${lastKeyLookupStatus}.`);
+      throw LiferayErrors.resourceError(`structure lookup failed with status=${lastKeyLookupStatus}.`);
     }
     throw LiferayErrors.resourceError(`Estructura no encontrada: ${identifier}`);
   }
