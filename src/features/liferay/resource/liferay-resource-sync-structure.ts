@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import type {Printer} from '../../../core/output/printer.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
@@ -33,6 +34,7 @@ export async function runLiferayResourceSyncStructure(
     migrationDryRun?: boolean;
     cleanupMigration?: boolean;
     allowBreakingChange?: boolean;
+    printer?: Printer;
   },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceSyncStructureResult> {
@@ -52,6 +54,7 @@ export async function runLiferayResourceSyncStructure(
     migrationDryRun: options.migrationDryRun,
     cleanupMigration: options.cleanupMigration,
     allowBreakingChange: options.allowBreakingChange,
+    printer: options.printer,
   };
 
   // Call strategy methods

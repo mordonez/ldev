@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'node:path';
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
@@ -116,6 +116,88 @@ describe('liferay resource migration-run', () => {
     expect(result.migrationApplied).toBe(true);
     expect(formatLiferayResourceMigrationRun(result)).toContain('updated\tBASIC\t301');
     expect(formatLiferayResourceMigrationRun(result)).toContain('stage=introduce');
+  });
+
+  test('marks migrationApplied=false when migration is dry-run', async () => {
+    const {config, migrationFile} = await createRepoFixture();
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
+            }),
+            {status: 200},
+          );
+        }
+        if (url.endsWith('/o/data-engine/v2.0/data-definitions/301')) {
+          return new Response('{"id":301}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/content-structures/301/structured-contents')) {
+          return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceMigrationRun(
+      config,
+      {migrationFile, checkOnly: true, migrationDryRun: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('checked');
+    expect(result.migrationApplied).toBe(false);
+  });
+
+  test('uses a running progress message instead of a preparing-only label', async () => {
+    const {config, migrationFile} = await createRepoFixture();
+    const messages: string[] = [];
+    const printer = {
+      format: 'text' as const,
+      write: vi.fn(),
+      error: vi.fn((message: string) => messages.push(message)),
+      info: vi.fn((message: string) => messages.push(message)),
+    };
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
+            }),
+            {status: 200},
+          );
+        }
+        if (url.endsWith('/o/data-engine/v2.0/data-definitions/301')) {
+          return new Response('{"id":301}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/content-structures/301/structured-contents')) {
+          return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    await runLiferayResourceMigrationRun(config, {migrationFile, printer}, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(messages.some((message) => message.includes('Running introduce migration for structure: BASIC'))).toBe(true);
+    expect(messages.some((message) => message.includes('Preparing introduce migration'))).toBe(false);
   });
 
   test('pipeline syncs dependent structures and derives cleanup from descriptor', async () => {
@@ -326,6 +408,138 @@ describe('liferay resource migration-run', () => {
 
     expect(result.cleanupRun).toBe(true);
     expect(calls.filter((call) => call.includes('/structured-content-folders/123/structured-contents')).length).toBe(3);
+  });
+
+  test('cleanup removes deleted fields from the derived defaultDataLayout payload', async () => {
+    const {config, migrationFile} = await createRepoFixture();
+    const structureFile = path.join(
+      config.repoRoot,
+      'liferay',
+      'resources',
+      'journal',
+      'structures',
+      'global',
+      'BASIC.json',
+    );
+
+    await fs.writeJson(structureFile, {
+      dataDefinitionKey: 'BASIC',
+      dataDefinitionFields: [
+        {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
+        {name: 'newField', customProperties: {fieldReference: 'newField'}},
+      ],
+      defaultDataLayout: {
+        dataLayoutPages: [
+          {
+            dataLayoutRows: [
+              {dataLayoutColumns: [{columnSize: 12, fieldNames: ['oldField']}]},
+              {dataLayoutColumns: [{columnSize: 12, fieldNames: ['newField']}]},
+            ],
+          },
+        ],
+      },
+    });
+
+    await fs.writeJson(migrationFile, {
+      site: '/global',
+      structureKey: 'BASIC',
+      templates: false,
+      introduce: {
+        mappings: [{source: 'oldField', target: 'newField', cleanupSource: true}],
+        articleIds: ['ARTICLE-001'],
+      },
+    });
+
+    let persistedFields = [
+      {name: 'oldField', contentFieldValue: {data: 'legacy'}},
+      {name: 'newField', contentFieldValue: {data: ''}},
+    ];
+    const structureUpdateBodies: Array<Record<string, unknown>> = [];
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? 'GET';
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC')) {
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionKey: 'BASIC',
+              dataDefinitionFields: [{name: 'oldField', customProperties: {fieldReference: 'oldField'}}],
+            }),
+            {status: 200},
+          );
+        }
+        if (url.endsWith('/o/data-engine/v2.0/data-definitions/301') && method === 'GET') {
+          return new Response(
+            JSON.stringify({
+              id: 301,
+              dataDefinitionFields: [
+                {name: 'oldField', customProperties: {fieldReference: 'oldField'}},
+                {name: 'newField', customProperties: {fieldReference: 'newField'}},
+              ],
+            }),
+            {status: 200},
+          );
+        }
+        if (url.endsWith('/o/data-engine/v2.0/data-definitions/301') && method === 'PUT') {
+          structureUpdateBodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>);
+          return new Response('{"id":301}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/journal.journalarticle/get-latest-article?groupId=20121&articleId=ARTICLE-001&status=0',
+          )
+        ) {
+          return new Response('{"articleId":"ARTICLE-001","resourcePrimKey":"700"}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/structured-contents/700?fields=')) {
+          return new Response(
+            JSON.stringify({
+              id: 700,
+              key: 'ARTICLE-001',
+              contentStructureId: '301',
+              structuredContentFolderId: 123,
+              title: 'Article',
+              contentFields: persistedFields,
+            }),
+            {status: 200},
+          );
+        }
+        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
+          const body = JSON.parse(String(init?.body ?? '{}')) as {contentFields?: typeof persistedFields};
+          persistedFields = body.contentFields ?? persistedFields;
+          return new Response('{"id":700}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayResourceMigrationPipeline(
+      config,
+      {migrationFile, runCleanup: true, skipValidation: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.cleanupRun).toBe(true);
+    expect(structureUpdateBodies).toHaveLength(2);
+
+    const cleanupUpdate = structureUpdateBodies[1]!;
+    expect(cleanupUpdate.dataDefinitionFields).toEqual([
+      {name: 'newField', customProperties: {fieldReference: 'newField'}},
+    ]);
+    expect(cleanupUpdate.defaultDataLayout).toEqual({
+      dataLayoutPages: [
+        {
+          dataLayoutRows: [{dataLayoutColumns: [{columnSize: 12, fieldNames: ['newField']}]}],
+        },
+      ],
+    });
   });
 
   test('cleanup fails closed when introduce returns no migrated articleIds and no scope is declared', async () => {

@@ -333,6 +333,67 @@ describe('structure migration', () => {
       );
     });
 
+    test('resolves scoped articleIds directly without paginating the whole structure', async () => {
+      tempDir = createTempDir('migration-article-direct-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      await fs.writeJson(planPath, {
+        plan: {
+          mappings: [{source: 'oldField', target: 'newField', cleanupSource: false}],
+          articleIds: ['ARTICLE-001'],
+        },
+      });
+
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/api/jsonws/journal.journalarticle/get-latest-article')) {
+            return {
+              articleId: 'ARTICLE-001',
+              resourcePrimKey: '101',
+            };
+          }
+
+          if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
+            return {dataDefinitionFields: []};
+          }
+
+          if (requestPath.includes('/structured-contents/101')) {
+            return {
+              id: '101',
+              key: 'ARTICLE-001',
+              contentStructureId: 'struct-123',
+              structuredContentFolderId: 55,
+              contentFields: [{name: 'oldField', contentFieldValue: {data: 'legacy-value'}}],
+            };
+          }
+
+          if (requestPath.includes('/content-structures/')) {
+            throw new Error('full structure scan should not be used when articleIds are explicit');
+          }
+
+          return {};
+        }),
+        putJson: vi.fn(),
+      } as any;
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: true,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+      });
+
+      expect(stats.scanned).toBe(1);
+      expect(mockGateway.getJson).toHaveBeenCalledWith(
+        expect.stringContaining('articleId=ARTICLE-001'),
+        'structure-migrate get-latest-article',
+      );
+      expect(mockGateway.getJson).not.toHaveBeenCalledWith(
+        expect.stringContaining('/content-structures/'),
+        expect.any(String),
+      );
+    });
+
     test('throws summarized failure when putJson fails for one content item', async () => {
       tempDir = createTempDir('migration-putjson-failure-');
       const planPath = path.join(tempDir, 'plan.json');
@@ -376,6 +437,218 @@ describe('structure migration', () => {
           fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
         }),
       ).rejects.toThrow('Structure migration failed for 1 content item');
+    });
+
+    test("does not cleanup source when cleanupSource is string 'false'", async () => {
+      tempDir = createTempDir('migration-cleanup-string-false-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      const plan = {
+        plan: {
+          mappings: [{source: 'oldField', target: 'newField', cleanupSource: 'false'}],
+        },
+      };
+
+      await fs.writeJson(planPath, plan);
+
+      let persistedFields: Array<Record<string, unknown>> = [
+        {name: 'oldField', contentFieldValue: {data: 'legacy-value'}},
+      ];
+
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/content-structures/')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 1,
+            };
+          }
+          if (requestPath.includes('/structured-contents/content-1')) {
+            return {
+              id: 'content-1',
+              key: 'article-1',
+              contentStructureId: 'struct-123',
+              contentFields: persistedFields,
+            };
+          }
+          return {};
+        }),
+        putJson: vi.fn(async (_path: string, payload: {contentFields?: Array<Record<string, unknown>>}) => {
+          persistedFields = payload.contentFields ?? [];
+          return {id: 'content-1'};
+        }),
+      } as any;
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: false,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+      });
+
+      expect(stats.migrated).toBe(1);
+      expect(persistedFields).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({name: 'oldField', contentFieldValue: {data: 'legacy-value'}}),
+          expect.objectContaining({name: 'newField', contentFieldValue: {data: 'legacy-value'}}),
+        ]),
+      );
+    });
+
+    test('accepts persisted contentFields with equivalent data but different object key order', async () => {
+      tempDir = createTempDir('migration-persisted-order-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      await fs.writeJson(planPath, {
+        plan: {
+          mappings: [{source: 'oldField', target: 'newField', cleanupSource: false}],
+        },
+      });
+
+      let fetchCount = 0;
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/content-structures/')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 1,
+            };
+          }
+
+          if (requestPath.includes('/structured-contents/content-1')) {
+            fetchCount += 1;
+
+            if (fetchCount === 1) {
+              return {
+                id: 'content-1',
+                key: 'article-1',
+                contentStructureId: 'struct-123',
+                contentFields: [{name: 'oldField', contentFieldValue: {data: 'legacy-value'}}],
+              };
+            }
+
+            return {
+              id: 'content-1',
+              key: 'article-1',
+              contentStructureId: 'struct-123',
+              contentFields: [
+                {contentFieldValue: {data: 'legacy-value'}, name: 'oldField'},
+                {contentFieldValue: {data: 'legacy-value'}, name: 'newField'},
+              ],
+            };
+          }
+
+          return {};
+        }),
+        putJson: vi.fn(async () => ({id: 'content-1'})),
+      } as any;
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: false,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+      });
+
+      expect(stats.migrated).toBe(1);
+      expect(mockGateway.putJson).toHaveBeenCalledTimes(1);
+    });
+
+    test('uses runtime internal names when persisting repeatable fieldset targets', async () => {
+      tempDir = createTempDir('migration-fieldset-internal-names-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      await fs.writeJson(planPath, {
+        plan: {
+          mappings: [
+            {source: 'cuerpoDelTexto2', target: 'FieldsetParagrafoDestacado[].UBCuerpoTexto', cleanupSource: false},
+            {source: 'textoDestacado', target: 'FieldsetParagrafoDestacado[].UBDestacado', cleanupSource: false},
+          ],
+        },
+      });
+
+      let persistedFields: Array<Record<string, unknown>> = [
+        {name: 'cuerpoDelTexto2', contentFieldValue: {data: 'body text'}},
+        {name: 'textoDestacado', contentFieldValue: {data: 'highlight'}},
+        {
+          name: 'FieldsetParagrafoDestacado',
+          contentFieldValue: {},
+          nestedContentFields: [
+            {name: 'UBCuerpoTexto', contentFieldValue: {data: ''}},
+            {name: 'UBDestacado', contentFieldValue: {data: ''}},
+          ],
+        },
+      ];
+
+      const mockGateway = {
+        getJson: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
+            return {
+              dataDefinitionFields: [
+                {
+                  name: 'Fieldset84041664',
+                  customProperties: {fieldReference: 'FieldsetParagrafoDestacado'},
+                  nestedDataDefinitionFields: [
+                    {name: 'Text75852383', customProperties: {fieldReference: 'UBCuerpoTexto'}},
+                    {name: 'Text98612061', customProperties: {fieldReference: 'UBDestacado'}},
+                  ],
+                },
+              ],
+            };
+          }
+
+          if (requestPath.includes('/content-structures/')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 1,
+            };
+          }
+
+          if (requestPath.includes('/structured-contents/content-1')) {
+            return {
+              id: 'content-1',
+              key: 'article-1',
+              contentStructureId: 'struct-123',
+              contentFields: persistedFields,
+            };
+          }
+
+          return {};
+        }),
+        putJson: vi.fn(async (_path: string, payload: {contentFields?: Array<Record<string, unknown>>}) => {
+          const outgoingFieldset = payload.contentFields?.find((field) => field.name === 'Fieldset84041664');
+          expect(outgoingFieldset).toBeDefined();
+          expect(outgoingFieldset?.nestedContentFields).toEqual([
+            {name: 'Text75852383', contentFieldValue: {data: 'body text'}},
+            {name: 'Text98612061', contentFieldValue: {data: 'highlight'}},
+          ]);
+
+          persistedFields = [
+            {name: 'cuerpoDelTexto2', contentFieldValue: {data: 'body text'}},
+            {name: 'textoDestacado', contentFieldValue: {data: 'highlight'}},
+            {
+              name: 'FieldsetParagrafoDestacado',
+              contentFieldValue: {},
+              nestedContentFields: [
+                {name: 'UBCuerpoTexto', contentFieldValue: {data: 'body text'}},
+                {name: 'UBDestacado', contentFieldValue: {data: 'highlight'}},
+              ],
+            },
+          ];
+
+          return {id: 'content-1'};
+        }),
+      } as any;
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: false,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+      });
+
+      expect(stats.migrated).toBe(1);
+      expect(mockGateway.putJson).toHaveBeenCalledTimes(1);
     });
   });
 

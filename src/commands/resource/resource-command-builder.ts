@@ -736,7 +736,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('migration-run')
-      .description('Execute a structure migration descriptor with a persisted migration plan')
+      .description('Advanced: run a single migration stage from a descriptor; prefer migration-pipeline for normal use')
       .requiredOption('--migration-file <file>', 'Migration descriptor JSON file')
       .option('--stage <stage>', 'Stage to run: introduce or cleanup', 'introduce')
       .option('--check-only', 'Validate only; do not mutate structures')
@@ -751,6 +751,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
           checkOnly: Boolean(options.checkOnly),
           migrationDryRun: Boolean(options.migrationDryRun),
           skipUpdate: Boolean(options.skipUpdate),
+          printer: context.printer,
         }),
       {text: formatLiferayResourceMigrationRun},
     ),
@@ -759,7 +760,9 @@ function buildResourceMigrationSubcommands(resource: Command): void {
   addOutputFormatOption(
     resource
       .command('migration-pipeline')
-      .description('Run the introduce phase and optionally the cleanup phase from a single descriptor')
+      .description(
+        'Recommended: run the full migration workflow from one descriptor, including validation and optional cleanup',
+      )
       .requiredOption('--migration-file <file>', 'Migration descriptor JSON file')
       .option('--check-only', 'Validate only; do not mutate structures or templates')
       .option('--migration-dry-run', 'Do not persist structured content migration updates')
@@ -776,6 +779,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
           runCleanup: Boolean(options.runCleanup),
           skipValidation: Boolean(options.skipValidation),
           createMissingTemplates: Boolean(options.createMissingTemplates),
+          printer: context.printer,
         }),
       {text: formatLiferayResourceMigrationPipeline},
     ),

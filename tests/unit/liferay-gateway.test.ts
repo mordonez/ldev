@@ -143,6 +143,25 @@ describe('LiferayGateway', () => {
 
       expect(result).toBeNull();
     });
+
+    test('refreshes token and retries once when first request returns 401', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      vi.mocked(tokenClient.fetchClientCredentialsToken)
+        .mockResolvedValueOnce({...mockToken, accessToken: 'stale-token'})
+        .mockResolvedValueOnce({...mockToken, accessToken: 'fresh-token'});
+
+      vi.mocked(apiClient.get)
+        .mockResolvedValueOnce(mockHttpResponse(false, 401, null))
+        .mockResolvedValueOnce(mockHttpResponse(true, 200, {id: 1}));
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const result = await gateway.getJson<{id: number}>('/api/test', 'fetch-test');
+
+      expect(result).toEqual({id: 1});
+      expect(apiClient.get).toHaveBeenCalledTimes(2);
+      expect(tokenClient.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('postJson', () => {

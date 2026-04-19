@@ -68,20 +68,37 @@ export class LiferayGateway {
     this.accessTokenCache.set(this.getCacheKey(), {token: accessToken, cachedAt: Date.now()});
   }
 
+  private async requestWith401Retry<T>(
+    request: (accessToken: string) => Promise<HttpResponse<T>>,
+  ): Promise<HttpResponse<T>> {
+    const firstToken = await this.getAccessToken();
+    const firstResponse = await request(firstToken);
+
+    if (firstResponse.status !== 401) {
+      return firstResponse;
+    }
+
+    // Token may be stale/revoked; refresh once and retry the same request.
+    this.clearTokenCache();
+    const refreshedToken = await this.getAccessToken();
+    return request(refreshedToken);
+  }
+
   /**
    * GET /path, parse JSON, assert ok status, return data.
    * @throws CliError if response not ok
    */
   async getJson<T>(path: string, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const authOptions = buildAuthOptions(this.config, accessToken);
-    const response = await this.apiClient.get<T>(this.config.liferay.url, path, {
-      ...authOptions,
-      ...requestOptions,
-      headers: {
-        ...authOptions.headers,
-        ...requestOptions?.headers,
-      },
+    const response = await this.requestWith401Retry((accessToken) => {
+      const authOptions = buildAuthOptions(this.config, accessToken);
+      return this.apiClient.get<T>(this.config.liferay.url, path, {
+        ...authOptions,
+        ...requestOptions,
+        headers: {
+          ...authOptions.headers,
+          ...requestOptions?.headers,
+        },
+      });
     });
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
@@ -93,12 +110,8 @@ export class LiferayGateway {
    * @throws CliError if response not ok
    */
   async postJson<T>(path: string, payload: unknown, label: string): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.postJson<T>(
-      this.config.liferay.url,
-      path,
-      payload,
-      buildAuthOptions(this.config, accessToken),
+    const response = await this.requestWith401Retry((accessToken) =>
+      this.apiClient.postJson<T>(this.config.liferay.url, path, payload, buildAuthOptions(this.config, accessToken)),
     );
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
@@ -110,12 +123,8 @@ export class LiferayGateway {
    * @throws CliError if response not ok
    */
   async postForm<T>(path: string, form: Record<string, string>, label: string): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.postForm<T>(
-      this.config.liferay.url,
-      path,
-      form,
-      buildAuthOptions(this.config, accessToken),
+    const response = await this.requestWith401Retry((accessToken) =>
+      this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
@@ -127,12 +136,8 @@ export class LiferayGateway {
    * @throws CliError if response not ok
    */
   async postMultipart<T>(path: string, form: FormData, label: string): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.postMultipart<T>(
-      this.config.liferay.url,
-      path,
-      form,
-      buildAuthOptions(this.config, accessToken),
+    const response = await this.requestWith401Retry((accessToken) =>
+      this.apiClient.postMultipart<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
@@ -144,15 +149,16 @@ export class LiferayGateway {
    * @throws CliError if response not ok
    */
   async putJson<T>(path: string, payload: unknown, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const authOpts = buildAuthOptions(this.config, accessToken);
-    const response = await this.apiClient.putJson<T>(this.config.liferay.url, path, payload, {
-      ...authOpts,
-      ...requestOptions,
-      headers: {
-        ...authOpts.headers,
-        ...requestOptions?.headers,
-      },
+    const response = await this.requestWith401Retry((accessToken) => {
+      const authOpts = buildAuthOptions(this.config, accessToken);
+      return this.apiClient.putJson<T>(this.config.liferay.url, path, payload, {
+        ...authOpts,
+        ...requestOptions,
+        headers: {
+          ...authOpts.headers,
+          ...requestOptions?.headers,
+        },
+      });
     });
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
@@ -164,9 +170,10 @@ export class LiferayGateway {
    * Use when the caller needs to inspect specific status codes (e.g., 403, 404) instead of a unified error throw.
    */
   async getRaw<T>(path: string): Promise<HttpResponse<T>> {
-    const accessToken = await this.getAccessToken();
-    const authOptions = buildAuthOptions(this.config, accessToken);
-    return this.apiClient.get<T>(this.config.liferay.url, path, authOptions);
+    return this.requestWith401Retry((accessToken) => {
+      const authOptions = buildAuthOptions(this.config, accessToken);
+      return this.apiClient.get<T>(this.config.liferay.url, path, authOptions);
+    });
   }
 
   /**
@@ -174,8 +181,9 @@ export class LiferayGateway {
    * Use when callers need to inspect status/body across multiple fallback payload candidates.
    */
   async postFormRaw<T>(path: string, form: Record<string, string>): Promise<HttpResponse<T>> {
-    const accessToken = await this.getAccessToken();
-    return this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken));
+    return this.requestWith401Retry((accessToken) =>
+      this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
+    );
   }
 
   /**
@@ -183,11 +191,8 @@ export class LiferayGateway {
    * @throws CliError if response not ok
    */
   async deleteJson<T>(path: string, label: string): Promise<T> {
-    const accessToken = await this.getAccessToken();
-    const response = await this.apiClient.delete<T>(
-      this.config.liferay.url,
-      path,
-      buildAuthOptions(this.config, accessToken),
+    const response = await this.requestWith401Retry((accessToken) =>
+      this.apiClient.delete<T>(this.config.liferay.url, path, buildAuthOptions(this.config, accessToken)),
     );
 
     const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');

@@ -90,4 +90,23 @@ describe('withProgress', () => {
     expect(result).toBe('done');
     expect(mockStderr.write.mock.calls.length).toBeGreaterThan(0);
   });
+
+  test('clears the active progress line before logging nested info in TTY mode', async () => {
+    const printer = createPrinter('text');
+    mockStderr.isTTY = true;
+
+    const result = await withProgress(printer, 'Animating', async () => {
+      printer.info('inner message');
+      return 'done';
+    });
+
+    expect(result).toBe('done');
+
+    const writes = mockStderr.write.mock.calls.map(([value]) => String(value));
+    const innerIndex = writes.findIndex((value) => value.includes('inner message'));
+
+    expect(innerIndex).toBeGreaterThan(-1);
+    expect(writes.slice(Math.max(0, innerIndex - 3), innerIndex)).toContain('\r');
+    expect(writes.slice(Math.max(0, innerIndex - 3), innerIndex)).toContain(' '.repeat(mockStderr.columns));
+  });
 });

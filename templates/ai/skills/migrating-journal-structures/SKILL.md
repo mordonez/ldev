@@ -18,7 +18,42 @@ ldev start
 > `ldev context --json` returns `paths.migrations` and `paths.structures` — the
 > local directories where descriptors and structure files are expected by default.
 
+> **Always run migrations inside a worktree, never against the main environment.**
+> Worktrees provide an isolated portal instance that can be restored or discarded
+> if the migration produces unexpected results. Running migrations against a shared
+> or production-like environment without a worktree makes rollback difficult or
+> impossible. Create and start an isolated environment first:
+> ```bash
+> ldev worktree setup --name <issue-name>
+> ldev worktree start <issue-name>
+> ```
+
 ## Recommended workflow
+
+### 0. Create dependent structures first (if needed)
+
+If the migration targets fields that will live inside a **new** structure that
+does not yet exist in the portal (for example, a new repeatable fieldset
+structure), create it from source before running `migration-init`.
+
+Do **not** use the Liferay UI for this. Edit the structure JSON directly and
+import it:
+
+```bash
+# 1. Write or edit the structure JSON under paths.structures/<site>/<KEY>.json
+#    Use ../developing-liferay/references/structure-field-catalog.md for the correct field shapes.
+
+# 2. Validate before importing:
+ldev resource import-structure --site /<site> --key <KEY> --check-only
+
+# 3. Import to the portal:
+ldev resource import-structure --site /<site> --key <KEY>
+
+# 4. Confirm the structure exists:
+ldev resource structure --site /<site> --key <KEY> --json
+```
+
+Reference: `../developing-liferay/references/structure-field-catalog.md`
 
 ### 1. Inspect current portal state
 
@@ -41,16 +76,41 @@ ldev resource migration-init --site /<site> --key <STRUCTURE_KEY>
 Add `--templates` to include associated templates in the generated descriptor.
 The output defaults to `paths.migrations/<site>/<key>.migration.json`.
 
-Edit the descriptor to:
+Edit the descriptor to define:
 
-- Define explicit field mappings
-- Limit the scope to one site and one structure
-- Add an optional cleanup phase
+- Explicit field mappings (`introduce.mappings`)
+- Scope (see below)
+- Dependent structures (`dependentStructures`) if the migration targets fields
+  in structures that were just created
+- Whether templates are included (`templates: true`)
+- An optional cleanup phase
+
+**Descriptor fields reference:**
+
+| Field | Purpose |
+|-------|---------|
+| `"templates": true` | Include associated templates in the pipeline run |
+| `"dependentStructures": ["KEY"]` | Structures the pipeline must verify exist before running |
+| `"introduce.rootFolderIds": [id]` | Scope to a folder tree (recursive) |
+| `"introduce.folderIds": [id]` | Scope to exact folders only (non-recursive) |
+| `"introduce.articleIds": [id]` | Scope to specific content items |
+| _(no scope field)_ | Scan all content in the site (use with caution on large sites) |
+
+**Mapping syntax:**
+
+```json
+{ "source": "oldField", "target": "newField" }
+{ "source": "oldField", "target": "FieldsetName[].TargetField", "cleanupSource": true }
+```
+
+Use `FieldsetName[].TargetField` when the destination lives inside a repeatable
+fieldset in the new structure. Add `"cleanupSource": true` to remove the source
+field from the original structure after migration.
 
 When the migration introduces new fields or changes field types, use the field
-type catalog to get the correct JSON shape for each field:
+type catalog to verify JSON shapes:
 
-Reference: `references/structure-field-catalog.md`
+Reference: `../developing-liferay/references/structure-field-catalog.md`
 
 ### 3. Validate before mutating
 
@@ -98,9 +158,17 @@ ldev portal reindex tasks --json
 
 ## Guardrails
 
+- **Never run migrations against the main environment.** Always use a worktree
+  (`ldev worktree setup --name <name>` + `ldev worktree start <name>`) so the
+  portal state can be restored or discarded if the migration fails or produces
+  unexpected results.
 - Never treat a live content migration as a plain import.
 - Always keep a descriptor file under version control.
 - Always use `migration-init` to scaffold the descriptor; do not write it from scratch.
 - Always run `--check-only` before the real pipeline.
 - Do not document or automate migration-pipeline as a mandatory two-run sequence.
 - If cleanup is intended, make that choice explicit in the approved real execution plan.
+- If the migration targets fields in a new dependent structure, create and import
+  that structure from JSON first (step 0) — do not use the Liferay UI.
+- Use `../developing-liferay/references/structure-field-catalog.md` when authoring or editing structure
+  JSON directly; do not guess field shapes.
