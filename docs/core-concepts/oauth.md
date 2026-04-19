@@ -74,6 +74,77 @@ The user-facing contract is the same in both cases:
 - verify that the credentials work when possible
 - persist local credentials for the CLI
 
+## Manual setup for remote environments (no `ldev oauth install`)
+
+In some remote environments you cannot use `ldev oauth install --write-env` (for example, no bundle deployment or no Gogo access). In that case, create the OAuth2 app manually in Liferay and pass credentials with global CLI overrides.
+
+### 1. Create the OAuth2 app in Liferay
+
+In Control Panel, create a new OAuth2 application (client credentials flow):
+
+- grant type: client credentials
+- token endpoint auth method: client secret basic (default in most portals)
+- keep generated client id and client secret
+- set a clear name like `ldev-remote-ops`
+
+### 2. Add required scopes
+
+For typical `ldev` portal/resource usage, include at least:
+
+- `Liferay.Headless.Admin.User.everything.read`
+- `Liferay.Headless.Admin.Site.everything.read`
+- `Liferay.Data.Engine.REST.everything.read`
+- `Liferay.Data.Engine.REST.everything.write`
+- `Liferay.Headless.Delivery.everything.read`
+- `Liferay.Headless.Delivery.everything.write`
+- `liferay-json-web-services.everything.read`
+- `liferay-json-web-services.everything.write`
+- `Liferay.Headless.Discovery.API.everything.read`
+- `Liferay.Headless.Discovery.OpenAPI.everything.read`
+
+If your security policy requires least privilege, start with read scopes only and add write scopes only for commands that modify resources.
+
+### 3. Store credentials securely in the execution host
+
+Prefer environment variables over inline secrets:
+
+```bash
+export LIFERAY_REMOTE_URL=https://portal.example.com
+export LIFERAY_REMOTE_CLIENT_ID=ldev-remote-ops
+export LIFERAY_REMOTE_CLIENT_SECRET='***'
+```
+
+### 4. Run `ldev` using global overrides
+
+Global connection options must be placed before subcommands:
+
+```bash
+ldev \
+	--liferay-url "$LIFERAY_REMOTE_URL" \
+	--liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" \
+	--liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET \
+	portal check --json
+```
+
+```bash
+ldev \
+	--liferay-url "$LIFERAY_REMOTE_URL" \
+	--liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" \
+	--liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET \
+	portal inventory sites --json
+```
+
+### 5. Validate before running write operations
+
+Run this sequence first:
+
+```bash
+ldev --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET portal check --json
+ldev --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET portal inventory sites --json
+```
+
+If those commands fail with auth/scope errors, update the OAuth app scopes and retry.
+
 ## When OAuth is not ready yet
 
 If the portal setup wizard is not complete, or the local portal is not reachable yet, OAuth-based commands will fail or stay pending.

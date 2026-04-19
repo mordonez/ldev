@@ -54,6 +54,41 @@ export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key.xml
 export REPO_ROOT=/path/to/project
 ```
 
+## Remote execution with connection overrides
+
+When you run `ldev` from automation hosts, CI jobs, or jumpboxes, you can override Liferay connection values per command instead of changing project files.
+
+Supported global options:
+
+- `--liferay-url <url>`
+- `--liferay-client-id <clientId>`
+- `--liferay-client-secret <clientSecret>`
+- `--liferay-client-secret-env <envVar>`
+- `--liferay-scope-aliases <aliases>`
+- `--liferay-timeout-seconds <seconds>`
+
+Important: these are root options. Place them before the command group/subcommand.
+
+```bash
+ldev --liferay-url https://portal.example.com portal check --json
+ldev --liferay-url https://portal.example.com portal inventory sites --json
+```
+
+For secrets, prefer environment-variable indirection:
+
+```bash
+export LIFERAY_REMOTE_SECRET='***'
+ldev \
+	--liferay-url https://portal.example.com \
+	--liferay-client-id remote-client \
+	--liferay-client-secret-env LIFERAY_REMOTE_SECRET \
+	portal inventory page --url /home --json
+```
+
+If both `--liferay-client-secret` and `--liferay-client-secret-env` are provided, `--liferay-client-secret` wins.
+
+If your environment cannot run `ldev oauth install --write-env`, see the manual app setup guide in [OAuth](/core-concepts/oauth#manual-setup-for-remote-environments-no-ldev-oauth-install).
+
 ## Runtime Storage Modes
 
 `ldev` supports three persistence modes for selected runtime directories:
