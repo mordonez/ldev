@@ -251,6 +251,9 @@ describe('liferay resource migration-run', () => {
         if (url.includes('/o/headless-delivery/v1.0/content-structures/301/structured-contents')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
+        if (url.includes('/api/jsonws/journal.journalarticle/get-latest-article')) {
+          return new Response('', {status: 404});
+        }
         throw new Error(`Unexpected URL ${url}`);
       },
     });

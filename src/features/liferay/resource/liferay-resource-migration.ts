@@ -82,6 +82,7 @@ export async function runLiferayResourceMigrationRun(
           migrationPhase: stage === 'cleanup' ? 'pre' : 'post',
           migrationDryRun: Boolean(options.checkOnly) || Boolean(options.migrationDryRun),
           cleanupMigration: stageDescriptor.cleanupMigration,
+          printer: options.printer,
         },
         dependencies,
       );
@@ -92,6 +93,9 @@ export async function runLiferayResourceMigrationRun(
     if (result.migration) {
       options.printer?.info(
         `Migration complete: ${result.migration.migrated} updated, ${result.migration.unchanged} unchanged, ${result.migration.failed} failed out of ${result.migration.scanned} scanned`,
+      );
+      options.printer?.info(
+        `Migration reasons: copied=${result.migration.reasonBreakdown.copiedToNewField}, already-target=${result.migration.reasonBreakdown.alreadyHadTargetValue}, source-empty=${result.migration.reasonBreakdown.sourceEmpty}, no-delta=${result.migration.reasonBreakdown.noEffectiveChange}, source-cleaned=${result.migration.reasonBreakdown.sourceCleaned}`,
       );
     } else {
       options.printer?.info(`Migration phase completed: ${result.status}`);

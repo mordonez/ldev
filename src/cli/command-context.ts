@@ -199,7 +199,14 @@ function findArgvOptionValue(argv: string[], flag: string): string {
 
     const prefix = `${flag}=`;
     if (current.startsWith(prefix)) {
-      return current.slice(prefix.length).trim();
+      const value = current.slice(prefix.length).trim();
+      if (value === '') {
+        throw new CliError(`${flag} requires a value.`, {
+          code: 'LIFERAY_CONFIG_INCOMPLETE',
+        });
+      }
+
+      return value;
     }
   }
 

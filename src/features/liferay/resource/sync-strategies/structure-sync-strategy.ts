@@ -163,7 +163,6 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
         migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan, {
           ...migrationOptions,
           dryRun: true,
-          printer: opts.printer,
         });
       }
 
@@ -236,7 +235,6 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan!, {
         ...migrationOptions,
         sourceSnapshots,
-        printer: opts.printer,
       });
     }
 

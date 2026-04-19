@@ -12,6 +12,14 @@ export type MigrationRule = {
   cleanupSource: boolean;
 };
 
+export type MigrationReasonBreakdown = {
+  copiedToNewField: number;
+  alreadyHadTargetValue: number;
+  sourceEmpty: number;
+  noEffectiveChange: number;
+  sourceCleaned: number;
+};
+
 export type MigrationStats = {
   scanned: number;
   migrated: number;
@@ -19,6 +27,7 @@ export type MigrationStats = {
   failed: number;
   dryRun: boolean;
   articleKeys: string[];
+  reasonBreakdown: MigrationReasonBreakdown;
 };
 
 type MigrationFailure = {
@@ -123,6 +132,13 @@ export async function runStructureMigration(
     failed: 0,
     dryRun: options.dryRun,
     articleKeys: [],
+    reasonBreakdown: {
+      copiedToNewField: 0,
+      alreadyHadTargetValue: 0,
+      sourceEmpty: 0,
+      noEffectiveChange: 0,
+      sourceCleaned: 0,
+    },
   };
 
   const progressInterval = 10; // Print progress every 10 items
@@ -149,13 +165,30 @@ export async function runStructureMigration(
       }
       const titleI18n = buildTitleI18n(localizedSnapshots);
       let changedAcrossLocales = false;
+      let sourceValueFound = false;
+      let sourceValueMissing = false;
+      let targetValueAlreadyPresent = false;
+      let copiedToTarget = false;
+      let sourceCleaned = false;
+      let noEffectiveChange = false;
 
       for (const locale of locales) {
         const beforeLocalized = localizedSnapshots.get(locale) ?? before;
         const source = sourceSnapshots?.get(locale) ?? beforeLocalized;
         const after = structuredClone(beforeLocalized);
-        const changed = applyMappings(after, source, planData.rules, options.cleanupSource);
-        if (!changed || contentFieldsEqual(beforeLocalized, after)) {
+        const diagnostics = applyMappings(after, source, planData.rules, options.cleanupSource);
+        sourceValueFound = sourceValueFound || diagnostics.sourceWithValue > 0;
+        sourceValueMissing = sourceValueMissing || diagnostics.sourceEmpty > 0;
+        targetValueAlreadyPresent = targetValueAlreadyPresent || diagnostics.targetAlreadySet > 0;
+        copiedToTarget = copiedToTarget || diagnostics.targetWritten > 0;
+        sourceCleaned = sourceCleaned || diagnostics.sourceCleaned > 0;
+
+        if (!diagnostics.changed) {
+          continue;
+        }
+
+        if (contentFieldsEqual(beforeLocalized, after)) {
+          noEffectiveChange = true;
           continue;
         }
         changedAcrossLocales = true;
@@ -186,10 +219,28 @@ export async function runStructureMigration(
 
       if (!changedAcrossLocales) {
         stats.unchanged += 1;
+
+        if (targetValueAlreadyPresent && !copiedToTarget) {
+          stats.reasonBreakdown.alreadyHadTargetValue += 1;
+        } else if (!sourceValueFound && sourceValueMissing) {
+          stats.reasonBreakdown.sourceEmpty += 1;
+        } else if (noEffectiveChange) {
+          stats.reasonBreakdown.noEffectiveChange += 1;
+        } else if (sourceValueMissing) {
+          stats.reasonBreakdown.sourceEmpty += 1;
+        } else {
+          stats.reasonBreakdown.noEffectiveChange += 1;
+        }
         continue;
       }
 
       stats.migrated += 1;
+      if (copiedToTarget) {
+        stats.reasonBreakdown.copiedToNewField += 1;
+      }
+      if (sourceCleaned) {
+        stats.reasonBreakdown.sourceCleaned += 1;
+      }
       if (articleKey !== '') {
         migratedArticleKeys.add(articleKey);
       }
@@ -397,14 +448,21 @@ async function fetchLatestJournalArticle(
   siteId: number,
   articleId: string,
 ): Promise<JsonMap | null> {
-  try {
-    return await gateway.getJson<JsonMap>(
-      `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${siteId}&articleId=${encodeURIComponent(articleId)}&status=0`,
-      'structure-migrate get-latest-article',
-    );
-  } catch {
+  const response = await gateway.getRaw<JsonMap>(
+    `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${siteId}&articleId=${encodeURIComponent(articleId)}&status=0`,
+  );
+
+  if (response.status === 404) {
     return null;
   }
+
+  if (!response.ok) {
+    throw LiferayErrors.resourceError(
+      `structure-migrate get-latest-article failed with status=${response.status} for articleId=${articleId}`,
+    );
+  }
+
+  return (response.data as JsonMap | null) ?? null;
 }
 
 async function fetchStructureDefinitionFields(
@@ -572,23 +630,52 @@ function applyMappings(
   sourceItem: StructuredContentRow,
   mappings: MigrationRule[],
   cleanupSource: boolean,
-): boolean {
+): {
+  changed: boolean;
+  sourceEmpty: number;
+  sourceWithValue: number;
+  targetWritten: number;
+  targetAlreadySet: number;
+  sourceCleaned: number;
+} {
   let changed = false;
+  let sourceEmpty = 0;
+  let sourceWithValue = 0;
+  let targetWritten = 0;
+  let targetAlreadySet = 0;
+  let sourceCleaned = 0;
+
   for (const mapping of mappings) {
     const value = firstSourceValue(sourceItem.contentFields, mapping.source);
     if (!value || isEmptyValue(value)) {
+      sourceEmpty += 1;
       continue;
     }
+
+    sourceWithValue += 1;
     if (setTargetValue(item, mapping.target, structuredClone(value))) {
       changed = true;
+      targetWritten += 1;
+    } else {
+      targetAlreadySet += 1;
     }
+
     if (cleanupSource) {
       if (cleanupSourceField(item, mapping.source)) {
         changed = true;
+        sourceCleaned += 1;
       }
     }
   }
-  return changed;
+
+  return {
+    changed,
+    sourceEmpty,
+    sourceWithValue,
+    targetWritten,
+    targetAlreadySet,
+    sourceCleaned,
+  };
 }
 
 function firstSourceValue(contentFields: unknown, source: string): unknown | null {

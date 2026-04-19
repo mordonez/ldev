@@ -346,13 +346,6 @@ describe('structure migration', () => {
 
       const mockGateway = {
         getJson: vi.fn(async (requestPath: string) => {
-          if (requestPath.includes('/api/jsonws/journal.journalarticle/get-latest-article')) {
-            return {
-              articleId: 'ARTICLE-001',
-              resourcePrimKey: '101',
-            };
-          }
-
           if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
             return {dataDefinitionFields: []};
           }
@@ -373,6 +366,17 @@ describe('structure migration', () => {
 
           return {};
         }),
+        getRaw: vi.fn(async (requestPath: string) => {
+          if (requestPath.includes('/api/jsonws/journal.journalarticle/get-latest-article')) {
+            return {
+              ok: true,
+              status: 200,
+              data: {articleId: 'ARTICLE-001', resourcePrimKey: '101'},
+            };
+          }
+
+          return {ok: false, status: 404, data: null};
+        }),
         putJson: vi.fn(),
       } as any;
 
@@ -384,10 +388,7 @@ describe('structure migration', () => {
       });
 
       expect(stats.scanned).toBe(1);
-      expect(mockGateway.getJson).toHaveBeenCalledWith(
-        expect.stringContaining('articleId=ARTICLE-001'),
-        'structure-migrate get-latest-article',
-      );
+      expect(mockGateway.getRaw).toHaveBeenCalledWith(expect.stringContaining('articleId=ARTICLE-001'));
       expect(mockGateway.getJson).not.toHaveBeenCalledWith(
         expect.stringContaining('/content-structures/'),
         expect.any(String),
