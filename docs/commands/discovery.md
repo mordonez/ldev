@@ -5,6 +5,12 @@ description: Minimal reference for understanding portal and runtime state.
 
 # Discovery Commands
 
+Global connection overrides are available for remote execution and must be passed before subcommands, for example:
+
+```bash
+ldev --liferay-url https://portal.example.com portal inventory sites --json
+```
+
 ## `ldev context`
 
 Resolve repo, runtime, and Liferay context as one snapshot.
