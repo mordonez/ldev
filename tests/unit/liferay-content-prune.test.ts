@@ -908,7 +908,7 @@ describe('liferay-content-prune: apply mode', () => {
     expect(maxInflightDeletes).toBeGreaterThan(1);
   });
 
-  test('apply mode does not retry article deletion manually on 401', async () => {
+  test('apply mode retries article deletion once on 401 via gateway token refresh', async () => {
     let tokenFetches = 0;
     const deleteAuthHeaders: string[] = [];
 
@@ -991,8 +991,9 @@ describe('liferay-content-prune: apply mode', () => {
 
     expect(result.mode).toBe('apply');
     expect(tokenFetches).toBeGreaterThan(0);
-    expect(deleteAuthHeaders).toHaveLength(1);
+    expect(deleteAuthHeaders).toHaveLength(2);
     expect(deleteAuthHeaders[0]).toMatch(/^Bearer token-\d+$/);
+    expect(deleteAuthHeaders[1]).toMatch(/^Bearer token-\d+$/);
     expect(result.failedArticles).toEqual([
       {
         id: 1001,

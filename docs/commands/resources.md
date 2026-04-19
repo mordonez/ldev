@@ -66,3 +66,7 @@ ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration
 ```
 
 Use migration commands when structure changes affect existing content.
+
+Use `migration-pipeline` as the default command for real migrations. It is the end-to-end workflow and is the safer choice for both humans and agents.
+
+Use `migration-run` only when you intentionally need one phase in isolation, such as debugging, retrying only `introduce` or `cleanup`, or validating a specific stage without running the full pipeline.

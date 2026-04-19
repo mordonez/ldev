@@ -1,6 +1,8 @@
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
+import type {Printer} from '../../../core/output/printer.js';
+import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 
@@ -10,6 +12,14 @@ export type MigrationRule = {
   cleanupSource: boolean;
 };
 
+export type MigrationReasonBreakdown = {
+  copiedToNewField: number;
+  alreadyHadTargetValue: number;
+  sourceEmpty: number;
+  noEffectiveChange: number;
+  sourceCleaned: number;
+};
+
 export type MigrationStats = {
   scanned: number;
   migrated: number;
@@ -17,6 +27,7 @@ export type MigrationStats = {
   failed: number;
   dryRun: boolean;
   articleKeys: string[];
+  reasonBreakdown: MigrationReasonBreakdown;
 };
 
 type MigrationFailure = {
@@ -62,6 +73,12 @@ type MigrationPlanShape = {
 
 type LocalizedContentSnapshots = Map<string, StructuredContentRow>;
 
+type DataDefinitionField = JsonMap & {
+  name?: string;
+  customProperties?: JsonMap;
+  nestedDataDefinitionFields?: unknown;
+};
+
 export async function runStructureMigration(
   config: AppConfig,
   structureKey: string,
@@ -72,6 +89,7 @@ export async function runStructureMigration(
     dryRun: boolean;
     cleanupSource: boolean;
     sourceSnapshots?: Map<string, LocalizedContentSnapshots>;
+    printer?: Printer;
     fetchStructureByKeyFn: (
       config: AppConfig,
       gateway: LiferayGateway,
@@ -90,12 +108,20 @@ export async function runStructureMigration(
     throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
   }
 
+  options.printer?.info(
+    `Migrating structure content: resolving structure definition and selecting targeted content...`,
+  );
   const structure = await options.fetchStructureByKeyFn(config, options.gateway, siteId, structureKey);
   if (!structure?.id) {
     throw LiferayErrors.resourceError(`Could not resolve structure ${structureKey}`);
   }
 
+  const runtimeDefinitionFields = await fetchStructureDefinitionFields(options.gateway, String(structure.id));
+
   const selected = await selectStructureContents(options.gateway, siteId, String(structure.id), planData);
+  options.printer?.info(
+    `Found ${selected.length} content item(s) matching migration criteria; processing migrations...`,
+  );
 
   const migratedArticleKeys = new Set<string>();
   const failures: MigrationFailure[] = [];
@@ -106,25 +132,63 @@ export async function runStructureMigration(
     failed: 0,
     dryRun: options.dryRun,
     articleKeys: [],
+    reasonBreakdown: {
+      copiedToNewField: 0,
+      alreadyHadTargetValue: 0,
+      sourceEmpty: 0,
+      noEffectiveChange: 0,
+      sourceCleaned: 0,
+    },
   };
+
+  const progressInterval = 10; // Print progress every 10 items
 
   for (const item of selected) {
     stats.scanned += 1;
+    if (options.printer && selected.length > progressInterval && (stats.scanned - 1) % progressInterval === 0) {
+      options.printer.info(
+        `Migrating content: ${stats.scanned}/${selected.length} scanned (${stats.migrated} migrated, ${stats.unchanged} unchanged, ${stats.failed} failed)`,
+      );
+    }
     try {
       const contentId = String(item.id ?? '');
       const articleKey = String(item.key ?? '').trim();
       const before = await fetchStructuredContentForMigration(options.gateway, contentId);
       const sourceSnapshots = options.sourceSnapshots?.get(contentId);
       const locales = resolveMigrationLocales(before, sourceSnapshots);
+      const localizedSnapshots = new Map<string, StructuredContentRow>();
+      for (const locale of locales) {
+        localizedSnapshots.set(
+          locale,
+          locale === '' ? before : await fetchStructuredContentForMigration(options.gateway, contentId, locale),
+        );
+      }
+      const titleI18n = buildTitleI18n(localizedSnapshots);
       let changedAcrossLocales = false;
+      let sourceValueFound = false;
+      let sourceValueMissing = false;
+      let targetValueAlreadyPresent = false;
+      let copiedToTarget = false;
+      let sourceCleaned = false;
+      let noEffectiveChange = false;
 
       for (const locale of locales) {
-        const beforeLocalized =
-          locale === '' ? before : await fetchStructuredContentForMigration(options.gateway, contentId, locale);
+        const beforeLocalized = localizedSnapshots.get(locale) ?? before;
         const source = sourceSnapshots?.get(locale) ?? beforeLocalized;
         const after = structuredClone(beforeLocalized);
-        const changed = applyMappings(after, source, planData.rules, options.cleanupSource);
-        if (!changed || contentFieldsEqual(beforeLocalized, after)) {
+        const diagnostics = applyMappings(after, source, planData.rules, options.cleanupSource);
+        sourceValueFound = sourceValueFound || diagnostics.sourceWithValue > 0;
+        sourceValueMissing = sourceValueMissing || diagnostics.sourceEmpty > 0;
+        targetValueAlreadyPresent = targetValueAlreadyPresent || diagnostics.targetAlreadySet > 0;
+        copiedToTarget = copiedToTarget || diagnostics.targetWritten > 0;
+        sourceCleaned = sourceCleaned || diagnostics.sourceCleaned > 0;
+
+        if (!diagnostics.changed) {
+          continue;
+        }
+
+        if (contentFieldsEqual(beforeLocalized, after)) {
+          noEffectiveChange = true;
           continue;
         }
         changedAcrossLocales = true;
@@ -137,6 +201,12 @@ export async function runStructureMigration(
             'title',
             'contentFields',
           ]);
+          if (payload.contentFields !== undefined) {
+            payload.contentFields = toApiContentFields(payload.contentFields, runtimeDefinitionFields);
+          }
+          if (Object.keys(titleI18n).length > 0) {
+            payload.title_i18n = titleI18n;
+          }
           await options.gateway.putJson(
             `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}`,
             payload,
@@ -149,10 +219,28 @@ export async function runStructureMigration(
 
       if (!changedAcrossLocales) {
         stats.unchanged += 1;
+
+        if (targetValueAlreadyPresent && !copiedToTarget) {
+          stats.reasonBreakdown.alreadyHadTargetValue += 1;
+        } else if (!sourceValueFound && sourceValueMissing) {
+          stats.reasonBreakdown.sourceEmpty += 1;
+        } else if (noEffectiveChange) {
+          stats.reasonBreakdown.noEffectiveChange += 1;
+        } else if (sourceValueMissing) {
+          stats.reasonBreakdown.sourceEmpty += 1;
+        } else {
+          stats.reasonBreakdown.noEffectiveChange += 1;
+        }
         continue;
       }
 
       stats.migrated += 1;
+      if (copiedToTarget) {
+        stats.reasonBreakdown.copiedToNewField += 1;
+      }
+      if (sourceCleaned) {
+        stats.reasonBreakdown.sourceCleaned += 1;
+      }
       if (articleKey !== '') {
         migratedArticleKeys.add(articleKey);
       }
@@ -167,6 +255,10 @@ export async function runStructureMigration(
   }
 
   stats.articleKeys = [...migratedArticleKeys].sort();
+
+  options.printer?.info(
+    `Migration phase complete: ${stats.migrated} updated, ${stats.unchanged} unchanged, ${stats.failed} failed out of ${stats.scanned} total (${options.dryRun ? 'dry-run' : 'persisted'})`,
+  );
 
   if (failures.length > 0) {
     const summary = failures
@@ -228,6 +320,20 @@ async function selectStructureContents(
       : []),
   ]);
   const articleIds = new Set(planData.articleIds);
+
+  if (articleIds.size > 0) {
+    const selected = await listStructureContentsByArticleIds(gateway, siteId, planData.articleIds);
+
+    return selected.filter((item) => {
+      const folderId = Number(item.structuredContentFolderId ?? Number.MIN_SAFE_INTEGER);
+      const articleId = String(item.key ?? '');
+      const folderOk = scopedFolderIds.size === 0 || scopedFolderIds.has(folderId);
+      const articleOk = articleIds.has(articleId);
+      const structureOk = String(item.contentStructureId ?? '') === structureId;
+      return folderOk && articleOk && structureOk;
+    });
+  }
+
   const contents =
     scopedFolderIds.size > 0
       ? await listStructureContentsByFolders(gateway, [...scopedFolderIds], structureId)
@@ -240,6 +346,32 @@ async function selectStructureContents(
     const articleOk = articleIds.size === 0 || articleIds.has(articleId);
     return folderOk && articleOk;
   });
+}
+
+async function listStructureContentsByArticleIds(
+  gateway: LiferayGateway,
+  siteId: number,
+  articleIds: string[],
+): Promise<StructuredContentRow[]> {
+  const deduped = new Map<string, StructuredContentRow>();
+
+  for (const articleId of articleIds) {
+    const article = await fetchLatestJournalArticle(gateway, siteId, articleId);
+    const structuredContentId = Number(article?.resourcePrimKey ?? article?.id ?? -1);
+
+    if (!Number.isFinite(structuredContentId) || structuredContentId <= 0) {
+      continue;
+    }
+
+    const content = await fetchStructuredContentForMigration(gateway, String(structuredContentId));
+    const contentId = String(content.id ?? '').trim();
+
+    if (contentId !== '' && !deduped.has(contentId)) {
+      deduped.set(contentId, content);
+    }
+  }
+
+  return [...deduped.values()];
 }
 
 async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
@@ -311,6 +443,42 @@ async function fetchStructuredContentForMigration(
   );
 }
 
+async function fetchLatestJournalArticle(
+  gateway: LiferayGateway,
+  siteId: number,
+  articleId: string,
+): Promise<JsonMap | null> {
+  const response = await gateway.getRaw<JsonMap>(
+    `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${siteId}&articleId=${encodeURIComponent(articleId)}&status=0`,
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw LiferayErrors.resourceError(
+      `structure-migrate get-latest-article failed with status=${response.status} for articleId=${articleId}`,
+    );
+  }
+
+  return (response.data as JsonMap | null) ?? null;
+}
+
+async function fetchStructureDefinitionFields(
+  gateway: LiferayGateway,
+  structureId: string,
+): Promise<DataDefinitionField[]> {
+  const definition = await gateway.getJson<JsonMap>(
+    `/o/data-engine/v2.0/data-definitions/${encodeURIComponent(structureId)}`,
+    'structure-migrate definition',
+  );
+
+  return Array.isArray(definition.dataDefinitionFields)
+    ? (definition.dataDefinitionFields as DataDefinitionField[])
+    : [];
+}
+
 async function expandRootFolderScope(
   gateway: LiferayGateway,
   siteId: number,
@@ -346,21 +514,31 @@ async function verifyStructuredContentPersistence(
   expected: StructuredContentRow,
   acceptLanguage = '',
 ): Promise<void> {
-  const maxAttempts = 4;
-  const retryDelayMs = 500;
+  const maxAttempts = 8;
+  const baseRetryDelayMs = 500;
+  let lastPersisted: StructuredContentRow | null = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const persisted = await fetchStructuredContentForMigration(gateway, contentId, acceptLanguage);
+    lastPersisted = persisted;
     if (contentFieldsEqual(expected, persisted)) {
       return;
     }
+
     if (attempt < maxAttempts) {
-      await sleep(retryDelayMs);
+      // Liferay may persist structured content asynchronously; use bounded backoff.
+      const delayMs = baseRetryDelayMs * attempt;
+      await sleep(delayMs);
     }
   }
 
+  const expectedKey = String(expected.key ?? '').trim();
+  const persistedId = String(lastPersisted?.id ?? '').trim();
+
   throw LiferayErrors.resourceError(
-    `structure-migrate update was accepted but contentFields were not persisted for content ${contentId}.`,
+    `structure-migrate update was accepted but contentFields were not persisted after ${maxAttempts} verification attempts for contentId=${contentId}${
+      expectedKey !== '' ? ` (articleKey=${expectedKey})` : ''
+    }${persistedId !== '' ? `; latest fetched contentId=${persistedId}` : ''}.`,
   );
 }
 
@@ -376,6 +554,26 @@ function resolveMigrationLocales(content: StructuredContentRow, snapshots?: Loca
   }
 
   return [''];
+}
+
+function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): Record<string, string> {
+  const titles: Record<string, string> = {};
+
+  for (const [locale, snapshot] of localizedSnapshots) {
+    const normalizedLocale = locale.trim();
+    if (normalizedLocale === '') {
+      continue;
+    }
+
+    const title = String(snapshot.title ?? '').trim();
+    if (title === '') {
+      continue;
+    }
+
+    titles[normalizedLocale] = title;
+  }
+
+  return titles;
 }
 
 export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData {
@@ -407,7 +605,7 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
       {
         source,
         target,
-        cleanupSource: Boolean(mapping.cleanupSource),
+        cleanupSource: toBooleanOrFalse(mapping.cleanupSource),
       },
     ];
   });
@@ -432,23 +630,52 @@ function applyMappings(
   sourceItem: StructuredContentRow,
   mappings: MigrationRule[],
   cleanupSource: boolean,
-): boolean {
+): {
+  changed: boolean;
+  sourceEmpty: number;
+  sourceWithValue: number;
+  targetWritten: number;
+  targetAlreadySet: number;
+  sourceCleaned: number;
+} {
   let changed = false;
+  let sourceEmpty = 0;
+  let sourceWithValue = 0;
+  let targetWritten = 0;
+  let targetAlreadySet = 0;
+  let sourceCleaned = 0;
+
   for (const mapping of mappings) {
     const value = firstSourceValue(sourceItem.contentFields, mapping.source);
     if (!value || isEmptyValue(value)) {
+      sourceEmpty += 1;
       continue;
     }
+
+    sourceWithValue += 1;
     if (setTargetValue(item, mapping.target, structuredClone(value))) {
       changed = true;
+      targetWritten += 1;
+    } else {
+      targetAlreadySet += 1;
     }
+
     if (cleanupSource) {
       if (cleanupSourceField(item, mapping.source)) {
         changed = true;
+        sourceCleaned += 1;
       }
     }
   }
-  return changed;
+
+  return {
+    changed,
+    sourceEmpty,
+    sourceWithValue,
+    targetWritten,
+    targetAlreadySet,
+    sourceCleaned,
+  };
 }
 
 function firstSourceValue(contentFields: unknown, source: string): unknown | null {
@@ -541,7 +768,70 @@ function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: s
 }
 
 function contentFieldsEqual(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
-  return JSON.stringify(left.contentFields ?? []) === JSON.stringify(right.contentFields ?? []);
+  return (
+    JSON.stringify(normalizeComparableValue(left.contentFields ?? [])) ===
+    JSON.stringify(normalizeComparableValue(right.contentFields ?? []))
+  );
+}
+
+function toApiContentFields(contentFields: unknown, definitionFields: unknown): unknown {
+  if (!Array.isArray(contentFields)) {
+    return contentFields;
+  }
+
+  const scope = Array.isArray(definitionFields) ? (definitionFields as DataDefinitionField[]) : [];
+
+  return contentFields.map((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return entry;
+    }
+
+    const field = structuredClone(entry) as Record<string, unknown>;
+    const definition = findDefinitionField(scope, String(field.name ?? '').trim());
+
+    if (definition?.name) {
+      field.name = definition.name;
+    }
+
+    if (Array.isArray(field.nestedContentFields)) {
+      field.nestedContentFields = toApiContentFields(field.nestedContentFields, definition?.nestedDataDefinitionFields);
+    }
+
+    return field;
+  });
+}
+
+function findDefinitionField(scope: DataDefinitionField[], fieldName: string): DataDefinitionField | null {
+  if (fieldName === '') {
+    return null;
+  }
+
+  for (const definition of scope) {
+    const internalName = String(definition.name ?? '').trim();
+    const fieldReference = String((definition.customProperties?.fieldReference as string | undefined) ?? '').trim();
+
+    if (fieldName === internalName || fieldName === fieldReference) {
+      return definition;
+    }
+  }
+
+  return null;
+}
+
+function normalizeComparableValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeComparableValue(entry));
+  }
+
+  if (value && typeof value === 'object') {
+    const normalized: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      normalized[key] = normalizeComparableValue((value as Record<string, unknown>)[key]);
+    }
+    return normalized;
+  }
+
+  return value;
 }
 
 function ensureContentFields(item: Record<string, unknown>): Array<Record<string, unknown>> {

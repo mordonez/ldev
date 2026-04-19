@@ -6,6 +6,7 @@
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../../../core/config/load-config.js';
+import type {Printer} from '../../../../core/output/printer.js';
 import {CliError} from '../../../../core/errors.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
@@ -54,6 +55,7 @@ type StructureSyncOptions = {
   migrationDryRun?: boolean;
   cleanupMigration?: boolean;
   allowBreakingChange?: boolean;
+  printer?: Printer;
 };
 
 export type StructureResourceDependencies = ResourceSyncDependencies & {
@@ -152,6 +154,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       cleanupSource: Boolean(opts.cleanupMigration),
       dryRun: Boolean(opts.migrationDryRun),
       fetchStructureByKeyFn: fetchStructureByKey,
+      printer: opts.printer,
     };
 
     // ---- checkOnly/skipUpdate path ----

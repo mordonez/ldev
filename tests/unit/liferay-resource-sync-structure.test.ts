@@ -225,6 +225,13 @@ describe('liferay resource structure-sync', () => {
       failed: 0,
       dryRun: false,
       articleKeys: ['ARTICLE-001'],
+      reasonBreakdown: {
+        copiedToNewField: 1,
+        alreadyHadTargetValue: 0,
+        sourceEmpty: 0,
+        noEffectiveChange: 0,
+        sourceCleaned: 1,
+      },
     });
     expect(formatLiferayResourceSyncStructure(result)).toContain('migration scanned=1 migrated=1');
     expect(calls).toEqual(
@@ -531,6 +538,13 @@ describe('liferay resource structure-sync', () => {
       failed: 0,
       dryRun: false,
       articleKeys: ['ARTICLE-001'],
+      reasonBreakdown: {
+        copiedToNewField: 1,
+        alreadyHadTargetValue: 0,
+        sourceEmpty: 0,
+        noEffectiveChange: 0,
+        sourceCleaned: 0,
+      },
     });
     expect(localizedFields.get('ca-ES')).toEqual([
       {name: 'oldField', contentFieldValue: {data: 'valor cat'}},

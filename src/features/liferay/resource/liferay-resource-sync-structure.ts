@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import type {Printer} from '../../../core/output/printer.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
@@ -33,6 +34,7 @@ export async function runLiferayResourceSyncStructure(
     migrationDryRun?: boolean;
     cleanupMigration?: boolean;
     allowBreakingChange?: boolean;
+    printer?: Printer;
   },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceSyncStructureResult> {
@@ -52,6 +54,7 @@ export async function runLiferayResourceSyncStructure(
     migrationDryRun: options.migrationDryRun,
     cleanupMigration: options.cleanupMigration,
     allowBreakingChange: options.allowBreakingChange,
+    printer: options.printer,
   };
 
   // Call strategy methods
@@ -118,6 +121,9 @@ export function formatLiferayResourceSyncStructure(result: LiferayResourceSyncSt
   if (result.migration) {
     lines.push(
       `migration scanned=${result.migration.scanned} migrated=${result.migration.migrated} unchanged=${result.migration.unchanged} failed=${result.migration.failed} dryRun=${result.migration.dryRun}`,
+    );
+    lines.push(
+      `migration reasons copied=${result.migration.reasonBreakdown.copiedToNewField} alreadyTarget=${result.migration.reasonBreakdown.alreadyHadTargetValue} sourceEmpty=${result.migration.reasonBreakdown.sourceEmpty} noDelta=${result.migration.reasonBreakdown.noEffectiveChange} sourceCleaned=${result.migration.reasonBreakdown.sourceCleaned}`,
     );
   }
   return lines.join('\n');

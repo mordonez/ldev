@@ -2,6 +2,8 @@ import pc from 'picocolors';
 
 import type {OutputFormat} from './formats.js';
 
+let activeTtyProgressCount = 0;
+
 export type Printer = {
   write: (value: unknown) => void;
   error: (message: string) => void;
@@ -13,6 +15,7 @@ export function createPrinter(format: OutputFormat): Printer {
   return {
     format,
     write(value) {
+      prepareForTerminalOutput();
       if (format === 'text') {
         if (typeof value === 'string') {
           process.stdout.write(`${value}\n`);
@@ -30,9 +33,11 @@ export function createPrinter(format: OutputFormat): Printer {
       process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
     },
     error(message) {
+      prepareForTerminalOutput();
       process.stderr.write(`${format === 'text' ? pc.red(message) : message}\n`);
     },
     info(message) {
+      prepareForTerminalOutput();
       process.stderr.write(`${format === 'text' ? pc.cyan(message) : message}\n`);
     },
   };
@@ -70,6 +75,7 @@ export async function withProgress<T>(printer: Printer, message: string, task: (
     index += 1;
   };
 
+  activeTtyProgressCount += 1;
   render();
   const timer = setInterval(render, 120);
 
@@ -77,13 +83,21 @@ export async function withProgress<T>(printer: Printer, message: string, task: (
     const result = await task();
     clearInterval(timer);
     clearCurrentLine();
+    activeTtyProgressCount = Math.max(0, activeTtyProgressCount - 1);
     printer.info(`${message}: ok (${formatElapsed(Date.now() - startedAt)})`);
     return result;
   } catch (error) {
     clearInterval(timer);
     clearCurrentLine();
+    activeTtyProgressCount = Math.max(0, activeTtyProgressCount - 1);
     printer.error(`${message}: error (${formatElapsed(Date.now() - startedAt)})`);
     throw error;
+  }
+}
+
+function prepareForTerminalOutput(): void {
+  if (activeTtyProgressCount > 0 && process.stderr.isTTY) {
+    clearCurrentLine();
   }
 }
 
