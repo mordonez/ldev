@@ -94,7 +94,7 @@ describe('liferay resource get-structure', () => {
 
     await expect(
       runLiferayResourceGetStructure(CONFIG, {site: '/global', key: 'MISSING'}, {apiClient, tokenClient: TOKEN_CLIENT}),
-    ).rejects.toThrow('resource get-structure failed with status=404');
+    ).rejects.toThrow('structure lookup failed with status=404');
   });
 
   test('resolves structure by numeric id', async () => {

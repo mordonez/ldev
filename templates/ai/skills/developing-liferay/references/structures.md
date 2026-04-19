@@ -91,13 +91,13 @@ current portal state after mutation:
 
 ```bash
 # Structure: confirm current remote payload
-ldev resource get-structure --site /<site> --key <STRUCTURE_KEY> --json
+ldev resource structure --site /<site> --key <STRUCTURE_KEY> --json
 
 # Template: confirm current remote payload
-ldev resource get-template --site /<site> --id <TEMPLATE_ID> --json
+ldev resource template --site /<site> --id <TEMPLATE_ID> --json
 
 # ADT: confirm current remote payload
-ldev resource get-adt --site /<site> --id <ADT_ID> --json
+ldev resource adt --site /<site> --key <ADT_KEY> --json
 
 # Cross-check mapping and ownership
 ldev portal inventory structures --site /<site> --with-templates --json
