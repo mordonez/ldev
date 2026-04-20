@@ -47,8 +47,8 @@ export async function executeOAuthInstallerCommand(
   });
 }
 
-export function buildOAuthInstallGogoCommand(companyId?: number, userId?: number): string {
-  return buildGogoCommand(companyId, userId);
+export function buildOAuthInstallGogoCommand(companyId?: number, userId?: number, scopeAliases?: string[]): string {
+  return buildGogoCommand(companyId, userId, scopeAliases);
 }
 
 export function parseKeyValueOutput(output: string): Record<string, string> {
@@ -75,13 +75,19 @@ export function parseKeyValueOutput(output: string): Record<string, string> {
   return values;
 }
 
-function buildGogoCommand(companyId?: number, userId?: number): string {
+function buildGogoCommand(companyId?: number, userId?: number, scopeAliases?: string[]): string {
+  const serializedScopeAliases = scopeAliases && scopeAliases.length > 0 ? ` '${scopeAliases.join(',')}'` : '';
+
   if (companyId && userId) {
-    return `ldev:oauthInstall ${companyId} ${userId}`;
+    return `ldev:oauthInstall ${companyId} ${userId}${serializedScopeAliases}`;
   }
 
   if (companyId) {
-    return `ldev:oauthInstall ${companyId}`;
+    return `ldev:oauthInstall ${companyId}${serializedScopeAliases}`;
+  }
+
+  if (serializedScopeAliases) {
+    return `ldev:oauthInstall${serializedScopeAliases}`;
   }
 
   return 'ldev:oauthInstall';

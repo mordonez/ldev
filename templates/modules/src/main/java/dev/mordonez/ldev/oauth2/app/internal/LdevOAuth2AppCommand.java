@@ -63,7 +63,8 @@ public class LdevOAuth2AppCommand {
             try {
                 InstallResult installResult = installOAuth2Applications(
                     normalizeConfiguredLong(_configuration.companyId()),
-                    normalizeConfiguredLong(_configuration.userId()));
+                    normalizeConfiguredLong(_configuration.userId()),
+                    null);
 
                 if (_log.isInfoEnabled()) {
                     _log.info(
@@ -81,15 +82,27 @@ public class LdevOAuth2AppCommand {
     }
 
     public String oauthInstall() throws PortalException {
-        return formatInstallResult(installOAuth2Applications(null, null));
+        return formatInstallResult(installOAuth2Applications(null, null, null));
+    }
+
+    public String oauthInstall(String scopeAliases) throws PortalException {
+        return formatInstallResult(installOAuth2Applications(null, null, parseScopeAliases(scopeAliases)));
     }
 
     public String oauthInstall(long companyId) throws PortalException {
-        return formatInstallResult(installOAuth2Applications(companyId, null));
+        return formatInstallResult(installOAuth2Applications(companyId, null, null));
+    }
+
+    public String oauthInstall(long companyId, String scopeAliases) throws PortalException {
+        return formatInstallResult(installOAuth2Applications(companyId, null, parseScopeAliases(scopeAliases)));
     }
 
     public String oauthInstall(long companyId, long userId) throws PortalException {
-        return formatInstallResult(installOAuth2Applications(companyId, userId));
+        return formatInstallResult(installOAuth2Applications(companyId, userId, null));
+    }
+
+    public String oauthInstall(long companyId, long userId, String scopeAliases) throws PortalException {
+        return formatInstallResult(installOAuth2Applications(companyId, userId, parseScopeAliases(scopeAliases)));
     }
 
     public String adminUnblock() throws PortalException {
@@ -104,14 +117,15 @@ public class LdevOAuth2AppCommand {
         return formatAdminUnblockResult(unblockAdminUser(companyId, userId));
     }
 
-    public synchronized InstallResult installOAuth2Applications(Long configuredCompanyId, Long configuredUserId) throws PortalException {
+    public synchronized InstallResult installOAuth2Applications(
+        Long configuredCompanyId, Long configuredUserId, List<String> explicitScopeAliases) throws PortalException {
         Company company = resolveCompany(configuredCompanyId);
         User adminUser = resolveAdminUser(company, configuredUserId);
 
         String externalReferenceCode = resolveString(
             _configuration.externalReferenceCode(), "LIFERAY_CLI_OAUTH2_EXTERNAL_REFERENCE_CODE");
         String appName = resolveString(_configuration.appName(), "LIFERAY_CLI_OAUTH2_APP_NAME");
-        List<String> allScopeAliases = resolveScopeAliases();
+        List<String> allScopeAliases = explicitScopeAliases == null ? resolveScopeAliases() : explicitScopeAliases;
 
         OAuth2Application readWriteApplication = upsertOAuth2Application(
             company, adminUser,
@@ -284,6 +298,20 @@ public class LdevOAuth2AppCommand {
                 .filter(Validator::isNotNull)
                 .collect(Collectors.toList()))
             .orElse(Collections.emptyList());
+
+        return LdevOAuth2BootstrapSupport.resolveManagedScopeAliases(configuredScopeAliases);
+    }
+
+    private List<String> parseScopeAliases(String scopeAliases) {
+        if (Validator.isNull(scopeAliases)) {
+            return null;
+        }
+
+        List<String> configuredScopeAliases = Arrays.stream(scopeAliases.split(","))
+            .filter(Validator::isNotNull)
+            .map(String::trim)
+            .filter(Validator::isNotNull)
+            .collect(Collectors.toList());
 
         return LdevOAuth2BootstrapSupport.resolveManagedScopeAliases(configuredScopeAliases);
     }
