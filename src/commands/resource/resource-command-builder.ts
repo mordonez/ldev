@@ -108,7 +108,12 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
     .option('--liferay-scope-aliases <aliases>', 'Override OAuth2 scope aliases (comma-separated) for this command')
     .option('--liferay-timeout-seconds <seconds>', 'Override Liferay HTTP timeout in seconds for this command')
     .option('--preflight', 'Run API surface preflight before executing resource subcommands')
-    .addHelpText('after', options.helpText);
+    .addHelpText(
+      'after',
+      'Override precedence: --liferay-client-secret has priority over --liferay-client-secret-env.\n' +
+        'Security tip: prefer --liferay-client-secret-env in local shells and CI to avoid exposing secrets in process args/history.\n\n' +
+        options.helpText,
+    );
 
   if (options.helpGroup) {
     resource.helpGroup(options.helpGroup);
