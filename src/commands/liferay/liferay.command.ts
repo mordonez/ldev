@@ -30,6 +30,9 @@ export function createPortalCommand(): Command {
     .addHelpText(
       'after',
       `
+Override precedence: --liferay-client-secret has priority over --liferay-client-secret-env.
+Security tip: prefer --liferay-client-secret-env in local shells and CI to avoid exposing secrets in process args/history.
+
 Use this namespace for portal inspection and API operations against a running Liferay instance.
 For resource export, import and migration workflows, use the top-level 'resource' namespace.
 
