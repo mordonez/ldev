@@ -166,19 +166,24 @@ export async function collectExistingProjectSkills(skillsDestinationDir: string)
     .sort();
 }
 
-export async function installProjectFile(targetDir: string, assets: AiAssets, relativePath: string): Promise<boolean> {
+export async function installProjectFile(
+  targetDir: string,
+  assets: AiAssets,
+  relativePath: string,
+  options?: {overwrite?: boolean},
+): Promise<boolean> {
   const source = path.join(assets.projectDir, relativePath);
   if (!(await fs.pathExists(source))) {
     return false;
   }
 
   const destination = path.join(targetDir, relativePath);
-  if (await fs.pathExists(destination)) {
+  if ((await fs.pathExists(destination)) && !options?.overwrite) {
     return false;
   }
 
   await fs.ensureDir(path.dirname(destination));
-  await copyAiTemplatePath(source, destination);
+  await copyAiTemplatePath(source, destination, {overwrite: options?.overwrite ?? true});
   return true;
 }
 

@@ -266,32 +266,52 @@ async function applyAiInstall(options: {
       })
     : 'skipped';
 
+  const overwriteProjectFiles = options.force;
+  const overwriteProjectContextFiles = options.force && options.projectContext;
+
   const claudeInstalled = !options.skillsOnly
     ? options.projectType === 'blade-workspace'
       ? false
-      : await installProjectFile(options.targetDir, options.assets, 'CLAUDE.md')
+      : await installProjectFile(options.targetDir, options.assets, 'CLAUDE.md', {
+          overwrite: overwriteProjectFiles,
+        })
     : false;
 
   const installProjectContext = !options.skillsOnly && (options.project || options.projectContext);
 
   const projectContextInstalled = installProjectContext
-    ? await installProjectFile(options.targetDir, options.assets, path.join('docs', 'ai', 'project-context.md'))
+    ? await installProjectFile(options.targetDir, options.assets, path.join('docs', 'ai', 'project-context.md'), {
+        overwrite: overwriteProjectContextFiles,
+      })
     : false;
 
   const projectContextSampleInstalled = installProjectContext
-    ? await installProjectFile(options.targetDir, options.assets, path.join('docs', 'ai', 'project-context.md.sample'))
+    ? await installProjectFile(
+        options.targetDir,
+        options.assets,
+        path.join('docs', 'ai', 'project-context.md.sample'),
+        {
+          overwrite: overwriteProjectContextFiles,
+        },
+      )
     : false;
 
   const copilotInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'))
+    ? await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'), {
+        overwrite: overwriteProjectFiles,
+      })
     : false;
 
   const geminiInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, path.join('.gemini', 'GEMINI.md'))
+    ? await installProjectFile(options.targetDir, options.assets, path.join('.gemini', 'GEMINI.md'), {
+        overwrite: overwriteProjectFiles,
+      })
     : false;
 
   const cursorrulesInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, '.cursorrules')
+    ? await installProjectFile(options.targetDir, options.assets, '.cursorrules', {
+        overwrite: overwriteProjectFiles,
+      })
     : false;
 
   const gitignoreEntriesAdded =
