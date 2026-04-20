@@ -6,6 +6,7 @@ const LOCAL_AI_GITIGNORE_MARKER = '# ldev ai install --local';
 const LOCAL_AI_GITIGNORE_ENTRIES = [
   'AGENTS.md',
   'CLAUDE.md',
+  '.cursorrules',
   '.agents/',
   '.claude/',
   '.cursor/',

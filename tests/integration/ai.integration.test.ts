@@ -26,6 +26,8 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.github', 'copilot-instructions.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.gemini', 'GEMINI.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.cursorrules'))).toBe(true);
 
     const installedSkills = (await fs.readdir(path.join(targetDir, '.agents', 'skills'))).sort();
     const vendorSkills = (await fs.readFile(path.join(AI_ROOT, 'install', 'vendor-skills.txt'), 'utf8'))
@@ -93,6 +95,7 @@ describe('ai integration', () => {
     expect(gitignore).toContain('# ldev ai install --local');
     expect(gitignore).toContain('AGENTS.md');
     expect(gitignore).toContain('CLAUDE.md');
+    expect(gitignore).toContain('.cursorrules');
     expect(gitignore).toContain('.agents/');
     expect(gitignore).toContain('.claude/');
     expect(gitignore).toContain('.github/instructions/');
@@ -172,6 +175,7 @@ describe('ai integration', () => {
         '# existing ignore rules',
         '/AGENTS.md',
         'CLAUDE.md # managed locally',
+        '.cursorrules # cursor entrypoint',
         '/.agents/',
         '.claude/   ',
         '/.cursor/',
@@ -197,6 +201,7 @@ describe('ai integration', () => {
     expect(gitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
     expect(gitignore).not.toContain('\nAGENTS.md\n');
     expect(gitignore).not.toContain('\nCLAUDE.md\n');
+    expect(gitignore).not.toContain('\n.cursorrules\n');
     expect(gitignore).not.toContain('\n.agents/\n');
     expect(gitignore).not.toContain('\n.claude/\n');
     expect(gitignore).not.toContain('\n.cursor/\n');

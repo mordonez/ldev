@@ -149,6 +149,8 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     projectContextInstalled: false,
     projectContextSampleInstalled: false,
     copilotInstalled: false,
+    geminiInstalled: false,
+    cursorrulesInstalled: false,
     projectSkillsInstalled: [],
     projectAgentsInstalled: [],
     workspaceRulesInstalled: [],
