@@ -15,6 +15,7 @@ public class LdevOAuth2BootstrapSupportTest {
         List<String> aliases = LdevOAuth2BootstrapSupport.resolveManagedScopeAliases(
             Arrays.asList(
                 "Liferay.Headless.Admin.User.everything.read",
+                "Liferay.Headless.Admin.Content.everything.read",
                 "Liferay.Headless.Admin.Site.everything.read",
                 " liferay-json-web-services.everything.read "
             )
@@ -23,6 +24,7 @@ public class LdevOAuth2BootstrapSupportTest {
         assertEquals(
             Arrays.asList(
                 "Liferay.Headless.Admin.User.everything.read",
+                "Liferay.Headless.Admin.Content.everything.read",
                 "Liferay.Headless.Admin.Site.everything.read",
                 "liferay-json-web-services.everything.read"
             ),

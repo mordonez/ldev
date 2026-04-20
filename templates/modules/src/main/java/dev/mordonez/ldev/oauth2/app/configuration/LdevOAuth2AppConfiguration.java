@@ -36,7 +36,7 @@ public interface LdevOAuth2AppConfiguration {
     String clientAuthenticationMethod();
 
     @Meta.AD(
-        deflt = "Liferay.Headless.Admin.User.everything.read,Liferay.Headless.Admin.Site.everything.read,Liferay.Data.Engine.REST.everything.read,Liferay.Data.Engine.REST.everything.write,Liferay.Headless.Delivery.everything.read,Liferay.Headless.Delivery.everything.write,liferay-json-web-services.everything.read,liferay-json-web-services.everything.write,Liferay.Headless.Discovery.API.everything.read,Liferay.Headless.Discovery.OpenAPI.everything.read",
+        deflt = "Liferay.Headless.Admin.User.everything.read,Liferay.Headless.Admin.Content.everything.read,Liferay.Headless.Admin.Site.everything.read,Liferay.Data.Engine.REST.everything.read,Liferay.Data.Engine.REST.everything.write,Liferay.Headless.Delivery.everything.read,Liferay.Headless.Delivery.everything.write,liferay-json-web-services.everything.read,liferay-json-web-services.everything.write,Liferay.Headless.Discovery.API.everything.read,Liferay.Headless.Discovery.OpenAPI.everything.read",
         required = false
     )
     String[] scopeAliases();
