@@ -13,6 +13,10 @@ export {
   resolveStructuresBaseDir,
   resolveTemplatesBaseDir,
   siteTokenToFriendlyUrl,
+  tryResolveArtifactBaseDir,
+  tryResolveArtifactSiteDir,
+  tryResolveFragmentsBaseDir,
+  tryResolveRepoPath,
 } from './artifact-paths.js';
 
 import {resolveArtifactFile} from './artifact-paths.js';

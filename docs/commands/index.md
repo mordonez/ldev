@@ -45,9 +45,12 @@ Namespaces:
 - `ldev project` — project scaffold
 - `ldev ai` — reusable AI assets and skills
 
-Global Liferay connection overrides (must appear **before** the subcommand):
+Liferay connection overrides are available on `ldev portal` and `ldev resource`:
 
 ```bash
+ldev portal [options] <subcommand>
+ldev resource [options] <subcommand>
+
 --liferay-url <url>
 --liferay-client-id <clientId>
 --liferay-client-secret <clientSecret>

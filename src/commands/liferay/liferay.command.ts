@@ -13,9 +13,26 @@ import {createLiferayThemeCheckCommand} from './liferay-theme-check.command.js';
 export function createPortalCommand(): Command {
   const command = new Command('portal').alias('liferay');
 
-  command.description('Portal inspection, config, inventory and API').addHelpText(
-    'after',
-    `
+  command
+    .description('Portal inspection, config, inventory and API')
+    .option('--liferay-url <url>', 'Override Liferay base URL for this command')
+    .option('--liferay-client-id <clientId>', 'Override Liferay OAuth2 client id for this command')
+    .option(
+      '--liferay-client-secret <clientSecret>',
+      'Override Liferay OAuth2 client secret for this command (less secure; prefer --liferay-client-secret-env)',
+    )
+    .option(
+      '--liferay-client-secret-env <envVar>',
+      'Read Liferay OAuth2 client secret from an environment variable (recommended)',
+    )
+    .option('--liferay-scope-aliases <aliases>', 'Override OAuth2 scope aliases (comma-separated) for this command')
+    .option('--liferay-timeout-seconds <seconds>', 'Override Liferay HTTP timeout in seconds for this command')
+    .addHelpText(
+      'after',
+      `
+Override precedence: --liferay-client-secret has priority over --liferay-client-secret-env.
+Security tip: prefer --liferay-client-secret-env in local shells and CI to avoid exposing secrets in process args/history.
+
 Use this namespace for portal inspection and API operations against a running Liferay instance.
 For resource export, import and migration workflows, use the top-level 'resource' namespace.
 
@@ -39,7 +56,7 @@ Main groups:
   reindex      Reindex observation and temporary tuning
   content      Journal/web content management (prune for local environments)
 `,
-  );
+    );
 
   createAuthCommands(command);
   command.addCommand(createLiferayConfigCommand().helpGroup('Portal diagnostics:'));
