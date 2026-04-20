@@ -1,82 +1,53 @@
 ---
 layout: home
 
-title: Fix Liferay issues faster
-description: Operational CLI for diagnosing, reproducing, and resolving Liferay maintenance incidents.
+title: ldev — Liferay Operations CLI
+description: Diagnose, reproduce, and fix Liferay incidents from the terminal.
 
 hero:
-  name: Fix Liferay issues faster
-  text: Diagnose the incident, reproduce production locally, apply the fix safely, and verify before touching production.
+  name: ldev
+  text: Liferay, from the terminal.
+  tagline: Diagnose incidents, reproduce production locally, fix safely, and verify before touching prod.
   image:
     src: /logo.svg
     alt: ldev logo
   actions:
-    - theme: theme
-      text: Start Here
+    - theme: brand
+      text: Get Started
       link: /getting-started/quickstart
     - theme: alt
       text: Command Reference
       link: /commands/
 
 features:
-  - title: Understand the portal
-    details: Inspect sites, pages, structures, templates, fragments and runtime state from the CLI.
-  - title: Bring production local
-    details: Sync real databases and Document Libraries into Docker, and isolate work in worktrees.
-  - title: Fix safely
-    details: Deploy modules, inspect OSGi, run migrations, and verify the result with structured output.
+  - icon: "🔍"
+    title: Inspect without the UI
+    details: Browse sites, pages, fragments, and runtime state directly from the CLI.
+  - icon: "🐳"
+    title: Reproduce production locally
+    details: Pull real databases and Document Libraries into Docker. Isolate work in worktrees.
+  - icon: "🚀"
+    title: Fix and verify safely
+    details: Deploy modules, inspect OSGi, run migrations, and confirm the outcome with structured output.
 ---
 
 <div class="home-shell">
 
-<div class="hero-terminal">
+<div class="install-band">
 
 ```bash
-ldev doctor
-ldev start
-ldev logs diagnose --json
-ldev deploy module my-module
+npm i -g @mordonezdev/ldev
 ```
 
 </div>
 
-<p class="subhero">
-From first symptom to verified fix, without living in the UI.
-</p>
-
-<div class="signal-grid compact">
-  <div class="signal-card">
-    <span class="signal-label">Problem</span>
-    <p>Incidents start with vague symptoms, environment drift, and too much UI-driven investigation.</p>
-  </div>
-  <div class="signal-card">
-    <span class="signal-label">Solution</span>
-    <p><code>ldev</code> gives you one CLI to inspect the portal, reproduce the issue locally, fix it safely, and verify the result.</p>
-  </div>
-</div>
-
-## Solve Incidents, Not Screens
-
-Liferay maintenance work often starts with a vague symptom and too much clicking. You open the UI to find which site owns a page, inspect logs that are too broad to trust, and compare against a local setup that does not really match production.
-
-`ldev` changes that operating model. It gives you one CLI for incident work: inspect portal structure, diagnose failures, reproduce the issue locally, and verify the fix with real context.
-
-## Bring Real Issues Into a Controlled Environment
-
-<div class="signal-grid compact">
-  <div class="signal-card">
-    <span class="signal-label">Production → Local</span>
-    <p>Reproduce production issues locally with Docker and worktrees so you can debug the real problem instead of a rough approximation.</p>
-  </div>
-  <div class="signal-card">
-    <span class="signal-label">Safe Changes</span>
-    <p>Test the fix in a controlled environment first, confirm the outcome, and only then carry the change back to production.</p>
-  </div>
-</div>
-
-## Discovery Without the UI
-
-<div class="discovery-panel">
+<div class="features-band">
+  <div class="feature-block">
+    <div class="feature-header">
+      <span class="feature-step">01</span>
+      <h3 class="feature-title">Inspect</h3>
+    </div>
+    <div class="feature-content">
 
 ```bash
 ldev portal inventory sites
@@ -84,68 +55,16 @@ ldev portal inventory pages --site /global
 ldev portal inventory page --url /home --json
 ```
 
-<p>
-Inspect Liferay without opening the UI. See sites and pages immediately, resolve what a URL maps to, and get structured output that works for humans, automation, and agents.
-</p>
-
-</div>
-
-## Resources as Files
-
-<div class="signal-grid compact">
-  <div class="signal-card">
-    <span class="signal-label">Export / Import</span>
-    <p>Use <code>ldev resource</code> to export and import structures, templates, ADTs, and fragments without depending on the UI.</p>
   </div>
-  <div class="signal-card">
-    <span class="signal-label">Migration Pipelines</span>
-    <p>Use <code>ldev resource migration-pipeline</code> when structure changes affect real content so the change stays reviewable, reproducible, and safe to replay.</p>
+  <p class="feature-desc">Browse sites, pages, and portal structure from the CLI. Structured output for humans, scripts, and agents.</p>
   </div>
-</div>
 
-## Who Is This For
-
-<div class="signal-grid compact">
-  <div class="signal-card">
-    <span class="signal-label">Users</span>
-    <p>Developers fixing bugs, consultants handling incidents, and teams tired of debugging Liferay through the UI.</p>
-  </div>
-  <div class="signal-card">
-    <span class="signal-label">Why Teams Use It</span>
-    <p>Less UI dependency, less environment drift, and clearer handoff during maintenance work.</p>
-  </div>
-</div>
-
-## Incident Workflow
-
-<div class="workflow-grid">
-  <div class="workflow-step">
-    <span>01</span>
-    <h3>Understand</h3>
-    <p>Use <code>ldev context</code> and <code>ldev portal inventory</code> to find sites, pages, and exact context.</p>
-  </div>
-  <div class="workflow-step">
-    <span>02</span>
-    <h3>Diagnose</h3>
-    <p>Use <code>ldev logs diagnose</code> and <code>ldev doctor</code> to isolate failures quickly.</p>
-  </div>
-  <div class="workflow-step">
-    <span>03</span>
-    <h3>Fix</h3>
-    <p>Use <code>ldev deploy</code> and <code>ldev osgi</code> to change code and runtime state safely.</p>
-  </div>
-  <div class="workflow-step">
-    <span>04</span>
-    <h3>Verify</h3>
-    <p>Use <code>ldev portal check</code> and <code>ldev context</code> to confirm the expected state before production is affected.</p>
-  </div>
-</div>
-
-<p class="workflow-close">Less UI exploration, less environment drift, and less time between symptom and verified fix.</p>
-
-## Example
-
-<div class="quickstart-band">
+  <div class="feature-block">
+    <div class="feature-header">
+      <span class="feature-step">02</span>
+      <h3 class="feature-title">Diagnose & Fix</h3>
+    </div>
+    <div class="feature-content">
 
 ```bash
 ldev logs diagnose --json
@@ -154,41 +73,40 @@ ldev deploy module foo-web
 ldev context --json
 ```
 
-<p>A bundle is not working. Diagnose the symptom, inspect runtime state, deploy the module, and confirm the environment you actually fixed. From symptom to verified fix, without guesswork.</p>
+  </div>
+  <p class="feature-desc">From symptom to verified fix — isolate failures, inspect runtime state, deploy, and confirm.</p>
+  </div>
 
-</div>
-
-## Quickstart
-
-<div class="quickstart-band">
-
-```bash
-npm i -g @mordonezdev/ldev
-
-ldev project init --name my-project --dir .
-ldev setup
-ldev start
-ldev doctor
-```
-
-<p>Scaffold the project, prepare the environment, start it, and run the checks. Then move on to <code>ldev oauth install --write-env</code> for API-backed commands.</p>
-
-</div>
-
-## Agents
-
-`ldev` exposes JSON outputs, context snapshots, and machine-readable portal data so scripts and agents can work from the same operational state as the developer.
-
-If you want that layer in the repo, bootstrap it explicitly:
+  <div class="feature-block">
+    <div class="feature-header">
+      <span class="feature-step">03</span>
+      <h3 class="feature-title">Migrate Resources</h3>
+    </div>
+    <div class="feature-content">
 
 ```bash
-ldev ai install --target .
+ldev resource export-structures --all-sites 
+ldev resource migration-init --key STR_ARTICLE 
+ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 ```
 
-Agents are secondary. They are useful because the system is already inspectable and scriptable.
+  </div>
+  <p class="feature-desc">Export and import structures, templates, ADTs, and fragments. Keep changes reviewable and safe to replay.</p>
+  </div>
+</div>
 
-<div class="final-statement">
+<div class="agent-strip">
+  <span class="agent-label">Agent-ready</span>
+  <p>JSON outputs, context snapshots, and machine-readable portal data — so agents work from the same operational state as the developer. Bootstrap with <code>ldev ai install --target .</code></p>
+  <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
+</div>
+
+<div class="final-cta">
   <strong>ldev turns Liferay into a scriptable, inspectable, and operable system.</strong>
+  <div class="cta-actions">
+    <a href="/ldev/getting-started/quickstart" class="cta-btn primary">Get Started</a>
+    <a href="/ldev/getting-started/first-incident" class="cta-btn alt">First Incident →</a>
+  </div>
 </div>
 
 </div>
@@ -196,365 +114,282 @@ Agents are secondary. They are useful because the system is already inspectable 
 <style>
 :root {
   --ldev-ink: #0f172a;
-  --ldev-ink-soft: #334155;
-  --ldev-line: rgba(15, 23, 42, 0.12);
-  --ldev-panel: rgba(255, 255, 255, 0.78);
-  --ldev-panel-strong: rgba(255, 255, 255, 0.94);
+  --ldev-ink-soft: #475569;
+  --ldev-line: rgba(15, 23, 42, 0.1);
   --ldev-accent: #0f766e;
-  --ldev-accent-2: #b45309;
-  --ldev-warm: #fff7ed;
-  --ldev-cool: #ecfeff;
+  --ldev-accent-amber: #b45309;
 }
 
+/* ── Background ─────────────────────────────────── */
 .VPHome {
   background:
-    radial-gradient(circle at top left, rgba(20, 184, 166, 0.14), transparent 32%),
-    radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 28%),
-    linear-gradient(180deg, #f8fafc 0%, #fffdf8 48%, #f8fafc 100%);
+    radial-gradient(ellipse 80% 40% at 10% 0%, rgba(20, 184, 166, 0.12), transparent),
+    radial-gradient(ellipse 60% 35% at 90% 0%, rgba(245, 158, 11, 0.1), transparent),
+    #f8fafc;
 }
 
-.VPHome .VPHero .container {
-  max-width: 1180px;
-}
+/* ── Hero ────────────────────────────────────────── */
+.VPHome .VPHero .container { max-width: 1180px; }
 
 .VPHome .VPHero .name {
-  font-size: clamp(3rem, 7vw, 5.4rem) !important;
-  line-height: 0.95 !important;
-  letter-spacing: -0.08em;
-  color: var(--ldev-ink);
+  font-size: clamp(3.6rem, 8vw, 6rem) !important;
+  line-height: 0.9 !important;
+  letter-spacing: -0.09em;
+  background: linear-gradient(135deg, #0f172a 40%, #0f766e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .VPHome .VPHero .text {
-  max-width: 620px;
-  font-size: 1.05rem !important;
-  line-height: 1.45;
-  color: var(--ldev-ink-soft);
+  font-size: clamp(1.4rem, 3vw, 1.9rem) !important;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ldev-ink) !important;
+}
+
+.VPHome .VPHero .tagline {
+  max-width: 560px;
+  font-size: 1rem !important;
+  line-height: 1.5;
+  color: var(--ldev-ink-soft) !important;
 }
 
 .VPHome .VPHero .image {
-  filter: drop-shadow(0 20px 50px rgba(15, 23, 42, 0.12));
+  filter: drop-shadow(0 24px 60px rgba(15, 23, 42, 0.14));
 }
 
 .VPHome .VPHero .image-container img,
 .VPHome .VPHero .image img {
-  width: min(200px, 22vw);
+  width: min(180px, 20vw);
   height: auto;
 }
+
+/* ── Feature cards ───────────────────────────────── */
+.VPHome .VPFeatures { padding-bottom: 0 !important; }
+.VPHome .VPFeatures .container { max-width: 1100px; }
 
 .VPHome .VPFeature {
   border: 1px solid var(--ldev-line) !important;
   border-radius: 20px !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72)) !important;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(160deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7)) !important;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06) !important;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.VPHome .VPFeature .title {
-  color: var(--ldev-ink);
+.VPHome .VPFeature:hover {
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.1) !important;
+  transform: translateY(-2px);
 }
 
-.VPHome .VPFeatures {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-}
+.VPHome .VPFeature .title { color: var(--ldev-ink); font-weight: 700; }
+.VPHome .VPFeature .details { color: var(--ldev-ink-soft); }
 
-.VPHome .VPFeatures .container {
-  max-width: 1100px;
-}
-
+/* ── Shell ───────────────────────────────────────── */
 .home-shell {
   max-width: 1100px;
-  margin: 6px auto 64px;
+  margin: 0 auto 72px;
   padding: 0 24px;
 }
 
-.hero-terminal {
-  margin: 30px auto 18px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.96));
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.18);
-  overflow: hidden;
-}
-
-.hero-terminal div[class*='language-'],
-.discovery-panel div[class*='language-'],
-.quickstart-band div[class*='language-'] {
-  margin: 0;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.hero-terminal pre {
-  margin: 0;
-  padding: 16px 20px;
-  background: transparent;
-}
-
-.hero-terminal div[class*='language-'] pre,
-.discovery-panel div[class*='language-'] pre,
-.quickstart-band div[class*='language-'] pre {
-  margin: 0;
-  padding: 16px 18px;
-}
-
-.hero-terminal div[class*='language-'] code,
-.discovery-panel div[class*='language-'] code,
-.quickstart-band div[class*='language-'] code {
-  display: block;
-  min-width: 0;
-}
-
-.hero-terminal div[class*='language-'] .copy,
-.discovery-panel div[class*='language-'] .copy,
-.quickstart-band div[class*='language-'] .copy {
-  top: 8px;
-  right: 8px;
-}
-
-.subhero {
-  max-width: 760px;
-  margin: 0 auto 14px;
+/* ── Install band ────────────────────────────────── */
+.install-band {
+  margin: 32px auto 48px;
+  max-width: 440px;
   text-align: center;
-  font-size: 1.05rem;
-  line-height: 1.45;
-  color: var(--ldev-ink);
-  font-weight: 600;
 }
 
-.signal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin: 10px 0 28px;
-}
-
-.signal-grid.compact .signal-card {
-  padding: 18px 20px;
-}
-
-.signal-card,
-.discovery-panel,
-.workflow-step,
-.quickstart-band,
-.final-statement {
+.install-band div[class*='language-'] {
+  border-radius: 14px !important;
   border: 1px solid var(--ldev-line);
-  border-radius: 26px;
-  background: var(--ldev-panel);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4px 20px rgba(15,23,42,0.08);
 }
 
-.signal-card {
-  padding: 26px;
-}
-
-.signal-card p,
-.discovery-panel p,
-.workflow-step p,
-.quickstart-band p {
-  margin: 0;
-  color: var(--ldev-ink-soft);
-  line-height: 1.7;
-}
-
-.signal-label {
-  display: inline-flex;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--ldev-accent);
-  background: rgba(20, 184, 166, 0.1);
-}
-
-.discovery-panel {
-  padding: 14px 16px 16px;
-  margin: 8px 0 28px;
-  background:
-    linear-gradient(135deg, rgba(236, 254, 255, 0.82), rgba(255, 247, 237, 0.76));
-}
-
-.discovery-panel div[class*='language-'] {
-  margin-bottom: 12px;
-}
-
-.discovery-panel pre {
-  border-radius: 18px;
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.workflow-grid {
+/* ── Feature blocks ──────────────────────────────── */
+.features-band {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 48px;
 }
 
-.workflow-step {
-  padding: 18px;
-  background: var(--ldev-panel-strong);
+.feature-block {
+  border: 1px solid var(--ldev-line);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.88);
+  box-shadow: 0 4px 20px rgba(15,23,42,0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.workflow-step span {
-  display: inline-block;
-  font-size: 0.9rem;
+.feature-block:hover {
+  box-shadow: 0 12px 40px rgba(15,23,42,0.09);
+  transform: translateY(-2px);
+}
+
+.feature-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 18px 0;
+}
+
+.feature-step {
+  font-size: 0.68rem;
   font-weight: 800;
-  color: var(--ldev-accent-2);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ldev-accent-amber);
 }
 
-.workflow-step h3 {
-  margin: 10px 0 8px;
+.feature-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ldev-ink);
+  border: none;
+  padding: 0;
+}
+
+.feature-content {
+  padding: 10px 14px 0;
+  flex: 1;
+}
+
+.feature-content div[class*='language-'] {
+  border-radius: 12px !important;
+  margin: 0 !important;
+}
+
+.feature-desc {
+  margin: 0 !important;
+  padding: 12px 18px 18px;
+  font-size: 0.85rem;
+  color: var(--ldev-ink-soft);
+  line-height: 1.6;
+}
+
+/* ── Agent strip ─────────────────────────────────── */
+.agent-strip {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ldev-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.6);
+  flex-wrap: wrap;
+}
+
+.agent-label {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ldev-accent);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.agent-strip p {
+  margin: 0;
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--ldev-ink-soft);
+  line-height: 1.5;
+  min-width: 200px;
+}
+
+.agent-strip code {
+  font-size: 0.8rem;
+}
+
+.agent-link {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ldev-accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.agent-link:hover { text-decoration: underline; }
+
+/* ── Final CTA ───────────────────────────────────── */
+.final-cta {
+  text-align: center;
+  padding: 40px 32px;
+  border: 1px solid var(--ldev-line);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(20,184,166,0.07), rgba(245,158,11,0.07));
+  box-shadow: 0 8px 40px rgba(15,23,42,0.06);
+}
+
+.final-cta strong {
+  display: block;
   font-size: 1.1rem;
   color: var(--ldev-ink);
+  margin-bottom: 24px;
 }
 
-.workflow-close {
-  margin: 0 0 28px;
-  font-size: 1rem;
-  color: var(--ldev-ink);
-  text-align: center;
+.cta-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 0.9rem;
   font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
-.quickstart-band {
-  padding: 14px 16px 16px;
-  margin: 8px 0 20px;
-  background:
-    linear-gradient(135deg, rgba(255, 247, 237, 0.84), rgba(255, 255, 255, 0.92));
+.cta-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+.cta-btn.primary {
+  background: var(--ldev-accent);
+  color: #fff;
 }
 
-.quickstart-band div[class*='language-'] {
-  margin-bottom: 12px;
-}
-
-.quickstart-band pre {
-  border-radius: 18px;
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.final-statement {
-  margin-top: 18px;
-  padding: 22px;
-  text-align: center;
-  font-size: 1.12rem;
-  line-height: 1.4;
+.cta-btn.alt {
+  background: rgba(15,23,42,0.06);
   color: var(--ldev-ink);
-  background:
-    linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(245, 158, 11, 0.1));
+  border: 1px solid var(--ldev-line);
 }
 
+/* ── Responsive ──────────────────────────────────── */
 @media (max-width: 960px) {
-  .signal-grid,
-  .workflow-grid {
-    grid-template-columns: 1fr;
-  }
+  .features-band { grid-template-columns: 1fr; }
 
-  .home-shell {
-    margin-top: 0;
-    padding-left: 14px;
-    padding-right: 14px;
-  }
+  .VPHome .VPHero .name { font-size: 3rem !important; }
+  .VPHome .VPHero .text { font-size: 1.3rem !important; }
 
-  .subhero {
-    font-size: 0.96rem;
-    margin-bottom: 16px;
-  }
-
-  .VPHome .VPHero .container {
-    padding-top: 24px;
-  }
-
-  .VPHome .VPHero .name {
-    font-size: 2.2rem !important;
-    letter-spacing: -0.05em;
-  }
-
-  .VPHome .VPHero .text {
-    font-size: 0.96rem !important;
-    line-height: 1.4;
-  }
-
-  .VPHome .VPFeature {
-    border-radius: 18px !important;
-  }
-
-  .hero-terminal pre {
-    padding: 16px;
-  }
-
-  .hero-terminal div[class*='language-'] pre,
-  .discovery-panel div[class*='language-'] pre,
-  .quickstart-band div[class*='language-'] pre {
-    padding: 16px 16px 18px;
-  }
-
-  .workflow-close {
-    font-size: 0.95rem;
-  }
+  .home-shell { padding: 0 16px; }
 }
 
 @media (max-width: 640px) {
+  .home-shell { margin-bottom: 48px; }
+  .install-band { margin-bottom: 32px; }
+  .features-band { margin-bottom: 32px; }
+  .final-cta { padding: 28px 20px; }
+
   .VPHome .VPHero .image,
-  .VPHome .VPHero .image-container,
-  .VPHome .VPHero .image-src {
-    display: none !important;
-  }
+  .VPHome .VPHero .image-container { display: none !important; }
 
-  .VPHome .VPFeatures {
-    display: none !important;
-  }
+  .VPHome .VPFeatures { display: none !important; }
 
-  .VPHome .VPHero .container {
-    padding-top: 12px;
-    padding-bottom: 12px;
-  }
-
-  .VPHome .VPHero .main {
-    max-width: 100%;
-  }
-
-  .home-shell {
-    margin-top: 0;
-    margin-bottom: 52px;
-  }
-
-  .hero-terminal {
-    margin-top: 6px;
-    margin-bottom: 14px;
-    border-radius: 18px;
-  }
-
-  .hero-terminal div[class*='language-'],
-  .discovery-panel div[class*='language-'],
-  .quickstart-band div[class*='language-'] {
-    border-radius: 14px;
-  }
-
-  .signal-grid {
-    margin-bottom: 24px;
-  }
-
-  .discovery-panel,
-  .quickstart-band,
-  .workflow-step,
-  .signal-grid.compact .signal-card,
-  .final-statement {
-    border-radius: 18px;
-  }
-
-  .discovery-panel {
-    margin-bottom: 24px;
-  }
-
-  .workflow-close {
-    margin-bottom: 26px;
-  }
+  .VPHome .VPHero .name { font-size: 2.6rem !important; }
+  .VPHome .VPHero .text { font-size: 1.15rem !important; }
 }
 </style>
