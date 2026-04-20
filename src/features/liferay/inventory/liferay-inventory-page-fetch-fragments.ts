@@ -5,7 +5,7 @@ import type {HttpApiClient} from '../../../core/http/client.js';
 import {type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildResourceSiteChain} from '../resource/liferay-resource-shared.js';
-import {resolveFragmentsBaseDir, resolveSiteToken} from '../resource/liferay-resource-paths.js';
+import {resolveSiteToken, tryResolveFragmentsBaseDir} from '../resource/liferay-resource-paths.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 
 export async function tryFetchFragmentEntryLinks(
@@ -77,8 +77,9 @@ async function findFragmentExportPath(
 }
 
 async function resolveFragmentSearchBaseDirs(config: AppConfig): Promise<string[]> {
-  const configured = resolveFragmentsBaseDir(config);
-  const candidates = [configured];
+  const configured = tryResolveFragmentsBaseDir(config);
+  const candidates = configured ? [configured] : [];
+
   if (config.liferayDir && (await fs.pathExists(config.liferayDir))) {
     const entries = await fs.readdir(config.liferayDir, {withFileTypes: true});
     for (const entry of entries) {

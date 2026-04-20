@@ -22,7 +22,7 @@ import {
   resolveResourceSite,
 } from '../resource/liferay-resource-shared.js';
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
-import {resolveArtifactSiteDir, resolveSiteToken} from '../resource/liferay-resource-paths.js';
+import {resolveSiteToken, tryResolveArtifactSiteDir} from '../resource/liferay-resource-paths.js';
 import {
   type ArticleRef,
   fetchContentStructureById,
@@ -141,11 +141,14 @@ export async function buildJournalArticleSummary(
     );
     if (structureSite) {
       summary.ddmStructureSiteFriendlyUrl = structureSite.siteFriendlyUrl;
-      summary.structureExportPath = buildStructureExportPath(
+      const structureExportPath = buildStructureExportPath(
         config,
         structureSite.siteFriendlyUrl,
         summary.ddmStructureKey,
       );
+      if (structureExportPath) {
+        summary.structureExportPath = structureExportPath;
+      }
     }
   }
 
@@ -156,7 +159,10 @@ export async function buildJournalArticleSummary(
     });
     if (templateSite) {
       summary.ddmTemplateSiteFriendlyUrl = templateSite;
-      summary.templateExportPath = buildTemplateExportPath(config, templateSite, ddmTemplateKey);
+      const templateExportPath = buildTemplateExportPath(config, templateSite, ddmTemplateKey);
+      if (templateExportPath) {
+        summary.templateExportPath = templateExportPath;
+      }
     }
   }
 
@@ -188,12 +194,13 @@ export async function collectLayoutContentStructures(
     }
     const key = inferContentStructureKey(response.data) || article.ddmStructureKey;
     const siteFriendlyUrl = article.ddmStructureSiteFriendlyUrl ?? article.siteFriendlyUrl;
+    const exportPath = siteFriendlyUrl && key ? buildStructureExportPath(config, siteFriendlyUrl, key) : undefined;
     result.push({
       contentStructureId,
       ...(key ? {key} : {}),
       name: String(response.data?.name ?? ''),
       ...(siteFriendlyUrl ? {siteFriendlyUrl} : {}),
-      ...(siteFriendlyUrl && key ? {exportPath: buildStructureExportPath(config, siteFriendlyUrl, key)} : {}),
+      ...(exportPath ? {exportPath} : {}),
     });
   }
 
@@ -316,19 +323,13 @@ async function resolveTemplateSiteByKey(
 }
 
 function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
-  try {
-    return path.join(resolveArtifactSiteDir(config, 'structure', resolveSiteToken(siteFriendlyUrl)), `${key}.json`);
-  } catch {
-    return undefined;
-  }
+  const siteDir = tryResolveArtifactSiteDir(config, 'structure', resolveSiteToken(siteFriendlyUrl));
+  return siteDir ? path.join(siteDir, `${key}.json`) : undefined;
 }
 
 function buildTemplateExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
-  try {
-    return path.join(resolveArtifactSiteDir(config, 'template', resolveSiteToken(siteFriendlyUrl)), `${key}.ftl`);
-  } catch {
-    return undefined;
-  }
+  const siteDir = tryResolveArtifactSiteDir(config, 'template', resolveSiteToken(siteFriendlyUrl));
+  return siteDir ? path.join(siteDir, `${key}.ftl`) : undefined;
 }
 
 function inferContentStructureKey(value: Record<string, unknown> | null | undefined): string {

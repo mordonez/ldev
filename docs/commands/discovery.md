@@ -5,10 +5,10 @@ description: Minimal reference for understanding portal and runtime state.
 
 # Discovery Commands
 
-Global connection overrides are available for remote execution and **must be passed before subcommands**:
+Namespace-scoped connection overrides are available for remote execution on `ldev portal` and `ldev resource`:
 
 ```bash
-ldev --liferay-url https://portal.example.com portal inventory sites --json
+ldev portal --liferay-url https://portal.example.com inventory sites --json
 ```
 
 ## `ldev context`
