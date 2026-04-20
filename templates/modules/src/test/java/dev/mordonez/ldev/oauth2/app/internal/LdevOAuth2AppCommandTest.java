@@ -14,6 +14,7 @@ public class LdevOAuth2AppCommandTest {
     public void resolveReadOnlyScopeAliases_dropsOnlyExplicitWriteScopes() {
         List<String> aliases = Arrays.asList(
             "Liferay.Headless.Admin.User.everything.read",
+            "Liferay.Headless.Admin.Content.everything.read",
             "Liferay.Headless.Admin.User.everything.write",
             "custom.scope.execute",
             " liferay-json-web-services.everything.read "
@@ -24,6 +25,7 @@ public class LdevOAuth2AppCommandTest {
         assertEquals(
             Arrays.asList(
                 "Liferay.Headless.Admin.User.everything.read",
+                "Liferay.Headless.Admin.Content.everything.read",
                 "custom.scope.execute",
                 "liferay-json-web-services.everything.read"
             ),

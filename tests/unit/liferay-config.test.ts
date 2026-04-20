@@ -62,6 +62,7 @@ describe('resolveLiferayConfig', () => {
 
     expect(config.url).toBe('http://127.0.0.7:8181');
     expect(config.scopeAliases).toContain('Liferay.Headless.Admin.User.everything.read');
+    expect(config.scopeAliases).toContain('Liferay.Headless.Admin.Content.everything.read');
     expect(config.scopeAliases).toContain('Liferay.Headless.Admin.Site.everything.read');
     expect(config.timeoutSeconds).toBe(30);
   });
@@ -84,6 +85,7 @@ describe('resolveLiferayConfig', () => {
     expect(config.oauth2ClientId).toBe('env-id');
     expect(config.oauth2ClientSecret).toBe('docker-secret');
     expect(config.scopeAliases).toContain('Liferay.Headless.Admin.User.everything.read');
+    expect(config.scopeAliases).toContain('Liferay.Headless.Admin.Content.everything.read');
     expect(config.scopeAliases).toContain('Liferay.Headless.Admin.Site.everything.read');
     expect(config.timeoutSeconds).toBe(30);
   });
