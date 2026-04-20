@@ -25,14 +25,44 @@ That lets you move from a clean local environment to a production-like one witho
 
 `ldev` uses Docker-based local environments so startup, restart, reset, and state transfer are explicit commands instead of tribal knowledge.
 
-Core commands:
+Top-level lifecycle:
 
 ```bash
+ldev setup
 ldev start
 ldev stop
+ldev status
+```
+
+Advanced recovery lives under `ldev env`:
+
+```bash
 ldev env restart
 ldev env recreate
+ldev env restore
+ldev env clean --force
 ```
+
+Scriptable diagnostics:
+
+```bash
+ldev env wait --timeout 600 --poll 10
+ldev env is-healthy
+ldev env diff --write-baseline
+ldev env diff
+```
+
+`is-healthy` returns `0` when healthy and `1` otherwise. `diff` compares the current environment against a saved baseline.
+
+## Logs and shell
+
+```bash
+ldev logs --service liferay --since 10m
+ldev logs diagnose --since 10m --json
+ldev shell
+```
+
+`logs` streams container output directly. `logs diagnose` analyzes recent logs and groups exceptions by type and frequency.
 
 ## Worktrees for isolated debugging
 
@@ -44,7 +74,9 @@ cd .worktrees/incident-123
 ldev start
 ```
 
-This keeps branch state and runtime state aligned.
+Worktrees inherit the files that exist in the branch or commit used as their base. Make sure runtime Compose overrides (e.g. `docker-compose.liferay.volume.yml`) are committed to that branch before creating the worktree.
+
+On Linux + BTRFS, `ldev` uses subvolume snapshots to accelerate worktree env creation; refresh the base with `ldev worktree btrfs-refresh-base` when the main env changes.
 
 ## Safety
 
@@ -53,5 +85,5 @@ A reproducible environment is a safety feature.
 It lets you:
 
 - debug locally before production changes
-- compare before and after behavior
+- compare before and after behavior with `env diff` and `perf check`
 - verify a fix with the same commands every time

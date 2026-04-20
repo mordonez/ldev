@@ -56,7 +56,7 @@ Practical guidance:
 ```bash
 ldev portal check
 ldev portal inventory sites
-ldev resource list --site guest
+ldev portal inventory structures --site /guest --with-templates --json
 ```
 
 If one of these baseline commands fails due to version-specific API differences, treat that runtime as partially compatible and document the gap in your project notes.

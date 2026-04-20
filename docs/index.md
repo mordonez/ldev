@@ -20,11 +20,11 @@ hero:
 
 features:
   - title: Understand the portal
-    details: Inspect sites, pages, URLs, and page context directly from the CLI.
+    details: Inspect sites, pages, structures, templates, fragments and runtime state from the CLI.
   - title: Bring production local
-    details: Reproduce real incidents in controlled Docker and worktree environments.
+    details: Sync real databases and Document Libraries into Docker, and isolate work in worktrees.
   - title: Fix safely
-    details: Diagnose, deploy, inspect OSGi, and verify the result before production is affected.
+    details: Deploy modules, inspect OSGi, run migrations, and verify the result with structured output.
 ---
 
 <div class="home-shell">
@@ -98,8 +98,8 @@ Inspect Liferay without opening the UI. See sites and pages immediately, resolve
     <p>Use <code>ldev resource</code> to export and import structures, templates, ADTs, and fragments without depending on the UI.</p>
   </div>
   <div class="signal-card">
-    <span class="signal-label">Migration Plans</span>
-    <p>Use migration descriptors when structure changes affect real content so the change stays reviewable and reproducible.</p>
+    <span class="signal-label">Migration Pipelines</span>
+    <p>Use <code>ldev resource migration-pipeline</code> when structure changes affect real content so the change stays reviewable, reproducible, and safe to replay.</p>
   </div>
 </div>
 
@@ -122,12 +122,12 @@ Inspect Liferay without opening the UI. See sites and pages immediately, resolve
   <div class="workflow-step">
     <span>01</span>
     <h3>Understand</h3>
-    <p>Use <code>ldev portal inventory</code> to find sites, pages, and exact context.</p>
+    <p>Use <code>ldev context</code> and <code>ldev portal inventory</code> to find sites, pages, and exact context.</p>
   </div>
   <div class="workflow-step">
     <span>02</span>
     <h3>Diagnose</h3>
-    <p>Use <code>ldev logs</code> and <code>ldev doctor</code> to isolate failures quickly.</p>
+    <p>Use <code>ldev logs diagnose</code> and <code>ldev doctor</code> to isolate failures quickly.</p>
   </div>
   <div class="workflow-step">
     <span>03</span>
@@ -166,11 +166,12 @@ ldev context --json
 npm i -g @mordonezdev/ldev
 
 ldev project init --name my-project --dir .
+ldev setup
 ldev start
 ldev doctor
 ```
 
-<p>Start the environment, run the checks, and begin from the CLI.</p>
+<p>Scaffold the project, prepare the environment, start it, and run the checks. Then move on to <code>ldev oauth install --write-env</code> for API-backed commands.</p>
 
 </div>
 

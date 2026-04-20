@@ -7,6 +7,18 @@ description: Common error patterns and fixes for ldev runtimes, Docker issues, a
 
 Start with `ldev doctor`, then `ldev logs diagnose` for detailed diagnosis.
 
+`ldev` normalizes errors into a stable envelope:
+
+```json
+{
+  "code": "OAUTH_INSTALL_OPTION_INVALID",
+  "exitCode": 2,
+  "message": "--user-id requires --company-id."
+}
+```
+
+Codes come from per-feature factories (`EnvErrors`, `WorktreeErrors`, `DeployErrors`, `DbErrors`, `OAuthErrors`, `LiferayErrors`). Match on `code` in scripts; `message` is safe to display.
+
 ---
 
 ## Startup Issues
@@ -60,15 +72,15 @@ Health wait: liferay health endpoint not responding
 **Fix**: Check logs:
 
 ```bash
-ldev logs follow --service liferay     # Stream logs
-ldev logs diagnose                      # Full diagnosis
+ldev logs --service liferay --since 10m     # Stream recent logs
+ldev logs diagnose --json                    # Full diagnosis
 ```
 
 Common causes:
 - Activation key expired or invalid
 - Not enough memory/disk
 - Port conflict
-- Corrupted data directory: `ldev env clean` then `ldev start`
+- Corrupted data directory: `ldev env clean --force` then `ldev start`
 
 ---
 
@@ -109,7 +121,7 @@ When OAuth keeps failing, run this sequence in order:
 ```bash
 ldev context --json
 ldev portal check
-ldev liferay auth check
+ldev portal auth token --raw
 ldev oauth install --write-env
 ldev portal check
 ```
@@ -175,7 +187,7 @@ Then verify `.liferay-cli.local.yml` points to the active local portal URL.
 **Fix**:
 
 ```bash
-ldev db import --verbose           # See what's happening
+ldev db import --force                       # Retry with a clean import
 # If it fails, check post-import script syntax:
 cat docker/sql/post-import.d/010-adapt-local-db.sql | head -20
 ```
@@ -198,9 +210,9 @@ LCP_ENVIRONMENT=staging               # dev, staging, or prd
 **Fix**: Reimport from backup:
 
 ```bash
-ldev env clean                 # Delete data
+ldev env clean --force         # Delete data
 ldev db download               # Re-download
-ldev db import                 # Re-import
+ldev db import --force         # Re-import
 ```
 
 ---
@@ -215,7 +227,7 @@ ldev db import                 # Re-import
 
 ```bash
 ldev deploy prepare               # Build only
-ldev osgi status                  # Check bundle state
+ldev osgi status com.acme.foo.web # Check bundle state
 ldev env restart                  # Full restart
 ```
 
@@ -267,8 +279,8 @@ Timed out waiting for deploy cache lock
 **Fix**:
 
 ```bash
-ldev env clean                        # Clean all data
-ldev start                            # Fresh start
+ldev env clean --force                 # Clean all data
+ldev start                             # Fresh start
 ldev portal reindex speedup-on         # Reindex
 ```
 
@@ -280,7 +292,7 @@ ldev portal reindex speedup-on         # Reindex
 
 ```bash
 ldev portal reindex speedup-on         # Full reindex
-ldev portal search indices            # Verify indices exist
+ldev portal search indices             # Verify indices exist
 ```
 
 ### Portal shows old data
@@ -304,8 +316,8 @@ ldev env restart
 **Fix**:
 
 ```bash
-ldev status              # Check main environment
-ldev stop                # Stop main if running
+ldev status                                       # Check main environment
+ldev stop                                         # Stop main if running
 ldev worktree setup --name task-123 --with-env
 ```
 
@@ -316,8 +328,8 @@ ldev worktree setup --name task-123 --with-env
 **Fix**:
 
 ```bash
-ldev worktree gc                  # Clean unused worktrees
-ldev worktree clean --force       # Delete specific worktree
+ldev worktree gc --days 14 --apply           # Remove stale worktrees
+ldev worktree clean task-123 --force         # Delete a specific worktree
 ```
 
 ---
@@ -334,11 +346,11 @@ ldev context --json            # Current configuration
 ldev portal check              # Portal health
 ```
 
-For verbose output:
+For live log streaming:
 
 ```bash
-ldev logs follow --service liferay      # Stream Liferay logs
-ldev logs follow --service elasticsearch # Stream Elasticsearch logs
+ldev logs --service liferay --since 10m         # Recent Liferay logs
+ldev logs --service elasticsearch --since 10m   # Recent Elasticsearch logs
 ```
 
 ---

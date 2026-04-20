@@ -34,7 +34,7 @@ After that, commands such as these can authenticate directly against the portal 
 ```bash
 ldev portal check
 ldev portal inventory sites
-ldev liferay auth check
+ldev portal auth token --raw
 ```
 
 ## Where credentials live

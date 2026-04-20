@@ -5,9 +5,7 @@ description: Inspect Liferay state directly from APIs and structured output inst
 
 # Discovery
 
-Discovery means understanding a Liferay system before you change it.
-
-With `ldev`, discovery does not depend on the UI.
+Discovery means understanding a Liferay system before you change it. With `ldev`, discovery does not depend on the UI.
 
 ## Portal discovery
 
@@ -15,6 +13,8 @@ With `ldev`, discovery does not depend on the UI.
 ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
+ldev portal inventory structures --site /global --with-templates --json
+ldev portal inventory templates --site /global --json
 ```
 
 These commands tell you:
@@ -22,13 +22,35 @@ These commands tell you:
 - what sites exist
 - how pages are arranged
 - what route maps to a specific page
+- which structures and templates exist (and how they are paired)
+
+For structure/template incidents, prefer `inventory structures --with-templates` as the first step: it returns both in one call, so you can route directly to the matching `resource export-*` or `resource import-*` command.
+
+## Preflight
+
+API surface probing before longer flows:
+
+```bash
+ldev portal inventory preflight
+ldev portal inventory preflight --force-refresh
+```
+
+Attach preflight as a pre-hook to any inventory or resource run with `--preflight`:
+
+```bash
+ldev portal inventory --preflight sites --json
+ldev resource --preflight export-structures --all-sites
+```
+
+Preflight checks availability of `adminSite`, `adminUser`, and JSONWS API surfaces for the current credentials. The result is cached until refreshed.
 
 ## Runtime discovery
 
 ```bash
 ldev context --json
-ldev status --json
+ldev status
 ldev doctor --json
+ldev health
 ```
 
 These commands tell you:
@@ -36,6 +58,9 @@ These commands tell you:
 - which repo and runtime `ldev` resolved
 - whether services are healthy
 - whether the environment is ready for portal operations
+- which command areas are ready right now
+
+`ldev context` is the canonical entry point. Agents and humans should both start there.
 
 ## Why discovery comes first
 

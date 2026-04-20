@@ -7,49 +7,79 @@ description: Minimal reference for project bootstrap and agent bootstrap workflo
 
 ## `ldev project init`
 
-Create a new `ldev-native` project scaffold.
+Create a new project scaffold linked to local tooling.
 
 ```bash
 ldev project init --name my-project --dir ~/projects/my-project
+ldev project init --name my-project --dir . --services postgres
+ldev project init --name my-project --dir . --services postgres,elasticsearch
+ldev project init --name my-project --dir . --commit
 ```
+
+Options:
+
+- `--name <name>` (required) — project name used for the scaffold
+- `--dir <dir>` (required) — destination directory
+- `--services postgres,elasticsearch` — opt in to additional Docker services
+- `--commit` — create a git commit for the generated changes (by default, no commit is created)
 
 ## `ldev ai install`
 
-Install the managed AI assets for a repo.
+Install the standard reusable AI assets into a project.
 
 ```bash
 ldev ai install --target .
 ldev ai install --target . --project-context
 ldev ai install --target . --project --project-context
+ldev ai install --target . --skills-only
+ldev ai install --target . --skill ldev-environment --skill liferay-discovery
+ldev ai install --target . --force
+ldev ai install --target . --local
 ```
 
-Key options:
+Options:
 
-- `--project-context`: scaffolds `docs/ai/project-context.md`
-- `--project`: installs project-owned skills and agents
-- `--skills-only`: refreshes managed vendor skills from the manifest
+- `--target <dir>` (required) — project root
+- `--force` — overwrite `AGENTS.md` if it already exists
+- `--local` — keep AI tooling local by adding generated agent/editor files to `.gitignore`, while `docs/ai` stays versionable
+- `--skills-only` — only update vendor skills from the manifest
+- `--project-context` — install project-owned context scaffolding (`docs/ai/project-context.md` + sample)
+- `--project` — install project-owned skills and agents, filtered by detected project type; also installs the project context scaffold
+- `--skill <name>` — install only specific vendor skills (repeatable)
+
+What the install produces:
+
+- `AGENTS.md` and tool-specific rule directories (`.claude/rules`, `.cursor/rules`, `.gemini`, `.github/instructions`, `.windsurf/rules`, `.workspace-rules`)
+- vendor-managed skills under `.agents/skills/`
+- optional project-owned skills and agents (`.agents/skills/project-*`) and project menu-map scaffolding under `docs/ai/menu/`
 
 ## `ldev ai update`
 
-Refresh the managed vendor skills.
+Safely refresh vendor skills listed in the manifest.
 
 ```bash
 ldev ai update --target .
+ldev ai update --target . --skill ldev-environment --skill liferay-discovery
 ```
+
+`--skill <name>` rewrites the vendor manifest to the selected set and refreshes only those skills.
 
 ## `ldev ai status`
 
-Inspect managed rules, manifests, and drift.
+Inspect managed AI rules, manifest state, and drift.
 
 ```bash
-ldev ai status --target . --json
+ldev ai status --target .
+ldev ai status --target . --format text
 ```
 
-Typical next step after install:
+Defaults to JSON. Use this before `install` or `update` on an existing project to see what is managed, what has drifted, and what is project-owned.
+
+## Typical next steps
 
 ```bash
 ldev doctor --json
 ldev context --json
 ```
 
-In Blade workspaces, `ldev ai install` can coexist with the official AI folders and `.workspace-rules` workflow.
+In Blade workspaces, `ldev ai install` coexists with the official AI folders and the `.workspace-rules` workflow instead of replacing them.
