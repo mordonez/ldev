@@ -220,6 +220,9 @@ function appendJournalArticleLines(lines: string[], journalArticles?: JournalArt
         `  templates widgetDefault=${article.widgetDefaultTemplate ?? '-'} displayPageDefault=${article.displayPageDefaultTemplate ?? '-'}`,
       );
     }
+    if (article.displayPageDdmTemplates && article.displayPageDdmTemplates.length > 0) {
+      lines.push(`  displayPageDdmTemplates=${article.displayPageDdmTemplates.join(', ')}`);
+    }
     if (article.taxonomyCategoryNames && article.taxonomyCategoryNames.length > 0) {
       lines.push(`  categories=${article.taxonomyCategoryNames.join(', ')}`);
     }

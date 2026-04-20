@@ -978,12 +978,63 @@ describe('liferay inventory page', () => {
           );
         }
 
+        if (url.endsWith('/o/headless-admin-content/v1.0/sites/20121/display-page-templates?pageSize=200')) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  displayPageTemplateKey: 'news_article_detail',
+                  title: 'NEWS_ARTICLE_DETAIL',
+                  pageDefinition: {
+                    pageElement: {
+                      type: 'Root',
+                      pageElements: [
+                        {
+                          type: 'Fragment',
+                          definition: {
+                            fragmentFields: [
+                              {
+                                id: 'element-html',
+                                value: {
+                                  html: {
+                                    mapping: {
+                                      fieldKey: 'ddmTemplate_NEWS_TEMPLATE_DETAIL',
+                                      itemReference: {
+                                        contextSource: 'DisplayPageItem',
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }),
+            {status: 200},
+          );
+        }
+
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
           return new Response(
             JSON.stringify({
               id: 41001,
               contentStructureId: 301,
+              siteId: 20121,
               priority: 0,
+              renderedContents: [
+                {
+                  contentTemplateId: 'news_article_detail',
+                  contentTemplateName: 'NEWS_ARTICLE_DETAIL',
+                  markedAsDefault: true,
+                  renderedContentURL:
+                    'http://localhost:8080/o/headless-delivery/v1.0/structured-contents/41001/rendered-content-by-display-page/news_article_detail',
+                },
+              ],
               contentFields: [
                 {
                   label: 'Headline',
@@ -1034,6 +1085,9 @@ describe('liferay inventory page', () => {
           siteFriendlyUrl: '/guest',
           ddmStructureKey: 'NEWS',
           ddmTemplateKey: 'NEWS_TEMPLATE',
+          displayPageDefaultTemplate: 'NEWS_ARTICLE_DETAIL',
+          displayPageTemplateCandidates: ['NEWS_ARTICLE_DETAIL'],
+          displayPageDdmTemplates: ['NEWS_TEMPLATE_DETAIL'],
           priority: 0,
           ddmStructureSiteFriendlyUrl: '/guest',
           ddmTemplateSiteFriendlyUrl: '/guest',
