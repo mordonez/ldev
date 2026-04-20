@@ -10,6 +10,9 @@ import {
   sanitizeArtifactToken,
   resolveSiteToken,
   siteTokenToFriendlyUrl,
+  tryResolveArtifactBaseDir,
+  tryResolveArtifactSiteDir,
+  tryResolveFragmentsBaseDir,
   type ArtifactType,
 } from '../../src/features/liferay/resource/artifact-paths.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
@@ -294,6 +297,46 @@ describe('resolveArtifactBaseDir – fallback default paths', () => {
 
   test('fragment falls back to liferay/fragments', () => {
     expect(resolveArtifactBaseDir(cfgNoPathsKey, 'fragment')).toBe(path.join(REPO_ROOT, 'liferay/fragments'));
+  });
+});
+
+describe('tryResolveArtifact* helpers', () => {
+  const cfg = makeConfig();
+  const cfgWithoutRepoRoot = {
+    ...makeConfig(),
+    repoRoot: null,
+  } as Parameters<typeof tryResolveArtifactBaseDir>[0];
+
+  test('tryResolveFragmentsBaseDir returns configured path when repoRoot exists', () => {
+    expect(tryResolveFragmentsBaseDir(cfg)).toBe(path.join(REPO_ROOT, 'liferay/fragments'));
+  });
+
+  test('tryResolveArtifactBaseDir returns configured path when repoRoot exists', () => {
+    expect(tryResolveArtifactBaseDir(cfg, 'structure')).toBe(
+      path.join(REPO_ROOT, 'liferay/resources/journal/structures'),
+    );
+  });
+
+  test('tryResolveArtifactSiteDir returns configured fragment site path when repoRoot exists', () => {
+    expect(tryResolveArtifactSiteDir(cfg, 'fragment', 'guest')).toBe(
+      path.join(REPO_ROOT, 'liferay/fragments', 'sites', 'guest'),
+    );
+  });
+
+  test('tryResolveFragmentsBaseDir returns undefined without repoRoot', () => {
+    expect(tryResolveFragmentsBaseDir(cfgWithoutRepoRoot)).toBeUndefined();
+  });
+
+  test('tryResolveArtifactBaseDir returns undefined without repoRoot', () => {
+    expect(tryResolveArtifactBaseDir(cfgWithoutRepoRoot, 'template')).toBeUndefined();
+  });
+
+  test('tryResolveArtifactSiteDir returns undefined without repoRoot', () => {
+    expect(tryResolveArtifactSiteDir(cfgWithoutRepoRoot, 'structure', 'guest')).toBeUndefined();
+  });
+
+  test('tryResolveArtifactSiteDir keeps strict repo semantics for dirOverride and returns undefined without repoRoot', () => {
+    expect(tryResolveArtifactSiteDir(cfgWithoutRepoRoot, 'template', 'guest', 'custom/templates')).toBeUndefined();
   });
 });
 

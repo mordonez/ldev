@@ -34,6 +34,14 @@ export function resolveRepoPath(config: AppConfig, relativePath: string): string
   return path.resolve(requireRepoRoot(config), relativePath);
 }
 
+export function tryResolveRepoPath(config: AppConfig, relativePath: string): string | undefined {
+  if (!config.repoRoot) {
+    return undefined;
+  }
+
+  return path.resolve(config.repoRoot, relativePath);
+}
+
 export function resolveStructuresBaseDir(config: AppConfig): string {
   return resolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
 }
@@ -48,6 +56,10 @@ export function resolveAdtsBaseDir(config: AppConfig): string {
 
 export function resolveFragmentsBaseDir(config: AppConfig): string {
   return resolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
+}
+
+export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefined {
+  return tryResolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
 }
 
 export function resolveMigrationsBaseDir(config: AppConfig): string {
@@ -119,6 +131,27 @@ export function resolveArtifactBaseDir(config: AppConfig, type: ArtifactType, di
   }
 }
 
+export function tryResolveArtifactBaseDir(
+  config: AppConfig,
+  type: ArtifactType,
+  dirOverride?: string,
+): string | undefined {
+  if (dirOverride?.trim()) {
+    return tryResolveRepoPath(config, dirOverride);
+  }
+
+  switch (type) {
+    case 'template':
+      return tryResolveRepoPath(config, config.paths?.templates ?? 'liferay/resources/journal/templates');
+    case 'structure':
+      return tryResolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
+    case 'adt':
+      return tryResolveRepoPath(config, config.paths?.adts ?? 'liferay/resources/templates/application_display');
+    case 'fragment':
+      return tryResolveFragmentsBaseDir(config);
+  }
+}
+
 export async function resolveArtifactFile(config: AppConfig, options: ResolveArtifactFileOptions): Promise<string> {
   if (options.fileOverride) {
     return resolveExistingArtifactFile(config, options.fileOverride);
@@ -155,6 +188,25 @@ export function resolveArtifactSiteDir(
     return path.join(resolveFragmentsBaseDir(config), 'sites', siteToken);
   }
   return path.join(resolveArtifactBaseDir(config, type, dirOverride), siteToken);
+}
+
+export function tryResolveArtifactSiteDir(
+  config: AppConfig,
+  type: ArtifactType,
+  siteToken: string,
+  dirOverride?: string,
+): string | undefined {
+  if (type === 'fragment') {
+    if (dirOverride?.trim()) {
+      return tryResolveRepoPath(config, dirOverride);
+    }
+
+    const fragmentsBaseDir = tryResolveFragmentsBaseDir(config);
+    return fragmentsBaseDir ? path.join(fragmentsBaseDir, 'sites', siteToken) : undefined;
+  }
+
+  const baseDir = tryResolveArtifactBaseDir(config, type, dirOverride);
+  return baseDir ? path.join(baseDir, siteToken) : undefined;
 }
 
 export function resolveFragmentProjectDir(config: AppConfig, siteToken: string, dirOverride?: string): string {
