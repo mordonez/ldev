@@ -120,12 +120,12 @@ export function formatAiResult(result: AiCommandResult): string {
   } else {
     lines.push(`Installed skills: ${result.updatedSkills.length}`);
     lines.push(`AGENTS.md: ${result.agents}`);
-    if (result.claudeInstalled) lines.push('CLAUDE.md: installed');
-    if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: installed');
-    if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: installed');
-    if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: installed');
-    if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: installed');
-    if (result.cursorrulesInstalled) lines.push('.cursorrules: installed');
+    if (result.claudeInstalled) lines.push('CLAUDE.md: applied');
+    if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: applied');
+    if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: applied');
+    if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: applied');
+    if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: applied');
+    if (result.cursorrulesInstalled) lines.push('.cursorrules: applied');
     if (result.gitignoreEntriesAdded.length > 0) {
       lines.push(`AI/tooling paths added to .gitignore: ${result.gitignoreEntriesAdded.length}`);
     }
@@ -297,9 +297,11 @@ async function applyAiInstall(options: {
     : false;
 
   const copilotInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'), {
-        overwrite: overwriteProjectFiles,
-      })
+    ? options.projectType === 'blade-workspace'
+      ? false
+      : await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'), {
+          overwrite: overwriteProjectFiles,
+        })
     : false;
 
   const geminiInstalled = !options.skillsOnly
