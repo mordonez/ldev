@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import {afterEach, describe, expect, test} from 'vitest';
 
 import {createCommandContext} from '../../src/cli/command-context.js';
@@ -24,13 +28,14 @@ describe('command-context', () => {
     expect(context.config.repoRoot).toBe(repoRoot);
   });
 
-  test('applies global CLI liferay overrides from argv', () => {
+  test('applies portal namespace liferay overrides from argv', () => {
     const repoRoot = createTempRepo();
     process.env.REPO_ROOT = repoRoot;
 
     process.argv = [
       'node',
       'ldev',
+      'portal',
       '--liferay-url',
       'https://example.liferay.local',
       '--liferay-client-id=client-from-cli',
@@ -40,6 +45,7 @@ describe('command-context', () => {
       'scope.a,scope.b',
       '--liferay-timeout-seconds',
       '99',
+      'check',
     ];
 
     const context = createCommandContext();
@@ -56,7 +62,7 @@ describe('command-context', () => {
     process.env.REPO_ROOT = repoRoot;
     process.env.TEST_LIFERAY_SECRET = 'secret-from-env-ref';
 
-    process.argv = ['node', 'ldev', '--liferay-client-secret-env', 'TEST_LIFERAY_SECRET'];
+    process.argv = ['node', 'ldev', 'portal', '--liferay-client-secret-env', 'TEST_LIFERAY_SECRET', 'check'];
 
     const context = createCommandContext();
 
@@ -71,10 +77,12 @@ describe('command-context', () => {
     process.argv = [
       'node',
       'ldev',
+      'portal',
       '--liferay-client-secret',
       'secret-from-cli',
       '--liferay-client-secret-env',
       'TEST_LIFERAY_SECRET',
+      'check',
     ];
 
     const context = createCommandContext();
@@ -85,7 +93,7 @@ describe('command-context', () => {
   test('throws when --liferay-timeout-seconds is negative', () => {
     const repoRoot = createTempRepo();
     process.env.REPO_ROOT = repoRoot;
-    process.argv = ['node', 'ldev', '--liferay-timeout-seconds', '-1'];
+    process.argv = ['node', 'ldev', 'portal', '--liferay-timeout-seconds', '-1', 'check'];
 
     expect(() => createCommandContext()).toThrow('--liferay-timeout-seconds must be a positive integer.');
   });
@@ -93,7 +101,7 @@ describe('command-context', () => {
   test('throws when --liferay-timeout-seconds is decimal', () => {
     const repoRoot = createTempRepo();
     process.env.REPO_ROOT = repoRoot;
-    process.argv = ['node', 'ldev', '--liferay-timeout-seconds', '5.5'];
+    process.argv = ['node', 'ldev', 'portal', '--liferay-timeout-seconds', '5.5', 'check'];
 
     expect(() => createCommandContext()).toThrow('--liferay-timeout-seconds must be a positive integer.');
   });
@@ -101,7 +109,7 @@ describe('command-context', () => {
   test('throws when --liferay-url flag has no value', () => {
     const repoRoot = createTempRepo();
     process.env.REPO_ROOT = repoRoot;
-    process.argv = ['node', 'ldev', '--liferay-url', '--json'];
+    process.argv = ['node', 'ldev', 'portal', '--liferay-url', '--json', 'check'];
 
     expect(() => createCommandContext()).toThrow('--liferay-url requires a value.');
   });
@@ -109,8 +117,34 @@ describe('command-context', () => {
   test('throws when --liferay-url is not a valid http(s) URL', () => {
     const repoRoot = createTempRepo();
     process.env.REPO_ROOT = repoRoot;
-    process.argv = ['node', 'ldev', '--liferay-url', 'not-a-valid-url'];
+    process.argv = ['node', 'ldev', 'portal', '--liferay-url', 'not-a-valid-url', 'check'];
 
     expect(() => createCommandContext()).toThrow('--liferay-url must be a valid http(s) URL.');
+  });
+
+  test('supports remote-only command context outside a detected repo', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-remote-only-'));
+    process.env.TEST_LIFERAY_SECRET = 'secret-from-env-ref';
+    process.argv = [
+      'node',
+      'ldev',
+      'portal',
+      '--liferay-url',
+      'https://portal.example.com',
+      '--liferay-client-id',
+      'remote-client',
+      '--liferay-client-secret-env',
+      'TEST_LIFERAY_SECRET',
+      'check',
+    ];
+
+    const context = createCommandContext({cwd: tempDir});
+
+    expect(context.project.repo.inRepo).toBe(false);
+    expect(context.project.projectType).toBe('unknown');
+    expect(context.config.repoRoot).toBeNull();
+    expect(context.config.liferay.url).toBe('https://portal.example.com');
+    expect(context.config.liferay.oauth2ClientId).toBe('remote-client');
+    expect(context.config.liferay.oauth2ClientSecret).toBe('secret-from-env-ref');
   });
 });

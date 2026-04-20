@@ -58,7 +58,7 @@ export REPO_ROOT=/path/to/project
 
 When you run `ldev` from automation hosts, CI jobs, or jumpboxes, you can override Liferay connection values per command instead of changing project files.
 
-Supported global options:
+These are namespace options on `ldev portal` and `ldev resource`, not root options:
 
 - `--liferay-url <url>`
 - `--liferay-client-id <clientId>`
@@ -67,22 +67,22 @@ Supported global options:
 - `--liferay-scope-aliases <aliases>`
 - `--liferay-timeout-seconds <seconds>`
 
-Important: these are root options. Place them before the command group/subcommand.
+Place them on the namespace before the concrete subcommand.
 
 ```bash
-ldev --liferay-url https://portal.example.com portal check --json
-ldev --liferay-url https://portal.example.com portal inventory sites --json
+ldev portal --liferay-url https://portal.example.com check --json
+ldev portal --liferay-url https://portal.example.com inventory sites --json
 ```
 
 For secrets, prefer environment-variable indirection:
 
 ```bash
 export LIFERAY_REMOTE_SECRET='***'
-ldev \
+ldev portal \
 	--liferay-url https://portal.example.com \
 	--liferay-client-id remote-client \
 	--liferay-client-secret-env LIFERAY_REMOTE_SECRET \
-	portal inventory page --url /home --json
+	inventory page --url /home --json
 ```
 
 If both `--liferay-client-secret` and `--liferay-client-secret-env` are provided, `--liferay-client-secret` wins.
