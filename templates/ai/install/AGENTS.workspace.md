@@ -155,6 +155,7 @@ Use these as the standard reusable entrypoints:
 - `troubleshooting-liferay`
 - `migrating-journal-structures`
 - `automating-browser-tests`
+- `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation

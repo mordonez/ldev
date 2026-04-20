@@ -1,25 +1,71 @@
 # Copilot Instructions
 
 This project uses `ldev` to manage a Liferay portal environment.
+Installed by `ldev ai install`. Read `AGENTS.md` first for the full operating contract.
 
-Read these files for full context before making changes:
+## Read First
 
-- **`AGENTS.md`** — bootstrap procedure, operating rules, and installed skills.
-- **`CLAUDE.md`** — project-specific context: stack, layout, and conventions (if present).
+1. `AGENTS.md` — bootstrap, safety invariants, and installed skills.
+2. `docs/ai/project-context.md` if it exists — long-form project knowledge.
+3. `docs/ai/project-learnings.md` if it exists — captured session learnings.
+4. Task-specific skill under `.agents/skills/` if one applies.
 
 ## Bootstrap
 
 Before changing code or runtime state:
 
-1. Run `ldev doctor`.
-2. Run `ldev status --json`.
-3. Read the task-specific skill under `.agents/skills/` if one applies.
+1. Run `ldev context --json` — resolves `env.portalUrl`, `paths.*`, `liferay.oauth2Configured`, `commands.*`.
+2. Run `ldev doctor --json` — only when the task depends on runtime health, installed tools, or deploy verification.
+3. Run `ldev mcp check --json` — only when the task depends on MCP or no direct `ldev` command covers the required portal surface.
 
-## Operating Rules
+Use `ldev --help` as the source of truth for the public CLI surface.
 
-- Use `ldev` as the official entrypoint.
-- For machine-readable output use `ldev doctor --json`, `ldev status --json`.
-- If the task will change tracked files, use an isolated worktree:
+## ldev Command Resolution
+
+1. Try `ldev` directly.
+2. If `ldev` is not in PATH: `npx @mordonezdev/ldev ...`
+3. Windows PowerShell fallback: `npx.cmd @mordonezdev/ldev ...`
+
+## Task Routing
+
+**GitHub issue (bug, feature request, or improvement):**
+Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything else**.
+It defines the project issue workflow: intake → technical routing → validation → PR.
+If the repository has `ldev-native` capabilities available, follow its isolated worktree guidance before mutating runtime state.
+
+**Liferay technical work (not issue-driven):**
+Start with `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.
+
+## Installed Skills
+
+| Skill | Use When |
+|---|---|
+| `liferay-expert` | Technical Liferay work — routes to the right specialist |
+| `developing-liferay` | Code, themes, structured content, fragments |
+| `deploying-liferay` | Build, deploy, runtime verification |
+| `troubleshooting-liferay` | Diagnosis and recovery |
+| `migrating-journal-structures` | Safe Journal structure migration |
+| `automating-browser-tests` | Playwright, visual evidence, page-editor workflows |
+| `capturing-session-knowledge` | End-of-session knowledge capture to `docs/ai/project-learnings.md` |
+
+Each skill has a `SKILL.md` under `.agents/skills/<name>/`. Read it before starting the task.
+
+## Common Discovery Commands
+
+```bash
+ldev portal inventory sites --json
+ldev portal inventory pages --site /<site> --json
+ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory structures --site /<site> --json
+ldev portal inventory templates --site /<site> --json
+ldev resource export-structure --site /<site> --key <key>
+ldev resource export-template --site /<site> --id <id>
+ldev logs diagnose --since 5m --json
+```
+
+## Isolated Worktree
+
+If the task changes tracked files, use an isolated worktree:
 
 ```bash
 ldev worktree setup --name <name> --with-env
@@ -29,7 +75,19 @@ git status --short
 ldev start
 ```
 
-Creating the worktree is not enough. Before editing any file, confirm the file
-path is under the `.worktrees/<name>` root returned by
-`git rev-parse --show-toplevel`. Do not write issue changes into the primary
-checkout.
+Before any file edit, confirm the target path is under the worktree root returned by
+`git rev-parse --show-toplevel`. Do not write changes into the primary checkout.
+Re-confirm the worktree root after any interruption, context resume, or shell change.
+
+## Safety Rules
+
+1. Always start with `ldev context --json`. Use `commands.*` to verify readiness before running any command.
+2. Use `--json` output for all automation. Never parse human-readable ldev text.
+3. Run `--check-only` before any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`).
+4. Use the smallest deploy or import that proves the change. Never broad-deploy as a default validation step.
+5. Never use plural resource commands (`import-structures`, `export-templates`, etc.) without explicit human approval.
+6. After any mutation, verify with `ldev portal inventory ...` or `ldev logs diagnose --since 5m --json`.
+7. Never guess IDs, keys, or site names — use `ldev portal inventory ...` to resolve them.
+8. Never assume the portal URL — read `env.portalUrl` from `ldev context --json`.
+9. Never use `git worktree add` directly — use `ldev worktree setup --name <name> --with-env`.
+10. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.

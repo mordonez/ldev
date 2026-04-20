@@ -52,6 +52,8 @@ export type AiCommandResult = {
   projectContextInstalled: boolean;
   projectContextSampleInstalled: boolean;
   copilotInstalled: boolean;
+  geminiInstalled: boolean;
+  cursorrulesInstalled: boolean;
   projectSkillsInstalled: string[];
   projectAgentsInstalled: string[];
   workspaceRulesInstalled: string[];
@@ -122,6 +124,8 @@ export function formatAiResult(result: AiCommandResult): string {
     if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: installed');
     if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: installed');
     if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: installed');
+    if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: installed');
+    if (result.cursorrulesInstalled) lines.push('.cursorrules: installed');
     if (result.gitignoreEntriesAdded.length > 0) {
       lines.push(`AI/tooling paths added to .gitignore: ${result.gitignoreEntriesAdded.length}`);
     }
@@ -279,9 +283,15 @@ async function applyAiInstall(options: {
     : false;
 
   const copilotInstalled = !options.skillsOnly
-    ? options.projectType === 'blade-workspace'
-      ? false
-      : await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'))
+    ? await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'))
+    : false;
+
+  const geminiInstalled = !options.skillsOnly
+    ? await installProjectFile(options.targetDir, options.assets, path.join('.gemini', 'GEMINI.md'))
+    : false;
+
+  const cursorrulesInstalled = !options.skillsOnly
+    ? await installProjectFile(options.targetDir, options.assets, '.cursorrules')
     : false;
 
   const gitignoreEntriesAdded =
@@ -311,6 +321,8 @@ async function applyAiInstall(options: {
     projectContextInstalled,
     projectContextSampleInstalled,
     copilotInstalled,
+    geminiInstalled,
+    cursorrulesInstalled,
     projectSkillsInstalled,
     projectAgentsInstalled,
     workspaceRulesInstalled: workspaceRuleResult.installedRules,
