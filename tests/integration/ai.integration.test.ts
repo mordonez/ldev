@@ -449,6 +449,67 @@ describe('ai integration', () => {
     );
   }, 40000);
 
+  test('install --force overwrites existing project AI files including gemini and cursor entrypoints', async () => {
+    const targetDir = createTempDir('dev-cli-ai-project-files-force-');
+
+    const firstInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context'], {
+      cwd: CLI_CWD,
+    });
+    expect(firstInstall.exitCode).toBe(0);
+
+    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
+    await fs.ensureDir(path.join(targetDir, 'docs', 'ai'));
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'custom sample\n');
+    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'custom copilot\n');
+    await fs.ensureDir(path.join(targetDir, '.gemini'));
+    await fs.writeFile(path.join(targetDir, '.gemini', 'GEMINI.md'), 'custom gemini\n');
+    await fs.writeFile(path.join(targetDir, '.cursorrules'), 'custom cursor\n');
+
+    const secondInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context', '--force'], {
+      cwd: CLI_CWD,
+    });
+    expect(secondInstall.exitCode).toBe(0);
+
+    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).not.toBe('custom claude\n');
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).not.toBe(
+      'custom context\n',
+    );
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'utf8')).not.toBe(
+      'custom sample\n',
+    );
+    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).not.toBe(
+      'custom copilot\n',
+    );
+    expect(await fs.readFile(path.join(targetDir, '.gemini', 'GEMINI.md'), 'utf8')).not.toBe('custom gemini\n');
+    expect(await fs.readFile(path.join(targetDir, '.cursorrules'), 'utf8')).not.toBe('custom cursor\n');
+  }, 40000);
+
+  test('install --project --force does not overwrite project-context files unless --project-context is explicit', async () => {
+    const targetDir = createTempDir('dev-cli-ai-project-force-scope-');
+
+    const firstInstall = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
+      cwd: CLI_CWD,
+    });
+    expect(firstInstall.exitCode).toBe(0);
+
+    await fs.ensureDir(path.join(targetDir, 'docs', 'ai'));
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'custom sample\n');
+
+    const secondInstall = await runCli(['ai', 'install', '--target', targetDir, '--project', '--force'], {
+      cwd: CLI_CWD,
+    });
+    expect(secondInstall.exitCode).toBe(0);
+
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).toBe(
+      'custom context\n',
+    );
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'utf8')).toBe(
+      'custom sample\n',
+    );
+  }, 40000);
+
   test('install in blade-workspace preserves official AI files and adds ldev workspace augmentation files', async () => {
     const targetDir = createTempWorkspace();
 

@@ -20,7 +20,10 @@ export function createAiCommand(): Command {
       .command('install')
       .description('Install the standard reusable AI assets into a project')
       .requiredOption('--target <target>', 'Project root')
-      .option('--force', 'Overwrite AGENTS.md if it already exists')
+      .option(
+        '--force',
+        'Overwrite AGENTS.md and requested project AI files if they already exist; project-context requires explicit --project-context',
+      )
       .option(
         '--local',
         'Keep AI tooling local by adding generated agent/editor files to .gitignore while leaving docs/ai versionable',
@@ -73,7 +76,8 @@ Safe defaults:
 Potentially mutating:
   install              Install vendor skills + AGENTS.md bootstrap
   install --skill ...  Install only selected vendor skills (like tsdown --skill patterns)
-  install --force      Overwrite AGENTS.md when bootstrapping a project
+  install --force      Overwrite AGENTS.md and requested project AI files when bootstrapping a project
+                       project-context files are only overwritten when --project-context is explicitly passed
   install --local      Add generated agent/editor files to .gitignore, but keep docs/ai versionable
   install --project-context
                       Also install project-owned context scaffolding.
