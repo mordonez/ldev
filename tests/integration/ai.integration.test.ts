@@ -603,6 +603,22 @@ describe('ai integration', () => {
     }
   }, 40000);
 
+  test('install --force in blade-workspace does not overwrite official copilot instructions', async () => {
+    const targetDir = createTempWorkspace();
+
+    await fs.ensureDir(path.join(targetDir, '.github'));
+    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'official copilot\n');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--force'], {
+      cwd: CLI_CWD,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).toBe(
+      'official copilot\n',
+    );
+  }, 40000);
+
   test('install in ldev-native adds common and native-specific rules but not workspace-specific rules', async () => {
     const targetDir = createTempDir('dev-cli-ai-native-rules-');
     await fs.ensureDir(path.join(targetDir, 'docker'));
