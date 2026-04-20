@@ -107,8 +107,8 @@ export async function runOAuthInstall(
 
   const bundleTargetFile = await deployBundledOAuthInstallerJar(config, options?.printer);
 
-  const command = buildOAuthInstallGogoCommand(options?.companyId, options?.userId, scopeAliases);
-  const rawOutput = await executeOAuthInstallCommand(config, command);
+  const gogoCommand = buildOAuthInstallGogoCommand(options?.companyId, options?.userId, scopeAliases);
+  const rawOutput = await executeOAuthInstallCommand(config, gogoCommand);
   const parsed = parseOAuthInstallOutput(rawOutput);
 
   const localProfileFile = resolveOAuthLocalProfileFile(config);
@@ -129,7 +129,7 @@ export async function runOAuthInstall(
     scopeAliases,
     localProfileUpdated,
     localProfileFile,
-    command,
+    command: 'ldev:oauthInstall',
     companyId: parsed.companyId,
     companyWebId: parsed.companyWebId,
     userId: parsed.userId,
@@ -150,11 +150,10 @@ export async function runOAuthInstall(
 }
 
 export function formatOAuthInstall(result: OAuthInstallResult): string {
-  const displayCommand = result.command.startsWith('ldev:oauthInstall') ? 'ldev:oauthInstall' : result.command;
   const lines = [
     result.command === 'osgi-config'
       ? 'OAuth2 app provisioned via OSGi config and bundle auto-deploy'
-      : `OAuth2 app installed via ${displayCommand}`,
+      : `OAuth2 app installed via ${result.command}`,
     `Company: ${result.companyId} (${result.companyWebId})`,
     `User: ${result.userId} (${result.userEmail})`,
     `Bundle: ${result.bundleFile}`,
