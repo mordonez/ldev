@@ -68,10 +68,10 @@ If the menu entrypoint exists:
 mkdir -p .tmp/<issue-or-session>/
 
 playwright-cli -s=<session-name> open "<url>"
-playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/before.png
+playwright-cli -s=<session-name> run-code "async function (page) { await page.screenshot({ path: '.tmp/<issue>/before-fullpage.png', fullPage: true }); }"
 playwright-cli -s=<session-name> snapshot
 # after fix:
-playwright-cli -s=<session-name> screenshot --filename=.tmp/<issue>/after.png
+playwright-cli -s=<session-name> run-code "async function (page) { await page.screenshot({ path: '.tmp/<issue>/after-fullpage.png', fullPage: true }); }"
 playwright-cli -s=<session-name> close
 ```
 
@@ -108,6 +108,7 @@ to the browser host before opening. Full page layout mutation pattern is in `REF
 
 - Use semantic session names (`issue-NUM`, `page-editor-NUM`), not generic ones.
 - Store evidence under `.tmp/<issue>/` before uploading anywhere.
+- Capture full-page screenshots via `run-code` (`page.screenshot({ fullPage: true })`) as mandatory evidence.
 - For flaky failures, use `tracing-start`/`tracing-stop` before guessing.
 - Never validate against production; always reproduce locally first.
 - Inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url`

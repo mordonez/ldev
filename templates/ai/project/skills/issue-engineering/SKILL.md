@@ -64,7 +64,7 @@ will use for the fix:
 
 - resolve the reported issue URL to the local runtime first
 - use `playwright-cli` on that local URL and capture the failing state
-- save the screenshot as `.tmp/issue-NUM/before.png`
+- save a full-page screenshot as `.tmp/issue-NUM/before.png`
 - if the symptom does not appear, stop and report to the user; the issue may
   already be fixed, may require specific data, or may not affect this environment
 

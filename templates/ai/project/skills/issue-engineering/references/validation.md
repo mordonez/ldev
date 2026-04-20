@@ -42,7 +42,7 @@ re-capture it here; that would overwrite the baseline taken before the fix.
 # before.png already captured during intake/reproduction
 # After applying the fix and importing:
 playwright-cli -s=issue-NUM snapshot
-playwright-cli -s=issue-NUM screenshot --filename=.tmp/issue-NUM/after.png
+playwright-cli -s=issue-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/after.png', fullPage: true }); }"
 ```
 
 ## Red -> Green Checklist

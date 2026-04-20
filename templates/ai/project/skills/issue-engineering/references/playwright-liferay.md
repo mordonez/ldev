@@ -13,7 +13,7 @@ Use this reference when validation or reproduction depends on the portal in a br
 ```bash
 mkdir -p .tmp/issue-NUM
 playwright-cli -s=runtime-NUM open "<portalUrl>/affected-path"
-playwright-cli -s=runtime-NUM screenshot --filename=.tmp/issue-NUM/before.png
+playwright-cli -s=runtime-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/before.png', fullPage: true }); }"
 playwright-cli -s=runtime-NUM close
 ```
 

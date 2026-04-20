@@ -84,7 +84,7 @@ issue description, not a hypothesis.
 ```bash
 playwright-cli -s=issue-NUM open "<localUrl>"
 playwright-cli -s=issue-NUM snapshot
-playwright-cli -s=issue-NUM screenshot --filename=.tmp/issue-NUM/before.png
+playwright-cli -s=issue-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/before.png', fullPage: true }); }"
 ```
 
 Use the page snapshot/inspection as part of intake:

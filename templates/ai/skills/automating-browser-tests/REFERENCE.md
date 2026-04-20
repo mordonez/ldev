@@ -13,6 +13,7 @@ Quick rules:
 
 - Use `--filename`, not `--output`, for screenshots.
 - Do not pass `--viewport-width` / `--viewport-height` to `screenshot`; set viewport on an open page with `run-code`.
+- Use full-page screenshots as mandatory evidence with `run-code` + `page.screenshot({ fullPage: true })`.
 - Install official skills with `playwright-cli install --skills` before guessing command syntax.
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with `cat <<'EOF'` and pass once.
@@ -108,6 +109,16 @@ async function (page) {
 playwright-cli -s=mobile-<issue> run-code "$CODE"
 playwright-cli -s=mobile-<issue> screenshot --filename=.tmp/<issue>/mobile.png
 playwright-cli -s=mobile-<issue> close
+```
+
+## Full-page evidence (recommended default)
+
+Use this pattern when you need all details beyond the visible fold.
+
+```bash
+playwright-cli -s=issue-<num> open "<url>"
+playwright-cli -s=issue-<num> run-code "async function (page) { await page.screenshot({ path: '.tmp/<issue>/fullpage.png', fullPage: true }); }"
+playwright-cli -s=issue-<num> close
 ```
 
 ## Liferay admin login
