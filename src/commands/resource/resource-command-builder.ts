@@ -95,6 +95,18 @@ export type ResourceCommandOptions = {
 export function buildResourceCommand(options: ResourceCommandOptions): Command {
   const resource = new Command('resource')
     .description(options.description)
+    .option('--liferay-url <url>', 'Override Liferay base URL for this command')
+    .option('--liferay-client-id <clientId>', 'Override Liferay OAuth2 client id for this command')
+    .option(
+      '--liferay-client-secret <clientSecret>',
+      'Override Liferay OAuth2 client secret for this command (less secure; prefer --liferay-client-secret-env)',
+    )
+    .option(
+      '--liferay-client-secret-env <envVar>',
+      'Read Liferay OAuth2 client secret from an environment variable (recommended)',
+    )
+    .option('--liferay-scope-aliases <aliases>', 'Override OAuth2 scope aliases (comma-separated) for this command')
+    .option('--liferay-timeout-seconds <seconds>', 'Override Liferay HTTP timeout in seconds for this command')
     .option('--preflight', 'Run API surface preflight before executing resource subcommands')
     .addHelpText('after', options.helpText);
 

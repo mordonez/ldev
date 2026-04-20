@@ -114,24 +114,24 @@ export LIFERAY_REMOTE_CLIENT_ID=ldev-remote-ops
 export LIFERAY_REMOTE_CLIENT_SECRET='***'
 ```
 
-### 4. Run `ldev` using global overrides
+### 4. Run `ldev` using namespace overrides
 
-Global connection options must be placed before subcommands:
+Attach the connection options to `ldev portal` or `ldev resource` before the concrete subcommand:
 
 ```bash
-ldev \
+ldev portal \
 	--liferay-url "$LIFERAY_REMOTE_URL" \
 	--liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" \
 	--liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET \
-	portal check --json
+	check --json
 ```
 
 ```bash
-ldev \
+ldev portal \
 	--liferay-url "$LIFERAY_REMOTE_URL" \
 	--liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" \
 	--liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET \
-	portal inventory sites --json
+	inventory sites --json
 ```
 
 ### 5. Validate before running write operations
@@ -139,8 +139,8 @@ ldev \
 Run this sequence first:
 
 ```bash
-ldev --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET portal check --json
-ldev --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET portal inventory sites --json
+ldev portal --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET check --json
+ldev portal --liferay-url "$LIFERAY_REMOTE_URL" --liferay-client-id "$LIFERAY_REMOTE_CLIENT_ID" --liferay-client-secret-env LIFERAY_REMOTE_CLIENT_SECRET inventory sites --json
 ```
 
 If those commands fail with auth/scope errors, update the OAuth app scopes and retry.
