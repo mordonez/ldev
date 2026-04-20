@@ -38,6 +38,7 @@ export type JournalArticleSummary = {
   displayPageDefaultTemplate?: string;
   widgetTemplateCandidates?: string[];
   displayPageTemplateCandidates?: string[];
+  displayPageDdmTemplates?: string[];
   taxonomyCategoryNames?: string[];
   taxonomyCategoryBriefs?: Array<Record<string, unknown>>;
   renderedContents?: Array<Record<string, unknown>>;

@@ -7,6 +7,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
+import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {resolveEnvContext} from '../env/env-files.js';
 
 const BUNDLE_FILE_NAME = 'dev.mordonez.ldev.oauth2.app-1.0.0.jar';
@@ -75,6 +76,27 @@ export async function writeOAuthInstallerOsgiConfig(
     await fs.ensureDir(path.dirname(targetFile));
     await fs.writeFile(targetFile, content, 'utf8');
   }
+
+  await syncOAuthInstallerConfigToLiveContainer(config, fileName, content);
+}
+
+async function syncOAuthInstallerConfigToLiveContainer(
+  config: AppConfig,
+  fileName: string,
+  content: string,
+): Promise<void> {
+  if (!config.dockerDir || !config.liferayDir || !config.repoRoot) {
+    return;
+  }
+
+  await runDockerComposeOrThrow(
+    config.dockerDir,
+    ['exec', '-T', 'liferay', 'sh', '-lc', `cat > /opt/liferay/osgi/configs/${fileName}`],
+    {
+      input: content,
+      stdin: 'pipe',
+    },
+  );
 }
 
 async function deployBundledOAuthInstaller(sourceFile: string, targetFile: string, printer?: Printer): Promise<void> {

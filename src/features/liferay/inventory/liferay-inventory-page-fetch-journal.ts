@@ -166,6 +166,22 @@ export async function buildJournalArticleSummary(
     }
   }
 
+  const displayPageSiteId = Number(summary.siteId ?? ref.groupId);
+  if (
+    displayPageSiteId > 0 &&
+    summary.displayPageTemplateCandidates &&
+    summary.displayPageTemplateCandidates.length > 0
+  ) {
+    const displayPageDdmTemplates = await resolveDisplayPageDdmTemplates(
+      gateway,
+      displayPageSiteId,
+      summary.displayPageTemplateCandidates,
+    );
+    if (displayPageDdmTemplates.length > 0) {
+      summary.displayPageDdmTemplates = displayPageDdmTemplates;
+    }
+  }
+
   return summary;
 }
 
@@ -330,6 +346,65 @@ function buildStructureExportPath(config: AppConfig, siteFriendlyUrl: string, ke
 function buildTemplateExportPath(config: AppConfig, siteFriendlyUrl: string, key: string): string | undefined {
   const siteDir = tryResolveArtifactSiteDir(config, 'template', resolveSiteToken(siteFriendlyUrl));
   return siteDir ? path.join(siteDir, `${key}.ftl`) : undefined;
+}
+
+async function resolveDisplayPageDdmTemplates(
+  gateway: LiferayGateway,
+  siteId: number,
+  displayPageTemplateCandidates: string[],
+): Promise<string[]> {
+  const response = await safeGatewayGet<{items?: Array<Record<string, unknown>>}>(
+    gateway,
+    `/o/headless-admin-content/v1.0/sites/${siteId}/display-page-templates?pageSize=200`,
+    'fetch-display-page-templates',
+  );
+  if (!response.ok || !Array.isArray(response.data?.items) || displayPageTemplateCandidates.length === 0) {
+    return [];
+  }
+
+  const requestedNames = new Set(
+    displayPageTemplateCandidates.map((value) => value.trim().toUpperCase()).filter(Boolean),
+  );
+  const ddmTemplates = new Set<string>();
+
+  for (const item of response.data.items) {
+    const title = String(item.title ?? '')
+      .trim()
+      .toUpperCase();
+    const templateKey = String(item.displayPageTemplateKey ?? '')
+      .trim()
+      .toUpperCase();
+    if (!requestedNames.has(title) && !requestedNames.has(templateKey)) {
+      continue;
+    }
+
+    collectDisplayPageDdmTemplates(item.pageDefinition, ddmTemplates);
+  }
+
+  return [...ddmTemplates];
+}
+
+function collectDisplayPageDdmTemplates(value: unknown, ddmTemplates: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectDisplayPageDdmTemplates(item, ddmTemplates);
+    }
+    return;
+  }
+
+  const record = asRecord(value);
+  if (Object.keys(record).length === 0) {
+    return;
+  }
+
+  const fieldKey = firstString(record.fieldKey)?.trim();
+  if (fieldKey?.startsWith('ddmTemplate_')) {
+    ddmTemplates.add(fieldKey.slice('ddmTemplate_'.length));
+  }
+
+  for (const nestedValue of Object.values(record)) {
+    collectDisplayPageDdmTemplates(nestedValue, ddmTemplates);
+  }
 }
 
 function inferContentStructureKey(value: Record<string, unknown> | null | undefined): string {

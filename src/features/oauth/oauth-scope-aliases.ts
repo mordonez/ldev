@@ -1,5 +1,6 @@
 export const DEFAULT_OAUTH_SCOPE_ALIASES = [
   'Liferay.Headless.Admin.User.everything.read',
+  'Liferay.Headless.Admin.Content.everything.read',
   'Liferay.Headless.Admin.Site.everything.read',
   'Liferay.Data.Engine.REST.everything.read',
   'Liferay.Data.Engine.REST.everything.write',

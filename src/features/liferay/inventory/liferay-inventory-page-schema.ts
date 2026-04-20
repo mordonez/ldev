@@ -27,6 +27,7 @@ const journalArticleSummarySchema = z.object({
   displayPageDefaultTemplate: z.string().optional(),
   widgetTemplateCandidates: z.array(z.string()).optional(),
   displayPageTemplateCandidates: z.array(z.string()).optional(),
+  displayPageDdmTemplates: z.array(z.string()).optional(),
   taxonomyCategoryNames: z.array(z.string()).optional(),
   taxonomyCategoryBriefs: z.array(z.record(z.string(), z.unknown())).optional(),
   renderedContents: z.array(z.record(z.string(), z.unknown())).optional(),

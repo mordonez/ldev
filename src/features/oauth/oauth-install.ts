@@ -107,8 +107,8 @@ export async function runOAuthInstall(
 
   const bundleTargetFile = await deployBundledOAuthInstallerJar(config, options?.printer);
 
-  const command = buildOAuthInstallGogoCommand(options?.companyId, options?.userId);
-  const rawOutput = await executeOAuthInstallCommand(config, command);
+  const gogoCommand = buildOAuthInstallGogoCommand(options?.companyId, options?.userId, scopeAliases);
+  const rawOutput = await executeOAuthInstallCommand(config, gogoCommand);
   const parsed = parseOAuthInstallOutput(rawOutput);
 
   const localProfileFile = resolveOAuthLocalProfileFile(config);
@@ -129,7 +129,7 @@ export async function runOAuthInstall(
     scopeAliases,
     localProfileUpdated,
     localProfileFile,
-    command,
+    command: 'ldev:oauthInstall',
     companyId: parsed.companyId,
     companyWebId: parsed.companyWebId,
     userId: parsed.userId,
