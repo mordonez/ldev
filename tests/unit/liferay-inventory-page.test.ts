@@ -27,6 +27,18 @@ const CONFIG = {
   },
 };
 
+const REMOTE_ONLY_CONFIG = {
+  ...CONFIG,
+  cwd: '/tmp',
+  repoRoot: null,
+  dockerDir: null,
+  liferayDir: null,
+  files: {
+    dockerEnv: null,
+    liferayProfile: null,
+  },
+};
+
 const EXPECTED_GUEST_STRUCTURE_EXPORT_PATH = path.resolve(
   CONFIG.repoRoot,
   'liferay/resources/journal/structures',
@@ -380,6 +392,79 @@ describe('liferay inventory page', () => {
     ]);
     expect(formatLiferayInventoryPage(result)).toContain('REGULAR PAGE');
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=Hello');
+  });
+
+  test('skips local fragment export path enrichment outside a repo', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return new Response(
+            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('parentLayoutId=11')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/site-pages/home?fields=pageDefinition')) {
+          return new Response(
+            JSON.stringify({
+              pageDefinition: {
+                pageElement: {
+                  type: 'Root',
+                  pageElements: [
+                    {
+                      type: 'Fragment',
+                      definition: {
+                        fragment: {key: 'banner'},
+                      },
+                    },
+                  ],
+                },
+              },
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
+          return new Response('[]', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return new Response('{"classNameId":20006}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(
+      REMOTE_ONLY_CONFIG,
+      {url: '/web/guest/home'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+    if (result.pageType !== 'regularPage') {
+      throw new Error('Expected regular page');
+    }
+
+    expect(result.fragmentEntryLinks).toEqual([{type: 'fragment', fragmentKey: 'banner'}]);
+    const [fragmentEntry] = result.fragmentEntryLinks ?? [];
+    if (!fragmentEntry) {
+      throw new Error('Expected fragment entry');
+    }
+    expect(fragmentEntry).not.toHaveProperty('fragmentExportPath');
+    expect(fragmentEntry).not.toHaveProperty('fragmentSiteFriendlyUrl');
   });
 
   test('returns classic portlet layout composition from type settings', async () => {
@@ -980,6 +1065,122 @@ describe('liferay inventory page', () => {
     expect('articleProperties' in result).toBe(false);
     expect(formatLiferayInventoryPage(result)).toContain('DISPLAY PAGE');
     expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=News title');
+  });
+
+  test('skips local structure and template export path enrichment outside a repo', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async (input) => {
+        const url = String(input);
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('/structured-contents?')) {
+          return new Response(
+            '{"items":[{"id":41001,"key":"ART-001","title":"News article","friendlyUrlPath":"news-article","contentStructureId":301}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/journal.journalarticle/get-article-by-url-title')) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              resourcePrimKey: 41001,
+              articleId: 'ART-001',
+              titleCurrentValue: 'News article',
+              ddmStructureKey: 'NEWS',
+              ddmTemplateKey: 'NEWS_TEMPLATE',
+              contentStructureId: 301,
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response(
+            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/guest","nameCurrentValue":"Guest"}',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20122,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/NEWS',
+          )
+        ) {
+          return new Response('{"id":301,"dataDefinitionKey":"NEWS","name":{"en_US":"News"}}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
+          return new Response(
+            '[{"templateId":"40801","templateKey":"NEWS_TEMPLATE","externalReferenceCode":"NEWS_TEMPLATE","nameCurrentValue":"News Template","classPK":301,"script":"<#-- ftl -->"}]',
+            {status: 200},
+          );
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              contentStructureId: 301,
+              priority: 0,
+              contentFields: [
+                {
+                  label: 'Headline',
+                  name: 'headline',
+                  dataType: 'string',
+                  contentFieldValue: {data: 'News title'},
+                },
+              ],
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
+          return new Response('{"id":301,"dataDefinitionKey":"NEWS","name":"News"}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      },
+    });
+
+    const result = await runLiferayInventoryPage(
+      REMOTE_ONLY_CONFIG,
+      {site: 'guest', friendlyUrl: '/w/news-article'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+    if (result.pageType !== 'displayPage') {
+      throw new Error('Expected display page');
+    }
+
+    expect(result.journalArticles?.[0]).toMatchObject({
+      articleId: 'ART-001',
+      ddmStructureKey: 'NEWS',
+      ddmTemplateKey: 'NEWS_TEMPLATE',
+      ddmStructureSiteFriendlyUrl: '/guest',
+      ddmTemplateSiteFriendlyUrl: '/guest',
+    });
+    expect(result.journalArticles?.[0]).not.toHaveProperty('structureExportPath');
+    expect(result.journalArticles?.[0]).not.toHaveProperty('templateExportPath');
+    expect(result.contentStructures?.[0]).toMatchObject({
+      contentStructureId: 301,
+      key: 'NEWS',
+      siteFriendlyUrl: '/guest',
+    });
+    expect(result.contentStructures?.[0]).not.toHaveProperty('exportPath');
   });
 
   test('fails clearly when layout cannot be resolved', async () => {
