@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.5.0](https://github.com/mordonez/ldev/compare/ldev-v0.4.0...ldev-v0.5.0) (2026-04-20)
+
+
+### Features
+
+* **cli:** harden remote liferay overrides and document remote oauth manual flow ([74b0deb](https://github.com/mordonez/ldev/commit/74b0deb18a8f3a502debc45917a7b5f93f52d260))
+* **contracts:** add Zod surface contracts and schema verification ([62c2165](https://github.com/mordonez/ldev/commit/62c2165bbb856a866eb2abbc739fb7f62fe34a61))
+* **gateway:** add deleteJson method to LiferayGateway ([ce3a18a](https://github.com/mordonez/ldev/commit/ce3a18a90e3f19a12fa9820de1b71607908a6e31))
+* **gateway:** add deleteJson method to LiferayGateway ([2d0e2a0](https://github.com/mordonez/ldev/commit/2d0e2a0d877274fb29d5a5e79b84e9ab04b81a75))
+* **inventory:** add --all-sites for structures with optional templates ([7ba9ae9](https://github.com/mordonez/ldev/commit/7ba9ae9d0feac916c58e92fccfe34b62e6817851))
+* **inventory:** add --with-templates to structures listing ([3e0982c](https://github.com/mordonez/ldev/commit/3e0982ca501cf10534b5807f3410943a6a61bed1))
+* **inventory:** unificar salida structures con contexto de sitio ([34ef184](https://github.com/mordonez/ldev/commit/34ef1842f95019ac7eb9872d7915e5923c34e29e))
+* **liferay:** add sanitized error factory and integrate key commands ([4d35e63](https://github.com/mordonez/ldev/commit/4d35e633ffb16a95426d3276870a8b2abed805c7))
+* **resource:** add reasonBreakdown to structure sync format output and test fixtures ([d06c99a](https://github.com/mordonez/ldev/commit/d06c99a1aaac43223601a6a0f736a4f63cd22c03))
+* **resource:** add shared identifier matchers and unify id/key/name/erc resolution (R11) ([3891ab7](https://github.com/mordonez/ldev/commit/3891ab7eda93280c048d8637d6195a098b620c89))
+* **resource:** add shared identifier matchers and unify id/key/name/erc resolution (R11) ([419d313](https://github.com/mordonez/ldev/commit/419d313c442f91bd72e629e67534ff543e1d87d3))
+* **resource:** add typed LocalizedMap and makeLocalizedMap helper with lazy serialization (R10) ([51cd236](https://github.com/mordonez/ldev/commit/51cd23618590f8b48310e4f23e7fc68053e7a7e0))
+* **resource:** add typed LocalizedMap and makeLocalizedMap helper with lazy serialization (R10) ([779ad24](https://github.com/mordonez/ldev/commit/779ad24ffd170aef7bbc0e830caa5f7426e5563f))
+* **resource:** improve migration progress UX and harden structure sync flows ([5e55ff2](https://github.com/mordonez/ldev/commit/5e55ff25192ab48ecf22afc67a2f913781764ac5))
+* **resource:** improve migration progress UX and harden structure sync flows ([d7b178f](https://github.com/mordonez/ldev/commit/d7b178f6bb8f9b4b3878034e996da8280439d857))
+
+
+### Bug Fixes
+
+* add assignOptionalFiniteNumber utility and update priority assignment in inventory page ([c282d83](https://github.com/mordonez/ldev/commit/c282d8321e0106a3a63701c772e63b908de68e58))
+* add Liferay inventory page schema and validation ([5eca224](https://github.com/mordonez/ldev/commit/5eca224fd3d0b87108b5c123b8276430ef50cada))
+* agents use ldev correctly ([272f66c](https://github.com/mordonez/ldev/commit/272f66c0ce51f9cf555ed97450484f7f6c08db19))
+* **ai-install:** normalize relative paths across platforms ([992acd0](https://github.com/mordonez/ldev/commit/992acd0eadaf847bd70955999227d7e2dc9ac14f))
+* **contracts:** align fragment sync schema discrimination ([34270cf](https://github.com/mordonez/ldev/commit/34270cfdc670731a330d4f81f3711c7f71289f97))
+* **errors:** replace throw new Error with CliError across src ([9b23dee](https://github.com/mordonez/ldev/commit/9b23dee57ec49ed8ea8582087bb45b29e7e86f87))
+* **errors:** replace throw new Error with CliError across src ([cd64e2c](https://github.com/mordonez/ldev/commit/cd64e2c8a13733b0f23fbc3f257c7f19e69c6002))
+* **liferay:** complete preflight integration and harden lookup caches ([56e2e86](https://github.com/mordonez/ldev/commit/56e2e86d0afe64e85cf1a8508cf117c6d4c7ecc1))
+* **liferay:** complete R12/R18 cache hardening and preflight flag integration ([e64bf67](https://github.com/mordonez/ldev/commit/e64bf67b9dcf45805e9b4ac7e5ec488b34eb45d0))
+* **resource:** avoid creating empty fragment export dirs for sites without fragments ([f24d63b](https://github.com/mordonez/ldev/commit/f24d63bf8d5ace1e0283a8883eb0bb3a4d5e4c8a))
+* **resource:** avoid false timeout recovery when structure shape is unchanged ([697464f](https://github.com/mordonez/ldev/commit/697464f698ca16be57cc25a43a349df004d19766))
+* **resource:** harden payload coercion and normalize fragment create/update responses ([8959cad](https://github.com/mordonez/ldev/commit/8959cade21ca4a678159fcafbb8563f760651fb3))
+* **resource:** include title_i18n in localized structure migration updates ([6d69e42](https://github.com/mordonez/ldev/commit/6d69e42b5a5673870a3bdeb6106caef5f895b630))
+* **resource:** normalize ambiguous artifact error messages to English ([b0deddc](https://github.com/mordonez/ldev/commit/b0deddc9114ef21a4dec686c6f579d04bb1edaf6))
+* **resource:** normalize ambiguous artifact error messages to English ([836c34f](https://github.com/mordonez/ldev/commit/836c34f4dafa040d21696d8159de150198fb1f5d))
+* **resource:** replace stale command references in error messages and docs ([cbfca15](https://github.com/mordonez/ldev/commit/cbfca15649b705a74705b5e845f485aa043974de))
+* **resource:** replace stale get-structure command references in errors and docs ([2d4d765](https://github.com/mordonez/ldev/commit/2d4d76546412787d52eb1f48641d80c65e4393e4))
+* **review:** address PR [#102](https://github.com/mordonez/ldev/issues/102) code review findings ([bc32980](https://github.com/mordonez/ldev/commit/bc3298024f2cfdec77041ca95aadf4cf6bc6c01f))
+
 ## [0.4.0](https://github.com/mordonez/ldev/compare/ldev-v0.3.0...ldev-v0.4.0) (2026-04-13)
 
 
