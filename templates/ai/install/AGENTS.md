@@ -136,6 +136,7 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 - `troubleshooting-liferay`: diagnosis and recovery flow.
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
+- `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation
