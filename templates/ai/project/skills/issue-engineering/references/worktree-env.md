@@ -13,7 +13,7 @@ worktree capabilities available.
 ```bash
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD
-ldev worktree setup --name issue-NUM --with-env --base main
+ldev worktree setup --name issue-NUM --with-env
 cd .worktrees/issue-NUM
 pwd
 git rev-parse --show-toplevel

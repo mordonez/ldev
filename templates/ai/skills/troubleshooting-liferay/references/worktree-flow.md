@@ -37,7 +37,7 @@ or pass an explicit base ref that has been validated for the task.
 
 ```bash
 # Create a worktree with its own isolated runtime environment
-ldev worktree setup --name <worktree-name> --with-env --base main
+ldev worktree setup --name <worktree-name> --with-env
 
 # Enter the worktree
 cd .worktrees/<worktree-name>
