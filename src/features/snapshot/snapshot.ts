@@ -12,13 +12,8 @@ import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {normalizeProcessEnv} from '../../core/platform/process.js';
-import {buildComposeEnv, resolveEnvContext} from '../env/env-shared.js';
-import {
-  resolveAdtsBaseDir,
-  resolveFragmentsBaseDir,
-  resolveStructuresBaseDir,
-  resolveTemplatesBaseDir,
-} from '../liferay/resource/liferay-resource-paths.js';
+import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../core/config/liferay-resource-path-defaults.js';
+import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 
 export type SnapshotResult = {
   ok: true;
@@ -117,17 +112,25 @@ export function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): 
 }
 
 export async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
-  if (!config.liferayDir) {
+  if (!config.repoRoot || !config.liferayDir) {
     throw new CliError('snapshot requires liferayDir.', {code: 'SNAPSHOT_REPO_REQUIRED'});
   }
 
   return [
     path.join(config.liferayDir, 'configs'),
-    resolveStructuresBaseDir(config),
-    resolveTemplatesBaseDir(config),
-    resolveAdtsBaseDir(config),
-    resolveFragmentsBaseDir(config),
+    resolveSnapshotRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures),
+    resolveSnapshotRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates),
+    resolveSnapshotRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts),
+    resolveSnapshotRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments),
   ];
+}
+
+function resolveSnapshotRepoPath(config: AppConfig, relativePath: string): string {
+  if (!config.repoRoot) {
+    throw new CliError('snapshot requires repo root.', {code: 'SNAPSHOT_REPO_REQUIRED'});
+  }
+
+  return path.resolve(config.repoRoot, relativePath);
 }
 
 export async function writePostgresDump(

@@ -1,12 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import type {HttpApiClient} from '../../../src/core/http/client.js';
 import {fragmentEntrySyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/fragment-entry-sync-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
 import type {LocalFragment} from '../../../src/features/liferay/resource/liferay-resource-sync-fragments-types.js';
+import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -159,7 +157,7 @@ describe('fragmentEntrySyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn().mockResolvedValue({
             ok: true,
             status: 200,
@@ -167,14 +165,8 @@ describe('fragmentEntrySyncStrategy', () => {
             headers: new Headers(),
             body: '{"items":[]}',
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       const result = await fragmentEntrySyncStrategy.findRemote(
@@ -285,7 +277,7 @@ describe('fragmentEntrySyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn(),
           postForm: vi.fn().mockResolvedValue({
             ok: true,
@@ -294,14 +286,8 @@ describe('fragmentEntrySyncStrategy', () => {
             headers: new Headers(),
             body: JSON.stringify(createdFragment),
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       const result = await fragmentEntrySyncStrategy.upsert(
@@ -366,7 +352,7 @@ describe('fragmentEntrySyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn(),
           postForm: vi.fn().mockResolvedValue({
             ok: true,
@@ -375,14 +361,8 @@ describe('fragmentEntrySyncStrategy', () => {
             headers: new Headers(),
             body: JSON.stringify(remoteFragment),
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       const result = await fragmentEntrySyncStrategy.upsert(

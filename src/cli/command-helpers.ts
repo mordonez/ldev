@@ -6,6 +6,12 @@ import type {OutputFormat} from '../core/output/formats.js';
 
 const OUTPUT_FORMAT_OPTION_DESCRIPTION = 'Output format: text, json, ndjson';
 
+export type RenderOptions<TResult> = {
+  text?: string | ((result: TResult) => string);
+  json?: (result: TResult) => unknown;
+  exitCode?: number | ((result: TResult) => number | undefined);
+};
+
 export function addOutputFormatOption(command: Command, defaultFormat: OutputFormat = 'text'): Command {
   return command
     .option('--format <format>', OUTPUT_FORMAT_OPTION_DESCRIPTION, defaultFormat)
@@ -17,18 +23,13 @@ export function addOutputFormatOption(command: Command, defaultFormat: OutputFor
 export function renderCommandResult<TResult>(
   context: CommandContext,
   result: TResult,
-  options?: {
-    text?: string | ((result: TResult) => string);
-    json?: unknown | ((result: TResult) => unknown);
-    exitCode?: number | ((result: TResult) => number | undefined);
-  },
+  options?: RenderOptions<TResult>,
 ): void {
   if (context.printer.format === 'text') {
     const text = typeof options?.text === 'function' ? options.text(result) : options?.text;
     context.printer.write(text ?? result);
   } else {
-    const json = typeof options?.json === 'function' ? options.json(result) : options?.json;
-    const outputValue = json ?? result;
+    const outputValue = options?.json ? options.json(result) : result;
 
     if (context.strict) {
       context.printer.write(toCliSuccessPayload(outputValue));
@@ -56,17 +57,7 @@ export async function withCommandContext<TOptions extends object>(
 
 export function createFormattedAction<TOptions extends object, TResult>(
   run: (context: CommandContext, options: TOptions) => Promise<TResult>,
-  renderOptions?:
-    | {
-        text?: string | ((result: TResult) => string);
-        json?: unknown | ((result: TResult) => unknown);
-        exitCode?: number | ((result: TResult) => number | undefined);
-      }
-    | ((options: TOptions) => {
-        text?: string | ((result: TResult) => string);
-        json?: unknown | ((result: TResult) => unknown);
-        exitCode?: number | ((result: TResult) => number | undefined);
-      }),
+  renderOptions?: RenderOptions<TResult> | ((options: TOptions) => RenderOptions<TResult>),
 ): (options: TOptions) => Promise<void> {
   return async (options) =>
     withCommandContext(options, async (context) => {
@@ -81,17 +72,7 @@ export function createFormattedAction<TOptions extends object, TResult>(
 
 export function createFormattedArgumentAction<TArg, TOptions extends object, TResult>(
   run: (context: CommandContext, argument: TArg, options: TOptions) => Promise<TResult>,
-  renderOptions?:
-    | {
-        text?: string | ((result: TResult) => string);
-        json?: unknown | ((result: TResult) => unknown);
-        exitCode?: number | ((result: TResult) => number | undefined);
-      }
-    | ((options: TOptions) => {
-        text?: string | ((result: TResult) => string);
-        json?: unknown | ((result: TResult) => unknown);
-        exitCode?: number | ((result: TResult) => number | undefined);
-      }),
+  renderOptions?: RenderOptions<TResult> | ((options: TOptions) => RenderOptions<TResult>),
 ): (argument: TArg, options: TOptions) => Promise<void> {
   return async (argument, options) =>
     withCommandContext(options, async (context) => {

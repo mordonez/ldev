@@ -8,7 +8,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {resolveEnvContext} from '../env/env-files.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 
 const BUNDLE_FILE_NAME = 'dev.mordonez.ldev.oauth2.app-1.0.0.jar';
 

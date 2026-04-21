@@ -3,6 +3,10 @@ import {Command} from 'commander';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {formatLiferayThemeCheck, runLiferayThemeCheck} from '../../features/liferay/liferay-theme-check.js';
 
+type LiferayThemeCheckCommandOptions = {
+  theme: string;
+};
+
 export function createLiferayThemeCheckCommand(): Command {
   return addOutputFormatOption(
     new Command('theme-check')
@@ -11,7 +15,7 @@ export function createLiferayThemeCheckCommand(): Command {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: LiferayThemeCheckCommandOptions) =>
         runLiferayThemeCheck(context.config, {
           theme: options.theme,
         }),

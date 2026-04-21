@@ -76,7 +76,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
 
     try {
       const filePath = await resolveStructureFile(config, opts.key, opts.file);
-      const payload = await fs.readJson(filePath);
+      const payload = await readJsonRecord(filePath);
       const normalizedContent = JSON.stringify(payload);
 
       return {
@@ -134,7 +134,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     const opts = options as StructureSyncOptions;
     const {gateway} = createStructureTransport(config, dependencies);
 
-    const payload = await fs.readJson(localArtifact.data.filePath);
+    const payload = await readJsonRecord(localArtifact.data.filePath);
     const payloadFieldRefs = collectFieldReferences(payload);
     const removedFieldReferences = remoteArtifact
       ? [...setDifference(remoteArtifact.data.existingFieldRefs, payloadFieldRefs)]
@@ -290,6 +290,14 @@ function createStructureTransport(config: AppConfig, dependencies?: StructureRes
     tokenClient,
     gateway: createLiferayGateway(config, apiClient, tokenClient),
   };
+}
+
+async function readJsonRecord(filePath: string): Promise<Record<string, unknown>> {
+  const payload: unknown = await fs.readJson(filePath);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw LiferayErrors.resourceError(`Structure JSON must be an object: ${filePath}`);
+  }
+  return payload as Record<string, unknown>;
 }
 
 async function fetchStructureByKeyViaGateway(

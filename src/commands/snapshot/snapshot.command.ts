@@ -5,6 +5,7 @@ import {
   createFormattedAction,
   createFormattedArgumentAction,
 } from '../../cli/command-helpers.js';
+import {runDbImport} from '../../features/db/db-import.js';
 import {formatRestore, runRestore} from '../../features/snapshot/restore.js';
 import {formatSnapshot, runSnapshot} from '../../features/snapshot/snapshot.js';
 
@@ -61,6 +62,14 @@ For runtime-data restoration across main/worktrees, use:
           skipDb: Boolean(options.skipDb),
           skipFiles: Boolean(options.skipFiles),
           printer: context.printer,
+          restoreDatabase: async (file, restoreOptions) => {
+            await runDbImport(context.config, {
+              file,
+              force: true,
+              processEnv: restoreOptions.processEnv,
+              printer: restoreOptions.printer,
+            });
+          },
         }),
       {text: formatRestore},
     ),

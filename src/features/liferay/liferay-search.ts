@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
+import {parseJsonUnknown} from '../../core/utils/json.js';
 import {requestElasticsearchJson, resolveEsUrl} from '../reindex/reindex-shared.js';
 
 export type LiferaySearchIndicesResult = {
@@ -57,8 +58,8 @@ export async function runLiferaySearchQuery(
 ): Promise<LiferaySearchQueryResult> {
   const esUrl = resolveEsUrl(config);
   const rawBody = options.body?.trim();
-  const payload = rawBody
-    ? JSON.parse(rawBody)
+  const payload: unknown = rawBody
+    ? parseJsonUnknown(rawBody)
     : {
         query: {
           query_string: {

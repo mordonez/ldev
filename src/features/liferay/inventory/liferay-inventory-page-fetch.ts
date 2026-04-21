@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- inventory orchestration intentionally consolidated during active refactor */
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';

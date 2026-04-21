@@ -4,6 +4,10 @@ import {addOutputFormatOption, createFormattedAction} from '../../cli/command-he
 import {formatLiferayAuthToken, runLiferayAuthToken} from '../../features/liferay/liferay-auth.js';
 import {formatLiferayHealth, runLiferayHealth} from '../../features/liferay/liferay-health.js';
 
+type LiferayAuthTokenCommandOptions = {
+  raw?: boolean;
+};
+
 export function createAuthCommands(parent: Command): void {
   const auth = new Command('auth').description('OAuth2 token retrieval for scripting');
   auth.helpGroup('Connectivity and auth:');
@@ -16,7 +20,7 @@ export function createAuthCommands(parent: Command): void {
   ).action(
     createFormattedAction(
       async (context) => runLiferayAuthToken(context.config),
-      (options) => ({
+      (options: LiferayAuthTokenCommandOptions) => ({
         text: (result: Awaited<ReturnType<typeof runLiferayAuthToken>>) =>
           formatLiferayAuthToken(result, {raw: Boolean(options.raw)}),
         json: (result: Awaited<ReturnType<typeof runLiferayAuthToken>>) => ({

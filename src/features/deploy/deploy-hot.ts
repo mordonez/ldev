@@ -3,7 +3,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {formatProcessError} from '../../core/platform/process.js';
-import {buildComposeEnv, resolveEnvContext} from '../env/env-shared.js';
+import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 import {escapeShellArg, uniquePaths} from './deploy-artifacts.js';
 
 const DEPLOY_TARGET_DIR = '/opt/liferay/deploy';

@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {isRecord, parseJsonRecord, parseJsonUnknown} from '../../../core/utils/json.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
 import type {
@@ -124,7 +125,10 @@ function normalizeFragmentConfiguration(value: string): string {
   }
 
   try {
-    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const parsed = parseJsonRecord(trimmed);
+    if (!parsed) {
+      return JSON.stringify(defaultFragmentConfiguration());
+    }
     if (Array.isArray(parsed.fieldSets)) {
       return JSON.stringify(parsed);
     }
@@ -164,7 +168,7 @@ async function readJsonIfExists(filePath: string): Promise<Record<string, unknow
     return {};
   }
 
-  const parsed = JSON.parse(raw) as unknown;
+  const parsed = parseJsonUnknown(raw);
   return isRecord(parsed) ? parsed : {};
 }
 
@@ -174,10 +178,6 @@ async function readTextIfExists(filePath: string): Promise<string> {
   }
 
   return fs.readFile(filePath, 'utf8');
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function ensureText(value: unknown, fallback: string): string {

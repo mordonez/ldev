@@ -22,6 +22,11 @@ export type RunProcessResult = {
   ok: boolean;
 };
 
+export type RunInteractiveProcessOptions = {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+};
+
 function normalizePathValue(value: string | undefined): string | undefined {
   if (!value || process.platform !== 'win32') {
     return value;
@@ -100,6 +105,29 @@ export async function runProcess(
     command: [command, ...args].join(' '),
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
+    exitCode: result.exitCode ?? 1,
+    ok: result.exitCode === 0,
+  };
+}
+
+export async function runInteractiveProcess(
+  command: string,
+  args: string[] = [],
+  options?: RunInteractiveProcessOptions,
+): Promise<RunProcessResult> {
+  const resolvedCommand = resolveSpawnCommand(command, options?.env);
+  const result = await execa(resolvedCommand, args, {
+    cwd: options?.cwd,
+    env: normalizeProcessEnv(options?.env),
+    reject: false,
+    shell: process.platform === 'win32',
+    stdio: 'inherit',
+  });
+
+  return {
+    command: [command, ...args].join(' '),
+    stdout: '',
+    stderr: '',
     exitCode: result.exitCode ?? 1,
     ok: result.exitCode === 0,
   };

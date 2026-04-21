@@ -43,9 +43,12 @@ Environment fallbacks:
       command.command('check').description('Check MCP endpoint availability and feature-flag state'),
     ),
   ).action(
-    createFormattedAction(async (context, options) => runMcpCheck(context.config, toMcpAuthOptions(options)), {
-      text: formatMcpCheck,
-    }),
+    createFormattedAction(
+      async (context, options: McpAuthCommandOptions) => runMcpCheck(context.config, toMcpAuthOptions(options)),
+      {
+        text: formatMcpCheck,
+      },
+    ),
   );
 
   addMcpAuthOptions(
@@ -53,17 +56,23 @@ Environment fallbacks:
       command.command('probe').description('Run a real MCP initialize handshake against the portal'),
     ),
   ).action(
-    createFormattedAction(async (context, options) => runMcpProbe(context.config, toMcpAuthOptions(options)), {
-      text: formatMcpProbe,
-    }),
+    createFormattedAction(
+      async (context, options: McpAuthCommandOptions) => runMcpProbe(context.config, toMcpAuthOptions(options)),
+      {
+        text: formatMcpProbe,
+      },
+    ),
   );
 
   addMcpAuthOptions(
     addOutputFormatOption(command.command('openapis').description('Call the MCP get-openapis tool after initialize')),
   ).action(
-    createFormattedAction(async (context, options) => runMcpOpenApis(context.config, toMcpAuthOptions(options)), {
-      text: formatMcpOpenApis,
-    }),
+    createFormattedAction(
+      async (context, options: McpAuthCommandOptions) => runMcpOpenApis(context.config, toMcpAuthOptions(options)),
+      {
+        text: formatMcpOpenApis,
+      },
+    ),
   );
 
   return command;

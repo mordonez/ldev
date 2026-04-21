@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
-
 import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test, vi, afterEach, beforeEach} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
+import type {LiferayGateway} from '../../src/features/liferay/liferay-gateway.js';
 import {runStructureMigration} from '../../src/features/liferay/resource/liferay-resource-sync-structure-migration.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -23,6 +22,12 @@ const mockConfig: AppConfig = {
   },
 };
 
+type MockMigrationGateway<T extends Record<string, unknown>> = LiferayGateway & T;
+
+function createMigrationGateway<T extends Record<string, unknown>>(gateway: T): MockMigrationGateway<T> {
+  return gateway as unknown as MockMigrationGateway<T>;
+}
+
 describe('structure migration', () => {
   let tempDir: string;
 
@@ -40,10 +45,10 @@ describe('structure migration', () => {
     test('throws when migration plan file does not exist', async () => {
       const missingPlanPath = '/path/to/missing/plan.json';
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(),
         putJson: vi.fn(),
-      } as any;
+      });
 
       await expect(
         runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, missingPlanPath, {
@@ -60,10 +65,10 @@ describe('structure migration', () => {
       const planPath = path.join(tempDir, 'plan.json');
       await fs.writeJson(planPath, {plan: {mappings: []}});
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(),
         putJson: vi.fn(),
-      } as any;
+      });
 
       await expect(
         runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
@@ -90,7 +95,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {
@@ -100,7 +105,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -127,10 +132,10 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(),
         putJson: vi.fn(),
-      } as any;
+      });
 
       await expect(
         runStructureMigration(mockConfig, 'MISSING_STRUCTURE', 20121, planPath, {
@@ -154,7 +159,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
@@ -162,7 +167,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -187,7 +192,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {
@@ -197,7 +202,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -222,7 +227,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {
@@ -232,7 +237,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(async () => ({ok: true})),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -259,7 +264,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {
@@ -272,7 +277,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -297,7 +302,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/content-structures/') && requestPath.includes('page=1')) {
             return {
@@ -317,7 +322,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -344,7 +349,7 @@ describe('structure migration', () => {
         },
       });
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
             return {dataDefinitionFields: []};
@@ -378,7 +383,7 @@ describe('structure migration', () => {
           return {ok: false, status: 404, data: null};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -407,7 +412,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/content-structures/')) {
             return {
@@ -428,7 +433,7 @@ describe('structure migration', () => {
         putJson: vi.fn(async () => {
           throw new Error('upsert failed');
         }),
-      } as any;
+      });
 
       await expect(
         runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
@@ -456,7 +461,7 @@ describe('structure migration', () => {
         {name: 'oldField', contentFieldValue: {data: 'legacy-value'}},
       ];
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/content-structures/')) {
             return {
@@ -478,7 +483,7 @@ describe('structure migration', () => {
           persistedFields = payload.contentFields ?? [];
           return {id: 'content-1'};
         }),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -507,7 +512,7 @@ describe('structure migration', () => {
       });
 
       let fetchCount = 0;
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/content-structures/')) {
             return {
@@ -542,7 +547,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(async () => ({id: 'content-1'})),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -581,7 +586,7 @@ describe('structure migration', () => {
         },
       ];
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
           if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
             return {
@@ -639,7 +644,7 @@ describe('structure migration', () => {
 
           return {id: 'content-1'};
         }),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -678,7 +683,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
@@ -686,7 +691,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
@@ -709,7 +714,7 @@ describe('structure migration', () => {
 
       await fs.writeJson(planPath, plan);
 
-      const mockGateway = {
+      const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
@@ -717,7 +722,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(),
-      } as any;
+      });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,

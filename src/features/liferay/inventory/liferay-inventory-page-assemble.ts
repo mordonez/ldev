@@ -1,4 +1,3 @@
-/* eslint-disable max-lines -- shared assembly helpers kept together for inventory readability */
 import {firstNonBlank, firstString as firstStringUtil} from '../../../core/utils/text.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 

@@ -1,11 +1,9 @@
 import fs from 'fs-extra';
 
-import {loadConfig} from '../../core/config/load-config.js';
+import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
-import {runEnvSetup} from '../env/env-setup.js';
-import {runEnvStart} from '../env/env-start.js';
 import {WorktreeErrors} from './errors/index.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
@@ -18,12 +16,31 @@ export type WorktreeStartResult = {
   portalUrl: string;
 };
 
+export type WorktreeStartEnvSetup = (
+  config: AppConfig,
+  options: {
+    skipPull: true;
+    printer?: Printer;
+  },
+) => Promise<unknown>;
+
+export type WorktreeStartEnvStart = (
+  config: AppConfig,
+  options: {
+    wait?: boolean;
+    timeoutSeconds: number;
+    printer?: Printer;
+  },
+) => Promise<unknown>;
+
 export async function runWorktreeStart(options: {
   cwd: string;
   name?: string;
   wait?: boolean;
   timeoutSeconds?: number;
   printer?: Printer;
+  setupEnv?: WorktreeStartEnvSetup;
+  startEnv?: WorktreeStartEnvStart;
 }): Promise<WorktreeStartResult> {
   const config = loadConfig({cwd: options.cwd, env: process.env});
   if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
@@ -65,11 +82,15 @@ export async function runWorktreeStart(options: {
   });
   const worktreeConfig = loadConfig({cwd: target.worktreeDir, env: process.env});
 
-  await runEnvSetup(worktreeConfig, {
+  if (!options.setupEnv || !options.startEnv) {
+    throw WorktreeErrors.capabilityMissing('worktree start requires env setup/start handlers.');
+  }
+
+  await options.setupEnv(worktreeConfig, {
     skipPull: true,
     printer: options.printer,
   });
-  await runEnvStart(worktreeConfig, {
+  await options.startEnv(worktreeConfig, {
     wait: options.wait,
     timeoutSeconds: options.timeoutSeconds ?? 250,
     printer: options.printer,

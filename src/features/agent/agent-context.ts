@@ -6,7 +6,7 @@ import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {getCurrentBranchName, getGitCommonDir, isWorktree} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
 import {collectEnvStatus} from '../env/env-health.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {runAiStatus} from '../ai/ai-status.js';
 import {runAgentCapabilities, type AgentCapabilitiesReport} from './agent-capabilities.js';
 

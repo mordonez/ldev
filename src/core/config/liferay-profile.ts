@@ -33,7 +33,7 @@ export function readProfileFile(filePath: string): Record<string, string> {
     return {};
   }
 
-  const parsed = YAML.parse(fs.readFileSync(filePath, 'utf8'));
+  const parsed: unknown = YAML.parse(fs.readFileSync(filePath, 'utf8'));
   const flattened: Record<string, string> = {};
   flatten(parsed, '', flattened);
   return flattened;
@@ -52,7 +52,7 @@ export async function writeLocalLiferayProfile(
   const currentDocument = fs.existsSync(filePath)
     ? YAML.parseDocument(fs.readFileSync(filePath, 'utf8'))
     : new YAML.Document({});
-  const rootValue = currentDocument.toJS() ?? {};
+  const rootValue: unknown = currentDocument.toJS() ?? {};
   const root = isRecord(rootValue) ? rootValue : {};
   const liferay = isRecord(root.liferay) ? root.liferay : {};
   const oauth2 = isRecord(liferay.oauth2) ? liferay.oauth2 : {};

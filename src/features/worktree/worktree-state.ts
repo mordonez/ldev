@@ -7,8 +7,12 @@ import {runDockerCompose} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {formatProcessError, runProcess} from '../../core/platform/process.js';
-import type {EnvContext} from '../env/env-shared.js';
-import {resolveManagedStorages, resolveRuntimeStorage, type RuntimeStorageKey} from '../env/env-shared.js';
+import {
+  resolveManagedStorages,
+  resolveRuntimeStorage,
+  type EnvContext,
+  type RuntimeStorageKey,
+} from '../../core/runtime/env-context.js';
 
 export const WORKTREE_STATE_SUBDIRS = [
   'postgres-data',

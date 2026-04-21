@@ -1,12 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-
 import fs from 'fs-extra';
 import path from 'node:path';
-import {describe, expect, test, vi, afterEach} from 'vitest';
+import {describe, expect, test, afterEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import {CliError} from '../../../src/core/errors.js';
-import type {HttpApiClient} from '../../../src/core/http/client.js';
 import {templateSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/template-sync-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
@@ -81,7 +77,7 @@ describe('templateSyncStrategy', () => {
     });
 
     test('throws when config is invalid', async () => {
-      const invalidConfig = {...mockConfig, paths: undefined as any};
+      const invalidConfig = {...mockConfig, paths: undefined};
 
       await expect(templateSyncStrategy.resolveLocal(invalidConfig, mockSite, {key: 'BASIC'})).rejects.toThrow();
     });

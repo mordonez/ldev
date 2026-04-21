@@ -14,7 +14,12 @@ import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {formatProcessError, normalizeProcessEnv} from '../../core/platform/process.js';
-import {buildComposeEnv, ensureEnvDataLayout, resolveEnvContext, resolvePostgresStorage} from '../env/env-shared.js';
+import {
+  buildComposeEnv,
+  ensureEnvDataLayout,
+  resolveEnvContext,
+  resolvePostgresStorage,
+} from '../../core/runtime/env-context.js';
 
 export type DbImportResult = {
   ok: true;

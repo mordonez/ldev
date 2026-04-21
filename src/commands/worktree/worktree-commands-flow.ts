@@ -5,9 +5,26 @@ import {
   createFormattedAction,
   createFormattedArgumentAction,
 } from '../../cli/command-helpers.js';
+import {runEnvSetup} from '../../features/env/env-setup.js';
+import {runEnvStart} from '../../features/env/env-start.js';
 import {formatWorktreeEnv, runWorktreeEnv} from '../../features/worktree/worktree-env.js';
 import {formatWorktreeSetup, runWorktreeSetup} from '../../features/worktree/worktree-setup.js';
 import {formatWorktreeStart, runWorktreeStart} from '../../features/worktree/worktree-start.js';
+
+type WorktreeSetupCommandOptions = {
+  name: string;
+  base?: string;
+  withEnv?: boolean;
+};
+
+type WorktreeStartCommandOptions = {
+  wait?: boolean;
+  timeout: string;
+};
+
+type WorktreeEnvCommandOptions = {
+  name?: string;
+};
 
 export function registerWorktreeFlowCommands(command: Command): void {
   addOutputFormatOption(
@@ -20,7 +37,7 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .option('--with-env', 'Prepare worktree local env after creation'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: WorktreeSetupCommandOptions) =>
         runWorktreeSetup({
           cwd: context.cwd,
           name: options.name,
@@ -42,13 +59,15 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
   ).action(
     createFormattedArgumentAction(
-      async (context, name, options) =>
+      async (context, name: string | undefined, options: WorktreeStartCommandOptions) =>
         runWorktreeStart({
           cwd: context.cwd,
           name,
           wait: options.wait,
           timeoutSeconds: Number.parseInt(options.timeout, 10),
           printer: context.printer,
+          setupEnv: runEnvSetup,
+          startEnv: runEnvStart,
         }),
       {text: formatWorktreeStart},
     ),
@@ -62,7 +81,7 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .option('--name <name>', 'Worktree name; optional when running inside the worktree'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: WorktreeEnvCommandOptions) =>
         runWorktreeEnv({
           cwd: context.cwd,
           name: options.name,

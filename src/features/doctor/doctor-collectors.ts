@@ -13,7 +13,7 @@ import {detectRepoPaths} from '../../core/config/repo-paths.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
 import {isWorktree} from '../../core/platform/git.js';
-import {runAiStatus} from '../ai/ai-status.js';
+import {runAiStatus} from '../../core/runtime/ai-status.js';
 import type {
   DoctorContext,
   DoctorDependencies,
@@ -359,7 +359,7 @@ function readProfileFile(filePath: string): Record<string, string> {
     return {};
   }
 
-  const parsed = YAML.parse(fs.readFileSync(filePath, 'utf8'));
+  const parsed: unknown = YAML.parse(fs.readFileSync(filePath, 'utf8'));
   const flattened: Record<string, string> = {};
   flatten(parsed, '', flattened);
   return flattened;

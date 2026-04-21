@@ -92,6 +92,49 @@ export type ResourceCommandOptions = {
   helpGroup?: string;
 };
 
+type ResourceCommandOptionBag = {
+  adt?: string[];
+  allSites?: boolean;
+  allowBreakingChange?: boolean;
+  checkOnly?: boolean;
+  className?: string;
+  cleanupMigration?: boolean;
+  collection?: string;
+  continueOnError?: boolean;
+  createMissing?: boolean;
+  createMissingTemplates?: boolean;
+  debug?: boolean;
+  dir?: string;
+  displayStyle?: string;
+  file?: string;
+  fragment?: string;
+  id?: string;
+  includeScript?: boolean;
+  key?: string;
+  migrationDryRun?: boolean;
+  migrationFile?: string;
+  migrationPhase?: string;
+  migrationPlan?: string;
+  name?: string;
+  output?: string;
+  overwrite?: boolean;
+  pretty?: boolean;
+  runCleanup?: boolean;
+  site?: string;
+  siteId?: string;
+  skipUpdate?: boolean;
+  skipValidation?: boolean;
+  stage?: string;
+  structure?: string[];
+  structureKey?: string;
+  template?: string[];
+  templates?: boolean;
+  widgetType?: string;
+  apply?: boolean;
+};
+
+type ResourceMigrationStage = 'introduce' | 'cleanup';
+
 export function buildResourceCommand(options: ResourceCommandOptions): Command {
   const resource = new Command('resource')
     .description(options.description)
@@ -152,7 +195,7 @@ function buildResourceGetSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceGetStructure(context.config, {
           site: options.site,
           key: options.key,
@@ -171,7 +214,7 @@ function buildResourceGetSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {id: string}) =>
         runLiferayResourceGetTemplate(context.config, {
           site: options.site,
           id: options.id,
@@ -196,7 +239,7 @@ function buildResourceGetSubcommands(resource: Command): void {
       ),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceGetAdt(context.config, {
           site: options.site,
           displayStyle: options.displayStyle,
@@ -223,7 +266,7 @@ function buildResourceGetSubcommands(resource: Command): void {
       .option('--include-script', 'Include template script in JSON output'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceListAdts(context.config, {
           site: options.site,
           widgetType: options.widgetType,
@@ -241,7 +284,7 @@ function buildResourceGetSubcommands(resource: Command): void {
       .option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceListFragments(context.config, {
           site: options.site,
         }),
@@ -266,7 +309,7 @@ function buildResourceExportSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportStructure(context.config, {
           site: options.site,
           key: options.key,
@@ -288,7 +331,7 @@ function buildResourceExportSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {id: string}) =>
         runLiferayResourceExportTemplate(context.config, {
           site: options.site,
           id: options.id,
@@ -308,7 +351,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--check-only', 'Only report diffs against local files without writing them'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportStructures(context.config, {
           site: options.site,
           dir: options.dir,
@@ -330,7 +373,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--continue-on-error', 'Continue exporting other templates if one entry fails'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportTemplates(context.config, {
           site: options.site,
           dir: options.dir,
@@ -361,7 +404,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--continue-on-error', 'Return success for partial failures'),
   ).action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: ResourceCommandOptionBag) => {
         if (!options.key && !options.name) {
           throw LiferayErrors.configError('export-adt requires --key or --name');
         }
@@ -396,7 +439,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--continue-on-error', 'Continue exporting other ADTs if one entry fails'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportAdts(context.config, {
           site: options.site,
           dir: options.dir,
@@ -421,7 +464,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--dir <dir>', 'Destination project directory; defaults to paths.fragments/sites/<site>'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportFragments(context.config, {
           site: options.site,
           dir: options.dir,
@@ -443,7 +486,7 @@ function buildResourceExportSubcommands(resource: Command): void {
       .option('--fragment <fragment>', 'Export only one fragment by key or name'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceExportFragments(context.config, {
           site: options.site,
           allSites: Boolean(options.allSites),
@@ -477,7 +520,7 @@ function buildResourceImportSubcommands(resource: Command): void {
       .option('--allow-breaking-change', 'Allow field removals without a migration plan'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {key: string}) =>
         runLiferayResourceSyncStructure(context.config, {
           site: options.site,
           key: options.key,
@@ -507,7 +550,7 @@ function buildResourceImportSubcommands(resource: Command): void {
       .option('--create-missing', 'Create the template when it does not exist'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {id: string}) =>
         runLiferayResourceSyncTemplate(context.config, {
           site: options.site,
           key: options.id,
@@ -536,7 +579,7 @@ function buildResourceImportSubcommands(resource: Command): void {
       .option('--create-missing', 'Create the ADT when it does not exist'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceSyncAdt(context.config, {
           site: options.site,
           key: options.key,
@@ -560,7 +603,7 @@ function buildResourceImportSubcommands(resource: Command): void {
       .option('--dir <dir>', 'Fragments project directory, or parent directory for per-site projects'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceSyncFragments(context.config, {
           site: options.site,
           groupId: options.siteId,
@@ -585,7 +628,7 @@ function buildResourceImportSubcommands(resource: Command): void {
       .option('--fragment <fragment>', 'Single fragment slug, name or collection/fragments/slug to import'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceSyncFragments(context.config, {
           site: options.site,
           groupId: options.siteId,
@@ -621,7 +664,7 @@ function buildResourceImportSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceImportStructures(context.config, {
           site: options.site,
           dir: options.dir,
@@ -661,7 +704,7 @@ function buildResourceImportSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceImportTemplates(context.config, {
           site: options.site,
           dir: options.dir,
@@ -697,7 +740,7 @@ function buildResourceImportSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceImportAdts(context.config, {
           site: options.site,
           dir: options.dir,
@@ -736,7 +779,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag) =>
         runLiferayResourceMigrationInit(context.config, {
           site: options.site,
           key: options.key,
@@ -761,7 +804,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
       .option('--skip-update', 'Do not update the structure definition itself'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {migrationFile: string; stage: ResourceMigrationStage}) =>
         runLiferayResourceMigrationRun(context.config, {
           migrationFile: options.migrationFile,
           stage: options.stage,
@@ -788,7 +831,7 @@ function buildResourceMigrationSubcommands(resource: Command): void {
       .option('--create-missing-templates', 'Create descriptor templates when they do not exist'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: ResourceCommandOptionBag & {migrationFile: string}) =>
         runLiferayResourceMigrationPipeline(context.config, {
           migrationFile: options.migrationFile,
           checkOnly: Boolean(options.checkOnly),

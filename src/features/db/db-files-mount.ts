@@ -7,7 +7,7 @@ import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {formatProcessError} from '../../core/platform/process.js';
-import {resolveEnvContext, resolveDataRoot} from '../env/env-shared.js';
+import {resolveEnvContext, resolveDataRoot} from '../../core/runtime/env-context.js';
 
 export type DbFilesMountResult = {
   ok: true;

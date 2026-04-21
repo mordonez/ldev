@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../../core/config/liferay-resource-path-defaults.js';
 import {LiferayErrors} from '../errors/index.js';
 
 export type ArtifactType = 'template' | 'structure' | 'adt' | 'fragment';
@@ -43,27 +44,27 @@ export function tryResolveRepoPath(config: AppConfig, relativePath: string): str
 }
 
 export function resolveStructuresBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
+  return resolveRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
 }
 
 export function resolveTemplatesBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.templates ?? 'liferay/resources/journal/templates');
+  return resolveRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
 }
 
 export function resolveAdtsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.adts ?? 'liferay/resources/templates/application_display');
+  return resolveRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
 }
 
 export function resolveFragmentsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
+  return resolveRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
 }
 
 export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefined {
-  return tryResolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
+  return tryResolveRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
 }
 
 export function resolveMigrationsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.migrations ?? 'liferay/resources/journal/migrations');
+  return resolveRepoPath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
 }
 
 export function resolveSiteToken(siteFriendlyUrl: string): string {
@@ -142,11 +143,11 @@ export function tryResolveArtifactBaseDir(
 
   switch (type) {
     case 'template':
-      return tryResolveRepoPath(config, config.paths?.templates ?? 'liferay/resources/journal/templates');
+      return tryResolveRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
     case 'structure':
-      return tryResolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
+      return tryResolveRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
     case 'adt':
-      return tryResolveRepoPath(config, config.paths?.adts ?? 'liferay/resources/templates/application_display');
+      return tryResolveRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
     case 'fragment':
       return tryResolveFragmentsBaseDir(config);
   }

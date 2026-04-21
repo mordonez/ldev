@@ -98,11 +98,8 @@ export async function runStructureMigration(
     ) => Promise<StructureLookup | null>;
   },
 ): Promise<MigrationStats> {
-  const planRoot = await fs.readJson(migrationPlanPath);
-  const plan =
-    typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as MigrationPlanShape)
-      : (planRoot as MigrationPlanShape);
+  const planRoot: unknown = await fs.readJson(migrationPlanPath);
+  const plan = readMigrationPlanShape(planRoot);
   const planData = parseMigrationPlan(plan);
   if (planData.rules.length === 0) {
     throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
@@ -281,11 +278,8 @@ export async function captureMigrationSourceSnapshots(
     gateway: LiferayGateway;
   },
 ): Promise<Map<string, LocalizedContentSnapshots>> {
-  const planRoot = await fs.readJson(migrationPlanPath);
-  const plan =
-    typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as MigrationPlanShape)
-      : (planRoot as MigrationPlanShape);
+  const planRoot: unknown = await fs.readJson(migrationPlanPath);
+  const plan = readMigrationPlanShape(planRoot);
   const planData = parseMigrationPlan(plan);
   const selected = await selectStructureContents(options.gateway, siteId, structureId, planData);
   const snapshots = new Map<string, LocalizedContentSnapshots>();
@@ -781,7 +775,7 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
 
   const scope = Array.isArray(definitionFields) ? (definitionFields as DataDefinitionField[]) : [];
 
-  return contentFields.map((entry) => {
+  return (contentFields as unknown[]).map((entry) => {
     if (!entry || typeof entry !== 'object') {
       return entry;
     }
@@ -799,6 +793,15 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
 
     return field;
   });
+}
+
+function readMigrationPlanShape(planRoot: unknown): MigrationPlanShape {
+  const plan = isRecord(planRoot) && 'plan' in planRoot ? planRoot.plan : planRoot;
+  return isRecord(plan) ? plan : {};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function findDefinitionField(scope: DataDefinitionField[], fieldName: string): DataDefinitionField | null {

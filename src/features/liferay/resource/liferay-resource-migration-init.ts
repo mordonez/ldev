@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {isRecord, readJsonUnknown} from '../../../core/utils/json.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
@@ -47,7 +48,7 @@ export async function runLiferayResourceMigrationInit(
     dependencies,
   );
   const structureFile = await resolveStructureFile(config, structure.key, options.file);
-  const localStructure = (await fs.readJson(structureFile)) as Record<string, unknown>;
+  const localStructure = await readJsonRecord(structureFile);
   const dependentStructures = [...collectReferencedDependentStructures(localStructure, structure.key)].sort();
   const removedFieldReferences = [
     ...setDifference(collectFieldReferences(structure.raw), collectFieldReferences(localStructure)),
@@ -124,6 +125,15 @@ export async function runLiferayResourceMigrationInit(
     removedFieldReferences,
     candidateTargetFieldReferences,
   };
+}
+
+async function readJsonRecord(filePath: string): Promise<Record<string, unknown>> {
+  const parsed = await readJsonUnknown(filePath);
+  if (!isRecord(parsed)) {
+    throw LiferayErrors.resourceError(`Expected JSON object in ${filePath}`);
+  }
+
+  return parsed;
 }
 
 export function formatLiferayResourceMigrationInit(result: LiferayResourceMigrationInitResult): string {

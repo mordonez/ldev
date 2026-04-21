@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
@@ -8,8 +6,8 @@ import {
   syncArtifact,
   type LocalArtifact,
   type RemoteArtifact,
-  type SyncStrategy,
 } from '../../src/features/liferay/resource/sync-engine.js';
+import {mockApiClient, mockTokenClient} from './sync-strategies/sync-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -43,7 +41,7 @@ const createMockStrategy = (
   remoteArtifact: RemoteArtifact<TestRemoteData> | null = null,
   shouldThrowUpsert = false,
   shouldThrowVerify = false,
-): SyncStrategy<TestLocalData, TestRemoteData> => ({
+) => ({
   resolveLocal: vi.fn(async () => localArtifact ?? null),
   findRemote: vi.fn(async () => remoteArtifact ?? null),
   upsert: vi.fn(async () => {
@@ -380,8 +378,7 @@ describe('syncArtifact', () => {
       };
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-      const mockDependencies = {apiClient: {} as any, tokenClient: {} as any};
+      const mockDependencies = {apiClient: mockApiClient({}), tokenClient: mockTokenClient()};
 
       await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}, mockDependencies);
 

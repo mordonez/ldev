@@ -336,7 +336,15 @@ async function readDescriptorNode(config: AppConfig, migrationFile: string): Pro
   if (!(await fs.pathExists(candidate))) {
     throw LiferayErrors.resourceError(`Migration descriptor not found: ${migrationFile}`);
   }
-  return await fs.readJson(candidate);
+  const descriptor: unknown = await fs.readJson(candidate);
+  if (!isRecord(descriptor)) {
+    throw LiferayErrors.resourceError(`Migration descriptor must be a JSON object: ${migrationFile}`);
+  }
+  return descriptor;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): MigrationDescriptor {

@@ -4,7 +4,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose} from '../../core/platform/docker.js';
 import {formatProcessError} from '../../core/platform/process.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 
 export type ReindexIndexRow = {
   health: string;

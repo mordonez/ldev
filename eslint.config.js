@@ -19,7 +19,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-condition': 'off',
       '@typescript-eslint/no-confusing-void-expression': 'off',
       '@typescript-eslint/no-misused-promises': ['error', {checksVoidReturn: false}],
-      // Enabled as warn to surface type-safety gaps incrementally. Promote to error once resolved.
+      // Keep this family enabled by default. Narrow overrides below cover dynamic CLI/test surfaces.
       '@typescript-eslint/no-unsafe-assignment': 'warn',
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
@@ -49,8 +49,18 @@ export default tseslint.config(
       ],
     },
   },
+  // Test mocks and JSON fixtures are intentionally dynamic — no-unsafe rules are too noisy there.
+  {
+    files: ['tests/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
   // Architecture: features must not use raw Node.js platform modules — use core/platform/ wrappers.
-  // Known existing violations: env-shell.ts, osgi-shared.ts (tracked in #138).
   {
     files: ['src/features/**/*.ts'],
     rules: {
@@ -67,8 +77,7 @@ export default tseslint.config(
       ],
     },
   },
-  // Architecture: cross-feature imports — warn on imports between top-level feature domains.
-  // Known existing violations: snapshot→{env,db,liferay}, liferay→reindex, doctor→ai (tracked in #138).
+  // Architecture: cross-feature imports are discouraged for newly touched feature code.
   {
     files: [
       'src/features/snapshot/**/*.ts',
@@ -84,15 +93,24 @@ export default tseslint.config(
           patterns: [
             {
               group: [
-                '../env/*', '../env',
-                '../liferay/*', '../liferay',
-                '../db/*', '../db',
-                '../deploy/*', '../deploy',
-                '../ai/*', '../ai',
-                '../agent/*', '../agent',
-                '../reindex/*', '../reindex',
-                '../oauth/*', '../oauth',
-                '../osgi/*', '../osgi',
+                '../env/*',
+                '../env',
+                '../liferay/*',
+                '../liferay',
+                '../db/*',
+                '../db',
+                '../deploy/*',
+                '../deploy',
+                '../ai/*',
+                '../ai',
+                '../agent/*',
+                '../agent',
+                '../reindex/*',
+                '../reindex',
+                '../oauth/*',
+                '../oauth',
+                '../osgi/*',
+                '../osgi',
               ],
               message: 'Cross-feature imports are discouraged. Extract shared logic to core/ instead. See #138.',
             },
@@ -102,11 +120,38 @@ export default tseslint.config(
     },
   },
   // File size: warn when a source file exceeds 300 non-blank, non-comment lines.
-  // Existing god files are tracked for decomposition in #132, #133, #134.
   {
     files: ['src/features/**/*.ts', 'src/core/**/*.ts'],
     rules: {
       'max-lines': ['warn', {max: 300, skipBlankLines: true, skipComments: true}],
+    },
+  },
+  // Existing large files are tracked for decomposition in #132, #133, #134.
+  {
+    files: [
+      'src/core/config/project-context.ts',
+      'src/features/ai/ai-install-project.ts',
+      'src/features/ai/ai-install.ts',
+      'src/features/db/db-files-download.ts',
+      'src/features/doctor/doctor-collectors.ts',
+      'src/features/liferay/content/liferay-content-stats.ts',
+      'src/features/liferay/inventory/liferay-inventory-page-assemble.ts',
+      'src/features/liferay/inventory/liferay-inventory-page-fetch-journal.ts',
+      'src/features/liferay/inventory/liferay-inventory-page-fetch.ts',
+      'src/features/liferay/inventory/liferay-inventory-page.ts',
+      'src/features/liferay/page-layout/liferay-site-page-shared.ts',
+      'src/features/liferay/resource/artifact-paths.ts',
+      'src/features/liferay/resource/liferay-resource-migration.ts',
+      'src/features/liferay/resource/liferay-resource-sync-fragments-api.ts',
+      'src/features/liferay/resource/liferay-resource-sync-structure-migration.ts',
+      'src/features/liferay/resource/sync-strategies/structure-sync-strategy.ts',
+      'src/features/mcp/mcp.ts',
+      'src/features/oauth/oauth-install.ts',
+      'src/features/worktree/worktree-env.ts',
+      'src/features/worktree/worktree-state.ts',
+    ],
+    rules: {
+      'max-lines': 'off',
     },
   },
   {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/']},

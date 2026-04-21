@@ -13,6 +13,9 @@ import {
   type SiteLookupPayload,
 } from '../../src/features/liferay/inventory/liferay-site-resolver.js';
 
+type MockGetJson = ReturnType<typeof vi.fn<(path: string, label: string) => Promise<unknown>>>;
+type MockGateway = LiferayGateway & {getJson: MockGetJson};
+
 const mockNormalizeResolvedSite = (payload: SiteLookupPayload | null, _original: string): ResolvedSite => {
   const id = payload?.id ?? -1;
   if (id <= 0) {
@@ -25,7 +28,7 @@ const mockNormalizeResolvedSite = (payload: SiteLookupPayload | null, _original:
   };
 };
 
-const createMockGateway = (responses: Map<string, unknown> = new Map()): LiferayGateway => {
+const createMockGateway = (responses: Map<string, unknown> = new Map()): MockGateway => {
   const mockGateway = {
     getJson: vi.fn(async (path: string, _label: string) => {
       if (responses.has(path)) {
@@ -39,7 +42,7 @@ const createMockGateway = (responses: Map<string, unknown> = new Map()): Liferay
     putJson: vi.fn(),
     clearTokenCache: vi.fn(),
   };
-  return mockGateway as unknown as LiferayGateway;
+  return mockGateway as unknown as MockGateway;
 };
 
 const mockNormalizeFriendlyUrl = (url: string) => (url.startsWith('/') ? url : `/${url}`);
@@ -144,8 +147,8 @@ describe('createByIdStep', () => {
     const result = await step('123');
 
     expect(result).toEqual({id: 123, friendlyUrlPath: '/site', name: ''});
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalledWith('/o/headless-admin-site/v1.0/sites/123', 'resolve-site-by-id');
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalledWith('/o/headless-admin-site/v1.0/sites/123', 'resolve-site-by-id');
   });
 
   test('returns null for non-numeric input', async () => {
@@ -155,8 +158,8 @@ describe('createByIdStep', () => {
     const result = await step('not-a-number');
 
     expect(result).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).not.toHaveBeenCalled();
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).not.toHaveBeenCalled();
   });
 
   test('returns null when gateway throws error', async () => {
@@ -200,8 +203,8 @@ describe('createByFriendlyUrlHeadlessSiteStep', () => {
     const result = await step('/my-site');
 
     expect(result?.id).toBe(789);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalledWith(
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalledWith(
       '/o/headless-admin-site/v1.0/sites/by-friendly-url-path/my-site',
       'resolve-site-by-friendly-url-site',
     );
@@ -216,10 +219,9 @@ describe('createByFriendlyUrlHeadlessSiteStep', () => {
     const step = createByFriendlyUrlHeadlessSiteStep(gateway, mockNormalizeResolvedSite);
     await step('/my-site-with-accents');
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    const callPath = vi.mocked(gateway.getJson).mock.calls[0][0];
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalled();
+    const callPath = getJson.mock.calls[0][0];
     expect(callPath).toContain('by-friendly-url-path');
   });
 
@@ -244,8 +246,8 @@ describe('createByFriendlyUrlHeadlessUserStep', () => {
     const result = await step('/global');
 
     expect(result?.id).toBe(200);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalledWith(
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalledWith(
       expect.stringContaining('headless-admin-user'),
       'resolve-site-by-friendly-url-user',
     );
@@ -345,8 +347,8 @@ describe('createPaginatedSearchStep', () => {
     const result = await step('test');
 
     expect(result).toBeNull();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalledTimes(1);
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalledTimes(1);
   });
 
   test('handles pagination correctly', async () => {
@@ -369,8 +371,8 @@ describe('createPaginatedSearchStep', () => {
     const result = await step('found');
 
     expect(result?.id).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(gateway.getJson).toHaveBeenCalledTimes(2);
+    const getJson = vi.mocked(gateway.getJson);
+    expect(getJson).toHaveBeenCalledTimes(2);
   });
 });
 

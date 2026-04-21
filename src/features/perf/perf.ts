@@ -1,13 +1,15 @@
 ﻿import path from 'node:path';
 
 import fs from 'fs-extra';
+import {z} from 'zod';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {measureHttpLatency} from '../../core/http/latency.js';
 import {resolveEsUrl} from '../reindex/reindex-shared.js';
 
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
+import {readJsonUnknown} from '../../core/utils/json.js';
 
 export type PerfSnapshot = {
   capturedAt: string;
@@ -35,6 +37,14 @@ export type PerfCheckResult = {
   overall: 'ok' | 'degraded';
 };
 
+const nullableNumberSchema = z.number().nullable();
+const perfSnapshotSchema = z.object({
+  capturedAt: z.string(),
+  portalLatencyMs: nullableNumberSchema,
+  apiLatencyMs: nullableNumberSchema,
+  searchLatencyMs: nullableNumberSchema,
+}) satisfies z.ZodType<PerfSnapshot>;
+
 export async function runPerfBaseline(config: AppConfig, options?: {baseline?: string}): Promise<PerfBaselineResult> {
   const baselineFile = resolvePerfBaselineFile(config, options?.baseline);
   const snapshot = await capturePerfSnapshot(config);
@@ -56,10 +66,7 @@ export async function runPerfCheck(config: AppConfig, options?: {baseline?: stri
     });
   }
 
-  const [baseline, current] = await Promise.all([
-    fs.readJson(baselineFile) as Promise<PerfSnapshot>,
-    capturePerfSnapshot(config),
-  ]);
+  const [baseline, current] = await Promise.all([readPerfSnapshot(baselineFile), capturePerfSnapshot(config)]);
 
   const deltas = {
     portalLatencyMs: diffMetric(current.portalLatencyMs, baseline.portalLatencyMs),
@@ -81,6 +88,10 @@ export async function runPerfCheck(config: AppConfig, options?: {baseline?: stri
     deltas,
     overall,
   };
+}
+
+async function readPerfSnapshot(filePath: string): Promise<PerfSnapshot> {
+  return perfSnapshotSchema.parse(await readJsonUnknown(filePath));
 }
 
 export function formatPerfBaseline(result: PerfBaselineResult): string {

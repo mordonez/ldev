@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import fs from 'fs-extra';
 import path from 'node:path';
-import {describe, expect, test, vi, afterEach} from 'vitest';
+import {describe, expect, test, afterEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import type {HttpApiClient} from '../../../src/core/http/client.js';
 import {adtSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/adt-sync-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';

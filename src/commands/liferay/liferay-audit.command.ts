@@ -3,6 +3,11 @@ import type {Command} from 'commander';
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {formatLiferayAudit, runLiferayAudit} from '../../features/liferay/liferay-audit.js';
 
+type LiferayAuditCommandOptions = {
+  site: string;
+  pageSize: string;
+};
+
 export function createLiferayAuditCommands(parent: Command): void {
   addOutputFormatOption(
     parent
@@ -14,7 +19,7 @@ export function createLiferayAuditCommands(parent: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: LiferayAuditCommandOptions) =>
         runLiferayAudit(context.config, {
           site: options.site,
           pageSize: Number.parseInt(options.pageSize, 10) || 200,

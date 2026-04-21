@@ -12,6 +12,16 @@ import {
 import {formatWorktreeClean, runWorktreeClean} from '../../features/worktree/worktree-clean.js';
 import {formatWorktreeGc, runWorktreeGc} from '../../features/worktree/worktree-gc.js';
 
+type WorktreeCleanCommandOptions = {
+  force?: boolean;
+  deleteBranch?: boolean;
+};
+
+type WorktreeGcCommandOptions = {
+  days: string;
+  apply?: boolean;
+};
+
 export function registerWorktreeMaintenanceCommands(command: Command): void {
   addOutputFormatOption(
     command
@@ -23,7 +33,7 @@ export function registerWorktreeMaintenanceCommands(command: Command): void {
       .option('--delete-branch', 'Delete the local fix/<name> branch after cleanup'),
   ).action(
     createFormattedArgumentAction(
-      async (context, name, options) =>
+      async (context, name: string | undefined, options: WorktreeCleanCommandOptions) =>
         runWorktreeClean({
           cwd: context.cwd,
           name,
@@ -44,7 +54,7 @@ export function registerWorktreeMaintenanceCommands(command: Command): void {
       .option('--apply', 'Actually remove the candidate worktrees'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: WorktreeGcCommandOptions) =>
         runWorktreeGc({
           cwd: context.cwd,
           days: Number.parseInt(options.days, 10),

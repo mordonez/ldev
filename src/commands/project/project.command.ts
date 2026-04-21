@@ -4,6 +4,13 @@ import {addOutputFormatOption, createFormattedAction} from '../../cli/command-he
 import {formatProjectResult, runProjectInit} from '../../features/project/project-init.js';
 import type {DockerService} from '../../features/project/project-scaffold.js';
 
+type ProjectInitCommandOptions = {
+  name: string;
+  dir: string;
+  services?: string;
+  commit?: boolean;
+};
+
 export function createProjectCommand(): Command {
   const command = new Command('project');
   const initCommand = addOutputFormatOption(
@@ -50,7 +57,7 @@ Use --commit only when you explicitly want bootstrap changes committed immediate
 
   initCommand.action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: ProjectInitCommandOptions) => {
         const services = parseServices(options.services);
         const result = await runProjectInit({
           name: options.name,
