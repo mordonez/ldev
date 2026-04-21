@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.1](https://github.com/mordonez/ldev/compare/ldev-v0.5.0...ldev-v0.5.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **ai:** preserve official workspace copilot file under force ([1cc637a](https://github.com/mordonez/ldev/commit/1cc637a99686d7b31855c4fc5898ea7b307ba26a))
+* **ai:** scope force overwrite to explicitly requested install surfaces ([e5b0abf](https://github.com/mordonez/ldev/commit/e5b0abf3429caa62f3441e04157c1a697275908d))
+* **cli:** restore client-secret security tip to portal and resource namespaces ([e548506](https://github.com/mordonez/ldev/commit/e548506aa9219923099dc56f7a3dab61595717c5))
+* **inventory:** resolve display page ddm templates from page definitions ([5a514e3](https://github.com/mordonez/ldev/commit/5a514e35542ee39e1b46379ce34eeb4e3637d3fa))
+* **issue-engineering:** update screenshot commands to use full-page captures ([3b36fa9](https://github.com/mordonez/ldev/commit/3b36fa97e45361d553fbaa706443b3bc9ee8fea6))
+* **oauth:** include admin content read in default scopes ([a8b461a](https://github.com/mordonez/ldev/commit/a8b461a54bc06806dbfdb5685e4681ed02084e33))
+* **oauth:** normalize command field to 'ldev:oauthInstall' in install result ([a6e4d7e](https://github.com/mordonez/ldev/commit/a6e4d7ebeae9afa71a48b55985ab51eae610996b))
+* **oauth:** pass scope aliases explicitly during install ([8760163](https://github.com/mordonez/ldev/commit/8760163f0c7d73defd44feabc8a8447791ad26cb))
+* **worktree:** remove explicit base ref from setup command ([ee0e8b3](https://github.com/mordonez/ldev/commit/ee0e8b31f23c7fd7a6adbad8de5e014ec7756b66))
+
 ## [0.5.0](https://github.com/mordonez/ldev/compare/ldev-v0.4.0...ldev-v0.5.0) (2026-04-20)
 
 
