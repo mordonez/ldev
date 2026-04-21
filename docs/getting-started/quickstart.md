@@ -9,8 +9,8 @@ This is the shortest path to a usable local Liferay environment.
 
 Choose the path that matches your project:
 
-- `ldev-native`: `ldev` manages the local Docker runtime directly
-- `Liferay Workspace`: `ldev` runs on top of a standard Blade workspace
+- `ldev-native`: Liferay workspace managed by ldev in Docker (no Blade CLI needed)
+- `Liferay Workspace`: Liferay workspace managed by Blade, enhanced with ldev
 
 ## 1. Install
 
@@ -21,9 +21,11 @@ ldev --help
 
 Requirements:
 
-- Node.js 20+
+- Node.js 22+ (Node 24 recommended)
 - Docker and `docker compose`
 - Git
+- [LCP](https://learn.liferay.com/w/dxp/cloud/reference/command-line-tool)  (Cloud Liferay)
+- [playwright-cli](https://github.com/microsoft/playwright-cli) (Test UI using coding agents)
 
 ## 2. Initialize a project
 
