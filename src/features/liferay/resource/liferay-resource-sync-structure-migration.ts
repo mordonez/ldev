@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 
@@ -371,7 +372,7 @@ async function listStructureContentsByArticleIds(
 async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
   const rows: StructuredContentRow[] = [];
   let page = 1;
-  let lastPage = 1;
+  let lastPage: number;
   const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   do {
@@ -397,7 +398,7 @@ async function listStructureContentsByFolders(
 
   for (const folderId of folderIds.sort((left, right) => left - right)) {
     let page = 1;
-    let lastPage = 1;
+    let lastPage: number;
     do {
       const response = await gateway.getJson<StructuredContentsPage>(
         `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
@@ -428,13 +429,19 @@ async function fetchStructuredContentForMigration(
   const fields = encodeURIComponent(
     'id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,availableLanguages,contentFields',
   );
-  return (
-    (await gateway.getJson<StructuredContentRow>(
-      `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
-      'structure-migrate get',
-      acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
-    )) ?? {}
+  const content = await gateway.getJson<unknown>(
+    `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
+    'structure-migrate get',
+    acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
   );
+
+  if (!isRecord(content)) {
+    throw LiferayErrors.resourceError(
+      `structure-migrate get returned an empty or invalid response for contentId=${contentId}`,
+    );
+  }
+
+  return content;
 }
 
 async function fetchLatestJournalArticle(
@@ -456,7 +463,7 @@ async function fetchLatestJournalArticle(
     );
   }
 
-  return (response.data as JsonMap | null) ?? null;
+  return response.data ?? null;
 }
 
 async function fetchStructureDefinitionFields(
@@ -559,7 +566,7 @@ function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): 
       continue;
     }
 
-    const title = String(snapshot.title ?? '').trim();
+    const title = normalizeScalarString(snapshot.title) ?? '';
     if (title === '') {
       continue;
     }
@@ -571,12 +578,12 @@ function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): 
 }
 
 export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData {
-  const rules = parseMappings(plan?.mappings);
+  const rules = parseMappings(plan.mappings);
   return {
     rules,
-    scopedRootFolderIds: parseNumberList(plan?.rootFolderIds),
-    scopedFolderIds: parseNumberList(plan?.folderIds),
-    articleIds: parseStringList(plan?.articleIds),
+    scopedRootFolderIds: parseNumberList(plan.rootFolderIds),
+    scopedFolderIds: parseNumberList(plan.folderIds),
+    articleIds: parseStringList(plan.articleIds),
   };
 }
 
@@ -590,8 +597,8 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
       return [];
     }
     const mapping = row as JsonMap;
-    const source = String(mapping.source ?? mapping.from ?? '').trim();
-    const target = String(mapping.target ?? mapping.to ?? '').trim();
+    const source = normalizeScalarString(mapping.source) ?? normalizeScalarString(mapping.from) ?? '';
+    const target = normalizeScalarString(mapping.target) ?? normalizeScalarString(mapping.to) ?? '';
     if (!source || !target) {
       return [];
     }
@@ -616,7 +623,7 @@ function parseStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return value.map((item) => normalizeScalarString(item)).filter((item): item is string => Boolean(item));
 }
 
 function applyMappings(
@@ -672,7 +679,7 @@ function applyMappings(
   };
 }
 
-function firstSourceValue(contentFields: unknown, source: string): unknown | null {
+function firstSourceValue(contentFields: unknown, source: string): unknown {
   if (!Array.isArray(contentFields)) {
     return null;
   }
@@ -681,7 +688,7 @@ function firstSourceValue(contentFields: unknown, source: string): unknown | nul
       continue;
     }
     const record = field as Record<string, unknown>;
-    if (String(record.name ?? '') === source) {
+    if ((normalizeScalarString(record.name) ?? '') === source) {
       const value = record.contentFieldValue;
       if (!isEmptyValue(value)) {
         return value;
@@ -698,7 +705,7 @@ function firstSourceValue(contentFields: unknown, source: string): unknown | nul
 function setTargetValue(item: Record<string, unknown>, target: string, value: unknown): boolean {
   if (target.includes('[].')) {
     const [base, child] = target.split('[].', 2);
-    return setFieldsetTarget(item, base!, child!, value);
+    return setFieldsetTarget(item, base, child, value);
   }
   return setSimpleTarget(item, target, value);
 }
@@ -706,7 +713,7 @@ function setTargetValue(item: Record<string, unknown>, target: string, value: un
 function setSimpleTarget(item: Record<string, unknown>, target: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
-    if (String(field.name ?? '') === target) {
+    if ((normalizeScalarString(field.name) ?? '') === target) {
       if (isEmptyValue(field.contentFieldValue)) {
         field.contentFieldValue = value;
         return true;
@@ -721,12 +728,12 @@ function setSimpleTarget(item: Record<string, unknown>, target: string, value: u
 function setFieldsetTarget(item: Record<string, unknown>, base: string, child: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
-    if (String(field.name ?? '') !== base) {
+    if ((normalizeScalarString(field.name) ?? '') !== base) {
       continue;
     }
     const nested = ensureNestedContentFields(field);
     for (const nestedField of nested) {
-      if (String(nestedField.name ?? '') === child) {
+      if ((normalizeScalarString(nestedField.name) ?? '') === child) {
         if (isEmptyValue(nestedField.contentFieldValue)) {
           nestedField.contentFieldValue = value;
           return true;
@@ -750,7 +757,7 @@ function cleanupSourceField(item: Record<string, unknown>, source: string): bool
 function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: string): boolean {
   let changed = false;
   for (const field of fields) {
-    if (String(field.name ?? '') === source) {
+    if ((normalizeScalarString(field.name) ?? '') === source) {
       field.contentFieldValue = {data: ''};
       changed = true;
     }
@@ -781,7 +788,7 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
     }
 
     const field = structuredClone(entry) as Record<string, unknown>;
-    const definition = findDefinitionField(scope, String(field.name ?? '').trim());
+    const definition = findDefinitionField(scope, normalizeScalarString(field.name) ?? '');
 
     if (definition?.name) {
       field.name = definition.name;
@@ -810,8 +817,8 @@ function findDefinitionField(scope: DataDefinitionField[], fieldName: string): D
   }
 
   for (const definition of scope) {
-    const internalName = String(definition.name ?? '').trim();
-    const fieldReference = String((definition.customProperties?.fieldReference as string | undefined) ?? '').trim();
+    const internalName = normalizeScalarString(definition.name) ?? '';
+    const fieldReference = normalizeScalarString(definition.customProperties?.fieldReference) ?? '';
 
     if (fieldName === internalName || fieldName === fieldReference) {
       return definition;
@@ -866,7 +873,7 @@ function isEmptyValue(value: unknown): boolean {
       return true;
     }
     if (keys.length === 1 && keys[0] === 'data') {
-      return String(record.data ?? '').trim() === '';
+      return (normalizeScalarString(record.data) ?? '') === '';
     }
   }
   return false;

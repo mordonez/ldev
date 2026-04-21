@@ -241,20 +241,16 @@ async function readKeyValueFile(file: string): Promise<ConfigEntry[]> {
 async function upsertKeyValueFile(file: string, key: string, value: string): Promise<void> {
   const content = (await fs.pathExists(file)) ? await fs.readFile(file, 'utf8') : '';
   const lines = content === '' ? [] : content.split(/\r?\n/);
-  let updated = false;
-
-  const nextLines = lines.map((line) => {
+  const matchIndex = lines.findIndex((line) => {
     const trimmed = line.trim();
-    if (trimmed.startsWith('#') || !trimmed.startsWith(`${key}=`)) {
-      return line;
-    }
-
-    updated = true;
-    return `${key}=${value}`;
+    return !trimmed.startsWith('#') && trimmed.startsWith(`${key}=`);
   });
+  const nextLines = [...lines];
 
-  if (!updated) {
+  if (matchIndex === -1) {
     nextLines.push(`${key}=${value}`);
+  } else {
+    nextLines[matchIndex] = `${key}=${value}`;
   }
 
   await fs.ensureDir(path.dirname(file));

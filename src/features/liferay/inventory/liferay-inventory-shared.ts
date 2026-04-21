@@ -111,7 +111,7 @@ export async function fetchPagedItems<T>(
         `paged request ${basePath}`,
       );
 
-      const payload = pageData ?? {};
+      const payload = pageData;
       if (Array.isArray(payload.items)) {
         items.push(...payload.items);
       }
@@ -135,7 +135,7 @@ export async function fetchPagedItems<T>(
   return items;
 }
 
-export async function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): Promise<HttpResponse<T>> {
+export function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): HttpResponse<T> {
   return expectJsonSuccessShared(response, label, 'LIFERAY_INVENTORY_ERROR');
 }
 
@@ -184,11 +184,8 @@ export function createInventoryGateway(
 
   if (dependencies?.accessToken) {
     const fixedTokenClient: OAuthTokenClient = {
-      fetchClientCredentialsToken: async () => ({
-        accessToken: dependencies.accessToken!,
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-      }),
+      fetchClientCredentialsToken: () =>
+        Promise.resolve({accessToken: dependencies.accessToken!, tokenType: 'Bearer' as const, expiresIn: 3600}),
     };
 
     return createLiferayGateway(config, apiClient, fixedTokenClient);

@@ -4,7 +4,7 @@ import path from 'node:path';
 import type {AppConfig} from './schema.js';
 import {readEnvFile} from './env-file.js';
 import {readProfileFile as readLiferayProfileFile, resolveLiferayProfileFiles} from './liferay-profile.js';
-import {detectProject, detectProjectType, type ProjectType} from './project-type.js';
+import {detectProject, type ProjectType} from './project-type.js';
 import {detectRepoPaths} from './repo-paths.js';
 import {buildAppConfig} from './config-builder.js';
 
@@ -57,7 +57,6 @@ type ResolveProjectContextOptions = {
   dependencies?: {
     detectRepoPaths?: typeof detectRepoPaths;
     detectProject?: typeof detectProject;
-    detectProjectType?: typeof detectProjectType;
     readEnvFile?: typeof readEnvFile;
     readProfileFile?: typeof readLiferayProfileFile;
   };
@@ -79,7 +78,6 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
   const warnedFiles = options?._warnedFiles ?? defaultWarnedProfileFiles;
   const detectRepoPathsFn = dependencies?.detectRepoPaths ?? detectRepoPaths;
   const detectProjectFn = dependencies?.detectProject ?? detectProject;
-  const detectProjectTypeFn = dependencies?.detectProjectType ?? detectProjectType;
   const readEnvFileFn = dependencies?.readEnvFile ?? readEnvFile;
   const readProfileFileFn = dependencies?.readProfileFile ?? readLiferayProfileFile;
 
@@ -88,7 +86,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
   const worktree = detectWorktreePath(cwd);
   const repoPaths =
     worktree && isWorktreeOverlay(worktree) ? resolveWorktreeRepoPaths(worktree, detectedRepoPaths) : detectedRepoPaths;
-  const projectType = projectDetection.type ?? detectProjectTypeFn(cwd);
+  const projectType = projectDetection.type;
   const resolvedRepoRoot = repoPaths.repoRoot ?? projectDetection.root;
   const detectedProfileFiles = resolveLiferayProfileFiles(resolvedRepoRoot);
   const profileFiles = {
@@ -115,6 +113,13 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     localProfile,
     profile,
   });
+  const resolvedPaths = {
+    structures: config.paths?.structures ?? 'liferay/resources/journal/structures',
+    templates: config.paths?.templates ?? 'liferay/resources/journal/templates',
+    adts: config.paths?.adts ?? 'liferay/resources/templates/application_display',
+    fragments: config.paths?.fragments ?? 'liferay/fragments',
+    migrations: config.paths?.migrations ?? 'liferay/resources/journal/migrations',
+  };
   const scopeAliasesList = config.liferay.scopeAliases
     .split(',')
     .map((value) => value.trim())
@@ -163,13 +168,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     workspace: {
       product: workspaceProduct,
     },
-    paths: {
-      structures: config.paths?.structures ?? 'liferay/resources/journal/structures',
-      templates: config.paths?.templates ?? 'liferay/resources/journal/templates',
-      adts: config.paths?.adts ?? 'liferay/resources/templates/application_display',
-      fragments: config.paths?.fragments ?? 'liferay/fragments',
-      migrations: config.paths?.migrations ?? 'liferay/resources/journal/migrations',
-    },
+    paths: resolvedPaths,
     config,
   };
 }

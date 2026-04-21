@@ -117,7 +117,7 @@ async function warmDeployCacheIfNeeded(config: AppConfig, printer?: Printer): Pr
     return false;
   }
 
-  const cacheDir = await resolveDeployCacheDir(config);
+  const cacheDir = resolveDeployCacheDir(config);
   const cachedArtifacts = await listDeployArtifacts(cacheDir);
   if (cachedArtifacts.length > 0) {
     return false;

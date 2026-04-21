@@ -71,19 +71,20 @@ export function featureFlagKey(id: string): string {
   return `feature.flag.${id}`;
 }
 
-export async function runFeatureFlagsList(config: AppConfig): Promise<FeatureFlagsListResult> {
+export function runFeatureFlagsList(config: AppConfig): FeatureFlagsListResult {
   const propertiesFile = resolvePropertiesFile(config);
   const currentValues = propertiesFile && fs.existsSync(propertiesFile) ? readFeatureFlags(propertiesFile) : {};
 
   // Build entries from the curated list, annotated with current file state.
   const knownEntries: FeatureFlagEntry[] = KNOWN_FEATURE_FLAGS.map((flag) => {
     const key = featureFlagKey(flag.id);
-    const rawValue = currentValues[key];
+    const hasRawValue = Object.prototype.hasOwnProperty.call(currentValues, key);
+    const rawValue = hasRawValue ? currentValues[key] : undefined;
     return {
       id: flag.id,
       key,
-      enabled: rawValue !== undefined ? rawValue === 'true' : null,
-      source: rawValue !== undefined ? 'properties-file' : 'not-configured',
+      enabled: hasRawValue ? rawValue === 'true' : null,
+      source: hasRawValue ? 'properties-file' : 'not-configured',
       name: flag.name,
       description: flag.description,
       minVersion: flag.minVersion,
@@ -251,21 +252,15 @@ function upsertProperty(content: string, key: string, value: string): string {
   const pattern = new RegExp(`^\\s*#?\\s*${escapedKey}\\s*=`);
   const newLine = `${key}=${value}`;
 
-  let found = false;
-  const updated = lines.map((line) => {
-    if (pattern.test(line)) {
-      found = true;
-      return newLine;
-    }
-
-    return line;
-  });
-
-  if (!found) {
+  const matchIndex = lines.findIndex((line) => pattern.test(line));
+  if (matchIndex === -1) {
     // Add at the end with a blank line separator if file is non-empty.
     const trimmed = content.trimEnd();
     return trimmed.length > 0 ? `${trimmed}\n${newLine}\n` : `${newLine}\n`;
   }
+
+  const updated = [...lines];
+  updated[matchIndex] = newLine;
 
   return updated.join('\n');
 }

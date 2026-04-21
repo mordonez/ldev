@@ -1,8 +1,42 @@
 let input = '';
 
+/**
+ * @typedef {{filename: string}} NpmPackEntry
+ */
+
+/**
+ * @param {unknown} value
+ * @returns {value is NpmPackEntry}
+ */
+function isNpmPackEntry(value) {
+  return typeof value === 'object' && value !== null && 'filename' in value && typeof value.filename === 'string';
+}
+
+/**
+ * @param {string} json
+ * @returns {string}
+ */
+function extractFilename(json) {
+  /** @type {unknown} */
+  const parsedValue = JSON.parse(json);
+  if (!Array.isArray(parsedValue)) {
+    throw new Error('npm pack JSON output must be an array.');
+  }
+
+  /** @type {unknown[]} */
+  const parsedEntries = parsedValue;
+  const lastEntry = parsedEntries.at(-1);
+  if (!isNpmPackEntry(lastEntry)) {
+    throw new Error('Could not resolve package filename from npm pack JSON output.');
+  }
+
+  return lastEntry.filename;
+}
+
 process.stdin.setEncoding('utf8');
+/** @param {string} chunk */
 process.stdin.on('data', (chunk) => {
-  input += chunk;
+  input += String(chunk);
 });
 
 process.stdin.on('end', () => {
@@ -13,22 +47,11 @@ process.stdin.on('end', () => {
     process.exit(1);
   }
 
-  let parsed;
-
   try {
-    parsed = JSON.parse(packJson);
+    const filename = extractFilename(packJson);
+    process.stdout.write(`${filename}\n`);
   } catch (error) {
-    console.error(error.message);
+    console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
-    return;
   }
-
-  const filename = parsed.at(-1)?.filename;
-
-  if (!filename) {
-    console.error('Could not resolve package filename from npm pack JSON output.');
-    process.exit(1);
-  }
-
-  process.stdout.write(`${filename}\n`);
 });

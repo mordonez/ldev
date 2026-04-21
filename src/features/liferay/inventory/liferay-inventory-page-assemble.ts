@@ -1,4 +1,4 @@
-import {firstNonBlank, firstString as firstStringUtil} from '../../../core/utils/text.js';
+import {firstNonBlank, firstString as firstStringUtil, normalizeScalarString} from '../../../core/utils/text.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
 export type StructuredContent = {
@@ -103,9 +103,10 @@ export function collectPageElements(
     if (entry.type !== 'widget' || !entry.widgetName) {
       continue;
     }
-    const match = fragmentEntryLinks.find((item) => String(item.portletId ?? '').includes(entry.widgetName!));
+    const widgetName = entry.widgetName;
+    const match = fragmentEntryLinks.find((item) => (firstStringUtil(item.portletId) ?? '').includes(widgetName));
     if (match) {
-      entry.portletId = String(match.portletId ?? '');
+      entry.portletId = firstStringUtil(match.portletId) ?? '';
     }
   }
 
@@ -129,7 +130,7 @@ function collectPageElementsRecursive(
 
   if (type === 'Fragment') {
     const definition = asRecord(element.definition);
-    const key = String(asRecord(definition.fragment).key ?? '').trim();
+    const key = firstStringUtil(asRecord(definition.fragment).key) ?? '';
     if (key) {
       const editableFields = extractFragmentEditableFields(definition.fragmentFields, locale);
       result.push({
@@ -144,7 +145,7 @@ function collectPageElementsRecursive(
     }
   } else if (type === 'Widget') {
     const widgetInstance = asRecord(asRecord(element.definition).widgetInstance);
-    const widgetName = String(widgetInstance.widgetName ?? '').trim();
+    const widgetName = firstStringUtil(widgetInstance.widgetName) ?? '';
     if (widgetName) {
       result.push({
         type: 'widget',
@@ -176,10 +177,10 @@ function appendContentFieldSummary(target: ContentFieldSummary[], contentFields:
       continue;
     }
     const field = item as Record<string, unknown>;
-    const label = firstNonBlank(String(field.label ?? '').trim(), String(field.name ?? '').trim());
-    const name = String(field.name ?? '').trim();
+    const label = firstNonBlank(firstStringUtil(field.label), firstStringUtil(field.name));
+    const name = firstStringUtil(field.name) ?? '';
     const type = firstNonBlank(
-      String(field.dataType ?? '').trim(),
+      firstStringUtil(field.dataType),
       inferContentFieldType(asRecord(field.contentFieldValue)),
     );
     const value = summarizeContentFieldValue(asRecord(field.contentFieldValue));
@@ -200,7 +201,7 @@ function appendContentFieldSummary(target: ContentFieldSummary[], contentFields:
 }
 
 function summarizeContentFieldValue(contentFieldValue: Record<string, unknown>): string {
-  const data = String(contentFieldValue.data ?? '').trim();
+  const data = firstStringUtil(contentFieldValue.data) ?? '';
   if (data !== '') {
     return data.replace(/\s+/g, ' ').trim();
   }
@@ -241,7 +242,7 @@ function extractFragmentEditableFields(fragmentFields: unknown, locale: string |
   const result: FragmentEditableField[] = [];
   for (const field of fragmentFields) {
     const f = asRecord(field);
-    const id = String(f.id ?? '').trim();
+    const id = firstStringUtil(f.id) ?? '';
     if (!id) {
       continue;
     }
@@ -251,14 +252,13 @@ function extractFragmentEditableFields(fragmentFields: unknown, locale: string |
     // Prefer the matched locale, then ca_ES, then es_ES, then any available
     // TODO: consider improving locale matching logic if needed in the future
     // Not hardcoded locales
-    const textValue = String(
-      (locale ? i18n[locale] : undefined) ??
-        i18n['ca_ES'] ??
-        i18n['es_ES'] ??
-        Object.values(i18n)[0] ??
-        text.value ??
-        '',
-    ).trim();
+    const textValue = firstNonBlank(
+      firstStringUtil(locale ? i18n[locale] : undefined),
+      firstStringUtil(i18n['ca_ES']),
+      firstStringUtil(i18n['es_ES']),
+      firstStringUtil(Object.values(i18n)),
+      firstStringUtil(text.value),
+    );
     if (textValue) {
       result.push({id, value: textValue.replace(/\s+/g, ' ')});
       continue;
@@ -271,31 +271,31 @@ function extractFragmentEditableFields(fragmentFields: unknown, locale: string |
     const fragmentImageUrl = asRecord(fragmentImage.url);
     const fragmentImageUrlI18n = asRecord(fragmentImageUrl.value_i18n);
     const imageValue = firstNonBlank(
-      String(image.title ?? '').trim(),
-      String(image.description ?? '').trim(),
-      String(image.url ?? '').trim(),
-      String(image.contentURL ?? '').trim(),
-      String(image.src ?? '').trim(),
-      String(image.fileEntryId ?? '').trim(),
-      String(image.classPK ?? '').trim(),
-      String(fragmentImageTitle.value ?? '').trim(),
-      String(fragmentImageDescription.value ?? '').trim(),
-      String(
-        (locale ? fragmentImageUrlI18n[locale] : undefined) ??
-          fragmentImageUrlI18n['ca_ES'] ??
-          fragmentImageUrlI18n['es_ES'] ??
-          Object.values(fragmentImageUrlI18n)[0] ??
-          fragmentImageUrl.value ??
-          '',
-      ).trim(),
+      firstStringUtil(image.title),
+      firstStringUtil(image.description),
+      firstStringUtil(image.url),
+      firstStringUtil(image.contentURL),
+      firstStringUtil(image.src),
+      firstStringUtil(image.fileEntryId),
+      firstStringUtil(image.classPK),
+      firstStringUtil(fragmentImageTitle.value),
+      firstStringUtil(fragmentImageDescription.value),
+      firstNonBlank(
+        firstStringUtil(locale ? fragmentImageUrlI18n[locale] : undefined),
+        firstStringUtil(fragmentImageUrlI18n['ca_ES']),
+        firstStringUtil(fragmentImageUrlI18n['es_ES']),
+        firstStringUtil(Object.values(fragmentImageUrlI18n)),
+        firstStringUtil(fragmentImageUrl.value),
+      ),
     );
     if (imageValue) {
       result.push({id, value: imageValue});
       continue;
     }
     const document = asRecord(value.document);
-    if (document.title || document.url) {
-      result.push({id, value: String(document.title ?? document.url ?? '')});
+    const documentValue = firstNonBlank(firstStringUtil(document.title), firstStringUtil(document.url));
+    if (documentValue) {
+      result.push({id, value: documentValue});
     }
   }
   return result;
@@ -314,7 +314,10 @@ export function asArrayOfRecords(value: unknown): Array<Record<string, unknown>>
 function recordToStringMap(value: Record<string, unknown>): Record<string, string> | undefined {
   const result: Record<string, string> = {};
   for (const [key, item] of Object.entries(value)) {
-    result[key] = String(item);
+    const normalized = normalizeScalarString(item);
+    if (normalized !== undefined) {
+      result[key] = normalized;
+    }
   }
   return Object.keys(result).length > 0 ? result : undefined;
 }

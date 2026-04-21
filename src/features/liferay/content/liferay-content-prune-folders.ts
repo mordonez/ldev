@@ -77,7 +77,7 @@ async function collectSubfolders(
   const subfolders: HeadlessFolder[] = [];
   let page = 1;
 
-  while (true) {
+  for (;;) {
     let response: {items?: HeadlessFolder[]; lastPage?: number};
 
     try {
@@ -95,10 +95,10 @@ async function collectSubfolders(
       throw error;
     }
 
-    const items = response?.items ?? [];
+    const items = response.items ?? [];
     subfolders.push(...items);
 
-    const lastPage = response?.lastPage ?? page;
+    const lastPage = response.lastPage ?? page;
     if (page >= lastPage) {
       break;
     }

@@ -51,7 +51,7 @@ Temporary mutating commands:
           intervalSeconds: Number(options.interval ?? '5'),
           iterations: Number(options.iterations ?? '60'),
           onSnapshot: shouldStreamReindexWatch(context.printer.format)
-            ? async (snapshot, meta) => {
+            ? (snapshot, meta) => {
                 context.printer.write(
                   context.printer.format === 'text' ? formatReindexWatchSnapshot(snapshot, meta) : snapshot,
                 );

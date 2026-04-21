@@ -2,6 +2,7 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatLiferayHealth, runLiferayHealth} from '../../src/features/liferay/liferay-health.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -21,19 +22,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay check', () => {
   test('reports basic API reachability', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-user/v1.0/my-user-account')) {
           return new Response('{"id":20123,"name":"Test User"}', {
             status: 200,
@@ -41,7 +35,7 @@ describe('liferay check', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayHealth(CONFIG, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -63,7 +57,7 @@ describe('liferay check', () => {
 
   test('reports partial health when the user probe is denied', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async () => new Response('forbidden', {status: 403}),
+      fetchImpl: createTestFetchImpl(() => new Response('forbidden', {status: 403})),
     });
 
     const result = await runLiferayHealth(CONFIG, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -77,7 +71,7 @@ describe('liferay check', () => {
 
   test('reports partial health when the user probe is unavailable on the runtime', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async () => new Response('not found', {status: 404}),
+      fetchImpl: createTestFetchImpl(() => new Response('not found', {status: 404})),
     });
 
     const result = await runLiferayHealth(CONFIG, {apiClient, tokenClient: TOKEN_CLIENT});

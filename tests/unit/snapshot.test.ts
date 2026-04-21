@@ -3,11 +3,11 @@ import path from 'node:path';
 import {EventEmitter} from 'node:events';
 import {PassThrough} from 'node:stream';
 import type {ChildProcess} from 'node:child_process';
-import type {spawn as nodeSpawn} from 'node:child_process';
 
 import {describe, expect, test} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
+import type {SpawnProcessFn} from '../../src/core/platform/process.js';
 import {loadConfig} from '../../src/core/config/load-config.js';
 import {resolveEnvContext} from '../../src/features/env/env-files.js';
 import {collectSnapshotPaths, resolveSnapshotDir, writePostgresDump} from '../../src/features/snapshot/snapshot.js';
@@ -20,7 +20,12 @@ describe('snapshot helpers', () => {
         repoRoot: null,
       } as AppConfig;
 
-      expect(() => resolveSnapshotDir(config)).toThrowError(expect.objectContaining({code: 'SNAPSHOT_REPO_REQUIRED'}));
+      try {
+        resolveSnapshotDir(config);
+        throw new Error('Expected resolveSnapshotDir to throw');
+      } catch (error) {
+        expect(error).toMatchObject({code: 'SNAPSHOT_REPO_REQUIRED'});
+      }
     });
 
     test('returns path.resolve when explicit output is provided', () => {
@@ -50,18 +55,25 @@ describe('snapshot helpers', () => {
 
   describe('collectSnapshotPaths', () => {
     test('throws SNAPSHOT_REPO_REQUIRED when liferayDir is missing', async () => {
+      await Promise.resolve();
       const config = {
         liferayDir: null,
       } as AppConfig;
 
-      await expect(collectSnapshotPaths(config)).rejects.toMatchObject({code: 'SNAPSHOT_REPO_REQUIRED'});
+      try {
+        collectSnapshotPaths(config);
+        throw new Error('Expected collectSnapshotPaths to throw');
+      } catch (error) {
+        expect(error).toMatchObject({code: 'SNAPSHOT_REPO_REQUIRED'});
+      }
     });
 
     test('returns paths for configs, structures, templates, adts, and fragments', async () => {
+      await Promise.resolve();
       const repoRoot = createSnapshotFixture();
       const config = loadConfig({cwd: repoRoot, env: process.env});
 
-      const paths = await collectSnapshotPaths(config);
+      const paths = collectSnapshotPaths(config);
 
       expect(paths).toEqual(
         expect.arrayContaining([
@@ -88,7 +100,7 @@ describe('snapshot helpers', () => {
       const spawnMock = ((command: string, args: string[]) => {
         capturedArgs = [command, ...args];
         return createChildProcessMock({exitCode: 0, stdout: 'SELECT 1;\n'});
-      }) as unknown as typeof nodeSpawn;
+      }) as unknown as SpawnProcessFn;
 
       await expect(writePostgresDump(envContext, outputFile, process.env, spawnMock)).resolves.toBeUndefined();
       expect(capturedArgs).toEqual([
@@ -118,7 +130,7 @@ describe('snapshot helpers', () => {
       const spawnMock = ((command: string, args: string[]) => {
         capturedArgs = [command, ...args];
         return createChildProcessMock({exitCode: 0, stdout: 'SELECT 1;\n'});
-      }) as unknown as typeof nodeSpawn;
+      }) as unknown as SpawnProcessFn;
 
       await writePostgresDump(envContext, outputFile, process.env, spawnMock);
 
@@ -142,7 +154,7 @@ describe('snapshot helpers', () => {
       const outputFile = path.join(repoRoot, '.ldev', 'snapshots', 'dump-failed.sql');
 
       const spawnMock = (() =>
-        createChildProcessMock({exitCode: 2, stderr: 'permission denied'})) as unknown as typeof nodeSpawn;
+        createChildProcessMock({exitCode: 2, stderr: 'permission denied'})) as unknown as SpawnProcessFn;
 
       await expect(writePostgresDump(envContext, outputFile, process.env, spawnMock)).rejects.toMatchObject({
         code: 'SNAPSHOT_DB_DUMP_FAILED',

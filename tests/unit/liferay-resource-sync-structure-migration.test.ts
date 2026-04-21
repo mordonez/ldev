@@ -55,7 +55,10 @@ describe('structure migration', () => {
           gateway: mockGateway,
           dryRun: true,
           cleanupSource: false,
-          fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+          fetchStructureByKeyFn: async () => {
+            await Promise.resolve();
+            return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+          },
         }),
       ).rejects.toThrow();
     });
@@ -75,7 +78,10 @@ describe('structure migration', () => {
           gateway: mockGateway,
           dryRun: true,
           cleanupSource: false,
-          fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+          fetchStructureByKeyFn: async () => {
+            await Promise.resolve();
+            return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+          },
         }),
       ).rejects.toThrow('Invalid migration plan');
     });
@@ -97,6 +103,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentFields: [{fieldValue: 'value'}]}],
@@ -111,7 +118,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.dryRun).toBe(true);
@@ -142,7 +152,10 @@ describe('structure migration', () => {
           gateway: mockGateway,
           dryRun: true,
           cleanupSource: false,
-          fetchStructureByKeyFn: async () => null,
+          fetchStructureByKeyFn: async () => {
+            await Promise.resolve();
+            return null;
+          },
         }),
       ).rejects.toThrow('Could not resolve structure');
     });
@@ -161,6 +174,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
           }
@@ -173,7 +187,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats).toBeDefined();
@@ -194,6 +211,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentFields: [{fieldValue: 'value'}]}],
@@ -208,7 +226,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       // putJson should not be called in dryRun mode
@@ -229,6 +250,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentFields: [{fieldValue: 'value'}]}],
@@ -236,14 +258,20 @@ describe('structure migration', () => {
           }
           return {};
         }),
-        putJson: vi.fn(async () => ({ok: true})),
+        putJson: vi.fn(async () => {
+          await Promise.resolve();
+          return {ok: true};
+        }),
       });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
         dryRun: false,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       // When migration succeeds, putJson should have been called
@@ -266,6 +294,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {
               items: [
@@ -283,7 +312,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.articleKeys).toBeDefined();
@@ -304,6 +336,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/content-structures/') && requestPath.includes('page=1')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
@@ -328,7 +361,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.scanned).toBe(2);
@@ -351,6 +387,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
             return {dataDefinitionFields: []};
           }
@@ -372,6 +409,7 @@ describe('structure migration', () => {
           return {};
         }),
         getRaw: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/api/jsonws/journal.journalarticle/get-latest-article')) {
             return {
               ok: true,
@@ -389,7 +427,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.scanned).toBe(1);
@@ -414,6 +455,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/content-structures/')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
@@ -431,6 +473,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(async () => {
+          await Promise.resolve();
           throw new Error('upsert failed');
         }),
       });
@@ -440,7 +483,10 @@ describe('structure migration', () => {
           gateway: mockGateway,
           dryRun: false,
           cleanupSource: false,
-          fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+          fetchStructureByKeyFn: async () => {
+            await Promise.resolve();
+            return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+          },
         }),
       ).rejects.toThrow('Structure migration failed for 1 content item');
     });
@@ -463,6 +509,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/content-structures/')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
@@ -480,6 +527,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(async (_path: string, payload: {contentFields?: Array<Record<string, unknown>>}) => {
+          await Promise.resolve();
           persistedFields = payload.contentFields ?? [];
           return {id: 'content-1'};
         }),
@@ -489,7 +537,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: false,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.migrated).toBe(1);
@@ -514,6 +565,7 @@ describe('structure migration', () => {
       let fetchCount = 0;
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/content-structures/')) {
             return {
               items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
@@ -546,14 +598,20 @@ describe('structure migration', () => {
 
           return {};
         }),
-        putJson: vi.fn(async () => ({id: 'content-1'})),
+        putJson: vi.fn(async () => {
+          await Promise.resolve();
+          return {id: 'content-1'};
+        }),
       });
 
       const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
         gateway: mockGateway,
         dryRun: false,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.migrated).toBe(1);
@@ -588,6 +646,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
           if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
             return {
               dataDefinitionFields: [
@@ -622,6 +681,7 @@ describe('structure migration', () => {
           return {};
         }),
         putJson: vi.fn(async (_path: string, payload: {contentFields?: Array<Record<string, unknown>>}) => {
+          await Promise.resolve();
           const outgoingFieldset = payload.contentFields?.find((field) => field.name === 'Fieldset84041664');
           expect(outgoingFieldset).toBeDefined();
           expect(outgoingFieldset?.nestedContentFields).toEqual([
@@ -650,7 +710,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: false,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats.migrated).toBe(1);
@@ -660,6 +723,7 @@ describe('structure migration', () => {
 
   describe('captureMigrationSourceSnapshots', () => {
     test('captureMigrationSourceSnapshots is tested via integration tests', async () => {
+      await Promise.resolve();
       // captureMigrationSourceSnapshots requires complex setup with full migration plan parsing
       // and API interactions. These are better tested through integration/end-to-end tests
       // rather than unit tests with extensive mocking.
@@ -685,6 +749,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
           }
@@ -697,7 +762,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats).toBeDefined();
@@ -716,6 +784,7 @@ describe('structure migration', () => {
 
       const mockGateway = createMigrationGateway({
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path.includes('/journal/structured-contents')) {
             return {items: []};
           }
@@ -728,7 +797,10 @@ describe('structure migration', () => {
         gateway: mockGateway,
         dryRun: true,
         cleanupSource: false,
-        fetchStructureByKeyFn: async () => ({id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'}),
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
       });
 
       expect(stats).toBeDefined();

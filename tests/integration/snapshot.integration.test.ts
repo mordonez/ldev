@@ -4,8 +4,14 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type SnapshotPayload = {
+  manifestFile: string;
+  databaseDumpFile: string;
+};
 
 describe('snapshot integration', () => {
   test('snapshot writes a manifest, db dump and repo-state copy', async () => {
@@ -24,7 +30,7 @@ describe('snapshot integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<SnapshotPayload>(result.stdout);
     expect(await fs.pathExists(parsed.manifestFile)).toBe(true);
     expect(await fs.readFile(parsed.databaseDumpFile, 'utf8')).toContain('SELECT 1;');
     expect(

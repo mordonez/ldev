@@ -32,12 +32,12 @@ export async function runLiferayResourceSyncFragments(
   },
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceSyncFragmentsResult> {
-  if (options?.allSites && (options?.fragment ?? '').trim() !== '') {
+  if (options?.allSites && (options.fragment?.trim() ?? '') !== '') {
     throw LiferayErrors.resourceError('--fragment requires --site or --site-id');
   }
 
   if (options?.allSites) {
-    return runAllSitesImport(config, options?.dir, dependencies);
+    return runAllSitesImport(config, options.dir, dependencies);
   }
 
   const site = options?.groupId?.trim()

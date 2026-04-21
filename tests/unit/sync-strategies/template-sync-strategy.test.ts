@@ -84,7 +84,7 @@ describe('templateSyncStrategy', () => {
   });
 
   describe('findRemote', () => {
-    test('findRemote requires complex site resolution - covered in integration tests', async () => {
+    test('findRemote requires complex site resolution - covered in integration tests', () => {
       // Template findRemote calls runLiferayInventoryTemplates, fetchStructureByKey
       // and other complex site resolution logic. Keeping unit tests focused on resolveLocal.
       expect(true).toBe(true);
@@ -92,14 +92,14 @@ describe('templateSyncStrategy', () => {
   });
 
   describe('upsert', () => {
-    test('upsert requires external API calls - covered in integration tests', async () => {
+    test('upsert requires external API calls - covered in integration tests', () => {
       // Template upsert requires multiple API calls and is better tested in integration
       expect(true).toBe(true);
     });
   });
 
   describe('verify', () => {
-    test('verify requires hash normalization and checking - covered in integration tests', async () => {
+    test('verify requires hash normalization and checking - covered in integration tests', () => {
       // Template verify performs complex normalization and hash checking
       // These tests are covered in integration/end-to-end tests
       expect(true).toBe(true);

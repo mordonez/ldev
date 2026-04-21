@@ -5,6 +5,7 @@ import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
 } from '../../src/features/liferay/resource/liferay-resource-get-structure.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -24,20 +25,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource get-structure', () => {
   test('resolves site and fetches structure by key', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -52,7 +45,7 @@ describe('liferay resource get-structure', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetStructure(
@@ -79,8 +72,7 @@ describe('liferay resource get-structure', () => {
 
   test('surfaces structure errors clearly', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -89,7 +81,7 @@ describe('liferay resource get-structure', () => {
         }
 
         return new Response('not-found', {status: 404});
-      },
+      }),
     });
 
     await expect(
@@ -99,9 +91,7 @@ describe('liferay resource get-structure', () => {
 
   test('resolves structure by numeric id', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -116,7 +106,7 @@ describe('liferay resource get-structure', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetStructure(
@@ -131,9 +121,7 @@ describe('liferay resource get-structure', () => {
 
   test('falls back to global when a structure is not found in the specified site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":30100,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -175,7 +163,7 @@ describe('liferay resource get-structure', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetStructure(

@@ -9,6 +9,7 @@ import type {AppConfig} from '../../../../core/config/load-config.js';
 import type {Printer} from '../../../../core/output/printer.js';
 import {CliError} from '../../../../core/errors.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
+import {isRecord} from '../../../../core/utils/json.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
@@ -27,7 +28,7 @@ import {
   type MigrationStats,
 } from '../liferay-resource-sync-structure-migration.js';
 import {normalizeMigrationPhase, shouldRunPostMigration} from '../liferay-resource-sync-structure-utils.js';
-import type {ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {ensureString, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
 type StructureLocalData = {
@@ -191,7 +192,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
         'structure-create',
       );
 
-      const createdId = String((created as Record<string, unknown> | null)?.id ?? '');
+      const createdId = ensureString((created as Record<string, unknown> | null)?.id, 'id');
       if (opts.migrationPlan && shouldRunPostMigration(phase)) {
         migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan, migrationOptions);
       }
@@ -216,15 +217,13 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     }
 
     const runtimeId = remoteArtifact.data.structureId;
-    let updatePayload = payload;
-    let recoveredAfterTimeout = false;
     const autoTransition = opts.migrationPlan && phase === 'post' && removedFieldReferences.length > 0;
 
     if (autoTransition) {
       const sourceSnapshots = await captureMigrationSourceSnapshots(config, runtimeId, site.id, opts.migrationPlan!, {
         gateway,
       });
-      updatePayload = buildTransitionPayload(remoteArtifact.data.runtimeDefinition, payload);
+      const updatePayload = buildTransitionPayload(remoteArtifact.data.runtimeDefinition, payload);
       await putJsonAsResource<Record<string, unknown>>(
         gateway,
         `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
@@ -248,18 +247,21 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       remoteArtifact.data.runtimeDefinition,
       dependencies,
     );
-    recoveredAfterTimeout = updated.recoveredAfterTimeout;
+    const recoveredAfterTimeout = updated.recoveredAfterTimeout;
 
     if (opts.migrationPlan && shouldRunPostMigration(phase) && !autoTransition) {
       migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan, migrationOptions);
     }
 
+    const updatedData = isRecord(updated.data) ? updated.data : null;
+    const structureId = ensureString(updatedData?.id ?? runtimeId, 'structureId');
+
     return {
-      id: String((updated.data as unknown as Record<string, unknown>)?.id ?? runtimeId),
+      id: structureId,
       name: opts.key,
       data: {
-        structureId: String((updated.data as unknown as Record<string, unknown>)?.id ?? runtimeId),
-        runtimeDefinition: (updated.data ?? remoteArtifact!.data.runtimeDefinition) as Record<string, unknown>,
+        structureId,
+        runtimeDefinition: updatedData ?? remoteArtifact.data.runtimeDefinition,
         existingFieldRefs: payloadFieldRefs,
         removedFieldReferences,
         migration,
@@ -306,11 +308,9 @@ async function fetchStructureByKeyViaGateway(
   key: string,
 ): Promise<Record<string, unknown> | null> {
   try {
-    return (
-      (await gateway.getJson<Record<string, unknown>>(
-        `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
-        'resource structure-sync get',
-      )) ?? {}
+    return await gateway.getJson<Record<string, unknown>>(
+      `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
+      'resource structure-sync get',
     );
   } catch (error) {
     if (isGatewayStatus(error, 404)) {

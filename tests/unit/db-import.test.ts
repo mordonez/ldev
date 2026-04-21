@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {PassThrough, Writable} from 'node:stream';
 import {EventEmitter} from 'node:events';
-import type {ChildProcess} from 'node:child_process';
-import type {spawn as nodeSpawn} from 'node:child_process';
+import type {SpawnOptions} from 'node:child_process';
 
 import {describe, expect, test} from 'vitest';
 
 import {CliError} from '../../src/core/errors.js';
+import type {SpawnProcessFn, SpawnedProcess} from '../../src/core/platform/process.js';
 import {findBackupFiles, resolveBackupFile, streamSqlIntoPostgres} from '../../src/features/db/db-import.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -174,8 +174,8 @@ function createSpawnMock(options: {
   stderr?: string;
   stdout?: string;
   stdin?: NodeJS.WritableStream;
-}): typeof nodeSpawn {
-  return ((..._args: unknown[]) => {
+}): SpawnProcessFn {
+  return (_command: string, _args: string[], _spawnOptions: SpawnOptions) => {
     const child = new EventEmitter() as EventEmitter & {
       stdin: NodeJS.WritableStream;
       stdout: PassThrough;
@@ -199,8 +199,8 @@ function createSpawnMock(options: {
       child.emit('close', options.exitCode);
     });
 
-    return child as unknown as ChildProcess;
-  }) as unknown as typeof nodeSpawn;
+    return child as unknown as SpawnedProcess;
+  };
 }
 
 function createEpipeWritable(): Writable {

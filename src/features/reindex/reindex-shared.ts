@@ -52,10 +52,10 @@ export async function fetchReindexRows(config: AppConfig): Promise<ReindexIndexR
   })) as Array<Record<string, unknown>>;
   return rows
     .map((row) => ({
-      health: String(row.health ?? ''),
-      status: String(row.status ?? ''),
-      index: String(row.index ?? ''),
-      docsCount: String(row['docs.count'] ?? ''),
+      health: typeof row.health === 'string' ? row.health : '',
+      status: typeof row.status === 'string' ? row.status : '',
+      index: typeof row.index === 'string' ? row.index : '',
+      docsCount: typeof row['docs.count'] === 'string' ? row['docs.count'] : '',
     }))
     .filter((row) => /journal|liferay/i.test(row.index));
 }

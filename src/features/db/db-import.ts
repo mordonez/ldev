@@ -2,7 +2,6 @@
 import path from 'node:path';
 import {createGunzip} from 'node:zlib';
 import {pipeline} from 'node:stream/promises';
-import {spawn} from 'node:child_process';
 
 import pWaitFor from 'p-wait-for';
 
@@ -13,7 +12,12 @@ import {runStep} from '../../core/output/run-step.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDocker, runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {formatProcessError, normalizeProcessEnv} from '../../core/platform/process.js';
+import {
+  formatProcessError,
+  normalizeProcessEnv,
+  spawnPipedProcess,
+  type SpawnProcessFn,
+} from '../../core/platform/process.js';
 import {
   buildComposeEnv,
   ensureEnvDataLayout,
@@ -273,7 +277,7 @@ export async function streamSqlIntoPostgres(
   sqlFile: string,
   envValues: Record<string, string>,
   processEnv?: NodeJS.ProcessEnv,
-  spawnFn: typeof spawn = spawn,
+  spawnFn: SpawnProcessFn = spawnPipedProcess,
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
@@ -299,7 +303,9 @@ export async function streamSqlIntoPostgres(
 
   const exitCodePromise = new Promise<number>((resolve, reject) => {
     child.on('error', reject);
-    child.on('close', (code) => resolve(code ?? 1));
+    child.on('close', (code) => {
+      resolve(code ?? 1);
+    });
   });
 
   try {

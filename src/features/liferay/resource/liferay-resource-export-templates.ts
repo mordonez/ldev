@@ -58,8 +58,8 @@ export async function runLiferayResourceExportTemplates(
         config,
         site.siteFriendlyUrl,
         baseDir,
-        Boolean(options?.continueOnError),
-        Boolean(options?.debug),
+        Boolean(options.continueOnError),
+        Boolean(options.debug),
         dependencies,
       );
       siteResults.push(result);
@@ -113,9 +113,6 @@ export function formatLiferayResourceExportTemplates(result: LiferayResourceExpo
   }
 
   const site = result.siteResults[0];
-  if (!site) {
-    return `EXPORTED exported=0 failed=${result.failed} dir=${result.outputDir}`;
-  }
 
   const lines = [`EXPORTED site=${site.site} exported=${site.exported} failed=${site.failed} dir=${site.outputDir}`];
   if (site.debug) {

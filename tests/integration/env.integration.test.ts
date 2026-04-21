@@ -10,8 +10,24 @@ import {runEnvRestore} from '../../src/features/env/env-restore.js';
 import {runEnvSetup} from '../../src/features/env/env-setup.js';
 import {runProcess} from '../../src/core/platform/process.js';
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type EnvStatusPayload = {
+  composeProjectName: string;
+  liferay: {
+    state: string;
+    health: string;
+  };
+  services: Array<{service: string}>;
+};
+
+type EnvStartPayload = {
+  portalUrl: string;
+  waitedForHealth: boolean;
+  activationKeyFile?: string;
+};
 
 describe('env integration', () => {
   test('env init bootstraps docker/.env from .env.example without duplicating keys', async () => {
@@ -37,7 +53,7 @@ describe('env integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<EnvStatusPayload>(result.stdout);
     expect(parsed.composeProjectName).toBe('demo');
     expect(parsed.liferay.state).toBe('running');
     expect(parsed.liferay.health).toBe('healthy');
@@ -65,7 +81,7 @@ describe('env integration', () => {
       env: processEnv,
     });
     expect(startResult.exitCode).toBe(0);
-    const parsed = JSON.parse(startResult.stdout);
+    const parsed = parseTestJson<EnvStartPayload>(startResult.stdout);
     expect(parsed.portalUrl).toBe('http://localhost:8080');
     expect(parsed.waitedForHealth).toBe(true);
     expect(
@@ -227,7 +243,7 @@ describe('env integration', () => {
     );
 
     expect(startResult.exitCode).toBe(0);
-    const parsed = JSON.parse(startResult.stdout);
+    const parsed = parseTestJson<EnvStartPayload>(startResult.stdout);
     expect(parsed.activationKeyFile).toBe(await fs.realpath(path.join(modulesDir, 'activation-key-sample.xml')));
     expect(await fs.readFile(path.join(modulesDir, 'activation-key-sample.xml'), 'utf8')).toBe('<xml>license</xml>\n');
     expect(await fs.pathExists(path.join(modulesDir, 'activation-key-old.xml'))).toBe(false);

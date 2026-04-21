@@ -42,9 +42,16 @@ const createMockStrategy = (
   shouldThrowUpsert = false,
   shouldThrowVerify = false,
 ) => ({
-  resolveLocal: vi.fn(async () => localArtifact ?? null),
-  findRemote: vi.fn(async () => remoteArtifact ?? null),
+  resolveLocal: vi.fn(async () => {
+    await Promise.resolve();
+    return localArtifact ?? null;
+  }),
+  findRemote: vi.fn(async () => {
+    await Promise.resolve();
+    return remoteArtifact ?? null;
+  }),
   upsert: vi.fn(async () => {
+    await Promise.resolve();
     if (shouldThrowUpsert) {
       throw new Error('Upsert failed');
     }
@@ -57,6 +64,7 @@ const createMockStrategy = (
     );
   }),
   verify: vi.fn(async () => {
+    await Promise.resolve();
     if (shouldThrowVerify) {
       throw new Error('Verify failed');
     }
@@ -216,11 +224,13 @@ describe('syncArtifact', () => {
     test('throws when local artifact not found', async () => {
       const strategy = createMockStrategy(null);
 
-      await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
-      ).rejects.toMatchObject({
-        code: expect.stringContaining('FILE_NOT_FOUND'),
-      });
+      try {
+        await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
+        throw new Error('Expected syncArtifact to throw');
+      } catch (error) {
+        const code = error instanceof Error && 'code' in error ? String(error.code) : '';
+        expect(code).toContain('FILE_NOT_FOUND');
+      }
     });
 
     test('propagates findRemote errors', async () => {
@@ -421,12 +431,14 @@ describe('syncArtifact', () => {
       let verifyCalled = false;
 
       vi.mocked(strategy.upsert).mockImplementation(async () => {
+        await Promise.resolve();
         upsertCalled = true;
         expect(verifyCalled).toBe(false); // verify should be called after
         return remoteArtifact;
       });
 
       vi.mocked(strategy.verify).mockImplementation(async () => {
+        await Promise.resolve();
         verifyCalled = true;
         expect(upsertCalled).toBe(true); // upsert should have been called first
       });

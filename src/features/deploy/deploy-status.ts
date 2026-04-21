@@ -29,7 +29,7 @@ export async function runDeployStatus(
   options?: {processEnv?: NodeJS.ProcessEnv},
 ): Promise<DeployStatusResult> {
   const context = resolveDeployContext(config);
-  const cacheDir = await resolveDeployCacheDir(config);
+  const cacheDir = resolveDeployCacheDir(config);
   const [buildModules, cacheModules, activeBundles] = await Promise.all([
     listArtifactModules(context.buildDeployDir, 'build'),
     listArtifactModules(cacheDir, 'cache'),

@@ -65,7 +65,7 @@ export function buildRegularPageConfigurationTabs(
     name: layout.nameCurrentValue ?? '',
     hiddenInNavigation: toBooleanOrFalse(layout.hidden),
     friendlyUrl: layout.friendlyURL ?? '',
-    queryString: typeSettings.queryString ?? '',
+    queryString: typeSettings.queryString,
     targetType: layoutDetails.targetUrl ? 'url' : '',
     target: layoutDetails.targetUrl ?? '',
     categories,
@@ -117,7 +117,7 @@ export function buildRegularPageConfigurationTabs(
   };
 
   const customMetaTags: InventoryPageConfigurationCustomMetaTags = {
-    values: metadata.customMetaTags ?? metadataSettings.customMetaTags ?? typeSettings.customMetaTags ?? null,
+    values: metadata.customMetaTags ?? metadataSettings.customMetaTags ?? typeSettings.customMetaTags,
   };
 
   return {

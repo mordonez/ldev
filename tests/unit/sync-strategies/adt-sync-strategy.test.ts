@@ -91,7 +91,7 @@ describe('adtSyncStrategy', () => {
   });
 
   describe('findRemote', () => {
-    test('findRemote requires complex site resolution - covered in integration tests', async () => {
+    test('findRemote requires complex site resolution - covered in integration tests', () => {
       // ADT findRemote calls runLiferayResourceListAdts and triggers full site resolution.
       // Keeping unit tests focused on resolveLocal only.
       expect(true).toBe(true);
@@ -99,14 +99,14 @@ describe('adtSyncStrategy', () => {
   });
 
   describe('upsert', () => {
-    test('upsert requires external API calls - covered in integration tests', async () => {
+    test('upsert requires external API calls - covered in integration tests', () => {
       // ADT upsert requires multiple API calls and complex mocking. Better tested in integration.
       expect(true).toBe(true);
     });
   });
 
   describe('verify', () => {
-    test('verify performs hash checking - covered in integration tests', async () => {
+    test('verify performs hash checking - covered in integration tests', () => {
       // ADT verify performs hash checking internally and may require additional setup
       // These tests are covered in integration tests
       expect(true).toBe(true);

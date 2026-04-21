@@ -4,7 +4,17 @@ import path from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
-import {captureProcessOutput, createLiferayCliRepoFixture} from '../../src/testing/cli-test-helpers.js';
+import {
+  captureProcessOutput,
+  createLiferayCliRepoFixture,
+  parseTestJson,
+  toTestRequestUrl,
+} from '../../src/testing/cli-test-helpers.js';
+
+type PageLayoutDiffPayload = {
+  equal: boolean;
+  diffCount: number;
+};
 
 describe('liferay page-layout diff smoke', () => {
   let repoRoot: string;
@@ -39,7 +49,8 @@ describe('liferay page-layout diff smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -84,7 +95,7 @@ describe('liferay page-layout diff smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<PageLayoutDiffPayload>(output.stdout());
     expect(parsed.equal).toBe(false);
     expect(parsed.diffCount).toBe(1);
     expect(process.exitCode).toBe(1);
@@ -95,7 +106,8 @@ describe('liferay page-layout diff smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -164,7 +176,7 @@ describe('liferay page-layout diff smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<PageLayoutDiffPayload>(output.stdout());
     expect(parsed.equal).toBe(true);
     expect(parsed.diffCount).toBe(0);
     expect(process.exitCode).toBe(0);

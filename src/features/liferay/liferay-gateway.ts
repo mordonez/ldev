@@ -101,7 +101,7 @@ export class LiferayGateway {
       });
     });
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 
@@ -114,7 +114,7 @@ export class LiferayGateway {
       this.apiClient.postJson<T>(this.config.liferay.url, path, payload, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 
@@ -127,7 +127,7 @@ export class LiferayGateway {
       this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 
@@ -140,7 +140,7 @@ export class LiferayGateway {
       this.apiClient.postMultipart<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 
@@ -161,7 +161,7 @@ export class LiferayGateway {
       });
     });
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 
@@ -195,7 +195,7 @@ export class LiferayGateway {
       this.apiClient.delete<T>(this.config.liferay.url, path, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = await expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
     return (success.data ?? null) as T;
   }
 

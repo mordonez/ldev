@@ -5,6 +5,20 @@ import {describe, expect, test} from 'vitest';
 
 import {createTempDir, createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
+
+type AiStatusPayload = {
+  ok: boolean;
+  projectType?: string;
+  manifestPresent: boolean;
+  summary: {
+    managedRules: number;
+    current: number;
+  };
+  officialWorkspaceFilesDetected: string[];
+  coexistenceNotes: string[];
+  warnings: string[];
+};
 
 describe('ai status integration', () => {
   test('ai status reports missing manifest on a fresh generic repo', async () => {
@@ -15,7 +29,7 @@ describe('ai status integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<AiStatusPayload>(result.stdout);
     expect(parsed.ok).toBe(true);
     expect(parsed.manifestPresent).toBe(false);
     expect(parsed.summary.managedRules).toBe(0);
@@ -41,7 +55,7 @@ describe('ai status integration', () => {
     });
     expect(statusResult.exitCode).toBe(0);
 
-    const parsed = JSON.parse(statusResult.stdout);
+    const parsed = parseTestJson<AiStatusPayload>(statusResult.stdout);
     expect(parsed.ok).toBe(true);
     expect(parsed.projectType).toBe('blade-workspace');
     expect(parsed.manifestPresent).toBe(true);
@@ -69,7 +83,7 @@ describe('ai status integration', () => {
     });
     expect(statusResult.exitCode).toBe(0);
 
-    const parsed = JSON.parse(statusResult.stdout);
+    const parsed = parseTestJson<AiStatusPayload>(statusResult.stdout);
     expect(parsed.ok).toBe(true);
     expect(parsed.projectType).toBe('ldev-native');
     expect(parsed.manifestPresent).toBe(true);

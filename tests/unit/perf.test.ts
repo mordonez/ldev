@@ -15,7 +15,9 @@ describe('perf', () => {
       servers.map(
         (server) =>
           new Promise<void>((resolve) => {
-            server.close(() => resolve());
+            server.close(() => {
+              resolve();
+            });
           }),
       ),
     );
@@ -38,7 +40,11 @@ describe('perf', () => {
       response.end('{}');
     });
     servers.push(server);
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', () => {
+        resolve();
+      }),
+    );
     const address = server.address();
     const port = typeof address === 'object' && address ? address.port : 0;
 

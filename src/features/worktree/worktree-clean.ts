@@ -119,7 +119,7 @@ export async function runWorktreeClean(options: {
         env: buildComposeEnv(worktreeEnvContext, {baseEnv: options.processEnv}),
       });
     }
-    await runDocker(['rm', '-f', ...((await listComposeContainers(composeProjectName, options.processEnv)) || [])], {
+    await runDocker(['rm', '-f', ...(await listComposeContainers(composeProjectName, options.processEnv))], {
       env: options.processEnv,
       reject: false,
     });

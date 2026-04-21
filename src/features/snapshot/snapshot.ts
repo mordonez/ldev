@@ -1,6 +1,5 @@
 ﻿import fs from 'fs-extra';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
 import os from 'node:os';
 import {pipeline} from 'node:stream/promises';
 
@@ -11,7 +10,7 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {normalizeProcessEnv} from '../../core/platform/process.js';
+import {normalizeProcessEnv, spawnPipedProcess, type SpawnProcessFn} from '../../core/platform/process.js';
 import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../core/config/liferay-resource-path-defaults.js';
 import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 
@@ -41,7 +40,7 @@ export async function runSnapshot(
     : resolveSnapshotDir(config, output);
   const envContext = resolveEnvContext(config);
   const databaseDumpFile = path.join(snapshotDir, 'database.sql');
-  const copiedPaths = await collectSnapshotPaths(config);
+  const copiedPaths = collectSnapshotPaths(config);
   const composeEnv = buildComposeEnv(envContext, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   await fs.ensureDir(snapshotDir);
@@ -111,7 +110,7 @@ export function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): 
   return path.join(config.repoRoot, '.ldev', 'snapshots', stamp);
 }
 
-export async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
+export function collectSnapshotPaths(config: AppConfig): string[] {
   if (!config.repoRoot || !config.liferayDir) {
     throw new CliError('snapshot requires liferayDir.', {code: 'SNAPSHOT_REPO_REQUIRED'});
   }
@@ -137,7 +136,7 @@ export async function writePostgresDump(
   envContext: ReturnType<typeof resolveEnvContext>,
   outputFile: string,
   processEnv?: NodeJS.ProcessEnv,
-  spawnFn: typeof spawn = spawn,
+  spawnFn: SpawnProcessFn = spawnPipedProcess,
 ): Promise<void> {
   const user = envContext.envValues.POSTGRES_USER || 'liferay';
   const db = envContext.envValues.POSTGRES_DB || 'liferay';
@@ -155,7 +154,9 @@ export async function writePostgresDump(
   });
   const closePromise = new Promise<number>((resolve, reject) => {
     child.on('error', reject);
-    child.on('close', (code) => resolve(code ?? 1));
+    child.on('close', (code) => {
+      resolve(code ?? 1);
+    });
   });
 
   await fs.ensureDir(path.dirname(outputFile));

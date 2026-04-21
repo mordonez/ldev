@@ -1,5 +1,7 @@
 /** Structure field reference collection, diff, and transition payload helpers. */
 
+import {normalizeScalarString} from '../../../core/utils/text.js';
+
 export function collectFieldReferences(definition: Record<string, unknown>): Set<string> {
   const refs = new Set<string>();
   collectFieldReferencesRecursive(definition.dataDefinitionFields, refs);
@@ -15,12 +17,12 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
       continue;
     }
     const record = field as Record<string, unknown>;
-    const name = String(record.name ?? '').trim();
+    const name = normalizeScalarString(record.name) ?? '';
     if (name) {
       refs.add(name);
     }
     const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
-    const fieldReference = String(customProperties.fieldReference ?? '').trim();
+    const fieldReference = normalizeScalarString(customProperties.fieldReference) ?? '';
     if (fieldReference) {
       refs.add(fieldReference);
     }
@@ -67,11 +69,11 @@ export function buildTransitionPayload(
 
 function fieldIdentity(field: Record<string, unknown>): string {
   const customProperties = (field.customProperties ?? {}) as Record<string, unknown>;
-  const fieldReference = String(customProperties.fieldReference ?? '').trim();
+  const fieldReference = normalizeScalarString(customProperties.fieldReference) ?? '';
   if (fieldReference) {
     return fieldReference;
   }
-  return String(field.name ?? '').trim();
+  return normalizeScalarString(field.name) ?? '';
 }
 
 export function removeExternalReferenceCode(payload: Record<string, unknown>): Record<string, unknown> {
@@ -81,7 +83,7 @@ export function removeExternalReferenceCode(payload: Record<string, unknown>): R
 }
 
 export function extractStructureShapeSignature(definition: Record<string, unknown>): string {
-  const key = String(definition.dataDefinitionKey ?? '').trim();
+  const key = normalizeScalarString(definition.dataDefinitionKey) ?? '';
   const refs = [...collectFieldReferences(definition)].sort();
   return JSON.stringify({key, refs});
 }

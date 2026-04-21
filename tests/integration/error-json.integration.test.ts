@@ -1,7 +1,16 @@
 import {describe, expect, test} from 'vitest';
 
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type ErrorPayload = {
+  ok: false;
+  error: {
+    code: string;
+    message: string;
+  };
+};
 
 describe('error json integration', () => {
   test('commands emit stable json errors when requested', async () => {
@@ -12,7 +21,7 @@ describe('error json integration', () => {
 
     expect(result.exitCode).toBe(1);
     const payload = result.stderr.trim() !== '' ? result.stderr : result.stdout;
-    const parsed = JSON.parse(payload);
+    const parsed = parseTestJson<ErrorPayload>(payload);
     expect(parsed).toEqual({
       ok: false,
       error: {

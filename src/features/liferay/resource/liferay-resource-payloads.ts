@@ -1,3 +1,5 @@
+import {normalizeScalarString} from '../../../core/utils/text.js';
+
 /**
  * Minimal typed payloads for Liferay JSONWS and headless resource API responses.
  *
@@ -59,9 +61,7 @@ export type DataDefinitionPayload = {
 // ---------------------------------------------------------------------------
 
 function asStr(v: unknown): string | undefined {
-  if (v == null) return undefined;
-  const s = String(v).trim();
-  return s === '' ? undefined : s;
+  return normalizeScalarString(v);
 }
 
 function asNum(v: unknown): number | undefined {
@@ -90,7 +90,7 @@ export function toDdmTemplatePayload(raw: unknown): DdmTemplatePayload {
     name: asStr(r.name),
     classPK: asStr(r.classPK),
     classNameId: asNum(r.classNameId),
-    script: r.script != null ? String(r.script) : undefined,
+    script: typeof r.script === 'string' ? r.script : undefined,
     language: asStr(r.language),
     type: asStr(r.type),
     mode: asStr(r.mode),
@@ -107,7 +107,7 @@ export function toFragmentCollectionPayload(raw: unknown): FragmentCollectionPay
     fragmentCollectionId: asNum(r.fragmentCollectionId),
     fragmentCollectionKey: asStr(r.fragmentCollectionKey),
     name: asStr(r.name),
-    description: r.description != null ? String(r.description) : undefined,
+    description: typeof r.description === 'string' ? r.description : undefined,
   };
 }
 
@@ -122,10 +122,10 @@ export function toFragmentEntryPayload(raw: unknown): FragmentEntryPayload {
     fragmentEntryId: asNum(r.fragmentEntryId),
     fragmentEntryKey: asStr(r.fragmentEntryKey),
     name: asStr(r.name),
-    html: r.html != null ? String(r.html) : undefined,
-    css: r.css != null ? String(r.css) : undefined,
-    js: r.js != null ? String(r.js) : undefined,
-    configuration: r.configuration != null ? String(r.configuration) : undefined,
+    html: typeof r.html === 'string' ? r.html : undefined,
+    css: typeof r.css === 'string' ? r.css : undefined,
+    js: typeof r.js === 'string' ? r.js : undefined,
+    configuration: typeof r.configuration === 'string' ? r.configuration : undefined,
     icon: asStr(r.icon),
     type: asNum(r.type),
   };

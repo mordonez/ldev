@@ -14,7 +14,7 @@ const CACHE_LOCK_FILE = '.ldev-cache.lock';
 const CACHE_LOCK_ATTEMPTS = 50;
 const CACHE_LOCK_DELAY_MS = 100;
 
-export async function resolveDeployCacheDir(config: AppConfig): Promise<string> {
+export function resolveDeployCacheDir(config: AppConfig): string {
   const envContext = resolveEnvContext(config);
   return resolveRuntimeStorage(envContext, 'liferay-deploy-cache').bindPath;
 }

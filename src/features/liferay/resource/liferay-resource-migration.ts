@@ -5,6 +5,7 @@ import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {withProgress, type Printer} from '../../../core/output/printer.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
@@ -348,8 +349,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): MigrationDescriptor {
-  const site = String(descriptorNode.site ?? '/global').trim() || '/global';
-  const structureKey = String(descriptorNode.structureKey ?? '').trim();
+  const site = normalizeScalarString(descriptorNode.site) ?? '/global';
+  const structureKey = normalizeScalarString(descriptorNode.structureKey) ?? '';
   if (structureKey === '') {
     throw LiferayErrors.resourceError('Invalid descriptor: missing structureKey');
   }
@@ -371,7 +372,7 @@ function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): Migr
 }
 
 function parseStageDescriptor(node: Record<string, unknown>, stageName: MigrationStage): MigrationStageDescriptor {
-  const structureFile = String(node.structureFile ?? '').trim();
+  const structureFile = normalizeScalarString(node.structureFile) ?? '';
   const rawPlanNode = Array.isArray(node.mappings) ? node : asRecord(node.plan);
   const planNode = {
     ...rawPlanNode,
@@ -395,8 +396,8 @@ function normalizeMappingsArray(value: unknown): Array<Record<string, unknown>> 
     if (!row || typeof row !== 'object') {
       return [];
     }
-    const source = String((row as Record<string, unknown>).source ?? '').trim();
-    const target = String((row as Record<string, unknown>).target ?? '').trim();
+    const source = normalizeScalarString((row as Record<string, unknown>).source) ?? '';
+    const target = normalizeScalarString((row as Record<string, unknown>).target) ?? '';
     if (source === '' || target === '') {
       return [];
     }
@@ -418,7 +419,7 @@ function parseStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return value.map((item) => normalizeScalarString(item)).filter((item): item is string => Boolean(item));
 }
 
 async function writeTempPlanFile(planNode: Record<string, unknown>): Promise<string> {
@@ -478,8 +479,8 @@ function buildCleanupPlanNode(
   const cleanupMappings = normalizeMappingsArray(introducePlanNode.mappings)
     .filter((mapping) => mapping.cleanupSource)
     .map((mapping) => ({
-      source: String((mapping as Record<string, unknown>).source ?? '').trim(),
-      target: String((mapping as Record<string, unknown>).target ?? '').trim(),
+      source: normalizeScalarString(mapping.source) ?? '',
+      target: normalizeScalarString(mapping.target) ?? '',
       cleanupSource: true,
     }));
 
@@ -524,7 +525,7 @@ async function resolveMigrationStructureFile(
 function cleanupSourceFields(planNode: Record<string, unknown>): string[] {
   return normalizeMappingsArray(planNode.mappings)
     .filter((mapping) => mapping.cleanupSource)
-    .map((mapping) => String((mapping as Record<string, unknown>).source ?? '').trim())
+    .map((mapping) => normalizeScalarString(mapping.source) ?? '')
     .filter(Boolean);
 }
 
@@ -561,9 +562,10 @@ function removeFieldsRecursive(fields: unknown, cleanupSources: Set<string>): Ar
       continue;
     }
     const record = structuredClone(field) as Record<string, unknown>;
-    const reference = String(
-      (record.customProperties as Record<string, unknown> | undefined)?.fieldReference ?? record.name ?? '',
-    ).trim();
+    const reference =
+      normalizeScalarString((record.customProperties as Record<string, unknown> | undefined)?.fieldReference) ??
+      normalizeScalarString(record.name) ??
+      '';
     if (reference !== '' && cleanupSources.has(reference)) {
       continue;
     }

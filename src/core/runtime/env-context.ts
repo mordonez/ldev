@@ -256,7 +256,8 @@ function applyStorageVolumeEnvVars(
 }
 
 function detectStoragePlatform(envValues: Record<string, string>): 'windows' | 'other' {
-  const override = envValues.LDEV_STORAGE_PLATFORM?.trim().toLowerCase();
+  const overrideValue = envValues.LDEV_STORAGE_PLATFORM;
+  const override = typeof overrideValue === 'string' ? overrideValue.trim().toLowerCase() : undefined;
   if (override === 'windows') {
     return 'windows';
   }
@@ -299,8 +300,13 @@ function resolveRuntimeStorageConfig(
     },
   }[key];
 
-  const requestedMode = context.envValues[settings.modeKey]?.trim().toLowerCase();
-  const volumeName = context.envValues[settings.volumeKey]?.trim() || settings.defaultVolumeName;
+  const requestedModeValue = context.envValues[settings.modeKey];
+  const requestedMode = typeof requestedModeValue === 'string' ? requestedModeValue.trim().toLowerCase() : undefined;
+  const volumeNameValue = context.envValues[settings.volumeKey];
+  const volumeName =
+    typeof volumeNameValue === 'string' && volumeNameValue.trim() !== ''
+      ? volumeNameValue.trim()
+      : settings.defaultVolumeName;
   if (requestedMode === 'bind') {
     return {mode: 'bind', volumeName};
   }
@@ -309,7 +315,7 @@ function resolveRuntimeStorageConfig(
     return {mode: 'volume', volumeName};
   }
 
-  if (requestedMode !== undefined && requestedMode !== '' && requestedMode !== 'auto') {
+  if (requestedMode !== '' && requestedMode !== undefined && requestedMode !== 'auto') {
     throw new CliError(`Invalid ${settings.modeKey} value "${requestedMode}". Use bind, volume, or auto.`, {
       code: 'ENV_INVALID_STORAGE_MODE',
     });

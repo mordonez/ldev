@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {spawn, type ChildProcess, type SpawnOptions} from 'node:child_process';
 
 import {execa} from 'execa';
 
@@ -26,6 +27,15 @@ export type RunInteractiveProcessOptions = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
 };
+
+export type SpawnedProcess = ChildProcess & {
+  stdin: NodeJS.WritableStream;
+  stdout: NodeJS.ReadableStream;
+  stderr: NodeJS.ReadableStream;
+  kill(signal?: NodeJS.Signals | number): boolean;
+};
+
+export type SpawnProcessFn = (command: string, args: string[], options: SpawnOptions) => SpawnedProcess;
 
 function normalizePathValue(value: string | undefined): string | undefined {
   if (!value || process.platform !== 'win32') {
@@ -83,6 +93,19 @@ export function resolveSpawnCommand(command: string, env?: NodeJS.ProcessEnv): s
 
 export function formatProcessError(result: RunProcessResult, fallback: string): string {
   return result.stderr.trim() || result.stdout.trim() || fallback;
+}
+
+export function spawnPipedProcess(
+  command: string,
+  args: string[] = [],
+  options?: SpawnOptions,
+  spawnFn: SpawnProcessFn = spawn as SpawnProcessFn,
+): SpawnedProcess {
+  return spawnFn(command, args, options ?? {});
+}
+
+export function spawnDetachedProcess(command: string, args: string[] = [], options?: SpawnOptions): ChildProcess {
+  return spawn(command, args, options ?? {});
 }
 
 export async function runProcess(

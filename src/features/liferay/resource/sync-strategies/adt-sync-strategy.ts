@@ -13,7 +13,7 @@ import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
 import {resolveAdtFile} from '../liferay-resource-paths.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
-import {localizedMap, sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {ensureString, localizedMap, sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import {matchesAdtRow} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
 
@@ -99,7 +99,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     }
 
     return {
-      id: String(((existing.templateKey ?? existing.templateId) as string | undefined) ?? ''),
+      id: String(existing.templateKey),
       name: opts.key,
       data: {
         templateId: String(existing.templateId),
@@ -145,7 +145,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
         'adt-create',
       );
 
-      const createdId = String(created.templateKey ?? created.templateId ?? '');
+      const createdId = ensureString(created.templateKey ?? created.templateId, 'templateKey');
 
       return {
         id: createdId,
@@ -171,7 +171,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
       '/api/jsonws/ddm.ddmtemplate/update-template',
       {
         templateId: remoteArtifact.data.templateId,
-        classPK: String(ddmTemplate.classPK ?? '0'),
+        classPK: ensureString(ddmTemplate.classPK ?? '0', 'classPK'),
         nameMap: localizedMap(opts.key),
         descriptionMap: localizedMap(''),
         type: 'display',

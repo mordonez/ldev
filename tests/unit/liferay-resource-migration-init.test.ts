@@ -7,15 +7,35 @@ import {
   formatLiferayResourceMigrationInit,
   runLiferayResourceMigrationInit,
 } from '../../src/features/liferay/resource/liferay-resource-migration-init.js';
+import {createStaticTokenClient, createTestFetchImpl, parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
+type MigrationDescriptor = {
+  templates: boolean;
+  dependentStructures: string[];
+  introduce: {
+    structureFile?: string;
+    articleIds: string[];
+    folderIds: string[];
+    rootFolderIds: string[];
+    mappings: Array<{source: string; target: string; cleanupSource?: boolean}>;
+    scopeHelp: {
+      articleIds: string;
+      folderIds: string;
+      rootFolderIds: string;
+      recommendation: string;
+    };
+    mappingHelp: {
+      examples: Array<{source: string; target: string; cleanupSource: boolean}>;
+    };
+    suggestions: {
+      suggestedMappings: Array<{source: string; target: string; cleanupSource: boolean}>;
+    };
+  };
+  cleanup?: unknown;
 };
+
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-migration-init-');
@@ -70,9 +90,7 @@ describe('liferay resource migration-init', () => {
   test('generates a scaffold descriptor with fieldset target suggestions', async () => {
     const {config, structureFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -94,7 +112,7 @@ describe('liferay resource migration-init', () => {
           );
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationInit(
@@ -114,7 +132,7 @@ describe('liferay resource migration-init', () => {
     );
     expect(formatLiferayResourceMigrationInit(result)).toContain('removedFieldReferences=oldHeadline');
 
-    const descriptor = await fs.readJson(result.outputPath);
+    const descriptor = parseTestJson<MigrationDescriptor>(await fs.readFile(result.outputPath, 'utf8'));
     expect(descriptor.templates).toBe(false);
     expect(descriptor.dependentStructures).toEqual(['FIELDSET-NEW']);
     expect(descriptor.introduce.structureFile).toBeUndefined();

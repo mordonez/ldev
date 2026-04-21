@@ -7,15 +7,10 @@ import {
   formatLiferayResourceSyncAdt,
   runLiferayResourceSyncAdt,
 } from '../../src/features/liferay/resource/liferay-resource-sync-adt.js';
+import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-sync-adt-');
@@ -70,9 +65,7 @@ describe('liferay resource adt-sync', () => {
   test('throws when ADT is missing and createMissing is not enabled', async () => {
     const {config, adtFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
             status: 200,
@@ -98,7 +91,7 @@ describe('liferay resource adt-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -109,9 +102,7 @@ describe('liferay resource adt-sync', () => {
   test('creates a missing ADT from a local file', async () => {
     const {config, adtFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
             status: 200,
@@ -136,7 +127,7 @@ describe('liferay resource adt-sync', () => {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/add-template')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('groupId')).toBe('20121');
           expect(form.get('script')).toBe('ADT local script');
           expect(form.get('classNameId')).toBe('888');
@@ -145,7 +136,7 @@ describe('liferay resource adt-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncAdt(
@@ -163,9 +154,7 @@ describe('liferay resource adt-sync', () => {
   test('falls back to global when an ADT is missing in the requested site', async () => {
     const {config, adtFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":301,"friendlyUrlPath":"/guest","name":"Guest","companyId":20097}', {
             status: 200,
@@ -206,14 +195,14 @@ describe('liferay resource adt-sync', () => {
           return new Response('{"classPK":0}', {status: 200});
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('templateId')).toBe('991');
           expect(form.get('script')).toBe('ADT local script');
           return new Response('{"templateId":"991","templateKey":"UB_ADT"}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncAdt(

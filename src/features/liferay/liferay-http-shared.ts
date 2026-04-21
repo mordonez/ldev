@@ -30,11 +30,11 @@ export function buildAuthOptions(
  * @throws CliError if response.ok is false
  * @returns The same response if successful
  */
-export async function expectJsonSuccess<T>(
+export function expectJsonSuccess<T>(
   response: HttpResponse<T>,
   label: string,
   errorCode = 'LIFERAY_API_ERROR',
-): Promise<HttpResponse<T>> {
+): HttpResponse<T> {
   if (response.ok) {
     return response;
   }

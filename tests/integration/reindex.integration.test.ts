@@ -1,13 +1,21 @@
 import fs from 'fs-extra';
 import http from 'node:http';
-import type {AddressInfo} from 'node:net';
 import path from 'node:path';
 
 import {afterEach, describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli, spawnCli} from '../../src/testing/cli-entry.js';
+
+type ReindexStatusPayload = {
+  rows: Array<{index: string}>;
+};
+
+type ReindexTasksPayload = {
+  output: string;
+};
 
 const servers: http.Server[] = [];
 
@@ -38,7 +46,7 @@ describe('reindex integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<ReindexStatusPayload>(result.stdout);
     expect(parsed.rows).toHaveLength(2);
     expect(parsed.rows[0].index).toBe('liferay-20097');
   }, 30000);
@@ -71,7 +79,7 @@ describe('reindex integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<ReindexTasksPayload>(result.stdout);
     expect(parsed.output).toContain('RUNNING');
     const calls = await readFakeDockerCalls(fakeBinDir);
     expect(calls).toEqual(expect.arrayContaining([expect.stringContaining('backgroundtask')]));
@@ -88,7 +96,7 @@ describe('reindex integration', () => {
 
     const stdoutChunks: string[] = [];
     child.stdout!.setEncoding('utf8');
-    child.stdout!.on('data', (chunk) => {
+    child.stdout!.on('data', (chunk: string) => {
       stdoutChunks.push(chunk);
     });
 
@@ -100,7 +108,9 @@ describe('reindex integration', () => {
 
     const exitCode = await new Promise<number>((resolve, reject) => {
       child.on('error', reject);
-      child.on('exit', (code) => resolve(code ?? 1));
+      child.on('exit', (code) => {
+        resolve(code ?? 1);
+      });
     });
 
     expect(exitCode).toBe(0);
@@ -117,9 +127,11 @@ const serverState = {
 async function createEsServer(): Promise<http.Server> {
   serverState.requests = [];
   const server = http.createServer(async (request, response) => {
+    await Promise.resolve();
     const chunks: Buffer[] = [];
     for await (const chunk of request) {
-      chunks.push(Buffer.from(chunk));
+      const normalizedChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
+      chunks.push(normalizedChunk);
     }
     const body = Buffer.concat(chunks).toString('utf8');
     serverState.requests.push(`${request.method} ${request.url} ${body}`);
@@ -163,7 +175,7 @@ function getServerPort(server: http.Server): number {
     throw new Error('Expected TCP server address');
   }
 
-  return (address as AddressInfo).port;
+  return address.port;
 }
 
 async function createReindexRepoFixture(esPort: number): Promise<string> {

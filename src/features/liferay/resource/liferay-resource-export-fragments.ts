@@ -58,7 +58,7 @@ export async function runLiferayResourceExportFragments(
       siteToken: 'all-sites',
       collectionCount,
       fragmentCount,
-      outputDir: resolveArtifactBaseDir(config, 'fragment', options?.dir),
+      outputDir: resolveArtifactBaseDir(config, 'fragment', options.dir),
       scannedSites: siteResults.length,
       siteResults,
     };

@@ -5,8 +5,23 @@ import {describe, expect, test} from 'vitest';
 
 import {runProcess} from '../../src/core/platform/process.js';
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type EnvCleanPayload = {
+  dataRootDeleted: boolean;
+  dataRootSkipped: string | null;
+};
+
+type WorktreeGcPayload = {
+  candidates: string[];
+};
+
+type WorktreeCleanPayload = {
+  dataRootsDeleted: string[];
+  dataRootsSkipped: string[];
+};
 
 describe('cleanup integration', () => {
   test('env clean removes local data root inside repo and requires --force', async () => {
@@ -54,7 +69,7 @@ describe('cleanup integration', () => {
       env,
     });
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<EnvCleanPayload>(result.stdout);
     expect(parsed.dataRootDeleted).toBe(false);
     expect(parsed.dataRootSkipped).toBe(externalRoot);
     expect(await fs.pathExists(path.join(externalRoot, 'marker.txt'))).toBe(true);
@@ -91,7 +106,7 @@ describe('cleanup integration', () => {
       env,
     });
     expect(gcPreview.exitCode).toBe(0);
-    expect(JSON.parse(gcPreview.stdout).candidates).toContain('issue-702');
+    expect(parseTestJson<WorktreeGcPayload>(gcPreview.stdout).candidates).toContain('issue-702');
   }, 90000);
 
   test('worktree clean preserves ENV_DATA_ROOT outside the worktree perimeter', async () => {
@@ -113,7 +128,7 @@ describe('cleanup integration', () => {
       env,
     });
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<WorktreeCleanPayload>(result.stdout);
     expect(parsed.dataRootsSkipped).toContain(externalRoot);
     expect(await fs.pathExists(path.join(externalRoot, 'marker.txt'))).toBe(true);
   }, 60000);
@@ -150,7 +165,7 @@ describe('cleanup integration', () => {
       env,
     });
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<WorktreeCleanPayload>(result.stdout);
     expect(parsed.dataRootsDeleted).toContain(worktreeDataRoot);
     expect(parsed.dataRootsSkipped).not.toContain(worktreeDataRoot);
     expect(await fs.pathExists(worktreeDataRoot)).toBe(false);
@@ -192,7 +207,7 @@ describe('cleanup integration', () => {
       env,
     });
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<WorktreeCleanPayload>(result.stdout);
     expect(parsed.dataRootsDeleted).toContain(worktreeDataRoot);
     expect(await fs.pathExists(worktreeDataRoot)).toBe(false);
 

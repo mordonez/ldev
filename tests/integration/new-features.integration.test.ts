@@ -4,8 +4,34 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type LogsDiagnosePayload = {
+  warnings: number;
+  since: string;
+  exceptions: Array<{class: string; count: number}>;
+};
+
+type DbQueryPayload = {
+  output: string;
+  query: string;
+  rows: Array<{count: string}>;
+  rowCount: number;
+};
+
+type DeployStatusPayload = {
+  modules: Array<{name: string}>;
+};
+
+type HealthPayload = {
+  overall: string;
+};
+
+type ContextIssuePayload = {
+  issues: Array<{code: string}>;
+};
 
 describe('new features integration', () => {
   test('logs diagnose groups exceptions from docker compose logs', async () => {
@@ -21,7 +47,7 @@ describe('new features integration', () => {
     const result = await runCli(['logs', 'diagnose', '--json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<LogsDiagnosePayload>(result.stdout);
     expect(parsed.warnings).toBe(1);
     expect(parsed.exceptions[0].class).toContain('PortalException');
     expect(parsed.exceptions[0].count).toBe(2);
@@ -43,7 +69,7 @@ describe('new features integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<LogsDiagnosePayload>(result.stdout);
     expect(parsed.since).toBe('90m');
 
     const dockerCalls = await readFakeDockerCalls(fakeBinDir);
@@ -67,7 +93,7 @@ describe('new features integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbQueryPayload>(result.stdout);
     expect(parsed.output).toContain('7');
     expect(parsed.query).toContain('SELECT count(*)');
     expect(parsed.rows).toEqual([{count: '7'}]);
@@ -91,7 +117,7 @@ describe('new features integration', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('count');
     expect(result.stdout).toContain('(1 row)');
-    expect(() => JSON.parse(result.stdout)).toThrow();
+    expect(() => parseTestJson<unknown>(result.stdout)).toThrow();
   }, 45000);
 
   test('deploy status reports local artifacts', async () => {
@@ -104,7 +130,7 @@ describe('new features integration', () => {
     const result = await runCli(['deploy', 'status', '--json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployStatusPayload>(result.stdout);
     expect(parsed.modules).toEqual(expect.arrayContaining([expect.objectContaining({name: 'foo'})]));
   }, 45000);
 
@@ -115,11 +141,11 @@ describe('new features integration', () => {
 
     const healthResult = await runCli(['health', '--json'], {cwd: repoRoot, env});
     expect(healthResult.exitCode).toBe(0);
-    expect(JSON.parse(healthResult.stdout).overall).toBe('degraded');
+    expect(parseTestJson<HealthPayload>(healthResult.stdout).overall).toBe('degraded');
 
     const contextResult = await runCli(['context', '--json'], {cwd: repoRoot, env});
     expect(contextResult.exitCode).toBe(0);
-    const parsedContext = JSON.parse(contextResult.stdout);
+    const parsedContext = parseTestJson<ContextIssuePayload>(contextResult.stdout);
     expect(Array.isArray(parsedContext.issues)).toBe(true);
     expect(parsedContext.issues.some((issue: {code: string}) => issue.code === 'liferay-not-running')).toBe(true);
   }, 45000);

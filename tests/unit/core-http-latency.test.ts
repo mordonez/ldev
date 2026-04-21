@@ -2,13 +2,19 @@ import {describe, expect, test, vi} from 'vitest';
 
 import {measureHttpLatency} from '../../src/core/http/latency.js';
 
+function mockFetchStatus(status: number): void {
+  const fetchMock: typeof fetch = vi.fn(() => Promise.resolve({status} as Response));
+  global.fetch = fetchMock;
+}
+
+function mockFetchError(message: string): void {
+  const fetchMock: typeof fetch = vi.fn(() => Promise.reject(new Error(message)));
+  global.fetch = fetchMock;
+}
+
 describe('measureHttpLatency', () => {
   test('returns elapsed time for successful request', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 200,
-      } as Response),
-    );
+    mockFetchStatus(200);
 
     const result = await measureHttpLatency('http://example.com');
 
@@ -22,11 +28,7 @@ describe('measureHttpLatency', () => {
   });
 
   test('returns null for 5xx status', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 500,
-      } as Response),
-    );
+    mockFetchStatus(500);
 
     const result = await measureHttpLatency('http://example.com');
 
@@ -34,11 +36,7 @@ describe('measureHttpLatency', () => {
   });
 
   test('returns null for 503 status', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 503,
-      } as Response),
-    );
+    mockFetchStatus(503);
 
     const result = await measureHttpLatency('http://example.com');
 
@@ -46,7 +44,7 @@ describe('measureHttpLatency', () => {
   });
 
   test('returns null on fetch error', async () => {
-    global.fetch = vi.fn(() => Promise.reject(new Error('Network error')));
+    mockFetchError('Network error');
 
     const result = await measureHttpLatency('http://example.com');
 
@@ -54,45 +52,27 @@ describe('measureHttpLatency', () => {
   });
 
   test('uses default timeout when not specified', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 200,
-      } as Response),
-    );
+    mockFetchStatus(200);
 
     await measureHttpLatency('http://example.com');
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
-    );
+    const [requestUrl, requestInit] = vi.mocked(global.fetch).mock.calls[0] ?? [];
+    expect(requestUrl).toBe('http://example.com');
+    expect(requestInit?.signal).toBeInstanceOf(AbortSignal);
   });
 
   test('uses custom timeout when specified', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 200,
-      } as Response),
-    );
+    mockFetchStatus(200);
 
     await measureHttpLatency('http://example.com', {timeoutMs: 2000});
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.objectContaining({
-        signal: expect.any(AbortSignal),
-      }),
-    );
+    const [requestUrl, requestInit] = vi.mocked(global.fetch).mock.calls[0] ?? [];
+    expect(requestUrl).toBe('http://example.com');
+    expect(requestInit?.signal).toBeInstanceOf(AbortSignal);
   });
 
   test('returns success for non-5xx status codes', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 404,
-      } as Response),
-    );
+    mockFetchStatus(404);
 
     const result = await measureHttpLatency('http://example.com');
 
@@ -100,11 +80,7 @@ describe('measureHttpLatency', () => {
   });
 
   test('returns success for 2xx status', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        status: 201,
-      } as Response),
-    );
+    mockFetchStatus(201);
 
     const result = await measureHttpLatency('http://example.com');
 

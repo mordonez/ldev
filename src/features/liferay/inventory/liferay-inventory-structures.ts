@@ -122,7 +122,7 @@ async function runLiferayInventoryStructuresForSiteId(
 
   const templates = await runLiferayInventoryTemplates(
     config,
-    {site: options?.site ?? '/global', pageSize: options?.pageSize ?? 200},
+    {site: options.site ?? '/global', pageSize: options.pageSize ?? 200},
     dependencies,
   );
 

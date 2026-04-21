@@ -40,7 +40,9 @@ export async function resolveBtrfsConfig(
   }
 
   const rootDir = resolveConfiguredPath(mainEnvContext.dockerDir, mainValues.BTRFS_ROOT);
-  const useSnapshots = mainValues.USE_BTRFS_SNAPSHOTS?.trim() || null;
+  const snapshotsValue = mainValues.USE_BTRFS_SNAPSHOTS;
+  const useSnapshots =
+    typeof snapshotsValue === 'string' && snapshotsValue.trim() !== '' ? snapshotsValue.trim() : null;
 
   if (!rootDir || !useSnapshots || useSnapshots === 'false') {
     return disabledBtrfsConfig();

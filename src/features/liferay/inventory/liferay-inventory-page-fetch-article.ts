@@ -22,8 +22,8 @@ export async function resolveDisplayPageArticle(
   if (!article && jsonwsArticle) {
     article = {
       id: Number(jsonwsArticle.resourcePrimKey ?? jsonwsArticle.id ?? -1) || undefined,
-      key: String(jsonwsArticle.articleId ?? ''),
-      title: String(jsonwsArticle.titleCurrentValue ?? jsonwsArticle.title ?? ''),
+      key: firstString(jsonwsArticle.articleId) ?? '',
+      title: firstString(jsonwsArticle.titleCurrentValue) ?? firstString(jsonwsArticle.title) ?? '',
       friendlyUrlPath: urlTitle,
       contentStructureId: Number(jsonwsArticle.contentStructureId ?? -1) || undefined,
     };
@@ -36,7 +36,7 @@ export async function resolveDisplayPageArticle(
   }
 
   const articleRef: ArticleRef = {
-    articleId: String(article.key ?? jsonwsArticle?.articleId ?? ''),
+    articleId: article.key ?? firstString(jsonwsArticle?.articleId) ?? '',
     groupId: siteId,
     ...(firstString(jsonwsArticle?.ddmTemplateKey) ? {ddmTemplateKey: firstString(jsonwsArticle?.ddmTemplateKey)} : {}),
   };

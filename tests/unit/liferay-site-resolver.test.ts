@@ -31,6 +31,7 @@ const mockNormalizeResolvedSite = (payload: SiteLookupPayload | null, _original:
 const createMockGateway = (responses: Map<string, unknown> = new Map()): MockGateway => {
   const mockGateway = {
     getJson: vi.fn(async (path: string, _label: string) => {
+      await Promise.resolve();
       if (responses.has(path)) {
         return responses.get(path);
       }
@@ -59,9 +60,16 @@ describe('SiteResolutionPipeline', () => {
     const pipeline = new SiteResolutionPipeline();
 
     pipeline
-      .addStep('step1', async () => null) // Return null to continue
-      .addStep('step2', async () => ({id: 123, friendlyUrlPath: '/test', name: 'Test'})) // Success
+      .addStep('step1', async () => {
+        await Promise.resolve();
+        return null;
+      }) // Return null to continue
+      .addStep('step2', async () => {
+        await Promise.resolve();
+        return {id: 123, friendlyUrlPath: '/test', name: 'Test'};
+      }) // Success
       .addStep('step3', async () => {
+        await Promise.resolve();
         throw new Error('Should not reach here');
       });
 
@@ -74,9 +82,18 @@ describe('SiteResolutionPipeline', () => {
     const pipeline = new SiteResolutionPipeline();
 
     pipeline
-      .addStep('step1', async () => null)
-      .addStep('step2', async () => null)
-      .addStep('step3', async () => null);
+      .addStep('step1', async () => {
+        await Promise.resolve();
+        return null;
+      })
+      .addStep('step2', async () => {
+        await Promise.resolve();
+        return null;
+      })
+      .addStep('step3', async () => {
+        await Promise.resolve();
+        return null;
+      });
 
     await expect(pipeline.execute('missing')).rejects.toThrow(new RegExp('Site not found'));
   });
@@ -85,7 +102,10 @@ describe('SiteResolutionPipeline', () => {
     const onStepSuccess = vi.fn();
     const pipeline = new SiteResolutionPipeline({onStepSuccess});
 
-    pipeline.addStep('success-step', async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
+    pipeline.addStep('success-step', async () => {
+      await Promise.resolve();
+      return {id: 1, friendlyUrlPath: '/test', name: 'Test'};
+    });
 
     await pipeline.execute('test');
 
@@ -98,9 +118,13 @@ describe('SiteResolutionPipeline', () => {
 
     pipeline
       .addStep('failing-step', async () => {
+        await Promise.resolve();
         throw new Error('Test error');
       })
-      .addStep('recovery-step', async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
+      .addStep('recovery-step', async () => {
+        await Promise.resolve();
+        return {id: 1, friendlyUrlPath: '/test', name: 'Test'};
+      });
 
     await expect(pipeline.execute('test')).rejects.toThrow('Test error');
 
@@ -108,8 +132,14 @@ describe('SiteResolutionPipeline', () => {
   });
 
   test('continues to next step on null return', async () => {
-    const step1 = vi.fn(async () => null);
-    const step2 = vi.fn(async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
+    const step1 = vi.fn(async () => {
+      await Promise.resolve();
+      return null;
+    });
+    const step2 = vi.fn(async () => {
+      await Promise.resolve();
+      return {id: 1, friendlyUrlPath: '/test', name: 'Test'};
+    });
 
     const pipeline = new SiteResolutionPipeline();
     pipeline.addStep('step1', step1).addStep('step2', step2);
@@ -122,9 +152,13 @@ describe('SiteResolutionPipeline', () => {
 
   test('rethrows unexpected errors', async () => {
     const step1 = vi.fn(async () => {
+      await Promise.resolve();
       throw new Error('Transient error');
     });
-    const step2 = vi.fn(async () => ({id: 1, friendlyUrlPath: '/test', name: 'Test'}));
+    const step2 = vi.fn(async () => {
+      await Promise.resolve();
+      return {id: 1, friendlyUrlPath: '/test', name: 'Test'};
+    });
 
     const onStepFailure = vi.fn();
     const pipeline = new SiteResolutionPipeline({onStepFailure});
@@ -174,6 +208,7 @@ describe('createByIdStep', () => {
   test('rethrows unexpected gateway errors', async () => {
     const gateway = {
       getJson: vi.fn(async () => {
+        await Promise.resolve();
         throw new CliError('resolve-site-by-id failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
       }),
       postJson: vi.fn(),
@@ -267,6 +302,7 @@ describe('createJsonwsFallbackStep', () => {
   test('rethrows unexpected JSONWS errors', async () => {
     const gateway = {
       getJson: vi.fn(async (path: string) => {
+        await Promise.resolve();
         if (path === '/api/jsonws/company/get-companies') {
           throw new CliError('list-jsonws-companies failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
         }
@@ -392,10 +428,12 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline
         .addStep('by-id', async (site) => {
+          await Promise.resolve();
           callOrder.push('by-id');
           return /^\d+$/.test(site) ? {id: 123, friendlyUrlPath: '/site', name: 'Site'} : null;
         })
         .addStep('by-friendly-url', async (site) => {
+          await Promise.resolve();
           callOrder.push('by-friendly-url');
           return {id: 456, friendlyUrlPath: site, name: 'Site'};
         });
@@ -413,10 +451,12 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline
         .addStep('by-id', async (site) => {
+          await Promise.resolve();
           callOrder.push('by-id');
           return /^\d+$/.test(site) ? {id: 123, friendlyUrlPath: '/site', name: 'Site'} : null;
         })
         .addStep('by-friendly-url', async (site) => {
+          await Promise.resolve();
           callOrder.push('by-friendly-url');
           return {id: 456, friendlyUrlPath: site, name: 'Site'};
         });
@@ -434,14 +474,17 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline
         .addStep('step1', async () => {
+          await Promise.resolve();
           callOrder.push('step1');
           return null; // miss
         })
         .addStep('step2', async () => {
+          await Promise.resolve();
           callOrder.push('step2');
           return {id: 789, friendlyUrlPath: '/found', name: 'Found'};
         })
         .addStep('step3', async () => {
+          await Promise.resolve();
           callOrder.push('step3');
           return {id: 999, friendlyUrlPath: '/other', name: 'Other'};
         });
@@ -460,14 +503,17 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline
         .addStep('step1', async () => {
+          await Promise.resolve();
           callOrder.push('step1');
           throw new CliError('mock request failed with status=404.', {code: 'LIFERAY_GATEWAY_ERROR'});
         })
         .addStep('step2', async () => {
+          await Promise.resolve();
           callOrder.push('step2');
           throw new CliError('mock request failed with status=403.', {code: 'LIFERAY_GATEWAY_ERROR'});
         })
         .addStep('step3', async () => {
+          await Promise.resolve();
           callOrder.push('step3');
           return {id: 123, friendlyUrlPath: '/fallback', name: 'Fallback'};
         });
@@ -481,6 +527,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
     test('unexpected errors (500, parsing, auth) propagate and do not convert to site-not-found', async () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline.addStep('step1', async () => {
+        await Promise.resolve();
         throw new CliError('resolve-site-by-id failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
       });
 
@@ -490,11 +537,16 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
     test('all steps return miss (null/404/403) results in site-not-found', async () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline
-        .addStep('step1', async () => null)
+        .addStep('step1', async () => {
+          await Promise.resolve();
+          return null;
+        })
         .addStep('step2', async () => {
+          await Promise.resolve();
           throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR'});
         })
         .addStep('step3', async () => {
+          await Promise.resolve();
           throw new CliError('status=403', {code: 'LIFERAY_GATEWAY_ERROR'});
         });
 
@@ -504,6 +556,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
     test('connection errors (non-gateway) propagate unchanged', async () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline.addStep('step1', async () => {
+        await Promise.resolve();
         throw new Error('Connection timeout');
       });
 
@@ -518,8 +571,14 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
 
       const pipeline = new SiteResolutionPipeline({onStepSuccess, onStepFailure});
       pipeline
-        .addStep('step1', async () => null) // miss, skipped
-        .addStep('step2', async () => ({id: 123, friendlyUrlPath: '/site', name: 'Site'})); // winner
+        .addStep('step1', async () => {
+          await Promise.resolve();
+          return null;
+        }) // miss, skipped
+        .addStep('step2', async () => {
+          await Promise.resolve();
+          return {id: 123, friendlyUrlPath: '/site', name: 'Site'};
+        }); // winner
 
       await pipeline.execute('test');
 
@@ -534,6 +593,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline({onStepFailure});
       const customError = new CliError('status=500', {code: 'LIFERAY_GATEWAY_ERROR'});
       pipeline.addStep('step1', async () => {
+        await Promise.resolve();
         throw customError;
       });
 
@@ -549,9 +609,13 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline({onStepSuccess});
       pipeline
         .addStep('step1', async () => {
+          await Promise.resolve();
           throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR'});
         })
-        .addStep('step2', async () => ({id: 123, friendlyUrlPath: '/site', name: 'Site'}));
+        .addStep('step2', async () => {
+          await Promise.resolve();
+          return {id: 123, friendlyUrlPath: '/site', name: 'Site'};
+        });
 
       await pipeline.execute('test');
 
@@ -612,6 +676,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
     test('JSONWS treats 404 from company list as complete miss (no fallback)', async () => {
       const gateway = {
         getJson: vi.fn(async (path: string) => {
+          await Promise.resolve();
           if (path === '/api/jsonws/company/get-companies') {
             throw new CliError('list-jsonws-companies failed with status=404.', {code: 'LIFERAY_GATEWAY_ERROR'});
           }
@@ -645,6 +710,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       steps.forEach((stepName) => {
         pipeline.addStep(stepName, async () => {
+          await Promise.resolve();
           callOrder.push(stepName);
           if (stepName === 'paginated-search') {
             return {id: 999, friendlyUrlPath: '/test', name: 'Test'};
@@ -672,10 +738,22 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
 
       const pipeline = new SiteResolutionPipeline();
       pipeline
-        .addStep('by-id', async () => null)
-        .addStep('by-friendly-url-site', async () => null)
-        .addStep('by-friendly-url-user', async () => null)
-        .addStep('paginated-search', async () => null)
+        .addStep('by-id', async () => {
+          await Promise.resolve();
+          return null;
+        })
+        .addStep('by-friendly-url-site', async () => {
+          await Promise.resolve();
+          return null;
+        })
+        .addStep('by-friendly-url-user', async () => {
+          await Promise.resolve();
+          return null;
+        })
+        .addStep('paginated-search', async () => {
+          await Promise.resolve();
+          return null;
+        })
         .addStep(
           'jsonws-fallback',
           createJsonwsFallbackStep(

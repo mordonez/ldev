@@ -8,15 +8,19 @@ import {
   formatLiferayResourceSyncStructure,
   runLiferayResourceSyncStructure,
 } from '../../src/features/liferay/resource/liferay-resource-sync-structure.js';
+import {
+  createStaticTokenClient,
+  createTestFetchImpl,
+  parseTestJson,
+  toTestRequestBody,
+} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
+type StructuredContentBody = {
+  contentFields: Array<Record<string, unknown>>;
 };
+
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture(): Promise<{
   repoRoot: string;
@@ -76,8 +80,7 @@ describe('liferay resource structure-sync', () => {
   test('throws when structure is missing and createMissing is not enabled', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -85,7 +88,7 @@ describe('liferay resource structure-sync', () => {
           return new Response('{"message":"Not Found"}', {status: 404});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -96,8 +99,7 @@ describe('liferay resource structure-sync', () => {
   test('returns checked_missing when structure is missing and checkOnly is enabled with createMissing', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -105,7 +107,7 @@ describe('liferay resource structure-sync', () => {
           return new Response('{"message":"Not Found"}', {status: 404});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncStructure(
@@ -122,8 +124,7 @@ describe('liferay resource structure-sync', () => {
   test('blocks breaking changes without migration-plan or allow-breaking-change', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -138,7 +139,7 @@ describe('liferay resource structure-sync', () => {
           );
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -153,8 +154,7 @@ describe('liferay resource structure-sync', () => {
       {name: 'oldField', contentFieldValue: {data: 'legacy value'}},
     ];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         calls.push(`${init?.method ?? 'GET'} ${url}`);
 
         if (url.includes('/by-friendly-url-path/global')) {
@@ -191,7 +191,7 @@ describe('liferay resource structure-sync', () => {
           );
         }
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
-          const body = JSON.parse(String(init?.body ?? '{}'));
+          const body = parseTestJson<StructuredContentBody>(toTestRequestBody(init?.body) || '{}');
           expect(body.contentFields).toEqual([
             {name: 'oldField', contentFieldValue: {data: ''}},
             {name: 'newField', contentFieldValue: {data: 'legacy value'}},
@@ -201,7 +201,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncStructure(
@@ -262,9 +262,7 @@ describe('liferay resource structure-sync', () => {
     let updateAttempts = 0;
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -293,7 +291,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncStructure(
@@ -302,7 +300,10 @@ describe('liferay resource structure-sync', () => {
       {
         apiClient,
         tokenClient: TOKEN_CLIENT,
-        sleep: async () => undefined,
+        sleep: async () => {
+          await Promise.resolve();
+          return undefined;
+        },
       },
     );
 
@@ -315,9 +316,7 @@ describe('liferay resource structure-sync', () => {
     const {config} = await createRepoFixture();
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -337,7 +336,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -347,7 +346,10 @@ describe('liferay resource structure-sync', () => {
         {
           apiClient,
           tokenClient: TOKEN_CLIENT,
-          sleep: async () => undefined,
+          sleep: async () => {
+            await Promise.resolve();
+            return undefined;
+          },
         },
       ),
     ).rejects.toThrow('could not confirm whether the update eventually applied');
@@ -363,9 +365,7 @@ describe('liferay resource structure-sync', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -400,7 +400,7 @@ describe('liferay resource structure-sync', () => {
           );
         }
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
-          const body = JSON.parse(String(init?.body ?? '{}'));
+          const body = parseTestJson<StructuredContentBody>(toTestRequestBody(init?.body) || '{}');
           expect(body.contentFields).toEqual([
             {name: 'oldField', contentFieldValue: {data: 'legacy value'}},
             {name: 'newField', contentFieldValue: {data: 'legacy value'}},
@@ -410,7 +410,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncStructure(
@@ -446,8 +446,7 @@ describe('liferay resource structure-sync', () => {
     ]);
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         const headers = new Headers(init?.headers);
         const acceptLanguage = headers.get('Accept-Language') ?? '';
 
@@ -499,7 +498,7 @@ describe('liferay resource structure-sync', () => {
           );
         }
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
-          const body = JSON.parse(String(init?.body ?? '{}'));
+          const body = parseTestJson<StructuredContentBody>(toTestRequestBody(init?.body) || '{}');
           if (acceptLanguage === 'ca-ES') {
             expect(body.contentFields).toEqual([
               {name: 'oldField', contentFieldValue: {data: 'valor cat'}},
@@ -517,7 +516,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncStructure(
@@ -559,9 +558,7 @@ describe('liferay resource structure-sync', () => {
   test('fails the migration when a structured content update cannot be persisted', async () => {
     const {config, migrationPlanFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -600,7 +597,7 @@ describe('liferay resource structure-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(

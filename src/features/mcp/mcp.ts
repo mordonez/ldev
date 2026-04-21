@@ -204,8 +204,8 @@ async function resolveAuthorizationHeaders(config: AppConfig, auth?: McpAuthOpti
   }
 
   // Fall back to ldev OAuth token when configured.
-  const clientId = config.liferay.oauth2ClientId?.trim() ?? '';
-  const clientSecret = config.liferay.oauth2ClientSecret?.trim() ?? '';
+  const clientId = config.liferay.oauth2ClientId.trim();
+  const clientSecret = config.liferay.oauth2ClientSecret.trim();
   if (clientId !== '' && clientSecret !== '') {
     try {
       const tokenClient = createOAuthTokenClient();
@@ -213,7 +213,7 @@ async function resolveAuthorizationHeaders(config: AppConfig, auth?: McpAuthOpti
         url: config.liferay.url,
         oauth2ClientId: clientId,
         oauth2ClientSecret: clientSecret,
-        scopeAliases: config.liferay.scopeAliases ?? '',
+        scopeAliases: config.liferay.scopeAliases,
         timeoutSeconds: 15,
       });
       return {Authorization: `${token.tokenType} ${token.accessToken}`};
@@ -373,7 +373,7 @@ function sanitizeBody(body: string): string {
   return body.replaceAll(/\s+/g, ' ').trim();
 }
 
-function tryParseSseJson(body: string): unknown | null {
+function tryParseSseJson(body: string): unknown {
   const dataLines = body
     .split(/\r?\n/)
     .map((line) => line.trim())

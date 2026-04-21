@@ -3,11 +3,29 @@ import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
 
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir, createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
 
 const AI_ROOT = path.resolve(CLI_CWD, 'templates', 'ai');
 const PACKAGE_VERSION = (fs.readJsonSync(path.join(CLI_CWD, 'package.json')) as {version: string}).version;
+
+type RulesManifestRule = {
+  id: string;
+  namespace: string;
+  targetFiles?: string[];
+  verifiedAgainst?: string[];
+  localModificationPolicy?: string;
+  sourceKind?: string;
+  sourceReferences?: string[];
+};
+
+type RulesManifest = {
+  projectType: string;
+  packageVersion: string;
+  officialWorkspaceFilesDetected?: string[];
+  rules: RulesManifestRule[];
+};
 
 describe('ai integration', () => {
   test('install creates vendor skills, manifest, AGENTS.md and common managed AI rules', async () => {
@@ -56,11 +74,13 @@ describe('ai integration', () => {
     );
     expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'))).toBe(false);
 
-    const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
+    const rulesManifest = parseTestJson<RulesManifest>(
+      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
+    );
     expect(rulesManifest.projectType).toBe('unknown');
     expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
     expect(rulesManifest.rules).toHaveLength(7);
-    expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
+    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',
@@ -69,7 +89,7 @@ describe('ai integration', () => {
       'ldev-resource-migrations',
       'ldev-runtime-troubleshooting',
     ]);
-    for (const rule of rulesManifest.rules as Array<{namespace: string}>) {
+    for (const rule of rulesManifest.rules) {
       expect(rule.namespace).toBe('ldev');
     }
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
@@ -561,7 +581,9 @@ describe('ai integration', () => {
     expect(agents).toContain('Liferay Workspace');
     expect(agents).toContain('.workspace-rules/*.md');
 
-    const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
+    const rulesManifest = parseTestJson<RulesManifest>(
+      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
+    );
     expect(rulesManifest.projectType).toBe('blade-workspace');
     expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
     expect(rulesManifest.officialWorkspaceFilesDetected).toEqual([
@@ -570,7 +592,7 @@ describe('ai integration', () => {
       '.github/copilot-instructions.md',
     ]);
     expect(rulesManifest.rules).toHaveLength(11);
-    expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
+    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',
@@ -583,15 +605,7 @@ describe('ai integration', () => {
       'ldev-workspace-runtime',
       'ldev-workspace-setup',
     ]);
-    for (const rule of rulesManifest.rules as Array<{
-      id: string;
-      namespace: string;
-      targetFiles: string[];
-      verifiedAgainst: string[];
-      localModificationPolicy: string;
-      sourceKind: string;
-      sourceReferences?: string[];
-    }>) {
+    for (const rule of rulesManifest.rules) {
       expect(['ldev', 'ldev-workspace']).toContain(rule.namespace);
       expect(rule.targetFiles).not.toContain('.workspace-rules/liferay-rules.md');
       expect(rule.verifiedAgainst).toEqual(['dxp-2026.q1.0-lts']);
@@ -642,11 +656,13 @@ describe('ai integration', () => {
     expect(nativeAgentWorkflow).toContain('Before the first edit, confirm every file path you will edit starts with');
     expect(nativeAgentWorkflow).toContain('the worktree root');
 
-    const rulesManifest = await fs.readJson(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'));
+    const rulesManifest = parseTestJson<RulesManifest>(
+      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
+    );
     expect(rulesManifest.projectType).toBe('ldev-native');
     expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
     expect(rulesManifest.rules).toHaveLength(10);
-    expect(rulesManifest.rules.map((rule: {id: string}) => rule.id).sort()).toEqual([
+    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
       'ldev-deploy-verification',
       'ldev-liferay-client-extensions',
       'ldev-liferay-core',

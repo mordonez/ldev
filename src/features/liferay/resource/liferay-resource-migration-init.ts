@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {isRecord, readJsonUnknown} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
@@ -178,7 +179,8 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
     }
     const record = field as Record<string, unknown>;
     const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
-    const fieldReference = String(customProperties.fieldReference ?? record.name ?? '').trim();
+    const fieldReference =
+      normalizeScalarString(customProperties.fieldReference) ?? normalizeScalarString(record.name) ?? '';
     if (fieldReference !== '') {
       refs.add(fieldReference);
     }
@@ -215,11 +217,9 @@ function collectReferencedDependentStructuresRecursive(
     }
     const record = field as Record<string, unknown>;
     const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
-    const fieldsetKey = String(customProperties.ddmStructureKey ?? '').trim();
+    const fieldsetKey = normalizeScalarString(customProperties.ddmStructureKey) ?? '';
     if (
-      String(record.fieldType ?? '')
-        .trim()
-        .toLowerCase() === 'fieldset' &&
+      (normalizeScalarString(record.fieldType) ?? '').toLowerCase() === 'fieldset' &&
       fieldsetKey !== '' &&
       fieldsetKey !== mainStructureKey
     ) {
@@ -266,15 +266,11 @@ function collectMigrationTargetsRecursive(
 
 function fieldReference(field: Record<string, unknown>): string {
   const customProperties = (field.customProperties ?? {}) as Record<string, unknown>;
-  return String(customProperties.fieldReference ?? field.name ?? '').trim();
+  return normalizeScalarString(customProperties.fieldReference) ?? normalizeScalarString(field.name) ?? '';
 }
 
 function isFieldsetField(field: Record<string, unknown>): boolean {
-  return (
-    String(field.fieldType ?? '')
-      .trim()
-      .toLowerCase() === 'fieldset'
-  );
+  return (normalizeScalarString(field.fieldType) ?? '').toLowerCase() === 'fieldset';
 }
 
 function setDifference<T>(left: Set<T>, right: Set<T>): Set<T> {

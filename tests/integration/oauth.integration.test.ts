@@ -4,8 +4,29 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type OAuthVerification = {
+  attempted: boolean;
+  verified: boolean;
+  sanitized?: boolean;
+};
+
+type OAuthInstallPayload = {
+  command: string;
+  companyId: string;
+  userId?: string;
+  passwordReset?: boolean;
+  localProfileUpdated?: boolean;
+  readWrite: {
+    clientId: string;
+  };
+  scopeAliases: string[];
+  verification: OAuthVerification;
+  bundleFile: string;
+};
 
 describe('oauth integration', () => {
   test('oauth install deploys the bundled installer and writes local profile credentials', async () => {
@@ -23,7 +44,7 @@ describe('oauth integration', () => {
 
     expect(result.exitCode).toBe(0);
 
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<OAuthInstallPayload>(result.stdout);
     expect(parsed.command).toBe('ldev:oauthInstall');
     expect(parsed.companyId).toBe('20116');
     expect(parsed.readWrite.clientId).toBe('client-id');
@@ -53,7 +74,7 @@ describe('oauth integration', () => {
 
     expect(result.exitCode).toBe(0);
 
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<OAuthInstallPayload>(result.stdout);
     expect(parsed.companyId).toBe('20116');
     expect(parsed.userId).toBe('20123');
     expect(parsed.passwordReset).toBe(false);

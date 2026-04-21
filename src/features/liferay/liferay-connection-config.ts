@@ -10,11 +10,12 @@ export type ResolvedLiferayConfigInput = {
 export function resolveLiferayConfig(input: ResolvedLiferayConfigInput) {
   const {processEnv, dockerEnv, localProfile} = input;
 
-  const rawBindIp = dockerEnv.BIND_IP?.trim();
-  const hasSpecificBindIp =
-    rawBindIp !== undefined && rawBindIp !== '' && !['0.0.0.0', '127.0.0.1', 'localhost'].includes(rawBindIp);
+  const bindIpValue = dockerEnv.BIND_IP;
+  const rawBindIp = typeof bindIpValue === 'string' ? bindIpValue.trim() : '';
+  const hasSpecificBindIp = rawBindIp !== '' && !['0.0.0.0', '127.0.0.1', 'localhost'].includes(rawBindIp);
   const bindIp = hasSpecificBindIp ? rawBindIp : 'localhost';
-  const httpPort = dockerEnv.LIFERAY_HTTP_PORT ?? '8080';
+  const httpPortValue: unknown = dockerEnv.LIFERAY_HTTP_PORT;
+  const httpPort = typeof httpPortValue === 'string' && httpPortValue.trim() !== '' ? httpPortValue.trim() : '8080';
   const bindIpUrl = hasSpecificBindIp ? `http://${bindIp}:${httpPort}` : undefined;
   const fallbackUrl = `http://${bindIp}:${httpPort}`;
 
@@ -23,7 +24,7 @@ export function resolveLiferayConfig(input: ResolvedLiferayConfigInput) {
       envValue: processEnv.LIFERAY_CLI_URL,
       localProfileValue: localProfile['liferay.url'],
       dockerEnvValue: dockerEnv.LIFERAY_CLI_URL,
-      fallbackValue: bindIpUrl ?? fallbackUrl,
+      fallbackValue: bindIpUrl || fallbackUrl,
     }),
     oauth2ClientId: resolveRuntimeStringConfig({
       envValue: processEnv.LIFERAY_CLI_OAUTH2_CLIENT_ID,

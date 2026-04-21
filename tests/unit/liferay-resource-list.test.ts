@@ -9,6 +9,7 @@ import {
   formatLiferayResourceFragments,
   runLiferayResourceListFragments,
 } from '../../src/features/liferay/resource/liferay-resource-list-fragments.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -28,19 +29,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource list', () => {
   test('lists ADTs and supports widget type filter', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -83,7 +77,7 @@ describe('liferay resource list', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceListAdts(
@@ -109,8 +103,7 @@ describe('liferay resource list', () => {
 
   test('lists fragment collections and fragments', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -131,7 +124,7 @@ describe('liferay resource list', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceListFragments(
@@ -158,8 +151,7 @@ describe('liferay resource list', () => {
 
   test('surfaces fragment listing errors clearly', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -167,7 +159,7 @@ describe('liferay resource list', () => {
           return new Response('{"companyId":10157}', {status: 200});
         }
         return new Response('boom', {status: 500});
-      },
+      }),
     });
 
     await expect(

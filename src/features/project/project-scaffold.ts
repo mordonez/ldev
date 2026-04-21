@@ -199,7 +199,7 @@ async function ensureFile(filePath: string): Promise<void> {
 function findPackageRoot(fromFile: string): string {
   let current = path.dirname(fromFile);
 
-  while (true) {
+  for (;;) {
     if (fs.existsSync(path.join(current, 'package.json')) && fs.existsSync(path.join(current, 'templates'))) {
       return current;
     }

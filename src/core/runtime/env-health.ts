@@ -59,13 +59,10 @@ export async function waitForServiceHealthy(
   const pollIntervalSeconds = options?.pollIntervalSeconds ?? 5;
   const processOptions = options?.processEnv ? {env: options.processEnv} : undefined;
 
-  let lastStatus: EnvServiceStatus | null = null;
-
   try {
     await pWaitFor(
       async () => {
         const current = await inspectComposeService(context, service, processOptions);
-        lastStatus = current;
 
         if (current.state === 'exited' || current.state === 'dead') {
           throw new CliError(
@@ -83,14 +80,14 @@ export async function waitForServiceHealthy(
       throw error;
     }
 
-    const last = lastStatus ?? (await inspectComposeService(context, service, processOptions));
+    const last = await inspectComposeService(context, service, processOptions);
     throw new CliError(
-      `Timed out waiting for ${service} healthy/running (state=${last.state ?? 'unknown'}, health=${last.health ?? 'n/a'}).`,
+      `Timed out waiting for ${service} healthy/running (state=${last.state}, health=${last.health ?? 'n/a'}).`,
       {code: 'ENV_SERVICE_TIMEOUT'},
     );
   }
 
-  return lastStatus ?? (await inspectComposeService(context, service, processOptions));
+  return inspectComposeService(context, service, processOptions);
 }
 
 export async function waitForPortalReady(

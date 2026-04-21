@@ -96,7 +96,7 @@ async function applyProjectTooling(options: {
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
   await configureGeneratedProjectFiles(options.targetDir, options.projectName, options.services);
 
-  const touchedPaths = await collectTouchedPaths(options.targetDir, {
+  const touchedPaths = collectTouchedPaths(options.targetDir, {
     dockerCreated,
     liferayCreated,
     dockerenvCreated,
@@ -190,7 +190,7 @@ function toProjectSlug(value: string): string {
   return normalized === '' ? 'liferay' : normalized;
 }
 
-async function collectTouchedPaths(
+function collectTouchedPaths(
   targetDir: string,
   changes: {
     dockerCreated: boolean;
@@ -198,7 +198,7 @@ async function collectTouchedPaths(
     dockerenvCreated: boolean;
     scaffoldFilesCopied: string[];
   },
-): Promise<string[]> {
+): string[] {
   const touchedPaths = [...changes.scaffoldFilesCopied];
 
   if (changes.dockerCreated) {

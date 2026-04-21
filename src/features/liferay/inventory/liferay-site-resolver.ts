@@ -213,7 +213,7 @@ export function createPaginatedSearchStep(
           `list-sites-page-${page}`,
         );
 
-        const items = Array.isArray(pageData?.items) ? pageData.items : [];
+        const items = Array.isArray(pageData.items) ? pageData.items : [];
 
         for (const item of items) {
           const friendlyUrlPath = normalizeFriendlyUrl(item.friendlyUrlPath ?? '');
@@ -228,7 +228,7 @@ export function createPaginatedSearchStep(
           }
         }
 
-        lastPage = pageData?.lastPage ?? 1;
+        lastPage = pageData.lastPage ?? 1;
         page += 1;
       }
     } catch (error) {

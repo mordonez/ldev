@@ -5,6 +5,7 @@ import {
   formatLiferayResourceAdt,
   runLiferayResourceGetAdt,
 } from '../../src/features/liferay/resource/liferay-resource-get-adt.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -24,19 +25,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource adt', () => {
   test('reads one ADT in detail by display style', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -69,7 +63,7 @@ describe('liferay resource adt', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetAdt(
@@ -99,9 +93,7 @@ describe('liferay resource adt', () => {
     // Real-world case: /facultat-educacio is a top-level site (parentGroupId=0) so the
     // parentGroupId walk yields nothing. The /global fallback must kick in automatically.
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         // Resolve child site /facultat-educacio by friendly URL
         if (url.includes('/by-friendly-url-path/facultat-educacio')) {
           return new Response('{"id":15506048,"friendlyUrlPath":"/facultat-educacio","name":"Facultat d\'Educació"}', {
@@ -158,7 +150,7 @@ describe('liferay resource adt', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetAdt(
@@ -175,9 +167,7 @@ describe('liferay resource adt', () => {
 
   test('searches accessible sites when --site is omitted', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
           return new Response(
             '{"items":[{"id":30100,"friendlyUrlPath":"/guest","nameCurrentValue":"Guest"}],"lastPage":1}',
@@ -229,7 +219,7 @@ describe('liferay resource adt', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetAdt(

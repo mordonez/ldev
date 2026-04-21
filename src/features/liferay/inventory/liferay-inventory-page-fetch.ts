@@ -208,7 +208,7 @@ export async function fetchRegularPageInventory(
       }
       const editableFields = new Map((entry.editableFields ?? []).map((field) => [field.id, field.value]));
       const fields = [...editableFields.entries()]
-        .map(([id, value]) => ({id: id.trim(), value: String(value ?? '').trim()}))
+        .map(([id, value]) => ({id: id.trim(), value: String(value).trim()}))
         .filter((field) => field.id !== '' && field.value !== '');
       const field = (id: string): string => String(editableFields.get(id) ?? '').trim();
       const firstFieldValue = (patterns: RegExp[]): string | undefined => {
@@ -234,18 +234,17 @@ export async function fetchRegularPageInventory(
       const truncate = (value: string, maxLength: number): string =>
         value.length > maxLength ? `${value.slice(0, maxLength - 1).trimEnd()}…` : value;
 
-      const title =
-        firstFieldValue([/^title$/i, /(?:^|[._-])(title|heading|header|label|name)(?:[._-]|$)/i]) ?? undefined;
+      const title = firstFieldValue([/^title$/i, /(?:^|[._-])(title|heading|header|label|name)(?:[._-]|$)/i]);
 
       let cardCount: number | undefined;
 
       const heroSource =
-        firstFieldValue([
+        (firstFieldValue([
           /^summary$/i,
           /^description$/i,
           /(?:^|[._-])(intro|intro-paragraph|paragraph|text|body|content|summary|description)(?:[._-]|$)/i,
         ]) ??
-        field('paragraph') ??
+          field('paragraph')) ||
         field('text');
       const heroText = truncate(stripHtml(heroSource), 160) || undefined;
 

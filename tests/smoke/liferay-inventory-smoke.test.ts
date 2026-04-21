@@ -1,7 +1,25 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
-import {captureProcessOutput, createLiferayCliRepoFixture} from '../../src/testing/cli-test-helpers.js';
+import {
+  captureProcessOutput,
+  createLiferayCliRepoFixture,
+  parseTestJson,
+  toTestRequestUrl,
+} from '../../src/testing/cli-test-helpers.js';
+
+type InventoryPagesPayload = {
+  inventoryType: string;
+  siteFriendlyUrl: string;
+  pageCount: number;
+  pages: Array<{children?: Array<{fullUrl: string}>; targetUrl?: string}>;
+};
+
+type InventoryPagePayload = {
+  pageType: string;
+  article: {key: string};
+  journalArticles: Array<{contentFields: Array<{value: string}>}>;
+};
 
 describe('liferay inventory smoke', () => {
   let repoRoot: string;
@@ -21,7 +39,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -68,7 +87,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -112,11 +132,13 @@ describe('liferay inventory smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<InventoryPagesPayload>(output.stdout());
     expect(parsed.inventoryType).toBe('pages');
     expect(parsed.siteFriendlyUrl).toBe('/guest');
     expect(parsed.pageCount).toBe(3);
-    expect(parsed.pages[0].children[0].fullUrl).toBe('/web/guest/child');
+    const firstChildPage = parsed.pages[0]?.children?.[0];
+    expect(firstChildPage).toBeDefined();
+    expect(firstChildPage?.fullUrl).toBe('/web/guest/child');
     expect(parsed.pages[1].targetUrl).toBe('https://example.test');
     expect(output.stderr()).toBe('');
   });
@@ -125,7 +147,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -167,7 +190,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -209,7 +233,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -320,7 +345,8 @@ describe('liferay inventory smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -367,7 +393,7 @@ describe('liferay inventory smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<InventoryPagePayload>(output.stdout());
     expect(parsed.pageType).toBe('displayPage');
     expect(parsed.article.key).toBe('ART-001');
     expect(parsed.journalArticles[0].contentFields[0].value).toBe('News title');

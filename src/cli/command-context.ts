@@ -41,7 +41,7 @@ export function createCommandContext(options?: CommandContextOptions): CommandCo
   const overrides = resolveLiferayConnectionOverrides(options, process.argv, process.env);
   const config = applyLiferayConnectionOverrides(project.config, overrides);
   const resolvedFormat = resolveOutputFormatOption(options);
-  const format = outputFormatSchema.parse(resolvedFormat) as OutputFormat;
+  const format = outputFormatSchema.parse(resolvedFormat);
   const strict = resolveStrictMode(options);
 
   return {

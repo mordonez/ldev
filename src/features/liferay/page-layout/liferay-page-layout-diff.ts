@@ -101,7 +101,7 @@ export function collectPageLayoutDiffs(
   right: LiferayPageLayoutExport,
 ): LiferayPageLayoutDiffEntry[] {
   const diffs: LiferayPageLayoutDiffEntry[] = [];
-  collectStructuralDiffs(left.headlessSitePage?.pageDefinition, right.headlessSitePage?.pageDefinition, '$', diffs);
+  collectStructuralDiffs(left.headlessSitePage.pageDefinition, right.headlessSitePage.pageDefinition, '$', diffs);
   return diffs;
 }
 

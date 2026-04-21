@@ -141,7 +141,7 @@ export async function runLiferayResourceGetAdt(
     );
   }
 
-  const match = matches[0]!;
+  const match = matches[0];
   return {
     siteFriendlyUrl: match.siteFriendlyUrl,
     widgetType: match.widgetType,

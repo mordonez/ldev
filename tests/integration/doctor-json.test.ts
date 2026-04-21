@@ -1,6 +1,18 @@
 import {describe, expect, test} from 'vitest';
 
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
+
+type DoctorPayload = {
+  ok: boolean;
+  summary: Record<string, unknown>;
+  checks: unknown[];
+  environment: Record<string, unknown>;
+  config: Record<string, unknown>;
+  ai: Record<string, unknown>;
+  tools: Record<string, unknown>;
+  capabilities: Record<string, unknown>;
+};
 
 describe('doctor integration', () => {
   test('doctor --format json prints valid json', async () => {
@@ -9,7 +21,7 @@ describe('doctor integration', () => {
     });
 
     expect([0, 1]).toContain(result.exitCode);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DoctorPayload>(result.stdout);
     expect(typeof parsed.ok).toBe('boolean');
     expect(parsed.summary).toHaveProperty('passed');
     expect(Array.isArray(parsed.checks)).toBe(true);

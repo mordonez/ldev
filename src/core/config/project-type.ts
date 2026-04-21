@@ -35,7 +35,7 @@ export function detectProject(startDir: string): ProjectDetection {
   let current = path.resolve(startDir);
   let workspaceCandidate: string | null = null;
 
-  while (true) {
+  for (;;) {
     if (isLdevNativeProject(current)) {
       return {
         type: 'ldev-native',

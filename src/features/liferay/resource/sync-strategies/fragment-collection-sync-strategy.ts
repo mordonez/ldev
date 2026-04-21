@@ -24,7 +24,7 @@ type FragmentCollectionSyncOptions = {
 };
 
 export const fragmentCollectionSyncStrategy: SyncStrategy<FragmentCollectionLocalData, FragmentCollectionRemoteData> = {
-  async resolveLocal(
+  resolveLocal(
     _config: AppConfig,
     _site: ResolvedSite,
     options: Record<string, unknown>,
@@ -32,12 +32,12 @@ export const fragmentCollectionSyncStrategy: SyncStrategy<FragmentCollectionLoca
     const opts = options as FragmentCollectionSyncOptions;
     const normalizedContent = normalizeFragmentCollectionForHash(opts.collection);
 
-    return {
+    return Promise.resolve({
       id: opts.collection.slug,
       normalizedContent,
       contentHash: sha256(normalizedContent),
       data: {collection: opts.collection},
-    };
+    });
   },
 
   async findRemote(

@@ -46,7 +46,10 @@ describe('capabilities', () => {
       },
       config: BASE_CONFIG,
       dependencies: {
-        detectCapabilities: async () => BASE_CAPABILITIES,
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return BASE_CAPABILITIES;
+        },
         detectRepoPaths: () => ({
           repoRoot: '/repo',
           dockerDir: '/repo/docker',
@@ -54,7 +57,10 @@ describe('capabilities', () => {
           dockerEnvFile: '/repo/docker/.env',
           liferayProfileFile: '/repo/.liferay-cli.yml',
         }),
-        isWorktree: async () => true,
+        isWorktree: async () => {
+          await Promise.resolve();
+          return true;
+        },
         readEnvFile: () => ({
           BIND_IP: 'localhost',
           LIFERAY_HTTP_PORT: '8080',
@@ -68,13 +74,16 @@ describe('capabilities', () => {
           'liferay.oauth2.clientSecret': 'profile-secret',
           'liferay.oauth2.scopeAliases': 'scope-profile',
         }),
-        runProcess: async (command) => ({
-          command,
-          stdout: `${command} version`,
-          stderr: '',
-          exitCode: 0,
-          ok: true,
-        }),
+        runProcess: async (command) => {
+          await Promise.resolve();
+          return {
+            command,
+            stdout: `${command} version`,
+            stderr: '',
+            exitCode: 0,
+            ok: true,
+          };
+        },
       },
     });
 
@@ -112,12 +121,15 @@ describe('capabilities', () => {
         },
       },
       dependencies: {
-        detectCapabilities: async () => ({
-          ...BASE_CAPABILITIES,
-          hasBlade: false,
-          hasDocker: false,
-          hasDockerCompose: false,
-        }),
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return {
+            ...BASE_CAPABILITIES,
+            hasBlade: false,
+            hasDocker: false,
+            hasDockerCompose: false,
+          };
+        },
         detectProject: () => ({
           type: 'unknown',
           root: null,
@@ -129,16 +141,22 @@ describe('capabilities', () => {
           dockerEnvFile: null,
           liferayProfileFile: null,
         }),
-        isWorktree: async () => false,
+        isWorktree: async () => {
+          await Promise.resolve();
+          return false;
+        },
         readEnvFile: () => ({}),
         readProfileFile: () => ({}),
-        runProcess: async (command, args) => ({
-          command: [command, ...(args ?? [])].join(' '),
-          stdout: '',
-          stderr: '',
-          exitCode: 1,
-          ok: false,
-        }),
+        runProcess: async (command, args) => {
+          await Promise.resolve();
+          return {
+            command: [command, ...(args ?? [])].join(' '),
+            stdout: '',
+            stderr: '',
+            exitCode: 1,
+            ok: false,
+          };
+        },
       },
     });
 
@@ -160,7 +178,10 @@ describe('capabilities', () => {
       },
       config: BASE_CONFIG,
       dependencies: {
-        detectCapabilities: async () => BASE_CAPABILITIES,
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return BASE_CAPABILITIES;
+        },
         detectRepoPaths: () => ({
           repoRoot: '/repo',
           dockerDir: '/repo/docker',
@@ -168,7 +189,10 @@ describe('capabilities', () => {
           dockerEnvFile: '/repo/docker/.env',
           liferayProfileFile: '/repo/.liferay-cli.yml',
         }),
-        isWorktree: async () => false,
+        isWorktree: async () => {
+          await Promise.resolve();
+          return false;
+        },
         readEnvFile: () => ({
           BIND_IP: 'localhost',
           LIFERAY_HTTP_PORT: '8080',
@@ -178,15 +202,21 @@ describe('capabilities', () => {
         }),
         readProfileFile: () => ({}),
         getTotalMemoryBytes: () => 4 * 1024 ** 3,
-        checkTcpPort: async () => 'in-use',
+        checkTcpPort: async () => {
+          await Promise.resolve();
+          return 'in-use';
+        },
         fileExists: () => false,
-        runProcess: async (command, args) => ({
-          command: [command, ...(args ?? [])].join(' '),
-          stdout: command === 'docker' && args?.includes('info') ? '' : `${command} version`,
-          stderr: command === 'docker' && args?.includes('info') ? 'daemon unavailable' : '',
-          exitCode: command === 'docker' && args?.includes('info') ? 1 : 0,
-          ok: !(command === 'docker' && args?.includes('info')),
-        }),
+        runProcess: async (command, args) => {
+          await Promise.resolve();
+          return {
+            command: [command, ...(args ?? [])].join(' '),
+            stdout: command === 'docker' && args?.includes('info') ? '' : `${command} version`,
+            stderr: command === 'docker' && args?.includes('info') ? 'daemon unavailable' : '',
+            exitCode: command === 'docker' && args?.includes('info') ? 1 : 0,
+            ok: !(command === 'docker' && args?.includes('info')),
+          };
+        },
       },
     });
 
@@ -219,11 +249,14 @@ describe('capabilities', () => {
         },
       },
       dependencies: {
-        detectCapabilities: async () => ({
-          ...BASE_CAPABILITIES,
-          hasDocker: false,
-          hasDockerCompose: false,
-        }),
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return {
+            ...BASE_CAPABILITIES,
+            hasDocker: false,
+            hasDockerCompose: false,
+          };
+        },
         detectProject: () => ({
           type: 'blade-workspace',
           root: '/workspace',
@@ -238,14 +271,20 @@ describe('capabilities', () => {
         }),
         readEnvFile: () => ({}),
         readProfileFile: () => ({}),
-        runProcess: async (command, args) => ({
-          command: [command, ...(args ?? [])].join(' '),
-          stdout: command === 'blade' ? 'blade 8.0.0' : '',
-          stderr: '',
-          exitCode: command === 'blade' ? 0 : 1,
-          ok: command === 'blade',
-        }),
-        isWorktree: async () => false,
+        runProcess: async (command, args) => {
+          await Promise.resolve();
+          return {
+            command: [command, ...(args ?? [])].join(' '),
+            stdout: command === 'blade' ? 'blade 8.0.0' : '',
+            stderr: '',
+            exitCode: command === 'blade' ? 0 : 1,
+            ok: command === 'blade',
+          };
+        },
+        isWorktree: async () => {
+          await Promise.resolve();
+          return false;
+        },
       },
     });
 

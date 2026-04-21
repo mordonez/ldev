@@ -22,8 +22,11 @@
  * @param message Raw error message that may contain secrets
  * @returns Sanitized message safe for logging/display
  */
-export function sanitizeErrorMessage(message: string): string {
-  if (!message || typeof message !== 'string') {
+export function sanitizeErrorMessage(message: string): string;
+export function sanitizeErrorMessage(message: null): null;
+export function sanitizeErrorMessage(message: undefined): undefined;
+export function sanitizeErrorMessage(message: string | null | undefined): string | null | undefined {
+  if (message == null || message === '') {
     return message;
   }
 
@@ -74,10 +77,6 @@ export function sanitizeErrorMessage(message: string): string {
  * @returns Shallow copy with sensitive fields redacted
  */
 export function sanitizeErrorDetails(details: Record<string, unknown>): Record<string, unknown> {
-  if (!details || typeof details !== 'object') {
-    return details;
-  }
-
   const sensitiveKeys = [
     'authorization',
     'bearer',

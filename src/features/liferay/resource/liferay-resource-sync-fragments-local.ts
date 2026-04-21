@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {isRecord, parseJsonRecord, parseJsonUnknown} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
 import type {
@@ -181,6 +182,6 @@ async function readTextIfExists(filePath: string): Promise<string> {
 }
 
 function ensureText(value: unknown, fallback: string): string {
-  const normalized = String(value ?? '').trim();
+  const normalized = normalizeScalarString(value) ?? '';
   return normalized === '' ? fallback : normalized;
 }
