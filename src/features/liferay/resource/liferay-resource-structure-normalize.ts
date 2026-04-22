@@ -1,3 +1,4 @@
+import {isRecord} from '../../../core/utils/json.js';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
 
 export function normalizeLiferayStructurePayload<T>(payload: T): T {
@@ -13,10 +14,9 @@ function normalizeValue(value: unknown, path: string[]): unknown {
     return value.map((item) => normalizeValue(item, path));
   }
 
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
+  if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(record)
+      Object.entries(value)
         .filter(([key]) => !shouldOmitKey(path, key))
         .map(([key, nestedValue]) => [key, normalizeValue(nestedValue, [...path, key])]),
     );

@@ -1,6 +1,12 @@
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {LiferayErrors} from '../errors/index.js';
-import {firstString, hasJsonWsException, type StructuredContent} from './liferay-inventory-page-assemble.js';
+import {
+  firstString,
+  hasJsonWsException,
+  type ContentStructurePayload,
+  type JournalArticlePayload,
+  type StructuredContent,
+} from './liferay-inventory-page-assemble.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 
 export type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
@@ -9,7 +15,7 @@ export async function resolveDisplayPageArticle(
   gateway: LiferayGateway,
   siteId: number,
   urlTitle: string,
-): Promise<{article: StructuredContent; jsonwsArticle: Record<string, unknown> | null; articleRef: ArticleRef}> {
+): Promise<{article: StructuredContent; jsonwsArticle: JournalArticlePayload | null; articleRef: ArticleRef}> {
   const filter = encodeURIComponent(`friendlyUrlPath eq '${urlTitle}'`);
   const response = await safeGatewayGet<{items?: StructuredContent[]}>(
     gateway,
@@ -52,7 +58,7 @@ export async function resolveStructuredContentData(
   gateway: LiferayGateway,
   siteId: number,
   article: StructuredContent,
-  jsonwsArticle: Record<string, unknown> | null,
+  jsonwsArticle: JournalArticlePayload | null,
 ): Promise<StructuredContent | null> {
   let structuredContent: StructuredContent | null = null;
   const uuid = firstString(jsonwsArticle?.uuid);
@@ -75,9 +81,9 @@ export async function fetchJournalArticleByUrlTitle(
   gateway: LiferayGateway,
   groupId: number,
   urlTitle: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<JournalArticlePayload | null> {
   try {
-    const response = await safeGatewayGet<Record<string, unknown>>(
+    const response = await safeGatewayGet<JournalArticlePayload>(
       gateway,
       `/api/jsonws/journal.journalarticle/get-article-by-url-title?groupId=${groupId}&urlTitle=${encodeURIComponent(urlTitle)}`,
       'get-article-by-url-title',
@@ -95,9 +101,9 @@ export async function fetchLatestJournalArticle(
   gateway: LiferayGateway,
   groupId: number,
   articleId: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<JournalArticlePayload | null> {
   try {
-    const response = await safeGatewayGet<Record<string, unknown>>(
+    const response = await safeGatewayGet<JournalArticlePayload>(
       gateway,
       `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${groupId}&articleId=${encodeURIComponent(articleId)}&status=0`,
       'get-latest-article',
@@ -145,11 +151,11 @@ export async function fetchStructuredContentByUuid(
 export async function fetchContentStructureById(
   gateway: LiferayGateway,
   id: number,
-): Promise<Record<string, unknown> | null> {
+): Promise<ContentStructurePayload | null> {
   if (id <= 0) {
     return null;
   }
-  const response = await safeGatewayGet<Record<string, unknown>>(
+  const response = await safeGatewayGet<ContentStructurePayload>(
     gateway,
     `/o/headless-delivery/v1.0/content-structures/${id}`,
     'fetch-content-structure-by-id',

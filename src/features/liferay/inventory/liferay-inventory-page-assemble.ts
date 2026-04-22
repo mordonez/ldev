@@ -1,3 +1,4 @@
+import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
 import {firstNonBlank, firstString as firstStringUtil, normalizeScalarString} from '../../../core/utils/text.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
@@ -39,8 +40,8 @@ export type JournalArticleSummary = {
   displayPageTemplateCandidates?: string[];
   displayPageDdmTemplates?: string[];
   taxonomyCategoryNames?: string[];
-  taxonomyCategoryBriefs?: Array<Record<string, unknown>>;
-  renderedContents?: Array<Record<string, unknown>>;
+  taxonomyCategoryBriefs?: TaxonomyCategoryBriefPayload[];
+  renderedContents?: RenderedContentPayload[];
   availableLanguages?: string[];
   dateCreated?: string;
   dateModified?: string;
@@ -71,6 +72,23 @@ export type FragmentEditableField = {
   value: string;
 };
 
+type ContentField = JsonRecord & {
+  name?: unknown;
+  label?: unknown;
+  dataType?: unknown;
+  contentFieldValue?: unknown;
+  nestedContentFields?: unknown;
+};
+
+type ContentFieldValue = JsonRecord;
+
+export type JournalArticlePayload = JsonRecord;
+export type ContentStructurePayload = JsonRecord;
+export type FragmentEntryLink = JsonRecord;
+export type RenderedContentPayload = JsonRecord;
+export type DisplayPageTemplatePayload = JsonRecord;
+export type TaxonomyCategoryBriefPayload = JsonRecord;
+
 export type PageFragmentEntry = {
   type: 'fragment' | 'widget';
   fragmentKey?: string;
@@ -93,7 +111,7 @@ export type PageFragmentEntry = {
 
 export function collectPageElements(
   pageElement: HeadlessPageElementPayload | null,
-  fragmentEntryLinks: Array<Record<string, unknown>>,
+  fragmentEntryLinks: FragmentEntryLink[],
   locale: string | null = null,
 ): PageFragmentEntry[] {
   const result: PageFragmentEntry[] = [];
@@ -173,10 +191,10 @@ function appendContentFieldSummary(target: ContentFieldSummary[], contentFields:
     return;
   }
   for (const item of contentFields) {
-    if (!item || typeof item !== 'object') {
+    if (!isRecord(item)) {
       continue;
     }
-    const field = item as Record<string, unknown>;
+    const field = item as ContentField;
     const label = firstNonBlank(firstStringUtil(field.label), firstStringUtil(field.name));
     const name = firstStringUtil(field.name) ?? '';
     const type = firstNonBlank(
@@ -200,7 +218,7 @@ function appendContentFieldSummary(target: ContentFieldSummary[], contentFields:
   }
 }
 
-function summarizeContentFieldValue(contentFieldValue: Record<string, unknown>): string {
+function summarizeContentFieldValue(contentFieldValue: ContentFieldValue): string {
   const data = firstStringUtil(contentFieldValue.data) ?? '';
   if (data !== '') {
     return data.replace(/\s+/g, ' ').trim();
@@ -211,7 +229,7 @@ function summarizeContentFieldValue(contentFieldValue: Record<string, unknown>):
   return '';
 }
 
-function inferContentFieldType(contentFieldValue: Record<string, unknown>): string {
+function inferContentFieldType(contentFieldValue: ContentFieldValue): string {
   if ('image' in contentFieldValue) {
     return 'image';
   }
@@ -301,17 +319,15 @@ function extractFragmentEditableFields(fragmentFields: unknown, locale: string |
   return result;
 }
 
-export function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+export function asRecord(value: unknown): JsonRecord {
+  return isRecord(value) ? value : {};
 }
 
-export function asArrayOfRecords(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
-    : [];
+export function asArrayOfRecords(value: unknown): JsonRecord[] {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
 }
 
-function recordToStringMap(value: Record<string, unknown>): Record<string, string> | undefined {
+function recordToStringMap(value: JsonRecord): Record<string, string> | undefined {
   const result: Record<string, string> = {};
   for (const [key, item] of Object.entries(value)) {
     const normalized = normalizeScalarString(item);
@@ -332,7 +348,7 @@ export function hasJsonWsException(value: unknown): boolean {
  * Assign optional string property to object if value is non-empty.
  * Reduces boilerplate: instead of 4 lines per property, use 1 line.
  */
-export function assignOptionalString(target: Record<string, unknown>, key: string, value: string | undefined): void {
+export function assignOptionalString(target: JsonRecord, key: string, value: string | undefined): void {
   if (value) {
     target[key] = value;
   }
@@ -341,7 +357,7 @@ export function assignOptionalString(target: Record<string, unknown>, key: strin
 /**
  * Assign optional numeric property to object if value is finite and > 0.
  */
-export function assignOptionalNumber(target: Record<string, unknown>, key: string, value: number | undefined): void {
+export function assignOptionalNumber(target: JsonRecord, key: string, value: number | undefined): void {
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
     target[key] = value;
   }
@@ -350,11 +366,7 @@ export function assignOptionalNumber(target: Record<string, unknown>, key: strin
 /**
  * Assign optional numeric property to object if value is finite.
  */
-export function assignOptionalFiniteNumber(
-  target: Record<string, unknown>,
-  key: string,
-  value: number | undefined,
-): void {
+export function assignOptionalFiniteNumber(target: JsonRecord, key: string, value: number | undefined): void {
   if (typeof value === 'number' && Number.isFinite(value)) {
     target[key] = value;
   }
@@ -363,7 +375,7 @@ export function assignOptionalFiniteNumber(
 /**
  * Assign optional boolean property to object if value is boolean.
  */
-export function assignOptionalBoolean(target: Record<string, unknown>, key: string, value: unknown): void {
+export function assignOptionalBoolean(target: JsonRecord, key: string, value: unknown): void {
   if (typeof value === 'boolean') {
     target[key] = value;
   }

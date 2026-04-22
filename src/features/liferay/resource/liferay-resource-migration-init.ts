@@ -2,13 +2,14 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {isRecord, readJsonUnknown} from '../../../core/utils/json.js';
+import {isRecord, readJsonUnknown, type JsonRecord} from '../../../core/utils/json.js';
 import {normalizeScalarString} from '../../../core/utils/text.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from './liferay-resource-paths.js';
+import type {StructureDefinitionPayload} from './liferay-resource-sync-structure-diff.js';
 
 type ResourceDependencies = {
   apiClient?: HttpApiClient;
@@ -128,7 +129,7 @@ export async function runLiferayResourceMigrationInit(
   };
 }
 
-async function readJsonRecord(filePath: string): Promise<Record<string, unknown>> {
+async function readJsonRecord(filePath: string): Promise<StructureDefinitionPayload> {
   const parsed = await readJsonUnknown(filePath);
   if (!isRecord(parsed)) {
     throw LiferayErrors.resourceError(`Expected JSON object in ${filePath}`);
@@ -163,7 +164,7 @@ function resolveMigrationDescriptorOutputPath(
   return path.join(baseDir, resolveSiteToken(siteFriendlyUrl), `${structureKey}.migration.json`);
 }
 
-function collectFieldReferences(definition: Record<string, unknown>): Set<string> {
+function collectFieldReferences(definition: StructureDefinitionPayload): Set<string> {
   const refs = new Set<string>();
   collectFieldReferencesRecursive(definition.dataDefinitionFields, refs);
   return refs;
@@ -177,8 +178,8 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
     if (!field || typeof field !== 'object') {
       continue;
     }
-    const record = field as Record<string, unknown>;
-    const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
+    const record = field as JsonRecord;
+    const customProperties = (record.customProperties ?? {}) as JsonRecord;
     const fieldReference =
       normalizeScalarString(customProperties.fieldReference) ?? normalizeScalarString(record.name) ?? '';
     if (fieldReference !== '') {
@@ -188,14 +189,14 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
   }
 }
 
-function collectMigrationTargets(definition: Record<string, unknown>): Set<string> {
+function collectMigrationTargets(definition: StructureDefinitionPayload): Set<string> {
   const targets = new Set<string>();
   collectMigrationTargetsRecursive(definition.dataDefinitionFields, targets, undefined);
   return targets;
 }
 
 function collectReferencedDependentStructures(
-  definition: Record<string, unknown>,
+  definition: StructureDefinitionPayload,
   mainStructureKey: string,
 ): Set<string> {
   const structures = new Set<string>();
@@ -215,8 +216,8 @@ function collectReferencedDependentStructuresRecursive(
     if (!field || typeof field !== 'object') {
       continue;
     }
-    const record = field as Record<string, unknown>;
-    const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
+    const record = field as JsonRecord;
+    const customProperties = (record.customProperties ?? {}) as JsonRecord;
     const fieldsetKey = normalizeScalarString(customProperties.ddmStructureKey) ?? '';
     if (
       (normalizeScalarString(record.fieldType) ?? '').toLowerCase() === 'fieldset' &&
@@ -241,14 +242,14 @@ function collectMigrationTargetsRecursive(
     if (!field || typeof field !== 'object') {
       continue;
     }
-    const record = field as Record<string, unknown>;
+    const record = field as JsonRecord;
     const reference = fieldReference(record);
     if (reference === '') {
       continue;
     }
 
     const nestedFields = Array.isArray(record.nestedDataDefinitionFields)
-      ? (record.nestedDataDefinitionFields as Array<Record<string, unknown>>)
+      ? (record.nestedDataDefinitionFields as JsonRecord[])
       : [];
     const isFieldset = nestedFields.length > 0 && isFieldsetField(record);
 
@@ -264,12 +265,12 @@ function collectMigrationTargetsRecursive(
   }
 }
 
-function fieldReference(field: Record<string, unknown>): string {
-  const customProperties = (field.customProperties ?? {}) as Record<string, unknown>;
+function fieldReference(field: JsonRecord): string {
+  const customProperties = (field.customProperties ?? {}) as JsonRecord;
   return normalizeScalarString(customProperties.fieldReference) ?? normalizeScalarString(field.name) ?? '';
 }
 
-function isFieldsetField(field: Record<string, unknown>): boolean {
+function isFieldsetField(field: JsonRecord): boolean {
   return (normalizeScalarString(field.fieldType) ?? '').toLowerCase() === 'fieldset';
 }
 

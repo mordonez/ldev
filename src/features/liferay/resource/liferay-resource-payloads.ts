@@ -1,3 +1,4 @@
+import {isRecord} from '../../../core/utils/json.js';
 import {normalizeScalarString} from '../../../core/utils/text.js';
 
 /**
@@ -80,20 +81,19 @@ function asNum(v: unknown): number | undefined {
  * Returns a typed object with undefined for any missing or non-coercible fields.
  */
 export function toDdmTemplatePayload(raw: unknown): DdmTemplatePayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    templateId: asStr(r.templateId),
-    templateKey: asStr(r.templateKey),
-    externalReferenceCode: asStr(r.externalReferenceCode),
-    nameCurrentValue: asStr(r.nameCurrentValue),
-    name: asStr(r.name),
-    classPK: asStr(r.classPK),
-    classNameId: asNum(r.classNameId),
-    script: typeof r.script === 'string' ? r.script : undefined,
-    language: asStr(r.language),
-    type: asStr(r.type),
-    mode: asStr(r.mode),
+    templateId: asStr(raw.templateId),
+    templateKey: asStr(raw.templateKey),
+    externalReferenceCode: asStr(raw.externalReferenceCode),
+    nameCurrentValue: asStr(raw.nameCurrentValue),
+    name: asStr(raw.name),
+    classPK: asStr(raw.classPK),
+    classNameId: asNum(raw.classNameId),
+    script: typeof raw.script === 'string' ? raw.script : undefined,
+    language: asStr(raw.language),
+    type: asStr(raw.type),
+    mode: asStr(raw.mode),
   };
 }
 
@@ -101,13 +101,12 @@ export function toDdmTemplatePayload(raw: unknown): DdmTemplatePayload {
  * Tolerant parse of a raw JSONWS fragment collection object.
  */
 export function toFragmentCollectionPayload(raw: unknown): FragmentCollectionPayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    fragmentCollectionId: asNum(r.fragmentCollectionId),
-    fragmentCollectionKey: asStr(r.fragmentCollectionKey),
-    name: asStr(r.name),
-    description: typeof r.description === 'string' ? r.description : undefined,
+    fragmentCollectionId: asNum(raw.fragmentCollectionId),
+    fragmentCollectionKey: asStr(raw.fragmentCollectionKey),
+    name: asStr(raw.name),
+    description: typeof raw.description === 'string' ? raw.description : undefined,
   };
 }
 
@@ -116,17 +115,16 @@ export function toFragmentCollectionPayload(raw: unknown): FragmentCollectionPay
  * html/css/js preserve empty strings (valid empty content).
  */
 export function toFragmentEntryPayload(raw: unknown): FragmentEntryPayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    fragmentEntryId: asNum(r.fragmentEntryId),
-    fragmentEntryKey: asStr(r.fragmentEntryKey),
-    name: asStr(r.name),
-    html: typeof r.html === 'string' ? r.html : undefined,
-    css: typeof r.css === 'string' ? r.css : undefined,
-    js: typeof r.js === 'string' ? r.js : undefined,
-    configuration: typeof r.configuration === 'string' ? r.configuration : undefined,
-    icon: asStr(r.icon),
-    type: asNum(r.type),
+    fragmentEntryId: asNum(raw.fragmentEntryId),
+    fragmentEntryKey: asStr(raw.fragmentEntryKey),
+    name: asStr(raw.name),
+    html: typeof raw.html === 'string' ? raw.html : undefined,
+    css: typeof raw.css === 'string' ? raw.css : undefined,
+    js: typeof raw.js === 'string' ? raw.js : undefined,
+    configuration: typeof raw.configuration === 'string' ? raw.configuration : undefined,
+    icon: asStr(raw.icon),
+    type: asNum(raw.type),
   };
 }

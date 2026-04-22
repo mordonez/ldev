@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {isRecord, parseJsonRecord, parseJsonUnknown} from '../../../core/utils/json.js';
+import {isRecord, parseJsonRecord, parseJsonUnknown, type JsonRecord} from '../../../core/utils/json.js';
 import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
@@ -159,7 +159,7 @@ function defaultFragmentConfiguration(): {fieldSets: Array<{fields: Array<Record
   };
 }
 
-async function readJsonIfExists(filePath: string): Promise<Record<string, unknown>> {
+async function readJsonIfExists(filePath: string): Promise<JsonRecord> {
   if (!(await fs.pathExists(filePath))) {
     return {};
   }

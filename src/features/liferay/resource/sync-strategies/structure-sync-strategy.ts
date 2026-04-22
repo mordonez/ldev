@@ -9,7 +9,7 @@ import type {AppConfig} from '../../../../core/config/load-config.js';
 import type {Printer} from '../../../../core/output/printer.js';
 import {CliError} from '../../../../core/errors.js';
 import {createLiferayApiClient} from '../../../../core/http/client.js';
-import {isRecord} from '../../../../core/utils/json.js';
+import {isRecord, type JsonRecord} from '../../../../core/utils/json.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
 import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
@@ -20,6 +20,7 @@ import {
   extractStructureShapeSignature,
   removeExternalReferenceCode,
   setDifference,
+  type StructureDefinitionPayload,
   structureShapeMatches,
 } from '../liferay-resource-sync-structure-diff.js';
 import {
@@ -37,7 +38,7 @@ type StructureLocalData = {
 
 type StructureRemoteData = {
   structureId: string;
-  runtimeDefinition: Record<string, unknown>;
+  runtimeDefinition: StructureDefinitionPayload;
   existingFieldRefs: Set<string>;
   // Populated by upsert:
   removedFieldReferences: string[];
@@ -185,14 +186,14 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
       }
 
       const createPayload = removeExternalReferenceCode(payload);
-      const created = await postJsonAsResource<Record<string, unknown>>(
+      const created = await postJsonAsResource<StructureDefinitionPayload | null>(
         gateway,
         `/o/data-engine/v2.0/sites/${site.id}/data-definitions/by-content-type/journal`,
         createPayload,
         'structure-create',
       );
 
-      const createdId = ensureString((created as Record<string, unknown> | null)?.id, 'id');
+      const createdId = ensureString(created?.id, 'id');
       if (opts.migrationPlan && shouldRunPostMigration(phase)) {
         migration = await runStructureMigration(config, opts.key, site.id, opts.migrationPlan, migrationOptions);
       }
@@ -202,7 +203,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
         name: opts.key,
         data: {
           structureId: createdId,
-          runtimeDefinition: (created as Record<string, unknown> | null) ?? {},
+          runtimeDefinition: created ?? {},
           existingFieldRefs: payloadFieldRefs,
           removedFieldReferences,
           migration,
@@ -224,7 +225,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
         gateway,
       });
       const updatePayload = buildTransitionPayload(remoteArtifact.data.runtimeDefinition, payload);
-      await putJsonAsResource<Record<string, unknown>>(
+      await putJsonAsResource<StructureDefinitionPayload>(
         gateway,
         `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
         updatePayload,
@@ -294,21 +295,21 @@ function createStructureTransport(config: AppConfig, dependencies?: StructureRes
   };
 }
 
-async function readJsonRecord(filePath: string): Promise<Record<string, unknown>> {
+async function readJsonRecord(filePath: string): Promise<JsonRecord> {
   const payload: unknown = await fs.readJson(filePath);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw LiferayErrors.resourceError(`Structure JSON must be an object: ${filePath}`);
   }
-  return payload as Record<string, unknown>;
+  return payload as JsonRecord;
 }
 
 async function fetchStructureByKeyViaGateway(
   gateway: LiferayGateway,
   siteId: number,
   key: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<StructureDefinitionPayload | null> {
   try {
-    return await gateway.getJson<Record<string, unknown>>(
+    return await gateway.getJson<StructureDefinitionPayload>(
       `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
       'resource structure-sync get',
     );
@@ -326,7 +327,7 @@ async function fetchStructureByKey(
   gateway: LiferayGateway,
   siteId: number,
   key: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<StructureDefinitionPayload | null> {
   return fetchStructureByKeyViaGateway(gateway, siteId, key);
 }
 
@@ -362,18 +363,18 @@ async function updateStructureWithRecovery(
   siteFriendlyUrl: string,
   runtimeId: string,
   key: string,
-  payload: Record<string, unknown>,
-  previousRuntimeDefinition: Record<string, unknown>,
+  payload: StructureDefinitionPayload,
+  previousRuntimeDefinition: StructureDefinitionPayload,
   dependencies?: StructureResourceDependencies,
-): Promise<{data: Record<string, unknown> | null; recoveredAfterTimeout: boolean}> {
+): Promise<{data: StructureDefinitionPayload | null; recoveredAfterTimeout: boolean}> {
   try {
-    const updated = await putJsonAsResource<Record<string, unknown>>(
+    const updated = await putJsonAsResource<StructureDefinitionPayload | null>(
       gateway,
       `/o/data-engine/v2.0/data-definitions/${runtimeId}`,
       payload,
       'structure-update',
     );
-    return {data: (updated as Record<string, unknown> | null) ?? null, recoveredAfterTimeout: false};
+    return {data: updated ?? null, recoveredAfterTimeout: false};
   } catch (error) {
     if (!isRecoverableTimeoutError(error)) {
       throw error;
@@ -403,10 +404,10 @@ async function pollStructureUpdateRecovery(
   gateway: LiferayGateway,
   siteId: number,
   key: string,
-  payload: Record<string, unknown>,
-  previousRuntimeDefinition: Record<string, unknown>,
+  payload: StructureDefinitionPayload,
+  previousRuntimeDefinition: StructureDefinitionPayload,
   sleepImpl: (ms: number) => Promise<void>,
-): Promise<Record<string, unknown> | null> {
+): Promise<StructureDefinitionPayload | null> {
   const maxAttempts = 4;
   const retryDelayMs = 1500;
   const expectedShape = extractStructureShapeSignature(payload);

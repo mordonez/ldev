@@ -10,8 +10,13 @@ import {
   assignOptionalString,
   firstString,
   summarizeContentFields,
+  type ContentStructurePayload,
   type ContentStructureSummary,
+  type DisplayPageTemplatePayload,
+  type FragmentEntryLink,
   type JournalArticleSummary,
+  type JournalArticlePayload,
+  type RenderedContentPayload,
   type StructuredContent,
 } from './liferay-inventory-page-assemble.js';
 import type {ResolvedSite} from './liferay-inventory-shared.js';
@@ -45,7 +50,7 @@ export async function collectLayoutJournalArticles(
   config: AppConfig,
   apiClient: HttpApiClient,
   defaultGroupId: number,
-  fragmentEntryLinks: Array<Record<string, unknown>>,
+  fragmentEntryLinks: FragmentEntryLink[],
 ): Promise<JournalArticleSummary[]> {
   const refs = extractArticleRefs(fragmentEntryLinks, defaultGroupId);
   const result: JournalArticleSummary[] = [];
@@ -63,7 +68,7 @@ export async function buildJournalArticleSummary(
   apiClient: HttpApiClient,
   ref: ArticleRef,
   options?: {
-    article?: Record<string, unknown> | null;
+    article?: JournalArticlePayload | null;
     structuredContent?: StructuredContent | null;
     fallbackSite?: ResolvedSite;
     fallbackTitle?: string;
@@ -202,7 +207,7 @@ export async function collectLayoutContentStructures(
       continue;
     }
     seen.add(contentStructureId);
-    const response = await safeGatewayGet<Record<string, unknown>>(
+    const response = await safeGatewayGet<ContentStructurePayload>(
       gateway,
       `/o/headless-delivery/v1.0/content-structures/${contentStructureId}`,
       'fetch-content-structure',
@@ -225,10 +230,7 @@ export async function collectLayoutContentStructures(
   return result;
 }
 
-function extractArticleRefs(
-  fragmentEntryLinks: Array<Record<string, unknown>>,
-  defaultGroupId: number,
-): Map<string, ArticleRef> {
+function extractArticleRefs(fragmentEntryLinks: FragmentEntryLink[], defaultGroupId: number): Map<string, ArticleRef> {
   const refs = new Map<string, ArticleRef>();
 
   for (const link of fragmentEntryLinks) {
@@ -270,7 +272,7 @@ function collectArticleRefsFromValue(value: unknown, refs: Map<string, ArticleRe
 }
 
 function collectArticleRefFromPreferences(
-  prefsMap: Record<string, unknown>,
+  prefsMap: FragmentEntryLink,
   refs: Map<string, ArticleRef>,
   defaultGroupId: number,
 ): void {
@@ -355,7 +357,7 @@ async function resolveDisplayPageDdmTemplates(
   siteId: number,
   displayPageTemplateCandidates: string[],
 ): Promise<string[]> {
-  const response = await safeGatewayGet<{items?: Array<Record<string, unknown>>}>(
+  const response = await safeGatewayGet<{items?: DisplayPageTemplatePayload[]}>(
     gateway,
     `/o/headless-admin-content/v1.0/sites/${siteId}/display-page-templates?pageSize=200`,
     'fetch-display-page-templates',
@@ -405,7 +407,7 @@ function collectDisplayPageDdmTemplates(value: unknown, ddmTemplates: Set<string
   }
 }
 
-function inferContentStructureKey(value: Record<string, unknown> | null | undefined): string {
+function inferContentStructureKey(value: ContentStructurePayload | null | undefined): string {
   const explicit = firstString(value?.dataDefinitionKey) ?? firstString(value?.key) ?? '';
   if (explicit) {
     return explicit;
@@ -414,7 +416,7 @@ function inferContentStructureKey(value: Record<string, unknown> | null | undefi
   return /^[A-Z0-9_]+$/.test(name) ? name : '';
 }
 
-function extractTemplatesFromRenderedContents(renderedContents: Array<Record<string, unknown>>): TemplateInfo {
+function extractTemplatesFromRenderedContents(renderedContents: RenderedContentPayload[]): TemplateInfo {
   const widgetTemplateCandidates: string[] = [];
   const displayPageTemplateCandidates: string[] = [];
   let widgetHeadlessDefaultTemplate: string | undefined;

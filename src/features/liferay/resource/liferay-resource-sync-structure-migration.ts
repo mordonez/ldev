@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
 import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
@@ -44,9 +45,7 @@ export type MigrationPlanData = {
   articleIds: string[];
 };
 
-type JsonMap = Record<string, unknown>;
-
-type StructuredContentRow = JsonMap & {
+type StructuredContentRow = JsonRecord & {
   id?: string | number;
   key?: string;
   contentStructureId?: string | number;
@@ -74,9 +73,15 @@ type MigrationPlanShape = {
 
 type LocalizedContentSnapshots = Map<string, StructuredContentRow>;
 
-type DataDefinitionField = JsonMap & {
+type ContentField = JsonRecord & {
   name?: string;
-  customProperties?: JsonMap;
+  contentFieldValue?: unknown;
+  nestedContentFields?: unknown;
+};
+
+type DataDefinitionField = JsonRecord & {
+  name?: string;
+  customProperties?: JsonRecord;
   nestedDataDefinitionFields?: unknown;
 };
 
@@ -448,8 +453,8 @@ async function fetchLatestJournalArticle(
   gateway: LiferayGateway,
   siteId: number,
   articleId: string,
-): Promise<JsonMap | null> {
-  const response = await gateway.getRaw<JsonMap>(
+): Promise<JsonRecord | null> {
+  const response = await gateway.getRaw<JsonRecord>(
     `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${siteId}&articleId=${encodeURIComponent(articleId)}&status=0`,
   );
 
@@ -470,7 +475,7 @@ async function fetchStructureDefinitionFields(
   gateway: LiferayGateway,
   structureId: string,
 ): Promise<DataDefinitionField[]> {
-  const definition = await gateway.getJson<JsonMap>(
+  const definition = await gateway.getJson<JsonRecord>(
     `/o/data-engine/v2.0/data-definitions/${encodeURIComponent(structureId)}`,
     'structure-migrate definition',
   );
@@ -593,12 +598,11 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
   }
 
   return rawMappings.flatMap((row) => {
-    if (!row || typeof row !== 'object') {
+    if (!isRecord(row)) {
       return [];
     }
-    const mapping = row as JsonMap;
-    const source = normalizeScalarString(mapping.source) ?? normalizeScalarString(mapping.from) ?? '';
-    const target = normalizeScalarString(mapping.target) ?? normalizeScalarString(mapping.to) ?? '';
+    const source = normalizeScalarString(row.source) ?? normalizeScalarString(row.from) ?? '';
+    const target = normalizeScalarString(row.target) ?? normalizeScalarString(row.to) ?? '';
     if (!source || !target) {
       return [];
     }
@@ -606,7 +610,7 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
       {
         source,
         target,
-        cleanupSource: toBooleanOrFalse(mapping.cleanupSource),
+        cleanupSource: toBooleanOrFalse(row.cleanupSource),
       },
     ];
   });
@@ -684,17 +688,16 @@ function firstSourceValue(contentFields: unknown, source: string): unknown {
     return null;
   }
   for (const field of contentFields) {
-    if (!field || typeof field !== 'object') {
+    if (!isRecord(field)) {
       continue;
     }
-    const record = field as Record<string, unknown>;
-    if ((normalizeScalarString(record.name) ?? '') === source) {
-      const value = record.contentFieldValue;
+    if ((normalizeScalarString(field.name) ?? '') === source) {
+      const value = field.contentFieldValue;
       if (!isEmptyValue(value)) {
         return value;
       }
     }
-    const nested = firstSourceValue(record.nestedContentFields, source);
+    const nested = firstSourceValue(field.nestedContentFields, source);
     if (nested !== null) {
       return nested;
     }
@@ -702,7 +705,7 @@ function firstSourceValue(contentFields: unknown, source: string): unknown {
   return null;
 }
 
-function setTargetValue(item: Record<string, unknown>, target: string, value: unknown): boolean {
+function setTargetValue(item: StructuredContentRow, target: string, value: unknown): boolean {
   if (target.includes('[].')) {
     const [base, child] = target.split('[].', 2);
     return setFieldsetTarget(item, base, child, value);
@@ -710,7 +713,7 @@ function setTargetValue(item: Record<string, unknown>, target: string, value: un
   return setSimpleTarget(item, target, value);
 }
 
-function setSimpleTarget(item: Record<string, unknown>, target: string, value: unknown): boolean {
+function setSimpleTarget(item: StructuredContentRow, target: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
     if ((normalizeScalarString(field.name) ?? '') === target) {
@@ -725,7 +728,7 @@ function setSimpleTarget(item: Record<string, unknown>, target: string, value: u
   return true;
 }
 
-function setFieldsetTarget(item: Record<string, unknown>, base: string, child: string, value: unknown): boolean {
+function setFieldsetTarget(item: StructuredContentRow, base: string, child: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
     if ((normalizeScalarString(field.name) ?? '') !== base) {
@@ -750,11 +753,11 @@ function setFieldsetTarget(item: Record<string, unknown>, base: string, child: s
   return true;
 }
 
-function cleanupSourceField(item: Record<string, unknown>, source: string): boolean {
+function cleanupSourceField(item: StructuredContentRow, source: string): boolean {
   return cleanupSourceInFields(ensureContentFields(item), source);
 }
 
-function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: string): boolean {
+function cleanupSourceInFields(fields: ContentField[], source: string): boolean {
   let changed = false;
   for (const field of fields) {
     if ((normalizeScalarString(field.name) ?? '') === source) {
@@ -768,7 +771,7 @@ function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: s
   return changed;
 }
 
-function contentFieldsEqual(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
+function contentFieldsEqual(left: JsonRecord, right: JsonRecord): boolean {
   return (
     JSON.stringify(normalizeComparableValue(left.contentFields ?? [])) ===
     JSON.stringify(normalizeComparableValue(right.contentFields ?? []))
@@ -787,7 +790,7 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
       return entry;
     }
 
-    const field = structuredClone(entry) as Record<string, unknown>;
+    const field = structuredClone(entry) as ContentField;
     const definition = findDefinitionField(scope, normalizeScalarString(field.name) ?? '');
 
     if (definition?.name) {
@@ -805,10 +808,6 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
 function readMigrationPlanShape(planRoot: unknown): MigrationPlanShape {
   const plan = isRecord(planRoot) && 'plan' in planRoot ? planRoot.plan : planRoot;
   return isRecord(plan) ? plan : {};
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function findDefinitionField(scope: DataDefinitionField[], fieldName: string): DataDefinitionField | null {
@@ -833,10 +832,10 @@ function normalizeComparableValue(value: unknown): unknown {
     return value.map((entry) => normalizeComparableValue(entry));
   }
 
-  if (value && typeof value === 'object') {
-    const normalized: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
-      normalized[key] = normalizeComparableValue((value as Record<string, unknown>)[key]);
+  if (isRecord(value)) {
+    const normalized: JsonRecord = {};
+    for (const key of Object.keys(value).sort()) {
+      normalized[key] = normalizeComparableValue(value[key]);
     }
     return normalized;
   }
@@ -844,43 +843,42 @@ function normalizeComparableValue(value: unknown): unknown {
   return value;
 }
 
-function ensureContentFields(item: Record<string, unknown>): Array<Record<string, unknown>> {
+function ensureContentFields(item: JsonRecord): ContentField[] {
   if (!Array.isArray(item.contentFields)) {
     item.contentFields = [];
   }
-  return item.contentFields as Array<Record<string, unknown>>;
+  return item.contentFields as ContentField[];
 }
 
-function ensureNestedContentFields(field: Record<string, unknown>): Array<Record<string, unknown>> {
+function ensureNestedContentFields(field: ContentField): ContentField[] {
   if (!Array.isArray(field.nestedContentFields)) {
     field.nestedContentFields = [];
   }
-  return field.nestedContentFields as Array<Record<string, unknown>>;
+  return field.nestedContentFields as ContentField[];
 }
 
-function getNestedContentFields(field: Record<string, unknown>): Array<Record<string, unknown>> {
-  return Array.isArray(field.nestedContentFields) ? (field.nestedContentFields as Array<Record<string, unknown>>) : [];
+function getNestedContentFields(field: ContentField): ContentField[] {
+  return Array.isArray(field.nestedContentFields) ? (field.nestedContentFields as ContentField[]) : [];
 }
 
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) {
     return true;
   }
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
-    const keys = Object.keys(record);
+  if (isRecord(value)) {
+    const keys = Object.keys(value);
     if (keys.length === 0) {
       return true;
     }
     if (keys.length === 1 && keys[0] === 'data') {
-      return (normalizeScalarString(record.data) ?? '') === '';
+      return (normalizeScalarString(value.data) ?? '') === '';
     }
   }
   return false;
 }
 
-function copyIfPresent(source: Record<string, unknown>, fields: string[]): Record<string, unknown> {
-  const target: Record<string, unknown> = {};
+function copyIfPresent(source: JsonRecord, fields: string[]): JsonRecord {
+  const target: JsonRecord = {};
   for (const field of fields) {
     if (source[field] !== undefined && source[field] !== null) {
       target[field] = structuredClone(source[field]);
