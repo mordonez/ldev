@@ -7,6 +7,7 @@ import {
   runLiferayPageLayoutExport,
   writeLiferayPageLayoutExport,
 } from '../../src/features/liferay/page-layout/liferay-page-layout-export.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {
@@ -27,20 +28,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay page-layout export', () => {
   test('builds a stable export shape for a content page', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -72,7 +65,7 @@ describe('liferay page-layout export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayPageLayoutExport(
@@ -109,9 +102,7 @@ describe('liferay page-layout export', () => {
 
   test('keeps experiences as best-effort and omits them when the endpoint fails', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -143,7 +134,7 @@ describe('liferay page-layout export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayPageLayoutExport(
@@ -212,9 +203,7 @@ describe('liferay page-layout export', () => {
 
   test('fails clearly when the resolved page is not a content page', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -227,7 +216,7 @@ describe('liferay page-layout export', () => {
           '[{"layoutId":11,"plid":1011,"type":"portlet","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
           {status: 200},
         );
-      },
+      }),
     });
 
     await expect(
@@ -237,9 +226,7 @@ describe('liferay page-layout export', () => {
 
   test('keeps the export failure message when headless delivery does not return a usable page object', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -264,7 +251,7 @@ describe('liferay page-layout export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(

@@ -4,8 +4,37 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type DbImportPayload = {
+  backupFile: string;
+  forcedReset?: boolean;
+  postImportFiles: string[];
+};
+
+type DbDownloadPayload = {
+  project: string;
+  environment: string;
+  backupId: string;
+  databaseBackupFile: string;
+};
+
+type DbFilesDownloadPayload = {
+  doclibPath: string;
+  background?: boolean;
+};
+
+type DbSyncPayload = {
+  download: DbDownloadPayload;
+  import: DbImportPayload;
+};
+
+type DbFilesMountPayload = {
+  mode: string;
+  path: string;
+};
 
 describe('db integration', () => {
   test('db import autodetects the newest backup and applies post-import sql files by default', async () => {
@@ -30,7 +59,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbImportPayload>(result.stdout);
     expect(parsed.backupFile).toBe(await fs.realpath(newer));
     expect(parsed.postImportFiles).toHaveLength(2);
     expect(parsed.postImportFiles[0]).toContain('010-first.sql');
@@ -87,7 +116,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbImportPayload>(result.stdout);
     expect(parsed.backupFile).toBe(backupFile);
     expect(parsed.forcedReset).toBe(true);
     expect(await fs.pathExists(path.join(pgData, 'PG_VERSION'))).toBe(false);
@@ -113,7 +142,7 @@ describe('db integration', () => {
       const result = await runCli(['db', 'import', '--file', backupFile, '--format', 'json'], {cwd: repoRoot, env});
 
       expect(result.exitCode).toBe(0);
-      const parsed = JSON.parse(result.stdout);
+      const parsed = parseTestJson<DbImportPayload>(result.stdout);
       expect(parsed.backupFile).toBe(backupFile);
 
       const calls = await readFakeDockerCalls(fakeBinDir);
@@ -141,7 +170,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbDownloadPayload>(result.stdout);
     expect(parsed.project).toBe('demo');
     expect(parsed.environment).toBe('uat');
     expect(parsed.backupId).toBe('bkp-123');
@@ -164,7 +193,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbDownloadPayload>(result.stdout);
     expect(parsed.backupId).toBe('bkp-123');
     expect(parsed.databaseBackupFile).toContain('database.sql.gz');
     expect(await fs.pathExists(parsed.databaseBackupFile)).toBe(true);
@@ -181,7 +210,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbFilesDownloadPayload>(result.stdout);
     expect(parsed.doclibPath).toBeTruthy();
     const envFile = await fs.readFile(path.join(repoRoot, 'docker', '.env'), 'utf8');
     expect(envFile).toContain('DOCLIB_PATH=');
@@ -202,7 +231,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbSyncPayload>(result.stdout);
     expect(parsed.download.backupId).toBe('bkp-123');
     expect(parsed.import.backupFile).toContain('bkp-123-database.sql.gz');
   }, 45000);
@@ -217,7 +246,7 @@ describe('db integration', () => {
     const result = await runCli(['db', 'files-mount', '--path', localDoclib, '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbFilesMountPayload>(result.stdout);
     expect(parsed.mode).toBe('local');
     expect(parsed.path).toBe(localDoclib);
     const calls = await readFakeDockerCalls(fakeBinDir);
@@ -240,7 +269,7 @@ describe('db integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DbFilesDownloadPayload>(result.stdout);
     expect(parsed.doclibPath).toBeTruthy();
   }, 30000);
 
@@ -260,7 +289,7 @@ describe('db integration', () => {
       );
 
       expect(result.exitCode).toBe(0);
-      const parsed = JSON.parse(result.stdout);
+      const parsed = parseTestJson<DbFilesDownloadPayload>(result.stdout);
       expect(parsed.doclibPath).toBeTruthy();
       expect(parsed.background).toBe(true);
     } finally {

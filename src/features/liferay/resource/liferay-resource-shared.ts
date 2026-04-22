@@ -159,7 +159,7 @@ export async function listFragmentCollections(
   const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=${siteId}`,
   );
-  const success = await expectJsonSuccess(response, 'fragment collections');
+  const success = expectJsonSuccess(response, 'fragment collections');
   return Array.isArray(success.data) ? success.data.map(toFragmentCollectionPayload) : [];
 }
 
@@ -173,7 +173,7 @@ export async function listFragments(
   const response = await gateway.getRaw<unknown[]>(
     `/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=${collectionId}`,
   );
-  const success = await expectJsonSuccess(response, 'fragments');
+  const success = expectJsonSuccess(response, 'fragments');
   return Array.isArray(success.data) ? success.data.map(toFragmentEntryPayload) : [];
 }
 
@@ -190,7 +190,7 @@ async function fetchClassNameIdWithGateway(
   const response = await gateway.getRaw<ClassNamePayload>(
     `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
   );
-  const success = await expectJsonSuccess(response, `classname ${className}`);
+  const success = expectJsonSuccess(response, `classname ${className}`);
   const classNameId = success.data?.classNameId ?? -1;
   if (classNameId <= 0) {
     throw LiferayErrors.resourceError(`classNameId no resuelto para ${className}`);

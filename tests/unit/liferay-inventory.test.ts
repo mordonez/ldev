@@ -15,6 +15,7 @@ import {
   resolveSite,
   resolvedSiteCache,
 } from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 beforeEach(() => {
   resolvedSiteCache.clear();
@@ -38,20 +39,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay inventory shared', () => {
   test('resolves site by friendly url and fuzzy list fallback', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global Site"}', {status: 200});
         }
@@ -64,7 +57,7 @@ describe('liferay inventory shared', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(resolveSite(CONFIG, '/global', {apiClient, tokenClient: TOKEN_CLIENT})).resolves.toEqual({
@@ -76,9 +69,7 @@ describe('liferay inventory shared', () => {
 
   test('falls back to JSONWS when headless admin user lookup is denied', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/guest')) {
           return new Response('forbidden', {status: 403});
         }
@@ -106,7 +97,7 @@ describe('liferay inventory shared', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(resolveSite(CONFIG, '/guest', {apiClient, tokenClient: TOKEN_CLIENT})).resolves.toEqual({
@@ -118,9 +109,7 @@ describe('liferay inventory shared', () => {
 
   test('does not fuzzy-match a slash-prefixed site against unrelated site names', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           return new Response('not found', {status: 404});
         }
@@ -152,7 +141,7 @@ describe('liferay inventory shared', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(resolveSite(CONFIG, '/global', {apiClient, tokenClient: TOKEN_CLIENT})).rejects.toThrow(
@@ -168,9 +157,7 @@ describe('liferay inventory shared', () => {
   test('resolveSite cache is segmented by oauth client/scope context', async () => {
     let lookupCalls = 0;
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           lookupCalls += 1;
           return new Response(
@@ -180,7 +167,7 @@ describe('liferay inventory shared', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const configA = {...CONFIG};
@@ -204,9 +191,7 @@ describe('liferay inventory shared', () => {
   test('resolveSite forceRefresh bypasses cached site lookup', async () => {
     let lookupCalls = 0;
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           lookupCalls += 1;
           return new Response(
@@ -216,7 +201,7 @@ describe('liferay inventory shared', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const first = await resolveSite(CONFIG, '/global', {apiClient, tokenClient: TOKEN_CLIENT});
@@ -235,9 +220,7 @@ describe('liferay inventory shared', () => {
 describe('liferay inventory structures and templates', () => {
   test('lists structures with paginated headless data', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -256,7 +239,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryStructures(
@@ -284,9 +267,7 @@ describe('liferay inventory structures and templates', () => {
 
   test('lists structures with associated templates when requested', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -312,7 +293,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryStructures(
@@ -346,9 +327,7 @@ describe('liferay inventory structures and templates', () => {
 
   test('lists structures for all sites in one run', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=2')) {
           return new Response(
             '{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"},{"id":20122,"friendlyUrlPath":"/ub","name":"UB"}],"lastPage":1}',
@@ -397,7 +376,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryStructuresAllSites(
@@ -444,9 +423,7 @@ describe('liferay inventory structures and templates', () => {
 
   test('lists templates for a site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/20121')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -459,7 +436,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryTemplates(
@@ -482,9 +459,7 @@ describe('liferay inventory structures and templates', () => {
 
   test('falls back to DDM templates when headless content templates are empty', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/20121')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -521,7 +496,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryTemplates(CONFIG, {site: '20121'}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -539,9 +514,7 @@ describe('liferay inventory structures and templates', () => {
 
   test('surfaces 403 paged errors clearly', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?pageSize=100&page=1')) {
           return new Response('{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"}],"lastPage":1}', {
             status: 200,
@@ -549,7 +522,7 @@ describe('liferay inventory structures and templates', () => {
         }
 
         return new Response('forbidden', {status: 403});
-      },
+      }),
     });
 
     await expect(

@@ -1,8 +1,8 @@
 ﻿import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
-import {collectEnvStatus} from '../env/env-health.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {collectEnvStatus} from '../../core/runtime/env-health.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {
   ensureGradleWrapper,
   resolveDeployContext,

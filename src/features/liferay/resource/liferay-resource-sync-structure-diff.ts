@@ -1,6 +1,11 @@
 /** Structure field reference collection, diff, and transition payload helpers. */
 
-export function collectFieldReferences(definition: Record<string, unknown>): Set<string> {
+import type {JsonRecord} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
+
+export type StructureDefinitionPayload = JsonRecord;
+
+export function collectFieldReferences(definition: StructureDefinitionPayload): Set<string> {
   const refs = new Set<string>();
   collectFieldReferencesRecursive(definition.dataDefinitionFields, refs);
   return refs;
@@ -14,13 +19,13 @@ function collectFieldReferencesRecursive(fields: unknown, refs: Set<string>): vo
     if (!field || typeof field !== 'object') {
       continue;
     }
-    const record = field as Record<string, unknown>;
-    const name = String(record.name ?? '').trim();
+    const record = field as JsonRecord;
+    const name = normalizeScalarString(record.name) ?? '';
     if (name) {
       refs.add(name);
     }
-    const customProperties = (record.customProperties ?? {}) as Record<string, unknown>;
-    const fieldReference = String(customProperties.fieldReference ?? '').trim();
+    const customProperties = (record.customProperties ?? {}) as JsonRecord;
+    const fieldReference = normalizeScalarString(customProperties.fieldReference) ?? '';
     if (fieldReference) {
       refs.add(fieldReference);
     }
@@ -43,15 +48,15 @@ export function setDifference<T>(left: Set<T>, right: Set<T>): Set<T> {
  * Used when migrating content to a new structure definition.
  */
 export function buildTransitionPayload(
-  runtimeDefinition: Record<string, unknown>,
-  finalPayload: Record<string, unknown>,
-): Record<string, unknown> {
+  runtimeDefinition: StructureDefinitionPayload,
+  finalPayload: StructureDefinitionPayload,
+): StructureDefinitionPayload {
   const transition = structuredClone(finalPayload);
   const runtimeFields = Array.isArray(runtimeDefinition.dataDefinitionFields)
-    ? (structuredClone(runtimeDefinition.dataDefinitionFields) as Array<Record<string, unknown>>)
+    ? (structuredClone(runtimeDefinition.dataDefinitionFields) as JsonRecord[])
     : [];
   const finalFields = Array.isArray(transition.dataDefinitionFields)
-    ? (transition.dataDefinitionFields as Array<Record<string, unknown>>)
+    ? (transition.dataDefinitionFields as JsonRecord[])
     : [];
   const runtimeIds = new Set(runtimeFields.map(fieldIdentity));
   for (const field of finalFields) {
@@ -65,27 +70,30 @@ export function buildTransitionPayload(
   return transition;
 }
 
-function fieldIdentity(field: Record<string, unknown>): string {
-  const customProperties = (field.customProperties ?? {}) as Record<string, unknown>;
-  const fieldReference = String(customProperties.fieldReference ?? '').trim();
+function fieldIdentity(field: JsonRecord): string {
+  const customProperties = (field.customProperties ?? {}) as JsonRecord;
+  const fieldReference = normalizeScalarString(customProperties.fieldReference) ?? '';
   if (fieldReference) {
     return fieldReference;
   }
-  return String(field.name ?? '').trim();
+  return normalizeScalarString(field.name) ?? '';
 }
 
-export function removeExternalReferenceCode(payload: Record<string, unknown>): Record<string, unknown> {
+export function removeExternalReferenceCode(payload: StructureDefinitionPayload): StructureDefinitionPayload {
   const copy = structuredClone(payload);
   delete copy.externalReferenceCode;
   return copy;
 }
 
-export function extractStructureShapeSignature(definition: Record<string, unknown>): string {
-  const key = String(definition.dataDefinitionKey ?? '').trim();
+export function extractStructureShapeSignature(definition: StructureDefinitionPayload): string {
+  const key = normalizeScalarString(definition.dataDefinitionKey) ?? '';
   const refs = [...collectFieldReferences(definition)].sort();
   return JSON.stringify({key, refs});
 }
 
-export function structureShapeMatches(runtimeDefinition: Record<string, unknown>, expectedSignature: string): boolean {
+export function structureShapeMatches(
+  runtimeDefinition: StructureDefinitionPayload,
+  expectedSignature: string,
+): boolean {
   return extractStructureShapeSignature(runtimeDefinition) === expectedSignature;
 }

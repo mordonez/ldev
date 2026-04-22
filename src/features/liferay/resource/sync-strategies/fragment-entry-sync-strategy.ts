@@ -29,7 +29,7 @@ type FragmentEntrySyncOptions = {
 };
 
 export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, FragmentEntryRemoteData> = {
-  async resolveLocal(
+  resolveLocal(
     _config: AppConfig,
     _site: ResolvedSite,
     options: Record<string, unknown>,
@@ -37,7 +37,7 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
     const opts = options as FragmentEntrySyncOptions;
     const normalizedContent = normalizeFragmentEntryForHash(opts.fragment);
 
-    return {
+    return Promise.resolve({
       id: opts.fragment.slug,
       normalizedContent,
       contentHash: sha256(normalizedContent),
@@ -45,7 +45,7 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
         collectionId: opts.collectionId,
         fragment: opts.fragment,
       },
-    };
+    });
   },
 
   async findRemote(
@@ -129,19 +129,21 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
     };
   },
 
-  async verify(
+  verify(
     _config: AppConfig,
     _site: ResolvedSite,
     localArtifact: LocalArtifact<FragmentEntryLocalData>,
     remoteArtifact: RemoteArtifact<FragmentEntryRemoteData>,
   ): Promise<void> {
     if (!canVerifyFragmentEntryContent(remoteArtifact.data)) {
-      return;
+      return Promise.resolve();
     }
 
     const runtimeHash = sha256(normalizeFragmentEntryForHash(remoteArtifact.data));
     if (runtimeHash !== localArtifact.contentHash) {
-      throw LiferayErrors.resourceError(`Hash mismatch fragment '${remoteArtifact.name}'`);
+      return Promise.reject(LiferayErrors.resourceError(`Hash mismatch fragment '${remoteArtifact.name}'`));
     }
+
+    return Promise.resolve();
   },
 };

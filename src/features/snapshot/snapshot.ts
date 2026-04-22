@@ -1,6 +1,5 @@
 ﻿import fs from 'fs-extra';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
 import os from 'node:os';
 import {pipeline} from 'node:stream/promises';
 
@@ -11,14 +10,9 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {normalizeProcessEnv} from '../../core/platform/process.js';
-import {buildComposeEnv, resolveEnvContext} from '../env/env-shared.js';
-import {
-  resolveAdtsBaseDir,
-  resolveFragmentsBaseDir,
-  resolveStructuresBaseDir,
-  resolveTemplatesBaseDir,
-} from '../liferay/resource/liferay-resource-paths.js';
+import {normalizeProcessEnv, spawnPipedProcess, type SpawnProcessFn} from '../../core/platform/process.js';
+import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../core/config/liferay-resource-path-defaults.js';
+import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 
 export type SnapshotResult = {
   ok: true;
@@ -46,7 +40,7 @@ export async function runSnapshot(
     : resolveSnapshotDir(config, output);
   const envContext = resolveEnvContext(config);
   const databaseDumpFile = path.join(snapshotDir, 'database.sql');
-  const copiedPaths = await collectSnapshotPaths(config);
+  const copiedPaths = collectSnapshotPaths(config);
   const composeEnv = buildComposeEnv(envContext, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   await fs.ensureDir(snapshotDir);
@@ -116,25 +110,33 @@ export function resolveSnapshotDir(config: AppConfig, explicitOutput?: string): 
   return path.join(config.repoRoot, '.ldev', 'snapshots', stamp);
 }
 
-export async function collectSnapshotPaths(config: AppConfig): Promise<string[]> {
-  if (!config.liferayDir) {
+export function collectSnapshotPaths(config: AppConfig): string[] {
+  if (!config.repoRoot || !config.liferayDir) {
     throw new CliError('snapshot requires liferayDir.', {code: 'SNAPSHOT_REPO_REQUIRED'});
   }
 
   return [
     path.join(config.liferayDir, 'configs'),
-    resolveStructuresBaseDir(config),
-    resolveTemplatesBaseDir(config),
-    resolveAdtsBaseDir(config),
-    resolveFragmentsBaseDir(config),
+    resolveSnapshotRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures),
+    resolveSnapshotRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates),
+    resolveSnapshotRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts),
+    resolveSnapshotRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments),
   ];
+}
+
+function resolveSnapshotRepoPath(config: AppConfig, relativePath: string): string {
+  if (!config.repoRoot) {
+    throw new CliError('snapshot requires repo root.', {code: 'SNAPSHOT_REPO_REQUIRED'});
+  }
+
+  return path.resolve(config.repoRoot, relativePath);
 }
 
 export async function writePostgresDump(
   envContext: ReturnType<typeof resolveEnvContext>,
   outputFile: string,
   processEnv?: NodeJS.ProcessEnv,
-  spawnFn: typeof spawn = spawn,
+  spawnFn: SpawnProcessFn = spawnPipedProcess,
 ): Promise<void> {
   const user = envContext.envValues.POSTGRES_USER || 'liferay';
   const db = envContext.envValues.POSTGRES_DB || 'liferay';
@@ -152,7 +154,9 @@ export async function writePostgresDump(
   });
   const closePromise = new Promise<number>((resolve, reject) => {
     child.on('error', reject);
-    child.on('close', (code) => resolve(code ?? 1));
+    child.on('close', (code) => {
+      resolve(code ?? 1);
+    });
   });
 
   await fs.ensureDir(path.dirname(outputFile));

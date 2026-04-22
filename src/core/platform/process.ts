@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {spawn, type ChildProcess, type SpawnOptions} from 'node:child_process';
 
 import {execa} from 'execa';
 
@@ -21,6 +22,20 @@ export type RunProcessResult = {
   exitCode: number;
   ok: boolean;
 };
+
+export type RunInteractiveProcessOptions = {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+};
+
+export type SpawnedProcess = ChildProcess & {
+  stdin: NodeJS.WritableStream;
+  stdout: NodeJS.ReadableStream;
+  stderr: NodeJS.ReadableStream;
+  kill(signal?: NodeJS.Signals | number): boolean;
+};
+
+export type SpawnProcessFn = (command: string, args: string[], options: SpawnOptions) => SpawnedProcess;
 
 function normalizePathValue(value: string | undefined): string | undefined {
   if (!value || process.platform !== 'win32') {
@@ -80,6 +95,19 @@ export function formatProcessError(result: RunProcessResult, fallback: string): 
   return result.stderr.trim() || result.stdout.trim() || fallback;
 }
 
+export function spawnPipedProcess(
+  command: string,
+  args: string[] = [],
+  options?: SpawnOptions,
+  spawnFn: SpawnProcessFn = spawn as SpawnProcessFn,
+): SpawnedProcess {
+  return spawnFn(command, args, options ?? {});
+}
+
+export function spawnDetachedProcess(command: string, args: string[] = [], options?: SpawnOptions): ChildProcess {
+  return spawn(command, args, options ?? {});
+}
+
 export async function runProcess(
   command: string,
   args: string[] = [],
@@ -100,6 +128,29 @@ export async function runProcess(
     command: [command, ...args].join(' '),
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
+    exitCode: result.exitCode ?? 1,
+    ok: result.exitCode === 0,
+  };
+}
+
+export async function runInteractiveProcess(
+  command: string,
+  args: string[] = [],
+  options?: RunInteractiveProcessOptions,
+): Promise<RunProcessResult> {
+  const resolvedCommand = resolveSpawnCommand(command, options?.env);
+  const result = await execa(resolvedCommand, args, {
+    cwd: options?.cwd,
+    env: normalizeProcessEnv(options?.env),
+    reject: false,
+    shell: process.platform === 'win32',
+    stdio: 'inherit',
+  });
+
+  return {
+    command: [command, ...args].join(' '),
+    stdout: '',
+    stderr: '',
     exitCode: result.exitCode ?? 1,
     ok: result.exitCode === 0,
   };

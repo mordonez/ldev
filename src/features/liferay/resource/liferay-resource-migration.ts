@@ -5,6 +5,8 @@ import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {withProgress, type Printer} from '../../../core/output/printer.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
@@ -17,9 +19,24 @@ type MigrationStage = 'introduce' | 'cleanup';
 
 type MigrationStageDescriptor = {
   structureFile?: string;
-  planNode: Record<string, unknown>;
+  planNode: MigrationPlanNode;
   cleanupMigration: boolean;
 };
+
+type MigrationPlanMapping = JsonRecord & {
+  source: string;
+  target: string;
+  cleanupSource: boolean;
+};
+
+type MigrationPlanNode = JsonRecord & {
+  mappings?: MigrationPlanMapping[];
+  articleIds?: unknown;
+  folderIds?: unknown;
+  rootFolderIds?: unknown;
+};
+
+type LayoutNode = JsonRecord;
 
 type MigrationDescriptor = {
   site: string;
@@ -329,19 +346,23 @@ async function readMigrationDescriptor(config: AppConfig, migrationFile: string)
   return parseMigrationDescriptor(await readDescriptorNode(config, migrationFile));
 }
 
-async function readDescriptorNode(config: AppConfig, migrationFile: string): Promise<Record<string, unknown>> {
+async function readDescriptorNode(config: AppConfig, migrationFile: string): Promise<JsonRecord> {
   const candidate = path.isAbsolute(migrationFile)
     ? migrationFile
     : path.resolve(config.repoRoot ?? config.cwd, migrationFile);
   if (!(await fs.pathExists(candidate))) {
     throw LiferayErrors.resourceError(`Migration descriptor not found: ${migrationFile}`);
   }
-  return await fs.readJson(candidate);
+  const descriptor: unknown = await fs.readJson(candidate);
+  if (!isRecord(descriptor)) {
+    throw LiferayErrors.resourceError(`Migration descriptor must be a JSON object: ${migrationFile}`);
+  }
+  return descriptor;
 }
 
-function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): MigrationDescriptor {
-  const site = String(descriptorNode.site ?? '/global').trim() || '/global';
-  const structureKey = String(descriptorNode.structureKey ?? '').trim();
+function parseMigrationDescriptor(descriptorNode: JsonRecord): MigrationDescriptor {
+  const site = normalizeScalarString(descriptorNode.site) ?? '/global';
+  const structureKey = normalizeScalarString(descriptorNode.structureKey) ?? '';
   if (structureKey === '') {
     throw LiferayErrors.resourceError('Invalid descriptor: missing structureKey');
   }
@@ -362,8 +383,8 @@ function parseMigrationDescriptor(descriptorNode: Record<string, unknown>): Migr
   };
 }
 
-function parseStageDescriptor(node: Record<string, unknown>, stageName: MigrationStage): MigrationStageDescriptor {
-  const structureFile = String(node.structureFile ?? '').trim();
+function parseStageDescriptor(node: JsonRecord, stageName: MigrationStage): MigrationStageDescriptor {
+  const structureFile = normalizeScalarString(node.structureFile) ?? '';
   const rawPlanNode = Array.isArray(node.mappings) ? node : asRecord(node.plan);
   const planNode = {
     ...rawPlanNode,
@@ -379,16 +400,16 @@ function parseStageDescriptor(node: Record<string, unknown>, stageName: Migratio
   };
 }
 
-function normalizeMappingsArray(value: unknown): Array<Record<string, unknown>> {
+function normalizeMappingsArray(value: unknown): MigrationPlanMapping[] {
   if (!Array.isArray(value)) {
     return [];
   }
   return value.flatMap((row) => {
-    if (!row || typeof row !== 'object') {
+    if (!isRecord(row)) {
       return [];
     }
-    const source = String((row as Record<string, unknown>).source ?? '').trim();
-    const target = String((row as Record<string, unknown>).target ?? '').trim();
+    const source = normalizeScalarString(row.source) ?? '';
+    const target = normalizeScalarString(row.target) ?? '';
     if (source === '' || target === '') {
       return [];
     }
@@ -396,24 +417,24 @@ function normalizeMappingsArray(value: unknown): Array<Record<string, unknown>> 
       {
         source,
         target,
-        cleanupSource: toBooleanOrFalse((row as Record<string, unknown>).cleanupSource),
+        cleanupSource: toBooleanOrFalse(row.cleanupSource),
       },
     ];
   });
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+function asRecord(value: unknown): JsonRecord {
+  return isRecord(value) ? value : {};
 }
 
 function parseStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return value.map((item) => normalizeScalarString(item)).filter((item): item is string => Boolean(item));
 }
 
-async function writeTempPlanFile(planNode: Record<string, unknown>): Promise<string> {
+async function writeTempPlanFile(planNode: MigrationPlanNode): Promise<string> {
   const target = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'dev-cli-migration-plan-')), 'plan.json');
   await fs.writeJson(target, planNode, {spaces: 2});
   return target;
@@ -463,15 +484,12 @@ async function runCleanupStage(
   }
 }
 
-function buildCleanupPlanNode(
-  introducePlanNode: Record<string, unknown>,
-  migratedArticleKeys: string[],
-): Record<string, unknown> {
+function buildCleanupPlanNode(introducePlanNode: MigrationPlanNode, migratedArticleKeys: string[]): MigrationPlanNode {
   const cleanupMappings = normalizeMappingsArray(introducePlanNode.mappings)
     .filter((mapping) => mapping.cleanupSource)
     .map((mapping) => ({
-      source: String((mapping as Record<string, unknown>).source ?? '').trim(),
-      target: String((mapping as Record<string, unknown>).target ?? '').trim(),
+      source: normalizeScalarString(mapping.source) ?? '',
+      target: normalizeScalarString(mapping.target) ?? '',
       cleanupSource: true,
     }));
 
@@ -513,10 +531,10 @@ async function resolveMigrationStructureFile(
   return resolveStructureFile(config, descriptor.structureKey, stage.structureFile);
 }
 
-function cleanupSourceFields(planNode: Record<string, unknown>): string[] {
+function cleanupSourceFields(planNode: MigrationPlanNode): string[] {
   return normalizeMappingsArray(planNode.mappings)
     .filter((mapping) => mapping.cleanupSource)
-    .map((mapping) => String((mapping as Record<string, unknown>).source ?? '').trim())
+    .map((mapping) => normalizeScalarString(mapping.source) ?? '')
     .filter(Boolean);
 }
 
@@ -528,7 +546,7 @@ async function writeDerivedCleanupStructureFile(
   const absoluteStructureFile = path.isAbsolute(structureFile)
     ? structureFile
     : path.resolve(config.repoRoot ?? config.cwd, structureFile);
-  const payload = (await fs.readJson(absoluteStructureFile)) as Record<string, unknown>;
+  const payload = (await fs.readJson(absoluteStructureFile)) as JsonRecord;
   const cleanupSourceSet = new Set(cleanupSources);
   payload.dataDefinitionFields = removeFieldsRecursive(payload.dataDefinitionFields, cleanupSourceSet);
   if (payload.defaultDataLayout && typeof payload.defaultDataLayout === 'object') {
@@ -542,20 +560,21 @@ async function writeDerivedCleanupStructureFile(
   return target;
 }
 
-function removeFieldsRecursive(fields: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeFieldsRecursive(fields: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(fields)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
   for (const field of fields) {
     if (!field || typeof field !== 'object') {
       continue;
     }
-    const record = structuredClone(field) as Record<string, unknown>;
-    const reference = String(
-      (record.customProperties as Record<string, unknown> | undefined)?.fieldReference ?? record.name ?? '',
-    ).trim();
+    const record = structuredClone(field) as LayoutNode;
+    const reference =
+      normalizeScalarString((record.customProperties as JsonRecord | undefined)?.fieldReference) ??
+      normalizeScalarString(record.name) ??
+      '';
     if (reference !== '' && cleanupSources.has(reference)) {
       continue;
     }
@@ -567,12 +586,12 @@ function removeFieldsRecursive(fields: unknown, cleanupSources: Set<string>): Ar
   return kept;
 }
 
-function removeLayoutReferences(layout: unknown, cleanupSources: Set<string>): Record<string, unknown> {
+function removeLayoutReferences(layout: unknown, cleanupSources: Set<string>): LayoutNode {
   if (!layout || typeof layout !== 'object') {
     return {};
   }
 
-  const record = structuredClone(layout) as Record<string, unknown>;
+  const record = structuredClone(layout) as LayoutNode;
 
   if (Array.isArray(record.dataLayoutPages)) {
     record.dataLayoutPages = removeDataLayoutPages(record.dataLayoutPages, cleanupSources);
@@ -585,19 +604,19 @@ function removeLayoutReferences(layout: unknown, cleanupSources: Set<string>): R
   return record;
 }
 
-function removeDataLayoutPages(pages: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeDataLayoutPages(pages: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(pages)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const page of pages) {
     if (!page || typeof page !== 'object') {
       continue;
     }
 
-    const record = structuredClone(page) as Record<string, unknown>;
+    const record = structuredClone(page) as LayoutNode;
     if (Array.isArray(record.dataLayoutRows)) {
       record.dataLayoutRows = removeDataLayoutRows(record.dataLayoutRows, cleanupSources);
     }
@@ -610,19 +629,19 @@ function removeDataLayoutPages(pages: unknown, cleanupSources: Set<string>): Arr
   return kept;
 }
 
-function removeDataLayoutRows(rows: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeDataLayoutRows(rows: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(rows)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const row of rows) {
     if (!row || typeof row !== 'object') {
       continue;
     }
 
-    const record = structuredClone(row) as Record<string, unknown>;
+    const record = structuredClone(row) as LayoutNode;
     if (Array.isArray(record.dataLayoutColumns)) {
       record.dataLayoutColumns = removeDataLayoutColumns(record.dataLayoutColumns, cleanupSources);
     }
@@ -635,19 +654,19 @@ function removeDataLayoutRows(rows: unknown, cleanupSources: Set<string>): Array
   return kept;
 }
 
-function removeDataLayoutColumns(columns: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeDataLayoutColumns(columns: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(columns)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const column of columns) {
     if (!column || typeof column !== 'object') {
       continue;
     }
 
-    const record = structuredClone(column) as Record<string, unknown>;
+    const record = structuredClone(column) as LayoutNode;
     const fieldNames = Array.isArray(record.fieldNames)
       ? (record.fieldNames as unknown[])
           .map((fieldName) => String(fieldName).trim())
@@ -668,19 +687,19 @@ function removeDataLayoutColumns(columns: unknown, cleanupSources: Set<string>):
   return kept;
 }
 
-function removeLegacyLayoutPages(pages: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeLegacyLayoutPages(pages: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(pages)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const page of pages) {
     if (!page || typeof page !== 'object') {
       continue;
     }
 
-    const record = structuredClone(page) as Record<string, unknown>;
+    const record = structuredClone(page) as LayoutNode;
     if (Array.isArray(record.rows)) {
       record.rows = removeLegacyLayoutRows(record.rows, cleanupSources);
     }
@@ -693,19 +712,19 @@ function removeLegacyLayoutPages(pages: unknown, cleanupSources: Set<string>): A
   return kept;
 }
 
-function removeLegacyLayoutRows(rows: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeLegacyLayoutRows(rows: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(rows)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const row of rows) {
     if (!row || typeof row !== 'object') {
       continue;
     }
 
-    const record = structuredClone(row) as Record<string, unknown>;
+    const record = structuredClone(row) as LayoutNode;
     if (Array.isArray(record.columns)) {
       record.columns = removeLegacyLayoutColumns(record.columns, cleanupSources);
     }
@@ -718,19 +737,19 @@ function removeLegacyLayoutRows(rows: unknown, cleanupSources: Set<string>): Arr
   return kept;
 }
 
-function removeLegacyLayoutColumns(columns: unknown, cleanupSources: Set<string>): Array<Record<string, unknown>> {
+function removeLegacyLayoutColumns(columns: unknown, cleanupSources: Set<string>): LayoutNode[] {
   if (!Array.isArray(columns)) {
     return [];
   }
 
-  const kept: Array<Record<string, unknown>> = [];
+  const kept: LayoutNode[] = [];
 
   for (const column of columns) {
     if (!column || typeof column !== 'object') {
       continue;
     }
 
-    const record = structuredClone(column) as Record<string, unknown>;
+    const record = structuredClone(column) as LayoutNode;
     const fields = Array.isArray(record.fields)
       ? (record.fields as unknown[])
           .map((fieldName) => String(fieldName).trim())

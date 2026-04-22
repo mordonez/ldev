@@ -105,7 +105,7 @@ export function buildPlan(
     const sorted = bucket.slice().sort(compareArticlesByRecencyDescThenIdAsc);
 
     for (let i = 0; i < sorted.length; i++) {
-      const article = sorted[i]!;
+      const article = sorted[i];
       const structureKey =
         article.contentStructureId !== undefined
           ? (structureMap.get(article.contentStructureId) ?? `unknown_${article.contentStructureId}`)
@@ -232,8 +232,8 @@ export async function buildPrunePlanSummary(
   const candidateArticles = filterCandidateArticles(allArticles, structures, structureMap);
   const keepPerBucket = keep ?? 0;
   const keepScopeResolved = keepScope ?? 'folder';
-  const plan = await runStep(printer, 'Planning content prune', async () =>
-    buildPlan(candidateArticles, structureMap, keepPerBucket, keepScopeResolved),
+  const plan = await runStep(printer, 'Planning content prune', () =>
+    Promise.resolve(buildPlan(candidateArticles, structureMap, keepPerBucket, keepScopeResolved)),
   );
   const summaryByKey = buildStructureSummary(plan, structureNameMap);
   const toDelete = plan.filter((item) => item.action === 'delete').map((item) => item.article);

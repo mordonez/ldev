@@ -7,6 +7,15 @@ import {formatEnvRecreate, runEnvRecreate} from '../../features/env/env-recreate
 import {formatEnvRestart, runEnvRestart} from '../../features/env/env-restart.js';
 import {formatEnvRestore, runEnvRestore} from '../../features/env/env-restore.js';
 
+type EnvCleanCommandOptions = {
+  force?: boolean;
+};
+
+type EnvRestartCommandOptions = {
+  wait?: boolean;
+  timeout: string;
+};
+
 export function registerEnvOperationsCommands(command: Command): void {
   addOutputFormatOption(
     command
@@ -38,7 +47,7 @@ export function registerEnvOperationsCommands(command: Command): void {
       .option('--force', 'Actually perform the cleanup'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: EnvCleanCommandOptions) =>
         runEnvClean(context.config, {
           force: Boolean(options.force),
           printer: context.printer,
@@ -56,7 +65,7 @@ export function registerEnvOperationsCommands(command: Command): void {
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: EnvRestartCommandOptions) =>
         runEnvRestart(context.config, {
           wait: options.wait,
           timeoutSeconds: Number.parseInt(options.timeout, 10),
@@ -75,7 +84,7 @@ export function registerEnvOperationsCommands(command: Command): void {
       .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: EnvRestartCommandOptions) =>
         runEnvRecreate(context.config, {
           wait: options.wait,
           timeoutSeconds: Number.parseInt(options.timeout, 10),

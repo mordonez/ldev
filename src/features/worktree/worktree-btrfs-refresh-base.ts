@@ -2,7 +2,7 @@
 import {loadConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {resolveWorktreeContext} from './worktree-paths.js';
 import {refreshBtrfsBaseFromMain, resolveBtrfsConfig} from './worktree-state.js';
 

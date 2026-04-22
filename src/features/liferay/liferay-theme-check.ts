@@ -101,7 +101,7 @@ export function parseIconIds(svg: string): Set<string> {
   const matcher = /id="([^"]+)"/g;
 
   for (const match of svg.matchAll(matcher)) {
-    const id = match[1]?.trim();
+    const id = match[1].trim();
     if (id) {
       ids.add(id);
     }

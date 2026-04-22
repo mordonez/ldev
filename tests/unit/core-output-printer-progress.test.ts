@@ -80,7 +80,9 @@ describe('withProgress', () => {
     const task = vi.fn(
       () =>
         new Promise((resolve) => {
-          setTimeout(() => resolve('done'), 50);
+          setTimeout(() => {
+            resolve('done');
+          }, 50);
         }),
     );
     mockStderr.isTTY = true;
@@ -95,9 +97,9 @@ describe('withProgress', () => {
     const printer = createPrinter('text');
     mockStderr.isTTY = true;
 
-    const result = await withProgress(printer, 'Animating', async () => {
+    const result = await withProgress(printer, 'Animating', () => {
       printer.info('inner message');
-      return 'done';
+      return Promise.resolve('done');
     });
 
     expect(result).toBe('done');

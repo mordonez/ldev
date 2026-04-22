@@ -2,6 +2,7 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatLiferayPreflight, runLiferayPreflight} from '../../src/features/liferay/liferay-preflight.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -21,25 +22,18 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 function makeApiClient(responses: Record<string, {status: number; body: string}>) {
   return createLiferayApiClient({
-    fetchImpl: async (input) => {
-      const url = String(input);
+    fetchImpl: createTestFetchImpl((url) => {
       for (const [pattern, response] of Object.entries(responses)) {
         if (url.includes(pattern)) {
           return new Response(response.body, {status: response.status});
         }
       }
       throw new Error(`Unexpected URL: ${url}`);
-    },
+    }),
   });
 }
 
@@ -152,6 +146,7 @@ describe('runLiferayPreflight', () => {
   test('network error → unknown status', async () => {
     const apiClient = createLiferayApiClient({
       fetchImpl: async () => {
+        await Promise.resolve();
         throw new Error('network error');
       },
     });
@@ -170,14 +165,13 @@ describe('runLiferayPreflight', () => {
   test('caches result; second call does not re-probe', async () => {
     let callCount = 0;
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('preflight-cache-test')) {
           callCount += 1;
           return new Response('{"items":[]}', {status: 200});
         }
         return new Response('{}', {status: 200});
-      },
+      }),
     });
 
     const cfg = {...CONFIG, liferay: {...CONFIG.liferay, url: 'http://preflight-cache-test:8080'}};
@@ -193,10 +187,10 @@ describe('runLiferayPreflight', () => {
   test('forceRefresh bypasses cache', async () => {
     let callCount = 0;
     const apiClient = createLiferayApiClient({
-      fetchImpl: async () => {
+      fetchImpl: createTestFetchImpl(() => {
         callCount += 1;
         return new Response('{}', {status: 200});
-      },
+      }),
     });
 
     const cfg = {...CONFIG, liferay: {...CONFIG.liferay, url: 'http://preflight-refresh-test:8080'}};

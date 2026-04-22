@@ -2,6 +2,12 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatContentStats, runContentStats} from '../../src/features/liferay/content/liferay-content-stats.js';
+import {
+  createStaticTokenClient,
+  createTestFetchImpl,
+  createTestJsonResponse,
+  createTestPageResponse,
+} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -21,49 +27,37 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-abc',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
-
-function paged<T>(items: T[], lastPage = 1) {
-  return new Response(JSON.stringify({items, lastPage}), {status: 200});
-}
+const TOKEN_CLIENT = createStaticTokenClient({accessToken: 'token-abc'});
 
 describe('liferay-content-stats', () => {
   test('lists top sites by recursive folder volume', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
-          return paged([
+          return createTestPageResponse([
             {id: 100, friendlyUrlPath: '/site-a', nameCurrentValue: 'Site A'},
             {id: 200, friendlyUrlPath: '/site-b', nameCurrentValue: 'Site B'},
           ]);
         }
 
         if (url.includes('/o/headless-delivery/v1.0/sites/100/structured-content-folders')) {
-          return paged([{id: 11, name: 'Folder A', siteId: 100, numberOfStructuredContents: 10}]);
+          return createTestPageResponse([{id: 11, name: 'Folder A', siteId: 100, numberOfStructuredContents: 10}]);
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/200/structured-content-folders')) {
-          return paged([{id: 21, name: 'Folder B', siteId: 200, numberOfStructuredContents: 25}]);
+          return createTestPageResponse([{id: 21, name: 'Folder B', siteId: 200, numberOfStructuredContents: 25}]);
         }
         if (url.includes('/structured-content-folders/11/structured-content-folders')) {
-          return paged([{id: 12, name: 'Child A', siteId: 100, numberOfStructuredContents: 5}]);
+          return createTestPageResponse([{id: 12, name: 'Child A', siteId: 100, numberOfStructuredContents: 5}]);
         }
         if (url.includes('/structured-content-folders/12/structured-content-folders')) {
-          return paged([]);
+          return createTestPageResponse([]);
         }
         if (url.includes('/structured-content-folders/21/structured-content-folders')) {
-          return paged([]);
+          return createTestPageResponse([]);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(CONFIG, {limit: 10}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -79,69 +73,55 @@ describe('liferay-content-stats', () => {
 
   test('lists top root folders for one site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
-          return new Response(JSON.stringify({id: 300, friendlyUrlPath: '/estudis', name: 'Estudis'}), {status: 200});
+          return createTestJsonResponse({id: 300, friendlyUrlPath: '/estudis', name: 'Estudis'});
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=0')) {
-          return new Response(
-            JSON.stringify([
-              {folderId: 31, name: 'Master'},
-              {folderId: 32, name: 'Doctorat'},
-            ]),
-            {status: 200},
-          );
+          return createTestJsonResponse([
+            {folderId: 31, name: 'Master'},
+            {folderId: 32, name: 'Doctorat'},
+          ]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=31')) {
-          return new Response(JSON.stringify([{folderId: 33, name: 'Child'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 33, name: 'Child'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=32')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=33')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=300&folderId=31')) {
-          return new Response(
-            JSON.stringify(
-              new Array(50).fill(0).map((_, i) => ({
-                resourcePrimKey: String(i + 1),
-                articleId: `A${i + 1}`,
-                folderId: '31',
-              })),
-            ),
-            {status: 200},
+          return createTestJsonResponse(
+            new Array(50).fill(0).map((_, i) => ({
+              resourcePrimKey: String(i + 1),
+              articleId: `A${i + 1}`,
+              folderId: '31',
+            })),
           );
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=300&folderId=32')) {
-          return new Response(
-            JSON.stringify(
-              new Array(10).fill(0).map((_, i) => ({
-                resourcePrimKey: String(i + 101),
-                articleId: `B${i + 1}`,
-                folderId: '32',
-              })),
-            ),
-            {status: 200},
+          return createTestJsonResponse(
+            new Array(10).fill(0).map((_, i) => ({
+              resourcePrimKey: String(i + 101),
+              articleId: `B${i + 1}`,
+              folderId: '32',
+            })),
           );
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=300&folderId=33')) {
-          return new Response(
-            JSON.stringify(
-              new Array(20).fill(0).map((_, i) => ({
-                resourcePrimKey: String(i + 201),
-                articleId: `C${i + 1}`,
-                folderId: '33',
-              })),
-            ),
-            {status: 200},
+          return createTestJsonResponse(
+            new Array(20).fill(0).map((_, i) => ({
+              resourcePrimKey: String(i + 201),
+              articleId: `C${i + 1}`,
+              folderId: '33',
+            })),
           );
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(CONFIG, {site: '/estudis', limit: 10}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -160,33 +140,31 @@ describe('liferay-content-stats', () => {
 
   test('scoped folder stats count descendant folders, not only direct children', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=0')) {
-          return new Response(JSON.stringify([{folderId: 31, name: 'Root'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 31, name: 'Root'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=31')) {
-          return new Response(JSON.stringify([{folderId: 32, name: 'Child'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 32, name: 'Child'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=32')) {
-          return new Response(JSON.stringify([{folderId: 33, name: 'Grandchild'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 33, name: 'Grandchild'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=33')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('folderId=31')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('folderId=32')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('folderId=33')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(CONFIG, {groupId: 300, limit: 10}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -199,33 +177,28 @@ describe('liferay-content-stats', () => {
 
   test('includes structure breakdowns in scoped mode when requested', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=0')) {
-          return new Response(JSON.stringify([{folderId: 31, name: 'Master'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 31, name: 'Master'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=31')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
         if (url.includes('/o/data-engine/v2.0/sites/300/data-definitions/by-content-type/journal')) {
-          return paged([
+          return createTestPageResponse([
             {id: 501, dataDefinitionKey: 'FITXA', name: 'Fitxa'},
             {id: 502, dataDefinitionKey: 'GRAU', name: 'Grau'},
           ]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=300&folderId=31')) {
-          return new Response(
-            JSON.stringify([
-              {resourcePrimKey: '1', articleId: 'A1', folderId: '31', DDMStructureId: '501'},
-              {resourcePrimKey: '2', articleId: 'A2', folderId: '31', DDMStructureId: '502'},
-            ]),
-            {status: 200},
-          );
+          return createTestJsonResponse([
+            {resourcePrimKey: '1', articleId: 'A1', folderId: '31', DDMStructureId: '501'},
+            {resourcePrimKey: '2', articleId: 'A2', folderId: '31', DDMStructureId: '502'},
+          ]);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(
@@ -244,17 +217,15 @@ describe('liferay-content-stats', () => {
 
   test('scoped folder stats continue pagination when the first page mixes a child folder and articles', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=0')) {
-          return new Response(JSON.stringify([{folderId: 31, name: 'Master'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 31, name: 'Master'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=31')) {
-          return new Response(JSON.stringify([{folderId: 33, name: 'Child'}]), {status: 200});
+          return createTestJsonResponse([{folderId: 33, name: 'Child'}]);
         }
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders?groupId=300&parentFolderId=33')) {
-          return new Response(JSON.stringify([]), {status: 200});
+          return createTestJsonResponse([]);
         }
 
         if (
@@ -270,7 +241,7 @@ describe('liferay-content-stats', () => {
               folderId: '31',
             })),
           ];
-          return new Response(JSON.stringify(items), {status: 200});
+          return createTestJsonResponse(items);
         }
 
         if (
@@ -283,7 +254,7 @@ describe('liferay-content-stats', () => {
             articleId: `A${i + 200}`,
             folderId: '31',
           }));
-          return new Response(JSON.stringify(items), {status: 200});
+          return createTestJsonResponse(items);
         }
 
         if (url.includes('/api/jsonws/journal.journalfolder/get-folders-and-articles?groupId=300&folderId=33')) {
@@ -292,11 +263,11 @@ describe('liferay-content-stats', () => {
             articleId: `C${i + 1}`,
             folderId: '33',
           }));
-          return new Response(JSON.stringify(items), {status: 200});
+          return createTestJsonResponse(items);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(CONFIG, {groupId: 300, limit: 10}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -314,25 +285,23 @@ describe('liferay-content-stats', () => {
 
   test('excludes sites from global content metrics', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
-          return paged([
+          return createTestPageResponse([
             {id: 100, friendlyUrlPath: '/site-a', nameCurrentValue: 'Site A'},
             {id: 200, friendlyUrlPath: '/site-b', nameCurrentValue: 'Site B'},
           ]);
         }
 
         if (url.includes('/o/headless-delivery/v1.0/sites/100/structured-content-folders')) {
-          return paged([{id: 11, name: 'Folder A', siteId: 100, numberOfStructuredContents: 10}]);
+          return createTestPageResponse([{id: 11, name: 'Folder A', siteId: 100, numberOfStructuredContents: 10}]);
         }
         if (url.includes('/structured-content-folders/11/structured-content-folders')) {
-          return paged([]);
+          return createTestPageResponse([]);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(
@@ -350,30 +319,28 @@ describe('liferay-content-stats', () => {
 
   test('applies sort-by name in global content metrics', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
-          return paged([
+          return createTestPageResponse([
             {id: 100, friendlyUrlPath: '/z-site', nameCurrentValue: 'Zulu'},
             {id: 200, friendlyUrlPath: '/a-site', nameCurrentValue: 'Alpha'},
           ]);
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/100/structured-content-folders')) {
-          return paged([{id: 11, name: 'Folder Z', siteId: 100, numberOfStructuredContents: 50}]);
+          return createTestPageResponse([{id: 11, name: 'Folder Z', siteId: 100, numberOfStructuredContents: 50}]);
         }
         if (url.includes('/o/headless-delivery/v1.0/sites/200/structured-content-folders')) {
-          return paged([{id: 21, name: 'Folder A', siteId: 200, numberOfStructuredContents: 10}]);
+          return createTestPageResponse([{id: 21, name: 'Folder A', siteId: 200, numberOfStructuredContents: 10}]);
         }
         if (url.includes('/structured-content-folders/11/structured-content-folders')) {
-          return paged([]);
+          return createTestPageResponse([]);
         }
         if (url.includes('/structured-content-folders/21/structured-content-folders')) {
-          return paged([]);
+          return createTestPageResponse([]);
         }
 
         throw new Error(`Unexpected URL: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentStats(CONFIG, {limit: 10, sortBy: 'name'}, {apiClient, tokenClient: TOKEN_CLIENT});

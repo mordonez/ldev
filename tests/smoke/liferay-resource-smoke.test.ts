@@ -4,7 +4,54 @@ import path from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
-import {captureProcessOutput, createLiferayCliRepoFixture} from '../../src/testing/cli-test-helpers.js';
+import {
+  captureProcessOutput,
+  createLiferayCliRepoFixture,
+  parseTestJson,
+  toTestRequestBody,
+  toTestRequestUrl,
+} from '../../src/testing/cli-test-helpers.js';
+
+type ResourceStructurePayload = {
+  key: string;
+  siteFriendlyUrl: string;
+};
+
+type ResourceTemplatePayload = {
+  templateKey: string;
+  externalReferenceCode: string;
+};
+
+type OutputPathPayload = {
+  outputPath: string;
+};
+
+type ExportStructuresPayload = {
+  processed: number;
+};
+
+type ExportTemplatesPayload = {
+  exported: number;
+};
+
+type AdtListPayload = Array<{templateKey: string; widgetType: string}>;
+
+type AdtPayload = {
+  templateId: string;
+  widgetType: string;
+  displayStyle: string;
+  script: string;
+};
+
+type FragmentListPayload = Array<{fragmentKey: string; collectionName: string}>;
+
+type ImportFragmentsPayload = {
+  summary: {
+    importedFragments: number;
+    errors: number;
+  };
+  fragmentResults: Array<{fragment: string}>;
+};
 
 describe('liferay resource smoke', () => {
   let repoRoot: string;
@@ -24,7 +71,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -60,7 +108,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<ResourceStructurePayload>(output.stdout());
     expect(parsed.key).toBe('BASIC-WEB-CONTENT');
     expect(parsed.siteFriendlyUrl).toBe('/global');
     expect(output.stderr()).toBe('');
@@ -70,7 +118,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -116,7 +165,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<ResourceTemplatePayload>(output.stdout());
     expect(parsed.templateKey).toBe('NEWS_TEMPLATE');
     expect(parsed.externalReferenceCode).toBe('erc-news-template');
     expect(output.stderr()).toBe('');
@@ -128,7 +177,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -165,8 +215,8 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    expect(JSON.parse(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
-    const written = JSON.parse(await fs.readFile(outputPath, 'utf8'));
+    expect(parseTestJson<OutputPathPayload>(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
+    const written = parseTestJson<{dataDefinitionKey: string}>(await fs.readFile(outputPath, 'utf8'));
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
     expect(output.stderr()).toBe('');
   });
@@ -177,7 +227,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -224,7 +275,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    expect(JSON.parse(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
+    expect(parseTestJson<OutputPathPayload>(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
     const written = await fs.readFile(outputPath, 'utf8');
     expect(written).toBe('<#-- ftl -->');
     expect(output.stderr()).toBe('');
@@ -236,7 +287,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -292,7 +344,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -336,9 +389,9 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<ExportStructuresPayload>(output.stdout());
     expect(parsed.processed).toBe(1);
-    const written = JSON.parse(
+    const written = parseTestJson<{dataDefinitionKey: string}>(
       await fs.readFile(
         path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
         'utf8',
@@ -352,7 +405,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -388,7 +442,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<ExportTemplatesPayload>(output.stdout());
     expect(parsed.exported).toBe(1);
     const written = await fs.readFile(
       path.join(repoRoot, 'liferay', 'resources', 'journal', 'templates', 'global', 'NEWS_TEMPLATE.ftl'),
@@ -402,7 +456,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -450,7 +505,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -505,7 +561,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<AdtListPayload>(output.stdout());
     expect(parsed[0].templateKey).toBe('SEARCH_RESULTS');
     expect(parsed[0].widgetType).toBe('search-result-summary');
     expect(output.stderr()).toBe('');
@@ -515,7 +571,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -587,7 +644,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<AdtPayload>(output.stdout());
     expect(parsed.templateId).toBe('19690804');
     expect(parsed.widgetType).toBe('search-result-summary');
     expect(parsed.displayStyle).toBe('ddmTemplate_19690804');
@@ -599,7 +656,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -641,7 +699,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<FragmentListPayload>(output.stdout());
     expect(parsed[0].fragmentKey).toBe('hero-banner');
     expect(parsed[0].collectionName).toBe('Marketing');
     expect(output.stderr()).toBe('');
@@ -676,7 +734,8 @@ describe('liferay resource smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -699,7 +758,7 @@ describe('liferay resource smoke', () => {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentEntryKey')).toBe('hero-banner');
           return new Response('{"fragmentEntryId":601}', {status: 200});
         }
@@ -720,7 +779,7 @@ describe('liferay resource smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<ImportFragmentsPayload>(output.stdout());
     expect(parsed.summary.importedFragments).toBe(1);
     expect(parsed.summary.errors).toBe(0);
     expect(parsed.fragmentResults[0].fragment).toBe('hero-banner');

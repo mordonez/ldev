@@ -54,13 +54,13 @@ export async function mapConcurrent<TInput, TOutput>(
 
   await Promise.all(
     Array.from({length: workerCount}, async () => {
-      while (true) {
+      for (;;) {
         const currentIndex = nextIndex++;
         if (currentIndex >= items.length) {
           return;
         }
 
-        results[currentIndex] = await worker(items[currentIndex]!, currentIndex);
+        results[currentIndex] = await worker(items[currentIndex], currentIndex);
       }
     }),
   );

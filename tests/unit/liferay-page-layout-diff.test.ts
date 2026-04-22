@@ -8,6 +8,7 @@ import {
   formatLiferayPageLayoutDiff,
   runLiferayPageLayoutDiff,
 } from '../../src/features/liferay/page-layout/liferay-page-layout-diff.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const CONFIG = {
@@ -28,13 +29,7 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay page-layout diff', () => {
   test('collects no diffs for equivalent exports', () => {
@@ -105,9 +100,7 @@ describe('liferay page-layout diff', () => {
       })}\n`,
     );
 
-    const fetchImpl = async (input: string | URL | Request) => {
-      const url = String(input);
-
+    const fetchImpl = createTestFetchImpl((url) => {
       if (url.includes('/by-friendly-url-path/guest')) {
         return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
       }
@@ -131,7 +124,7 @@ describe('liferay page-layout diff', () => {
       }
 
       throw new Error(`Unexpected URL ${url}`);
-    };
+    });
 
     const result = await runLiferayPageLayoutDiff(
       CONFIG,
@@ -149,9 +142,7 @@ describe('liferay page-layout diff', () => {
   });
 
   test('supports live vs live diff and text formatting', async () => {
-    const fetchImpl = async (input: string | URL | Request) => {
-      const url = String(input);
-
+    const fetchImpl = createTestFetchImpl((url) => {
       if (url.includes('/by-friendly-url-path/guest')) {
         return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
       }
@@ -190,7 +181,7 @@ describe('liferay page-layout diff', () => {
       }
 
       throw new Error(`Unexpected URL ${url}`);
-    };
+    });
 
     const apiClient = createLiferayApiClient({fetchImpl});
 

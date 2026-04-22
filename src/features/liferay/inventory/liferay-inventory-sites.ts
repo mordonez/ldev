@@ -142,7 +142,7 @@ async function fetchSitesViaJsonws(gateway: LiferayGateway): Promise<HeadlessSit
     site?: boolean;
   };
 
-  let companies: JsonwsCompany[] = [];
+  let companies: JsonwsCompany[];
   try {
     companies = await gateway.getJson<JsonwsCompany[]>('/api/jsonws/company/get-companies', 'list-jsonws-companies');
   } catch {
@@ -178,7 +178,7 @@ async function fetchSitesViaJsonws(gateway: LiferayGateway): Promise<HeadlessSit
 
     for (let start = 0; start < total; start += 100) {
       const end = start + 100;
-      let groups: JsonwsGroupSearchResult[] = [];
+      let groups: JsonwsGroupSearchResult[];
 
       try {
         groups = await gateway.getJson<JsonwsGroupSearchResult[]>(

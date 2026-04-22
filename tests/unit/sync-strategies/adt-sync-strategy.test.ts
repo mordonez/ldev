@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import fs from 'fs-extra';
 import path from 'node:path';
-import {describe, expect, test, vi, afterEach} from 'vitest';
+import {describe, expect, test, afterEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import type {HttpApiClient} from '../../../src/core/http/client.js';
 import {adtSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/adt-sync-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
@@ -94,7 +91,7 @@ describe('adtSyncStrategy', () => {
   });
 
   describe('findRemote', () => {
-    test('findRemote requires complex site resolution - covered in integration tests', async () => {
+    test('findRemote requires complex site resolution - covered in integration tests', () => {
       // ADT findRemote calls runLiferayResourceListAdts and triggers full site resolution.
       // Keeping unit tests focused on resolveLocal only.
       expect(true).toBe(true);
@@ -102,14 +99,14 @@ describe('adtSyncStrategy', () => {
   });
 
   describe('upsert', () => {
-    test('upsert requires external API calls - covered in integration tests', async () => {
+    test('upsert requires external API calls - covered in integration tests', () => {
       // ADT upsert requires multiple API calls and complex mocking. Better tested in integration.
       expect(true).toBe(true);
     });
   });
 
   describe('verify', () => {
-    test('verify performs hash checking - covered in integration tests', async () => {
+    test('verify performs hash checking - covered in integration tests', () => {
       // ADT verify performs hash checking internally and may require additional setup
       // These tests are covered in integration tests
       expect(true).toBe(true);

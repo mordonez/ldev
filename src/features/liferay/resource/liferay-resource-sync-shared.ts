@@ -4,6 +4,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {HttpResponse} from '../../../core/http/client.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {ensureData} from '../liferay-http-shared.js';
@@ -89,7 +90,7 @@ export function normalizeSyncStatus(checkOnly: boolean): 'checked' | 'updated' {
 }
 
 export function ensureString(value: unknown, label: string): string {
-  const normalized = String(value ?? '').trim();
+  const normalized = normalizeScalarString(value) ?? '';
   if (normalized === '') {
     throw LiferayErrors.resourceError(`${label} is empty`);
   }

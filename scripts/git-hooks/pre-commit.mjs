@@ -20,6 +20,11 @@ run('git', ['add', '--', ...lintableFiles], {stdio: 'inherit'});
 // Full typecheck runs last so it sees the auto-fixed staged state
 run('npx', ['tsc', '--noEmit'], {stdio: 'inherit'});
 
+/**
+ * @param {string} command
+ * @param {string[]} args
+ * @param {{stdio?: import('node:child_process').StdioOptions}} [options]
+ */
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     encoding: 'utf8',
@@ -32,6 +37,6 @@ function run(command, args, options = {}) {
   }
 
   return {
-    stdout: result.stdout ?? '',
+    stdout: result.stdout,
   };
 }

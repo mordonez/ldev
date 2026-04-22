@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../../core/config/liferay-resource-path-defaults.js';
 import {LiferayErrors} from '../errors/index.js';
 
 export type ArtifactType = 'template' | 'structure' | 'adt' | 'fragment';
@@ -43,27 +44,27 @@ export function tryResolveRepoPath(config: AppConfig, relativePath: string): str
 }
 
 export function resolveStructuresBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
+  return resolveRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
 }
 
 export function resolveTemplatesBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.templates ?? 'liferay/resources/journal/templates');
+  return resolveRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
 }
 
 export function resolveAdtsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.adts ?? 'liferay/resources/templates/application_display');
+  return resolveRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
 }
 
 export function resolveFragmentsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
+  return resolveRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
 }
 
 export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefined {
-  return tryResolveRepoPath(config, config.paths?.fragments ?? 'liferay/fragments');
+  return tryResolveRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
 }
 
 export function resolveMigrationsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.migrations ?? 'liferay/resources/journal/migrations');
+  return resolveRepoPath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
 }
 
 export function resolveSiteToken(siteFriendlyUrl: string): string {
@@ -142,11 +143,11 @@ export function tryResolveArtifactBaseDir(
 
   switch (type) {
     case 'template':
-      return tryResolveRepoPath(config, config.paths?.templates ?? 'liferay/resources/journal/templates');
+      return tryResolveRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
     case 'structure':
-      return tryResolveRepoPath(config, config.paths?.structures ?? 'liferay/resources/journal/structures');
+      return tryResolveRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
     case 'adt':
-      return tryResolveRepoPath(config, config.paths?.adts ?? 'liferay/resources/templates/application_display');
+      return tryResolveRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
     case 'fragment':
       return tryResolveFragmentsBaseDir(config);
   }
@@ -250,7 +251,7 @@ async function resolveStructureArtifactFile(config: AppConfig, key: string): Pro
   const baseDir = resolveStructuresBaseDir(config);
   const matches = await findFilesByName(baseDir, `${key}.json`);
   if (matches.length === 1) {
-    return matches[0]!;
+    return matches[0];
   }
   if (matches.length > 1) {
     throw LiferayErrors.resourceFileAmbiguous(`structure:${key}`, matches, {
@@ -283,7 +284,7 @@ async function resolveTemplateArtifactFile(config: AppConfig, siteToken: string,
 
   const matches = await findFilesByName(baseDir, `${key}.ftl`);
   if (matches.length === 1) {
-    return matches[0]!;
+    return matches[0];
   }
   if (matches.length > 1) {
     throw LiferayErrors.resourceFileAmbiguous(`template:${key}`, matches, {
@@ -309,7 +310,7 @@ async function resolveAdtArtifactFile(config: AppConfig, key: string, widgetType
 
   const matches = await findFilesByPathSuffix(baseDir, path.join(widgetDir, `${key}.ftl`));
   if (matches.length === 1) {
-    return matches[0]!;
+    return matches[0];
   }
   if (matches.length > 1) {
     throw LiferayErrors.resourceFileAmbiguous(`adt:${key}:${widgetType}`, matches, {
@@ -353,7 +354,7 @@ async function resolveExistingArtifactFile(config: AppConfig, candidate: string)
 function detectFragmentsProjectRoot(startPath: string): string | null {
   let current = path.resolve(startPath);
 
-  while (true) {
+  for (;;) {
     if (fs.existsSync(path.join(current, 'src'))) {
       return current;
     }
@@ -376,7 +377,7 @@ async function findFilesByName(baseDir: string, filename: string): Promise<strin
   }
 
   const matches: string[] = [];
-  await walk(baseDir, async (entryPath) => {
+  await walk(baseDir, (entryPath) => {
     if (path.basename(entryPath) === filename) {
       matches.push(entryPath);
     }
@@ -391,7 +392,7 @@ async function findFilesByPathSuffix(baseDir: string, suffixPath: string): Promi
 
   const normalizedSuffix = suffixPath.split(path.sep).join('/');
   const matches: string[] = [];
-  await walk(baseDir, async (entryPath) => {
+  await walk(baseDir, (entryPath) => {
     const normalized = entryPath.split(path.sep).join('/');
     if (normalized.endsWith(normalizedSuffix)) {
       matches.push(entryPath);
@@ -400,7 +401,7 @@ async function findFilesByPathSuffix(baseDir: string, suffixPath: string): Promi
   return matches.sort();
 }
 
-async function walk(dir: string, visit: (entryPath: string) => Promise<void>): Promise<void> {
+async function walk(dir: string, visit: (entryPath: string) => void | Promise<void>): Promise<void> {
   const entries = await fs.readdir(dir, {withFileTypes: true});
   for (const entry of entries) {
     const entryPath = path.join(dir, entry.name);

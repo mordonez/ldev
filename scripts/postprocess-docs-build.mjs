@@ -3,6 +3,10 @@ import path from 'node:path';
 
 const docsDistDir = path.resolve('docs/.vitepress/dist');
 
+/**
+ * @param {string} dir
+ * @returns {AsyncGenerator<string, void, void>}
+ */
 async function* walkHtmlFiles(dir) {
   const entries = await readdir(dir, {withFileTypes: true});
 
@@ -20,6 +24,9 @@ async function* walkHtmlFiles(dir) {
   }
 }
 
+/**
+ * @param {string} filePath
+ */
 function shouldCreateCleanUrlDir(filePath) {
   const baseName = path.basename(filePath);
 

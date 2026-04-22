@@ -78,7 +78,7 @@ export async function runLiferayResourceGetStructure(
     siteName: site.name,
     key: String(payload.dataDefinitionKey ?? identifier),
     id: Number(payload.id ?? -1),
-    name: normalizeLocalizedName(payload.name as string | Record<string, string> | undefined),
+    name: normalizeLocalizedName(payload.name),
     raw: payload,
   };
 }

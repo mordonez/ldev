@@ -7,7 +7,7 @@ import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
-import {resolveManagedStorages} from '../env/env-shared.js';
+import {resolveManagedStorages} from '../../core/runtime/env-context.js';
 import {resolveWorktreeContext, resolveWorktreeTarget, resolvePortSet, type WorktreeTarget} from './worktree-paths.js';
 import {syncWorktreeLocalArtifacts} from './worktree-local-artifacts.js';
 import {cloneInitialWorktreeState, resolveBtrfsConfig, worktreeEnvHasState} from './worktree-state.js';

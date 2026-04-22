@@ -4,6 +4,7 @@ import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
+import {isRecord} from '../../../core/utils/json.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayPageLayoutExport, type LiferayPageLayoutExport} from './liferay-page-layout-export.js';
 
@@ -101,7 +102,7 @@ export function collectPageLayoutDiffs(
   right: LiferayPageLayoutExport,
 ): LiferayPageLayoutDiffEntry[] {
   const diffs: LiferayPageLayoutDiffEntry[] = [];
-  collectStructuralDiffs(left.headlessSitePage?.pageDefinition, right.headlessSitePage?.pageDefinition, '$', diffs);
+  collectStructuralDiffs(left.headlessSitePage.pageDefinition, right.headlessSitePage.pageDefinition, '$', diffs);
   return diffs;
 }
 
@@ -162,8 +163,8 @@ function collectStructuralDiffs(
     return;
   }
 
-  if (isPlainObject(left) || isPlainObject(right)) {
-    if (!isPlainObject(left) || !isPlainObject(right)) {
+  if (isRecord(left) || isRecord(right)) {
+    if (!isRecord(left) || !isRecord(right)) {
       diffs.push(diffEntry(currentPath, left, right));
       return;
     }
@@ -212,8 +213,4 @@ function summarizeValue(value: unknown): string {
 
   const raw = JSON.stringify(value);
   return raw.length > 220 ? `${raw.slice(0, 220)}...` : raw;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -4,8 +4,18 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type OsgiStatusPayload = {
+  output: string;
+};
+
+type OsgiDiagPayload = {
+  bundleId: string;
+  output: string;
+};
 
 describe('osgi integration', () => {
   test('osgi status returns gogo output', async () => {
@@ -16,7 +26,7 @@ describe('osgi integration', () => {
     const result = await runCli(['osgi', 'status', 'com.test.bundle', '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<OsgiStatusPayload>(result.stdout);
     expect(parsed.output).toContain('com.test.bundle');
   }, 45000);
 
@@ -31,7 +41,7 @@ describe('osgi integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<OsgiDiagPayload>(result.stdout);
     expect(parsed.bundleId).toBe('42');
     expect(parsed.output).toContain('No unresolved constraints');
   }, 30000);

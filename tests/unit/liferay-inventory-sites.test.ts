@@ -5,6 +5,7 @@ import {
   formatLiferayInventorySites,
   runLiferayInventorySites,
 } from '../../src/features/liferay/inventory/liferay-inventory-sites.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -28,8 +29,7 @@ describe('liferay inventory sites', () => {
   test('lists accessible sites with paginated Headless Admin Site data', async () => {
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         calls.push(url);
 
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=2')) {
@@ -40,7 +40,7 @@ describe('liferay inventory sites', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventorySites(
@@ -48,13 +48,7 @@ describe('liferay inventory sites', () => {
       {pageSize: 2},
       {
         apiClient,
-        tokenClient: {
-          fetchClientCredentialsToken: async () => ({
-            accessToken: 'token-123',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        },
+        tokenClient: createStaticTokenClient(),
       },
     );
 
@@ -78,8 +72,7 @@ describe('liferay inventory sites', () => {
   test('falls back to JSONWS when Headless Admin Site returns no sites', async () => {
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         calls.push(url);
 
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=2')) {
@@ -104,7 +97,7 @@ describe('liferay inventory sites', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventorySites(
@@ -112,13 +105,7 @@ describe('liferay inventory sites', () => {
       {pageSize: 2},
       {
         apiClient,
-        tokenClient: {
-          fetchClientCredentialsToken: async () => ({
-            accessToken: 'token-123',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        },
+        tokenClient: createStaticTokenClient(),
       },
     );
 
@@ -153,19 +140,13 @@ describe('liferay inventory sites', () => {
 
   test('surfaces headless site inventory errors clearly', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async () => new Response('boom', {status: 500}),
+      fetchImpl: createTestFetchImpl(() => new Response('boom', {status: 500})),
     });
 
     await expect(
       runLiferayInventorySites(CONFIG, undefined, {
         apiClient,
-        tokenClient: {
-          fetchClientCredentialsToken: async () => ({
-            accessToken: 'token-123',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        },
+        tokenClient: createStaticTokenClient(),
       }),
     ).rejects.toThrow('paged request /o/headless-admin-site/v1.0/sites failed');
   });

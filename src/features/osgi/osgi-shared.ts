@@ -5,7 +5,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose, runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {runProcess} from '../../core/platform/process.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 
 export function resolveOsgiContext(config: AppConfig) {
   const envContext = resolveEnvContext(config);

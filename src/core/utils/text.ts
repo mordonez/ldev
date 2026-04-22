@@ -1,3 +1,16 @@
+export function normalizeScalarString(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    return normalized === '' ? undefined : normalized;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value);
+  }
+
+  return undefined;
+}
+
 /**
  * Split text into non-empty trimmed lines, optionally ignoring comment lines.
  */
@@ -25,11 +38,10 @@ export function firstNonBlank(...values: Array<string | undefined>): string {
  */
 export function firstString(value: unknown): string | undefined {
   if (Array.isArray(value)) {
-    const first = (value as unknown[]).find((item) => String(item ?? '').trim() !== '');
-    return first === undefined ? undefined : String(first).trim();
+    return value.map(normalizeScalarString).find((item): item is string => item !== undefined);
   }
-  const normalized = String(value ?? '').trim();
-  return normalized === '' ? undefined : normalized;
+
+  return normalizeScalarString(value);
 }
 
 /**

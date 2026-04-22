@@ -10,6 +10,21 @@ import {
   writeLiferayPageLayoutExport,
 } from '../../features/liferay/page-layout/liferay-page-layout-export.js';
 
+type PageLayoutDiffCommandOptions = {
+  url: string;
+  file?: string;
+  referenceUrl?: string;
+};
+
+type PageLayoutExportCommandOptions = {
+  url?: string;
+  site?: string;
+  friendlyUrl?: string;
+  privateLayout?: boolean;
+  output?: string;
+  pretty?: boolean;
+};
+
 export function createPageLayoutCommands(parent: Command): void {
   const pageLayout = new Command('page-layout').description('Content page export and diff tools');
   pageLayout.helpGroup('Page workflows:');
@@ -24,7 +39,7 @@ export function createPageLayoutCommands(parent: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: PageLayoutDiffCommandOptions) =>
         runLiferayPageLayoutDiff(context.config, {
           url: options.url,
           file: options.file,
@@ -50,7 +65,7 @@ export function createPageLayoutCommands(parent: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: PageLayoutExportCommandOptions) => {
         const pageExport = await runLiferayPageLayoutExport(context.config, {
           url: options.url,
           site: options.site,

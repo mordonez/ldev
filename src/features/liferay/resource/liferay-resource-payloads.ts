@@ -1,3 +1,6 @@
+import {isRecord} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
+
 /**
  * Minimal typed payloads for Liferay JSONWS and headless resource API responses.
  *
@@ -59,9 +62,7 @@ export type DataDefinitionPayload = {
 // ---------------------------------------------------------------------------
 
 function asStr(v: unknown): string | undefined {
-  if (v == null) return undefined;
-  const s = String(v).trim();
-  return s === '' ? undefined : s;
+  return normalizeScalarString(v);
 }
 
 function asNum(v: unknown): number | undefined {
@@ -80,20 +81,19 @@ function asNum(v: unknown): number | undefined {
  * Returns a typed object with undefined for any missing or non-coercible fields.
  */
 export function toDdmTemplatePayload(raw: unknown): DdmTemplatePayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    templateId: asStr(r.templateId),
-    templateKey: asStr(r.templateKey),
-    externalReferenceCode: asStr(r.externalReferenceCode),
-    nameCurrentValue: asStr(r.nameCurrentValue),
-    name: asStr(r.name),
-    classPK: asStr(r.classPK),
-    classNameId: asNum(r.classNameId),
-    script: r.script != null ? String(r.script) : undefined,
-    language: asStr(r.language),
-    type: asStr(r.type),
-    mode: asStr(r.mode),
+    templateId: asStr(raw.templateId),
+    templateKey: asStr(raw.templateKey),
+    externalReferenceCode: asStr(raw.externalReferenceCode),
+    nameCurrentValue: asStr(raw.nameCurrentValue),
+    name: asStr(raw.name),
+    classPK: asStr(raw.classPK),
+    classNameId: asNum(raw.classNameId),
+    script: typeof raw.script === 'string' ? raw.script : undefined,
+    language: asStr(raw.language),
+    type: asStr(raw.type),
+    mode: asStr(raw.mode),
   };
 }
 
@@ -101,13 +101,12 @@ export function toDdmTemplatePayload(raw: unknown): DdmTemplatePayload {
  * Tolerant parse of a raw JSONWS fragment collection object.
  */
 export function toFragmentCollectionPayload(raw: unknown): FragmentCollectionPayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    fragmentCollectionId: asNum(r.fragmentCollectionId),
-    fragmentCollectionKey: asStr(r.fragmentCollectionKey),
-    name: asStr(r.name),
-    description: r.description != null ? String(r.description) : undefined,
+    fragmentCollectionId: asNum(raw.fragmentCollectionId),
+    fragmentCollectionKey: asStr(raw.fragmentCollectionKey),
+    name: asStr(raw.name),
+    description: typeof raw.description === 'string' ? raw.description : undefined,
   };
 }
 
@@ -116,17 +115,16 @@ export function toFragmentCollectionPayload(raw: unknown): FragmentCollectionPay
  * html/css/js preserve empty strings (valid empty content).
  */
 export function toFragmentEntryPayload(raw: unknown): FragmentEntryPayload {
-  if (!raw || typeof raw !== 'object') return {};
-  const r = raw as Record<string, unknown>;
+  if (!isRecord(raw)) return {};
   return {
-    fragmentEntryId: asNum(r.fragmentEntryId),
-    fragmentEntryKey: asStr(r.fragmentEntryKey),
-    name: asStr(r.name),
-    html: r.html != null ? String(r.html) : undefined,
-    css: r.css != null ? String(r.css) : undefined,
-    js: r.js != null ? String(r.js) : undefined,
-    configuration: r.configuration != null ? String(r.configuration) : undefined,
-    icon: asStr(r.icon),
-    type: asNum(r.type),
+    fragmentEntryId: asNum(raw.fragmentEntryId),
+    fragmentEntryKey: asStr(raw.fragmentEntryKey),
+    name: asStr(raw.name),
+    html: typeof raw.html === 'string' ? raw.html : undefined,
+    css: typeof raw.css === 'string' ? raw.css : undefined,
+    js: typeof raw.js === 'string' ? raw.js : undefined,
+    configuration: typeof raw.configuration === 'string' ? raw.configuration : undefined,
+    icon: asStr(raw.icon),
+    type: asNum(raw.type),
   };
 }

@@ -316,8 +316,8 @@ async function fetchHeadlessFoldersPageByPage(gateway: LiferayGateway, basePath:
       throw error;
     }
 
-    items.push(...(response?.items ?? []));
-    lastPage = response?.lastPage ?? 1;
+    items.push(...(response.items ?? []));
+    lastPage = response.lastPage ?? 1;
     page += 1;
   }
 

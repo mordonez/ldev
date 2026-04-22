@@ -107,12 +107,8 @@ export async function runLiferayResourceExportAdts(
 
   for (const row of filteredRows) {
     try {
-      const widgetDir = ADT_WIDGET_DIR_BY_TYPE[row.widgetType];
-      const target = path.join(
-        outputDir,
-        widgetDir ?? row.widgetType.replaceAll('-', '_'),
-        `${sanitizeArtifactToken(row.templateKey || row.adtName)}.ftl`,
-      );
+      const widgetDir = ADT_WIDGET_DIR_BY_TYPE[row.widgetType] ?? row.widgetType.replaceAll('-', '_');
+      const target = path.join(outputDir, widgetDir, `${sanitizeArtifactToken(row.templateKey || row.adtName)}.ftl`);
       await fs.ensureDir(path.dirname(target));
       await fs.writeFile(target, `${row.script ?? ''}`);
       exported += 1;

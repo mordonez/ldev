@@ -5,8 +5,41 @@ import {describe, expect, test} from 'vitest';
 
 import {runProcess} from '../../src/core/platform/process.js';
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type DeployAllPayload = {
+  seededDockerenv: boolean;
+  artifactsCopiedToCache: number;
+};
+
+type DeployPreparePayload = {
+  buildServiceExecuted: boolean;
+  dockerDeployExecuted: boolean;
+  artifactsCopiedToCache: number;
+};
+
+type DeployModulePayload = {
+  artifactsCopiedToBuild: number;
+  artifactsCopiedToCache: number;
+};
+
+type DeployThemePayload = {
+  theme: string;
+  hotDeployed: boolean;
+  artifactsHotDeployed: number;
+  runtimeRefreshed: boolean;
+  hotDeployReason?: string;
+};
+
+type DeployServicePayload = {
+  restoredTrackedFiles: boolean;
+};
+
+type DeployCacheUpdatePayload = {
+  clean: boolean;
+};
 
 describe('deploy integration', () => {
   test('deploy all executes dockerDeploy and writes the prepare marker', async () => {
@@ -15,7 +48,7 @@ describe('deploy integration', () => {
     const result = await runCli(['deploy', 'all', '--format', 'json'], {cwd: repoRoot});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployAllPayload>(result.stdout);
     expect(parsed.seededDockerenv).toBe(true);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'demo.jar'))).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
@@ -32,7 +65,7 @@ describe('deploy integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployPreparePayload>(result.stdout);
     expect(parsed.buildServiceExecuted).toBe(false);
     expect(parsed.dockerDeployExecuted).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
@@ -76,7 +109,7 @@ describe('deploy integration', () => {
     });
 
     expect(forced.exitCode).toBe(0);
-    const parsed = JSON.parse(forced.stdout);
+    const parsed = parseTestJson<DeployPreparePayload>(forced.stdout);
     expect(parsed.dockerDeployExecuted).toBe(true);
   }, 45000);
 
@@ -88,7 +121,7 @@ describe('deploy integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployPreparePayload>(result.stdout);
     expect(parsed.buildServiceExecuted).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
@@ -114,7 +147,7 @@ describe('deploy integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployModulePayload>(result.stdout);
     expect(parsed.artifactsCopiedToBuild).toBe(1);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'foo.jar'))).toBe(true);
@@ -131,7 +164,7 @@ describe('deploy integration', () => {
     const result = await runCli(['deploy', 'theme', '--theme', 'ub-theme', '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployThemePayload>(result.stdout);
     expect(parsed.theme).toBe('ub-theme');
     expect(parsed.hotDeployed).toBe(true);
     expect(parsed.artifactsHotDeployed).toBe(1);
@@ -162,7 +195,7 @@ describe('deploy integration', () => {
     const result = await runCli(['deploy', 'theme', '--theme', 'ub-theme', '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployThemePayload>(result.stdout);
     expect(parsed.hotDeployed).toBe(false);
     expect(parsed.artifactsHotDeployed).toBe(1);
     expect(parsed.runtimeRefreshed).toBe(false);
@@ -178,7 +211,7 @@ describe('deploy integration', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployServicePayload>(result.stdout);
     expect(parsed.restoredTrackedFiles).toBe(true);
     expect(
       (await fs.readFile(path.join(repoRoot, 'liferay', 'modules', 'foo', 'service.properties'), 'utf8')).replaceAll(
@@ -202,7 +235,7 @@ describe('deploy integration', () => {
     const result = await runCli(['deploy', 'cache-update', '--clean', '--format', 'json'], {cwd: repoRoot});
 
     expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<DeployCacheUpdatePayload>(result.stdout);
     expect(parsed.clean).toBe(true);
     expect(await fs.pathExists(path.join(cacheDir, 'fresh.jar'))).toBe(true);
     expect(await fs.pathExists(path.join(cacheDir, 'stale.jar'))).toBe(false);

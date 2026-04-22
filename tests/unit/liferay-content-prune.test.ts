@@ -6,6 +6,12 @@ import {
   runContentPrune,
   type ContentPruneResult,
 } from '../../src/features/liferay/content/liferay-content-prune.js';
+import {
+  createStaticTokenClient,
+  createTestFetchImpl,
+  createTokenClient,
+  toTestRequestBody,
+} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -25,13 +31,7 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-abc',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient({accessToken: 'token-abc'});
 
 // Minimal fake site response
 function siteResp(id: number, path: string) {
@@ -92,13 +92,12 @@ function folderArticlesResp(
 
 function makeApiClient(overrides: Record<string, () => Response>) {
   return createLiferayApiClient({
-    fetchImpl: async (input) => {
-      const url = String(input);
+    fetchImpl: createTestFetchImpl((url) => {
       for (const [pattern, handler] of Object.entries(overrides)) {
         if (url.includes(pattern)) return handler();
       }
       throw new Error(`Unexpected URL: ${url}`);
-    },
+    }),
   });
 }
 
@@ -127,9 +126,8 @@ describe('liferay-content-prune: dry-run', () => {
     const deletedUrls: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'DELETE') {
           deletedUrls.push(url);
@@ -153,7 +151,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -173,9 +171,7 @@ describe('liferay-content-prune: dry-run', () => {
 
   test('dry-run with --keep 1 keeps the most recent article per structure', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -193,7 +189,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -225,9 +221,7 @@ describe('liferay-content-prune: dry-run', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -260,7 +254,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -284,9 +278,7 @@ describe('liferay-content-prune: dry-run', () => {
     }));
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -304,7 +296,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -319,9 +311,7 @@ describe('liferay-content-prune: dry-run', () => {
 
   test('dry-run ignores folder rows returned by get-folders-and-articles', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -365,7 +355,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -388,9 +378,7 @@ describe('liferay-content-prune: dry-run', () => {
     };
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -416,7 +404,7 @@ describe('liferay-content-prune: dry-run', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -439,9 +427,7 @@ describe('liferay-content-prune: structure filter', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -459,7 +445,7 @@ describe('liferay-content-prune: structure filter', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -476,9 +462,7 @@ describe('liferay-content-prune: structure filter', () => {
 
   test('throws when structure key does not exist in site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -493,7 +477,7 @@ describe('liferay-content-prune: structure filter', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -509,9 +493,7 @@ describe('liferay-content-prune: structure filter', () => {
 describe('liferay-content-prune: folder validation', () => {
   test('throws when folder does not belong to the resolved site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -521,7 +503,7 @@ describe('liferay-content-prune: folder validation', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -535,9 +517,7 @@ describe('liferay-content-prune: folder validation', () => {
 
   test('throws when folder does not exist', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -546,7 +526,7 @@ describe('liferay-content-prune: folder validation', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -571,9 +551,7 @@ describe('liferay-content-prune: keep logic', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -591,7 +569,7 @@ describe('liferay-content-prune: keep logic', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -628,9 +606,7 @@ describe('liferay-content-prune: keep logic', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -663,7 +639,7 @@ describe('liferay-content-prune: keep logic', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -685,9 +661,7 @@ describe('liferay-content-prune: keep logic', () => {
     ];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -710,7 +684,7 @@ describe('liferay-content-prune: keep logic', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -725,9 +699,7 @@ describe('liferay-content-prune: keep logic', () => {
 
   test('folders are not marked removable when articles are kept', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -745,7 +717,7 @@ describe('liferay-content-prune: keep logic', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -760,9 +732,7 @@ describe('liferay-content-prune: keep logic', () => {
 
   test('folder is marked removable when all articles are deleted', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/estudis')) {
           return siteResp(20200, '/estudis');
         }
@@ -780,7 +750,7 @@ describe('liferay-content-prune: keep logic', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -799,12 +769,11 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedFolders: number[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const articleId = new URLSearchParams(body).get('articleId');
           if (articleId) deletedArticles.push(articleId);
           return new Response('{}', {status: 200});
@@ -833,7 +802,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -863,9 +832,8 @@ describe('liferay-content-prune: apply mode', () => {
     let maxInflightDeletes = 0;
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl(async (url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
           inflightDeletes++;
@@ -896,7 +864,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     await runContentPrune(
@@ -928,12 +896,11 @@ describe('liferay-content-prune: apply mode', () => {
     }
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
-          deleteAuthHeaders.push(getAuthorizationHeader(init as RequestInit | undefined));
+          deleteAuthHeaders.push(getAuthorizationHeader(init));
           return new Response('unauthorized', {status: 401});
         }
 
@@ -962,19 +929,17 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
-    const tokenClient = {
-      fetchClientCredentialsToken: async () => {
-        tokenFetches += 1;
-        return {
-          accessToken: `token-${tokenFetches}`,
-          tokenType: 'Bearer',
-          expiresIn: 3600,
-        };
-      },
-    };
+    const tokenClient = createTokenClient(() => {
+      tokenFetches += 1;
+      return {
+        accessToken: `token-${tokenFetches}`,
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      };
+    });
     const config = {
       ...CONFIG,
       liferay: {
@@ -1009,12 +974,11 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedArticles: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const articleId = new URLSearchParams(body).get('articleId');
           if (articleId) deletedArticles.push(articleId);
           if (articleId === '1001') {
@@ -1045,7 +1009,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -1070,19 +1034,18 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedArticles: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const folderId = new URLSearchParams(body).get('folderId');
           if (folderId) deletedJournalFolders.push(folderId);
           return new Response('{}', {status: 200});
         }
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const articleId = new URLSearchParams(body).get('articleId');
           if (articleId) deletedArticles.push(articleId);
           return new Response('{}', {status: 200});
@@ -1105,7 +1068,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -1124,12 +1087,11 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedJournalFolders: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const folderId = new URLSearchParams(body).get('folderId');
           if (folderId) deletedJournalFolders.push(folderId);
           return new Response('{}', {status: 200});
@@ -1153,7 +1115,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -1172,12 +1134,11 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedJournalFolders: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const folderId = new URLSearchParams(body).get('folderId');
           if (folderId) deletedJournalFolders.push(folderId);
           return new Response('{}', {status: 200});
@@ -1204,7 +1165,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     const result = await runContentPrune(
@@ -1225,19 +1186,18 @@ describe('liferay-content-prune: apply mode', () => {
     const deletedArticles: string[] = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-        const method = (init as RequestInit | undefined)?.method ?? 'GET';
+      fetchImpl: createTestFetchImpl((url, init) => {
+        const method = init?.method ?? 'GET';
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalfolder/delete-folder')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const folderId = new URLSearchParams(body).get('folderId');
           if (folderId) deletedJournalFolders.push(folderId);
           return new Response('{}', {status: 200});
         }
 
         if (method === 'POST' && url.includes('/api/jsonws/journal.journalarticle/delete-article')) {
-          const body = String((init as RequestInit | undefined)?.body ?? '');
+          const body = toTestRequestBody(init?.body);
           const articleId = new URLSearchParams(body).get('articleId');
           if (articleId) deletedArticles.push(articleId);
           return new Response('{}', {status: 200});
@@ -1260,7 +1220,7 @@ describe('liferay-content-prune: apply mode', () => {
         }
 
         throw new Error(`Unexpected: ${url}`);
-      },
+      }),
     });
 
     await runContentPrune(

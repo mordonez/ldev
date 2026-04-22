@@ -7,15 +7,10 @@ import {
   formatLiferayResourceSyncTemplate,
   runLiferayResourceSyncTemplate,
 } from '../../src/features/liferay/resource/liferay-resource-sync-template.js';
+import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-sync-template-');
@@ -60,9 +55,7 @@ describe('liferay resource template-sync', () => {
   test('throws when template is missing and createMissing is not enabled', async () => {
     const {config, templateFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
             status: 200,
@@ -90,7 +83,7 @@ describe('liferay resource template-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -106,8 +99,7 @@ describe('liferay resource template-sync', () => {
     const {config, templateFile} = await createRepoFixture();
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         calls.push(`${init?.method ?? 'GET'} ${url}`);
 
         if (url.includes('/by-friendly-url-path/global')) {
@@ -144,13 +136,13 @@ describe('liferay resource template-sync', () => {
           return new Response('{"templateId":"T-100","classPK":"301"}', {status: 200});
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('templateId')).toBe('T-100');
           expect(form.get('script')).toBe('Hello from local');
           return new Response('{"templateId":"T-100"}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncTemplate(
@@ -173,8 +165,7 @@ describe('liferay resource template-sync', () => {
     const {config, templateFile} = await createRepoFixture();
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         calls.push(`${init?.method ?? 'GET'} ${url}`);
 
         if (url.includes('/by-friendly-url-path/global')) {
@@ -211,7 +202,7 @@ describe('liferay resource template-sync', () => {
           );
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('templateId')).toBe('33955');
           expect(form.get('script')).toBe('Hello from local');
           return new Response('{"templateId":"33955"}', {status: 200});
@@ -223,7 +214,7 @@ describe('liferay resource template-sync', () => {
           );
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncTemplate(
@@ -252,9 +243,7 @@ describe('liferay resource template-sync', () => {
     await fs.writeFile(templateFile, '<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
             status: 200,
@@ -286,7 +275,7 @@ describe('liferay resource template-sync', () => {
           );
         }
         if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('script')).toBe('<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');
           return new Response('{"templateId":"T-100"}', {status: 200});
         }
@@ -298,7 +287,7 @@ describe('liferay resource template-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncTemplate(
@@ -318,9 +307,7 @@ describe('liferay resource template-sync', () => {
     );
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, _init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, _init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
             status: 200,
@@ -362,7 +349,7 @@ describe('liferay resource template-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncTemplate(

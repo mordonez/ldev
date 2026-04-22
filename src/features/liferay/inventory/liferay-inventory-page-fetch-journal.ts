@@ -1,6 +1,7 @@
 import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {
   asRecord,
   assignOptionalBoolean,
@@ -9,8 +10,13 @@ import {
   assignOptionalString,
   firstString,
   summarizeContentFields,
+  type ContentStructurePayload,
   type ContentStructureSummary,
+  type DisplayPageTemplatePayload,
+  type FragmentEntryLink,
   type JournalArticleSummary,
+  type JournalArticlePayload,
+  type RenderedContentPayload,
   type StructuredContent,
 } from './liferay-inventory-page-assemble.js';
 import type {ResolvedSite} from './liferay-inventory-shared.js';
@@ -44,7 +50,7 @@ export async function collectLayoutJournalArticles(
   config: AppConfig,
   apiClient: HttpApiClient,
   defaultGroupId: number,
-  fragmentEntryLinks: Array<Record<string, unknown>>,
+  fragmentEntryLinks: FragmentEntryLink[],
 ): Promise<JournalArticleSummary[]> {
   const refs = extractArticleRefs(fragmentEntryLinks, defaultGroupId);
   const result: JournalArticleSummary[] = [];
@@ -62,7 +68,7 @@ export async function buildJournalArticleSummary(
   apiClient: HttpApiClient,
   ref: ArticleRef,
   options?: {
-    article?: Record<string, unknown> | null;
+    article?: JournalArticlePayload | null;
     structuredContent?: StructuredContent | null;
     fallbackSite?: ResolvedSite;
     fallbackTitle?: string;
@@ -86,8 +92,9 @@ export async function buildJournalArticleSummary(
     ...(articleSite?.friendlyUrl ? {siteFriendlyUrl: articleSite.friendlyUrl} : {}),
     ...(articleSite?.name ? {siteName: articleSite.name} : {}),
     articleId: ref.articleId,
-    title: String(article?.titleCurrentValue ?? article?.title ?? options?.fallbackTitle ?? ref.articleId),
-    ddmStructureKey: String(article?.ddmStructureKey ?? ''),
+    title:
+      firstString(article?.titleCurrentValue) ?? firstString(article?.title) ?? options?.fallbackTitle ?? ref.articleId,
+    ddmStructureKey: firstString(article?.ddmStructureKey) ?? '',
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
     ...(options?.fallbackContentStructureId ? {contentStructureId: Number(options.fallbackContentStructureId)} : {}),
   };
@@ -200,7 +207,7 @@ export async function collectLayoutContentStructures(
       continue;
     }
     seen.add(contentStructureId);
-    const response = await safeGatewayGet<Record<string, unknown>>(
+    const response = await safeGatewayGet<ContentStructurePayload>(
       gateway,
       `/o/headless-delivery/v1.0/content-structures/${contentStructureId}`,
       'fetch-content-structure',
@@ -214,7 +221,7 @@ export async function collectLayoutContentStructures(
     result.push({
       contentStructureId,
       ...(key ? {key} : {}),
-      name: String(response.data?.name ?? ''),
+      name: firstString(response.data?.name) ?? '',
       ...(siteFriendlyUrl ? {siteFriendlyUrl} : {}),
       ...(exportPath ? {exportPath} : {}),
     });
@@ -223,14 +230,11 @@ export async function collectLayoutContentStructures(
   return result;
 }
 
-function extractArticleRefs(
-  fragmentEntryLinks: Array<Record<string, unknown>>,
-  defaultGroupId: number,
-): Map<string, ArticleRef> {
+function extractArticleRefs(fragmentEntryLinks: FragmentEntryLink[], defaultGroupId: number): Map<string, ArticleRef> {
   const refs = new Map<string, ArticleRef>();
 
   for (const link of fragmentEntryLinks) {
-    const editableValues = String(link.editableValues ?? '').trim();
+    const editableValues = firstString(link.editableValues) ?? '';
     if (!editableValues || editableValues === '{}') {
       continue;
     }
@@ -268,7 +272,7 @@ function collectArticleRefsFromValue(value: unknown, refs: Map<string, ArticleRe
 }
 
 function collectArticleRefFromPreferences(
-  prefsMap: Record<string, unknown>,
+  prefsMap: FragmentEntryLink,
   refs: Map<string, ArticleRef>,
   defaultGroupId: number,
 ): void {
@@ -353,7 +357,7 @@ async function resolveDisplayPageDdmTemplates(
   siteId: number,
   displayPageTemplateCandidates: string[],
 ): Promise<string[]> {
-  const response = await safeGatewayGet<{items?: Array<Record<string, unknown>>}>(
+  const response = await safeGatewayGet<{items?: DisplayPageTemplatePayload[]}>(
     gateway,
     `/o/headless-admin-content/v1.0/sites/${siteId}/display-page-templates?pageSize=200`,
     'fetch-display-page-templates',
@@ -368,12 +372,8 @@ async function resolveDisplayPageDdmTemplates(
   const ddmTemplates = new Set<string>();
 
   for (const item of response.data.items) {
-    const title = String(item.title ?? '')
-      .trim()
-      .toUpperCase();
-    const templateKey = String(item.displayPageTemplateKey ?? '')
-      .trim()
-      .toUpperCase();
+    const title = (firstString(item.title) ?? '').toUpperCase();
+    const templateKey = (firstString(item.displayPageTemplateKey) ?? '').toUpperCase();
     if (!requestedNames.has(title) && !requestedNames.has(templateKey)) {
       continue;
     }
@@ -407,16 +407,16 @@ function collectDisplayPageDdmTemplates(value: unknown, ddmTemplates: Set<string
   }
 }
 
-function inferContentStructureKey(value: Record<string, unknown> | null | undefined): string {
-  const explicit = String(value?.dataDefinitionKey ?? value?.key ?? '').trim();
+function inferContentStructureKey(value: ContentStructurePayload | null | undefined): string {
+  const explicit = firstString(value?.dataDefinitionKey) ?? firstString(value?.key) ?? '';
   if (explicit) {
     return explicit;
   }
-  const name = String(value?.name ?? '').trim();
+  const name = firstString(value?.name) ?? '';
   return /^[A-Z0-9_]+$/.test(name) ? name : '';
 }
 
-function extractTemplatesFromRenderedContents(renderedContents: Array<Record<string, unknown>>): TemplateInfo {
+function extractTemplatesFromRenderedContents(renderedContents: RenderedContentPayload[]): TemplateInfo {
   const widgetTemplateCandidates: string[] = [];
   const displayPageTemplateCandidates: string[] = [];
   let widgetHeadlessDefaultTemplate: string | undefined;
@@ -474,7 +474,9 @@ function enrichJournalArticleWithStructuredContent(
   const priority = Number(record.priority);
   const relatedContentsCount = Array.isArray(record.relatedContents) ? record.relatedContents.length : undefined;
   const availableLanguages = Array.isArray(record.availableLanguages)
-    ? record.availableLanguages.map((item) => String(item)).filter(Boolean)
+    ? record.availableLanguages
+        .map((item) => normalizeScalarString(item))
+        .filter((value): value is string => Boolean(value))
     : [];
 
   assignOptionalString(summary, 'widgetDefaultTemplate', widgetDefaultTemplate);

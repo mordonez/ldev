@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
-import {type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
+import {type FragmentEntryLink, type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildResourceSiteChain} from '../resource/liferay-resource-shared.js';
 import {resolveSiteToken, tryResolveFragmentsBaseDir} from '../resource/liferay-resource-paths.js';
@@ -12,11 +12,11 @@ export async function tryFetchFragmentEntryLinks(
   gateway: LiferayGateway,
   groupId: number,
   plid: number,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<FragmentEntryLink[]> {
   if (plid <= 0) {
     return [];
   }
-  const response = await safeGatewayGet<Array<Record<string, unknown>>>(
+  const response = await safeGatewayGet<FragmentEntryLink[]>(
     gateway,
     `/api/jsonws/fragment.fragmententrylink/get-fragment-entry-links?groupId=${groupId}&plid=${plid}`,
     'fetch-fragment-entry-links',

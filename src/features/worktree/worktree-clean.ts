@@ -16,7 +16,7 @@ import {
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
-import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../env/env-shared.js';
+import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../../core/runtime/env-context.js';
 import {WorktreeErrors} from './errors/index.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
@@ -119,7 +119,7 @@ export async function runWorktreeClean(options: {
         env: buildComposeEnv(worktreeEnvContext, {baseEnv: options.processEnv}),
       });
     }
-    await runDocker(['rm', '-f', ...((await listComposeContainers(composeProjectName, options.processEnv)) || [])], {
+    await runDocker(['rm', '-f', ...(await listComposeContainers(composeProjectName, options.processEnv))], {
       env: options.processEnv,
       reject: false,
     });

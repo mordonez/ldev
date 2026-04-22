@@ -4,8 +4,15 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin} from '../../src/testing/fake-docker.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+
+type EnvDiffPayload = {
+  summary: {
+    addedModules: string[];
+  };
+};
 
 describe('env diff integration', () => {
   test('writes a baseline and then reports added modules', async () => {
@@ -24,7 +31,7 @@ describe('env diff integration', () => {
 
     const diffResult = await runCli(['env', 'diff', '--json'], {cwd: repoRoot, env});
     expect(diffResult.exitCode).toBe(0);
-    const parsed = JSON.parse(diffResult.stdout);
+    const parsed = parseTestJson<EnvDiffPayload>(diffResult.stdout);
     expect(parsed.summary.addedModules).toContain('foo');
   }, 60000);
 });

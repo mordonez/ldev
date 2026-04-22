@@ -4,11 +4,29 @@ import {describe, expect, test, vi} from 'vitest';
 
 import {runLiferayResourceExportAdts} from '../../src/features/liferay/resource/liferay-resource-export-adts.js';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
+
+type SyncTemplateOptions = {
+  site: string;
+  key: string;
+  file: string;
+};
+
+type SyncStructureOptions = {
+  site: string;
+  key: string;
+  file: string;
+};
 
 const syncAdtMock = vi.fn();
 const syncTemplateMock = vi.fn();
 const syncStructureMock = vi.fn();
+
+function getMockOptions<T>(mockFn: ReturnType<typeof vi.fn>, index: number): T | undefined {
+  const call = mockFn.mock.calls.at(index);
+  return call === undefined ? undefined : (call[1] as T);
+}
 
 vi.mock('../../src/features/liferay/resource/liferay-resource-sync-adt.js', () => ({
   runLiferayResourceSyncAdt: syncAdtMock,
@@ -47,13 +65,7 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource import', () => {
   test('export-adts with custom dir keeps the site token in the output layout', async () => {
@@ -79,8 +91,7 @@ describe('liferay resource import', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -130,7 +141,7 @@ describe('liferay resource import', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportAdts(
@@ -174,16 +185,19 @@ describe('liferay resource import', () => {
     await fs.writeFile(path.join(directDir, 'SEARCH_RESULTS.ftl'), '<#-- changed -->');
 
     syncAdtMock.mockReset();
-    syncAdtMock.mockImplementation(async () => ({
-      status: 'updated',
-      id: 'SEARCH_RESULTS',
-      name: 'SEARCH_RESULTS',
-      extra: 'search-result-summary',
-      adtFile: path.join(directDir, 'SEARCH_RESULTS.ftl'),
-      widgetType: 'search-result-summary',
-      siteId: 20121,
-      siteFriendlyUrl: '/global',
-    }));
+    syncAdtMock.mockImplementation(async () => {
+      await Promise.resolve();
+      return {
+        status: 'updated',
+        id: 'SEARCH_RESULTS',
+        name: 'SEARCH_RESULTS',
+        extra: 'search-result-summary',
+        adtFile: path.join(directDir, 'SEARCH_RESULTS.ftl'),
+        widgetType: 'search-result-summary',
+        siteId: 20121,
+        siteFriendlyUrl: '/global',
+      };
+    });
 
     const result = await runLiferayResourceImportAdts(config, {
       site: '/global',
@@ -291,15 +305,18 @@ describe('liferay resource import', () => {
     await fs.writeFile(featured, 'featured');
 
     syncTemplateMock.mockReset();
-    syncTemplateMock.mockImplementation(async (_config, options) => ({
-      status: 'updated',
-      id: options.key,
-      name: options.key,
-      extra: '',
-      templateFile: options.file,
-      siteId: 20121,
-      siteFriendlyUrl: '/global',
-    }));
+    syncTemplateMock.mockImplementation(async (_config, options: SyncTemplateOptions) => {
+      await Promise.resolve();
+      return {
+        status: 'updated',
+        id: options.key,
+        name: options.key,
+        extra: '',
+        templateFile: options.file,
+        siteId: 20121,
+        siteFriendlyUrl: '/global',
+      };
+    });
 
     const result = await runLiferayResourceImportTemplates(config, {
       site: '/global',
@@ -311,7 +328,7 @@ describe('liferay resource import', () => {
     expect(result.processed).toBe(1);
     expect(result.failed).toBe(0);
     expect(syncTemplateMock).toHaveBeenCalledTimes(1);
-    expect(syncTemplateMock.mock.calls[0]?.[1]).toMatchObject({
+    expect(getMockOptions<SyncTemplateOptions>(syncTemplateMock, 0)).toMatchObject({
       site: '/global',
       key: 'FEATURED',
       file: featured,
@@ -345,15 +362,18 @@ describe('liferay resource import', () => {
     await fs.writeFile(featured, 'featured');
 
     syncTemplateMock.mockReset();
-    syncTemplateMock.mockImplementation(async (_config, options) => ({
-      status: 'updated',
-      id: options.key,
-      name: options.key,
-      extra: '',
-      templateFile: options.file,
-      siteId: 20121,
-      siteFriendlyUrl: '/global',
-    }));
+    syncTemplateMock.mockImplementation(async (_config, options: SyncTemplateOptions) => {
+      await Promise.resolve();
+      return {
+        status: 'updated',
+        id: options.key,
+        name: options.key,
+        extra: '',
+        templateFile: options.file,
+        siteId: 20121,
+        siteFriendlyUrl: '/global',
+      };
+    });
 
     const result = await runLiferayResourceImportTemplates(config, {
       site: '/global',
@@ -363,7 +383,7 @@ describe('liferay resource import', () => {
 
     expect(result.baseDir).toBe(path.join(dir, '.tmp', 'templates-import'));
     expect(result.processed).toBe(1);
-    expect(syncTemplateMock.mock.calls[0]?.[1]).toMatchObject({
+    expect(getMockOptions<SyncTemplateOptions>(syncTemplateMock, 0)).toMatchObject({
       site: '/global',
       key: 'FEATURED',
       file: featured,
@@ -460,7 +480,8 @@ describe('liferay resource import', () => {
     await fs.writeJson(okFile, {name: 'ok'});
 
     syncStructureMock.mockReset();
-    syncStructureMock.mockImplementation(async (_config, options) => {
+    syncStructureMock.mockImplementation(async (_config, options: SyncStructureOptions) => {
+      await Promise.resolve();
       if (options.key === 'BROKEN') {
         throw new Error('portal timeout');
       }
@@ -494,7 +515,7 @@ describe('liferay resource import', () => {
       },
     ]);
     expect(syncStructureMock).toHaveBeenCalledTimes(2);
-    expect(syncStructureMock.mock.calls[1]?.[1]).toMatchObject({
+    expect(getMockOptions<SyncStructureOptions>(syncStructureMock, 1)).toMatchObject({
       key: 'OK',
       file: okFile,
     });
@@ -527,15 +548,18 @@ describe('liferay resource import', () => {
     await fs.writeJson(okFile, {name: 'ok'});
 
     syncStructureMock.mockReset();
-    syncStructureMock.mockImplementation(async (_config, options) => ({
-      status: 'updated',
-      id: '123',
-      key: options.key,
-      siteId: 20121,
-      siteFriendlyUrl: '/global',
-      structureFile: options.file,
-      removedFieldReferences: [],
-    }));
+    syncStructureMock.mockImplementation(async (_config, options: SyncStructureOptions) => {
+      await Promise.resolve();
+      return {
+        status: 'updated',
+        id: '123',
+        key: options.key,
+        siteId: 20121,
+        siteFriendlyUrl: '/global',
+        structureFile: options.file,
+        removedFieldReferences: [],
+      };
+    });
 
     const result = await runLiferayResourceImportStructures(config, {
       site: '/global',
@@ -545,7 +569,7 @@ describe('liferay resource import', () => {
 
     expect(result.baseDir).toBe(path.join(dir, '.tmp', 'structures-import'));
     expect(result.processed).toBe(1);
-    expect(syncStructureMock.mock.calls[0]?.[1]).toMatchObject({
+    expect(getMockOptions<SyncStructureOptions>(syncStructureMock, 0)).toMatchObject({
       site: '/global',
       key: 'OK',
       file: okFile,

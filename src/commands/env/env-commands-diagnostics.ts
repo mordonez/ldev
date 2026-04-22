@@ -5,6 +5,16 @@ import {formatEnvDiff, runEnvDiff} from '../../features/env/env-diff.js';
 import {formatEnvIsHealthy, runEnvIsHealthy} from '../../features/env/env-is-healthy.js';
 import {formatEnvWait, runEnvWait} from '../../features/env/env-wait.js';
 
+type EnvWaitCommandOptions = {
+  timeout: string;
+  poll: string;
+};
+
+type EnvDiffCommandOptions = {
+  baseline?: string;
+  writeBaseline?: boolean;
+};
+
 export function registerEnvDiagnosticsCommands(command: Command): void {
   addOutputFormatOption(
     command
@@ -15,7 +25,7 @@ export function registerEnvDiagnosticsCommands(command: Command): void {
       .option('--poll <seconds>', 'Polling interval in seconds', '10'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: EnvWaitCommandOptions) =>
         runEnvWait(context.config, {
           timeoutSeconds: Number.parseInt(options.timeout, 10),
           pollIntervalSeconds: Number.parseInt(options.poll, 10),
@@ -35,7 +45,7 @@ export function registerEnvDiagnosticsCommands(command: Command): void {
     'json',
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: EnvDiffCommandOptions) =>
         runEnvDiff(context.config, {
           baseline: options.baseline,
           writeBaseline: Boolean(options.writeBaseline),

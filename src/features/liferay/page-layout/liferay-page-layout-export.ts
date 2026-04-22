@@ -180,7 +180,7 @@ async function fetchSitePageExperiences(
   gateway: LiferayGateway,
   siteId: number,
   friendlyUrl: string,
-): Promise<unknown | null> {
+): Promise<unknown> {
   const slug = trimLeadingSlash(friendlyUrl);
 
   try {

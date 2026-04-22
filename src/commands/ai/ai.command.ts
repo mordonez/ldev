@@ -13,6 +13,25 @@ function collectSkillOption(value: string, previous: string[]): string[] {
   return [...previous, skill];
 }
 
+type AiInstallCommandOptions = {
+  target: string;
+  force?: boolean;
+  local?: boolean;
+  skillsOnly?: boolean;
+  project?: boolean;
+  projectContext?: boolean;
+  skill: string[];
+};
+
+type AiUpdateCommandOptions = {
+  target: string;
+  skill: string[];
+};
+
+type AiStatusCommandOptions = {
+  target: string;
+};
+
 export function createAiCommand(): Command {
   const command = new Command('ai');
   const installCommand = addOutputFormatOption(
@@ -90,7 +109,7 @@ Potentially mutating:
 
   installCommand.action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: AiInstallCommandOptions) => {
         const result = await runAiInstall({
           targetDir: options.target,
           force: Boolean(options.force),
@@ -98,7 +117,7 @@ Potentially mutating:
           skillsOnly: Boolean(options.skillsOnly),
           project: Boolean(options.project),
           projectContext: Boolean(options.projectContext),
-          selectedSkills: options.skill as string[],
+          selectedSkills: options.skill,
           printer: context.printer,
         });
         return result;
@@ -109,10 +128,10 @@ Potentially mutating:
 
   updateCommand.action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: AiUpdateCommandOptions) => {
         const result = await runAiUpdate({
           targetDir: options.target,
-          selectedSkills: options.skill as string[],
+          selectedSkills: options.skill,
           printer: context.printer,
         });
         return result;
@@ -122,7 +141,7 @@ Potentially mutating:
   );
 
   statusCommand.action(
-    createFormattedAction(async (_context, options) => runAiStatus(options.target as string), {
+    createFormattedAction(async (_context, options: AiStatusCommandOptions) => runAiStatus(options.target), {
       text: formatAiStatus,
     }),
   );

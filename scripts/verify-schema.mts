@@ -44,14 +44,19 @@ function check(name: string, fn: () => void): void {
   }
 }
 
+function assertExported(name: string, value: unknown): void {
+  if (value === undefined || value === null) {
+    throw new Error(`${name} not exported`);
+  }
+}
+
 function main(): void {
   console.log('Verifying Zod schemas...\n');
 
   // Verify shared schemas
   console.log('Shared Schemas:');
   check('resolvedSiteSchema exists', () => {
-    const schema = contracts.resolvedSiteSchema;
-    if (!schema) throw new Error('resolvedSiteSchema not exported');
+    assertExported('resolvedSiteSchema', contracts.resolvedSiteSchema);
   });
 
   check('resolvedSiteSchema validates positive id', () => {
@@ -78,13 +83,11 @@ function main(): void {
   });
 
   check('headlessSiteSchema defined', () => {
-    const schema = contracts.headlessSiteSchema;
-    if (!schema) throw new Error('headlessSiteSchema not exported');
+    assertExported('headlessSiteSchema', contracts.headlessSiteSchema);
   });
 
   check('dataDefinitionSchema defined', () => {
-    const schema = contracts.dataDefinitionSchema;
-    if (!schema) throw new Error('dataDefinitionSchema not exported');
+    assertExported('dataDefinitionSchema', contracts.dataDefinitionSchema);
   });
 
   check('contentTemplateSchema tolerates numeric and string id', () => {
@@ -108,8 +111,7 @@ function main(): void {
 
   console.log('\nInventory Schemas:');
   check('liferayInventorySiteSchema defined', () => {
-    const schema = contracts.liferayInventorySiteSchema;
-    if (!schema) throw new Error('liferayInventorySiteSchema not exported');
+    assertExported('liferayInventorySiteSchema', contracts.liferayInventorySiteSchema);
   });
 
   check('liferayInventorySiteSchema validates complete site', () => {
@@ -126,19 +128,19 @@ function main(): void {
   });
 
   check('liferayInventoryTemplateSchema defined', () => {
-    const schema = contracts.liferayInventoryTemplateSchema;
-    if (!schema) throw new Error('liferayInventoryTemplateSchema not exported');
+    assertExported('liferayInventoryTemplateSchema', contracts.liferayInventoryTemplateSchema);
   });
 
   check('liferayInventoryStructureSchema defined', () => {
-    const schema = contracts.liferayInventoryStructureSchema;
-    if (!schema) throw new Error('liferayInventoryStructureSchema not exported');
+    assertExported('liferayInventoryStructureSchema', contracts.liferayInventoryStructureSchema);
   });
 
   console.log('\nResource Schemas:');
   check('liferayResourceSyncFragmentItemResultSchema defined', () => {
-    const schema = contracts.liferayResourceSyncFragmentItemResultSchema;
-    if (!schema) throw new Error('liferayResourceSyncFragmentItemResultSchema not exported');
+    assertExported(
+      'liferayResourceSyncFragmentItemResultSchema',
+      contracts.liferayResourceSyncFragmentItemResultSchema,
+    );
   });
 
   check('liferayResourceSyncFragmentItemResultSchema validates import result', () => {
@@ -155,8 +157,10 @@ function main(): void {
   });
 
   check('liferayResourceSyncFragmentsSingleResultSchema defined', () => {
-    const schema = contracts.liferayResourceSyncFragmentsSingleResultSchema;
-    if (!schema) throw new Error('liferayResourceSyncFragmentsSingleResultSchema not exported');
+    assertExported(
+      'liferayResourceSyncFragmentsSingleResultSchema',
+      contracts.liferayResourceSyncFragmentsSingleResultSchema,
+    );
   });
 
   check('liferayResourceSyncFragmentsResultSchema discriminates union', () => {

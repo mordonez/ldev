@@ -114,7 +114,7 @@ export async function runOAuthInstall(
   const localProfileFile = resolveOAuthLocalProfileFile(config);
   const localProfileUpdated =
     options?.writeEnv === true
-      ? await writeCredentialsToLocalProfile(
+      ? writeCredentialsToLocalProfile(
           localProfileFile,
           parsed.readWrite.clientId,
           parsed.readWrite.clientSecret,
@@ -243,7 +243,7 @@ async function provisionOAuthViaOsgiConfig(
 
   const localProfileUpdated =
     persistLocalProfile && options?.writeEnv === true
-      ? await writeCredentialsToLocalProfile(
+      ? writeCredentialsToLocalProfile(
           localProfileFile,
           readWrite.clientId,
           readWrite.clientSecret,

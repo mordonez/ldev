@@ -5,6 +5,7 @@ import {
   formatLiferayResourceTemplate,
   runLiferayResourceGetTemplate,
 } from '../../src/features/liferay/resource/liferay-resource-get-template.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -24,20 +25,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource get-template', () => {
   test('matches template by id, key, erc and name', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -62,7 +55,7 @@ describe('liferay resource get-template', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(
@@ -97,9 +90,7 @@ describe('liferay resource get-template', () => {
 
   test('falls back to company-level templates and errors when missing', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -134,7 +125,7 @@ describe('liferay resource get-template', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetTemplate(
@@ -152,9 +143,7 @@ describe('liferay resource get-template', () => {
 
   test('falls back to global when a template is not found in the specified site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":30100,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -198,7 +187,7 @@ describe('liferay resource get-template', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceGetTemplate(

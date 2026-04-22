@@ -4,7 +4,21 @@ import path from 'node:path';
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
-import {captureProcessOutput, createLiferayCliRepoFixture} from '../../src/testing/cli-test-helpers.js';
+import {
+  captureProcessOutput,
+  createLiferayCliRepoFixture,
+  parseTestJson,
+  toTestRequestUrl,
+} from '../../src/testing/cli-test-helpers.js';
+
+type PageLayoutExportPayload = {
+  kind: string;
+  source: {friendlyUrl: string};
+};
+
+type OutputPathPayload = {
+  outputPath: string;
+};
 
 describe('liferay page-layout smoke', () => {
   let repoRoot: string;
@@ -24,7 +38,8 @@ describe('liferay page-layout smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -76,7 +91,7 @@ describe('liferay page-layout smoke', () => {
       process.chdir(originalCwd);
     }
 
-    const parsed = JSON.parse(output.stdout());
+    const parsed = parseTestJson<PageLayoutExportPayload>(output.stdout());
     expect(parsed.kind).toBe('liferay-page-layout-export');
     expect(parsed.source.friendlyUrl).toBe('/home');
     expect(output.stderr()).toBe('');
@@ -88,7 +103,8 @@ describe('liferay page-layout smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
 
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
@@ -142,8 +158,8 @@ describe('liferay page-layout smoke', () => {
       process.chdir(originalCwd);
     }
 
-    expect(JSON.parse(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
-    const written = JSON.parse(await fs.readFile(outputPath, 'utf8'));
+    expect(parseTestJson<OutputPathPayload>(output.stdout())).toEqual({outputPath: path.resolve(outputPath)});
+    const written = parseTestJson<PageLayoutExportPayload>(await fs.readFile(outputPath, 'utf8'));
     expect(written.kind).toBe('liferay-page-layout-export');
     expect(output.stderr()).toBe('');
   });

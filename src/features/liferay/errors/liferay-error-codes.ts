@@ -111,8 +111,9 @@ export function getErrorCodeMetadata(code: string): {
   retryable: boolean;
   logFullMessage: boolean;
 } {
-  const meta = errorCodeMetadata[code as LiferayErrorCode];
-  if (meta) return meta;
+  if (Object.prototype.hasOwnProperty.call(errorCodeMetadata, code)) {
+    return errorCodeMetadata[code as LiferayErrorCode];
+  }
 
   // Default: treat unknown codes as non-retryable errors
   return {severity: 'error', retryable: false, logFullMessage: false};

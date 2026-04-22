@@ -3,6 +3,8 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
+import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 
@@ -43,9 +45,7 @@ export type MigrationPlanData = {
   articleIds: string[];
 };
 
-type JsonMap = Record<string, unknown>;
-
-type StructuredContentRow = JsonMap & {
+type StructuredContentRow = JsonRecord & {
   id?: string | number;
   key?: string;
   contentStructureId?: string | number;
@@ -73,9 +73,15 @@ type MigrationPlanShape = {
 
 type LocalizedContentSnapshots = Map<string, StructuredContentRow>;
 
-type DataDefinitionField = JsonMap & {
+type ContentField = JsonRecord & {
   name?: string;
-  customProperties?: JsonMap;
+  contentFieldValue?: unknown;
+  nestedContentFields?: unknown;
+};
+
+type DataDefinitionField = JsonRecord & {
+  name?: string;
+  customProperties?: JsonRecord;
   nestedDataDefinitionFields?: unknown;
 };
 
@@ -98,11 +104,8 @@ export async function runStructureMigration(
     ) => Promise<StructureLookup | null>;
   },
 ): Promise<MigrationStats> {
-  const planRoot = await fs.readJson(migrationPlanPath);
-  const plan =
-    typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as MigrationPlanShape)
-      : (planRoot as MigrationPlanShape);
+  const planRoot: unknown = await fs.readJson(migrationPlanPath);
+  const plan = readMigrationPlanShape(planRoot);
   const planData = parseMigrationPlan(plan);
   if (planData.rules.length === 0) {
     throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
@@ -281,11 +284,8 @@ export async function captureMigrationSourceSnapshots(
     gateway: LiferayGateway;
   },
 ): Promise<Map<string, LocalizedContentSnapshots>> {
-  const planRoot = await fs.readJson(migrationPlanPath);
-  const plan =
-    typeof planRoot === 'object' && planRoot && 'plan' in planRoot
-      ? (planRoot.plan as MigrationPlanShape)
-      : (planRoot as MigrationPlanShape);
+  const planRoot: unknown = await fs.readJson(migrationPlanPath);
+  const plan = readMigrationPlanShape(planRoot);
   const planData = parseMigrationPlan(plan);
   const selected = await selectStructureContents(options.gateway, siteId, structureId, planData);
   const snapshots = new Map<string, LocalizedContentSnapshots>();
@@ -377,7 +377,7 @@ async function listStructureContentsByArticleIds(
 async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
   const rows: StructuredContentRow[] = [];
   let page = 1;
-  let lastPage = 1;
+  let lastPage: number;
   const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   do {
@@ -403,7 +403,7 @@ async function listStructureContentsByFolders(
 
   for (const folderId of folderIds.sort((left, right) => left - right)) {
     let page = 1;
-    let lastPage = 1;
+    let lastPage: number;
     do {
       const response = await gateway.getJson<StructuredContentsPage>(
         `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
@@ -434,21 +434,27 @@ async function fetchStructuredContentForMigration(
   const fields = encodeURIComponent(
     'id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title,availableLanguages,contentFields',
   );
-  return (
-    (await gateway.getJson<StructuredContentRow>(
-      `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
-      'structure-migrate get',
-      acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
-    )) ?? {}
+  const content = await gateway.getJson<unknown>(
+    `/o/headless-delivery/v1.0/structured-contents/${encodeURIComponent(contentId)}?fields=${fields}`,
+    'structure-migrate get',
+    acceptLanguage !== '' ? {headers: {'Accept-Language': acceptLanguage}} : undefined,
   );
+
+  if (!isRecord(content)) {
+    throw LiferayErrors.resourceError(
+      `structure-migrate get returned an empty or invalid response for contentId=${contentId}`,
+    );
+  }
+
+  return content;
 }
 
 async function fetchLatestJournalArticle(
   gateway: LiferayGateway,
   siteId: number,
   articleId: string,
-): Promise<JsonMap | null> {
-  const response = await gateway.getRaw<JsonMap>(
+): Promise<JsonRecord | null> {
+  const response = await gateway.getRaw<JsonRecord>(
     `/api/jsonws/journal.journalarticle/get-latest-article?groupId=${siteId}&articleId=${encodeURIComponent(articleId)}&status=0`,
   );
 
@@ -462,14 +468,14 @@ async function fetchLatestJournalArticle(
     );
   }
 
-  return (response.data as JsonMap | null) ?? null;
+  return response.data ?? null;
 }
 
 async function fetchStructureDefinitionFields(
   gateway: LiferayGateway,
   structureId: string,
 ): Promise<DataDefinitionField[]> {
-  const definition = await gateway.getJson<JsonMap>(
+  const definition = await gateway.getJson<JsonRecord>(
     `/o/data-engine/v2.0/data-definitions/${encodeURIComponent(structureId)}`,
     'structure-migrate definition',
   );
@@ -565,7 +571,7 @@ function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): 
       continue;
     }
 
-    const title = String(snapshot.title ?? '').trim();
+    const title = normalizeScalarString(snapshot.title) ?? '';
     if (title === '') {
       continue;
     }
@@ -577,12 +583,12 @@ function buildTitleI18n(localizedSnapshots: Map<string, StructuredContentRow>): 
 }
 
 export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData {
-  const rules = parseMappings(plan?.mappings);
+  const rules = parseMappings(plan.mappings);
   return {
     rules,
-    scopedRootFolderIds: parseNumberList(plan?.rootFolderIds),
-    scopedFolderIds: parseNumberList(plan?.folderIds),
-    articleIds: parseStringList(plan?.articleIds),
+    scopedRootFolderIds: parseNumberList(plan.rootFolderIds),
+    scopedFolderIds: parseNumberList(plan.folderIds),
+    articleIds: parseStringList(plan.articleIds),
   };
 }
 
@@ -592,12 +598,11 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
   }
 
   return rawMappings.flatMap((row) => {
-    if (!row || typeof row !== 'object') {
+    if (!isRecord(row)) {
       return [];
     }
-    const mapping = row as JsonMap;
-    const source = String(mapping.source ?? mapping.from ?? '').trim();
-    const target = String(mapping.target ?? mapping.to ?? '').trim();
+    const source = normalizeScalarString(row.source) ?? normalizeScalarString(row.from) ?? '';
+    const target = normalizeScalarString(row.target) ?? normalizeScalarString(row.to) ?? '';
     if (!source || !target) {
       return [];
     }
@@ -605,7 +610,7 @@ function parseMappings(rawMappings: unknown): MigrationRule[] {
       {
         source,
         target,
-        cleanupSource: toBooleanOrFalse(mapping.cleanupSource),
+        cleanupSource: toBooleanOrFalse(row.cleanupSource),
       },
     ];
   });
@@ -622,7 +627,7 @@ function parseStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return value.map((item) => normalizeScalarString(item)).filter((item): item is string => Boolean(item));
 }
 
 function applyMappings(
@@ -678,22 +683,21 @@ function applyMappings(
   };
 }
 
-function firstSourceValue(contentFields: unknown, source: string): unknown | null {
+function firstSourceValue(contentFields: unknown, source: string): unknown {
   if (!Array.isArray(contentFields)) {
     return null;
   }
   for (const field of contentFields) {
-    if (!field || typeof field !== 'object') {
+    if (!isRecord(field)) {
       continue;
     }
-    const record = field as Record<string, unknown>;
-    if (String(record.name ?? '') === source) {
-      const value = record.contentFieldValue;
+    if ((normalizeScalarString(field.name) ?? '') === source) {
+      const value = field.contentFieldValue;
       if (!isEmptyValue(value)) {
         return value;
       }
     }
-    const nested = firstSourceValue(record.nestedContentFields, source);
+    const nested = firstSourceValue(field.nestedContentFields, source);
     if (nested !== null) {
       return nested;
     }
@@ -701,18 +705,18 @@ function firstSourceValue(contentFields: unknown, source: string): unknown | nul
   return null;
 }
 
-function setTargetValue(item: Record<string, unknown>, target: string, value: unknown): boolean {
+function setTargetValue(item: StructuredContentRow, target: string, value: unknown): boolean {
   if (target.includes('[].')) {
     const [base, child] = target.split('[].', 2);
-    return setFieldsetTarget(item, base!, child!, value);
+    return setFieldsetTarget(item, base, child, value);
   }
   return setSimpleTarget(item, target, value);
 }
 
-function setSimpleTarget(item: Record<string, unknown>, target: string, value: unknown): boolean {
+function setSimpleTarget(item: StructuredContentRow, target: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
-    if (String(field.name ?? '') === target) {
+    if ((normalizeScalarString(field.name) ?? '') === target) {
       if (isEmptyValue(field.contentFieldValue)) {
         field.contentFieldValue = value;
         return true;
@@ -724,15 +728,15 @@ function setSimpleTarget(item: Record<string, unknown>, target: string, value: u
   return true;
 }
 
-function setFieldsetTarget(item: Record<string, unknown>, base: string, child: string, value: unknown): boolean {
+function setFieldsetTarget(item: StructuredContentRow, base: string, child: string, value: unknown): boolean {
   const fields = ensureContentFields(item);
   for (const field of fields) {
-    if (String(field.name ?? '') !== base) {
+    if ((normalizeScalarString(field.name) ?? '') !== base) {
       continue;
     }
     const nested = ensureNestedContentFields(field);
     for (const nestedField of nested) {
-      if (String(nestedField.name ?? '') === child) {
+      if ((normalizeScalarString(nestedField.name) ?? '') === child) {
         if (isEmptyValue(nestedField.contentFieldValue)) {
           nestedField.contentFieldValue = value;
           return true;
@@ -749,14 +753,14 @@ function setFieldsetTarget(item: Record<string, unknown>, base: string, child: s
   return true;
 }
 
-function cleanupSourceField(item: Record<string, unknown>, source: string): boolean {
+function cleanupSourceField(item: StructuredContentRow, source: string): boolean {
   return cleanupSourceInFields(ensureContentFields(item), source);
 }
 
-function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: string): boolean {
+function cleanupSourceInFields(fields: ContentField[], source: string): boolean {
   let changed = false;
   for (const field of fields) {
-    if (String(field.name ?? '') === source) {
+    if ((normalizeScalarString(field.name) ?? '') === source) {
       field.contentFieldValue = {data: ''};
       changed = true;
     }
@@ -767,7 +771,7 @@ function cleanupSourceInFields(fields: Array<Record<string, unknown>>, source: s
   return changed;
 }
 
-function contentFieldsEqual(left: Record<string, unknown>, right: Record<string, unknown>): boolean {
+function contentFieldsEqual(left: JsonRecord, right: JsonRecord): boolean {
   return (
     JSON.stringify(normalizeComparableValue(left.contentFields ?? [])) ===
     JSON.stringify(normalizeComparableValue(right.contentFields ?? []))
@@ -781,13 +785,13 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
 
   const scope = Array.isArray(definitionFields) ? (definitionFields as DataDefinitionField[]) : [];
 
-  return contentFields.map((entry) => {
+  return (contentFields as unknown[]).map((entry) => {
     if (!entry || typeof entry !== 'object') {
       return entry;
     }
 
-    const field = structuredClone(entry) as Record<string, unknown>;
-    const definition = findDefinitionField(scope, String(field.name ?? '').trim());
+    const field = structuredClone(entry) as ContentField;
+    const definition = findDefinitionField(scope, normalizeScalarString(field.name) ?? '');
 
     if (definition?.name) {
       field.name = definition.name;
@@ -801,14 +805,19 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
   });
 }
 
+function readMigrationPlanShape(planRoot: unknown): MigrationPlanShape {
+  const plan = isRecord(planRoot) && 'plan' in planRoot ? planRoot.plan : planRoot;
+  return isRecord(plan) ? plan : {};
+}
+
 function findDefinitionField(scope: DataDefinitionField[], fieldName: string): DataDefinitionField | null {
   if (fieldName === '') {
     return null;
   }
 
   for (const definition of scope) {
-    const internalName = String(definition.name ?? '').trim();
-    const fieldReference = String((definition.customProperties?.fieldReference as string | undefined) ?? '').trim();
+    const internalName = normalizeScalarString(definition.name) ?? '';
+    const fieldReference = normalizeScalarString(definition.customProperties?.fieldReference) ?? '';
 
     if (fieldName === internalName || fieldName === fieldReference) {
       return definition;
@@ -823,10 +832,10 @@ function normalizeComparableValue(value: unknown): unknown {
     return value.map((entry) => normalizeComparableValue(entry));
   }
 
-  if (value && typeof value === 'object') {
-    const normalized: Record<string, unknown> = {};
-    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
-      normalized[key] = normalizeComparableValue((value as Record<string, unknown>)[key]);
+  if (isRecord(value)) {
+    const normalized: JsonRecord = {};
+    for (const key of Object.keys(value).sort()) {
+      normalized[key] = normalizeComparableValue(value[key]);
     }
     return normalized;
   }
@@ -834,43 +843,42 @@ function normalizeComparableValue(value: unknown): unknown {
   return value;
 }
 
-function ensureContentFields(item: Record<string, unknown>): Array<Record<string, unknown>> {
+function ensureContentFields(item: JsonRecord): ContentField[] {
   if (!Array.isArray(item.contentFields)) {
     item.contentFields = [];
   }
-  return item.contentFields as Array<Record<string, unknown>>;
+  return item.contentFields as ContentField[];
 }
 
-function ensureNestedContentFields(field: Record<string, unknown>): Array<Record<string, unknown>> {
+function ensureNestedContentFields(field: ContentField): ContentField[] {
   if (!Array.isArray(field.nestedContentFields)) {
     field.nestedContentFields = [];
   }
-  return field.nestedContentFields as Array<Record<string, unknown>>;
+  return field.nestedContentFields as ContentField[];
 }
 
-function getNestedContentFields(field: Record<string, unknown>): Array<Record<string, unknown>> {
-  return Array.isArray(field.nestedContentFields) ? (field.nestedContentFields as Array<Record<string, unknown>>) : [];
+function getNestedContentFields(field: ContentField): ContentField[] {
+  return Array.isArray(field.nestedContentFields) ? (field.nestedContentFields as ContentField[]) : [];
 }
 
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) {
     return true;
   }
-  if (typeof value === 'object' && !Array.isArray(value)) {
-    const record = value as Record<string, unknown>;
-    const keys = Object.keys(record);
+  if (isRecord(value)) {
+    const keys = Object.keys(value);
     if (keys.length === 0) {
       return true;
     }
     if (keys.length === 1 && keys[0] === 'data') {
-      return String(record.data ?? '').trim() === '';
+      return (normalizeScalarString(value.data) ?? '') === '';
     }
   }
   return false;
 }
 
-function copyIfPresent(source: Record<string, unknown>, fields: string[]): Record<string, unknown> {
-  const target: Record<string, unknown> = {};
+function copyIfPresent(source: JsonRecord, fields: string[]): JsonRecord {
+  const target: JsonRecord = {};
   for (const field of fields) {
     if (source[field] !== undefined && source[field] !== null) {
       target[field] = structuredClone(source[field]);

@@ -9,15 +9,19 @@ import {
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
 } from '../../src/features/liferay/resource/liferay-resource-migration.js';
+import {
+  createStaticTokenClient,
+  createTestFetchImpl,
+  parseTestJson,
+  toTestRequestBody,
+} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
+type StructuredContentBody = {
+  contentFields: Array<Record<string, unknown>>;
 };
+
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-migration-');
@@ -80,9 +84,7 @@ describe('liferay resource migration-run', () => {
   test('executes a migration descriptor through structure-sync', async () => {
     const {config, migrationFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -103,7 +105,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationRun(
@@ -121,9 +123,7 @@ describe('liferay resource migration-run', () => {
   test('marks migrationApplied=false when migration is dry-run', async () => {
     const {config, migrationFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -144,7 +144,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationRun(
@@ -168,9 +168,7 @@ describe('liferay resource migration-run', () => {
     };
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -191,7 +189,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceMigrationRun(config, {migrationFile, printer}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -215,8 +213,7 @@ describe('liferay resource migration-run', () => {
 
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         const method = init?.method ?? 'GET';
         calls.push(`${method} ${url}`);
 
@@ -255,7 +252,7 @@ describe('liferay resource migration-run', () => {
           return new Response('', {status: 404});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationPipeline(
@@ -286,8 +283,7 @@ describe('liferay resource migration-run', () => {
       {name: 'oldField', contentFieldValue: {data: 'legacy value'}},
     ];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         const method = init?.method ?? 'GET';
         calls.push(`${method} ${url}`);
 
@@ -327,7 +323,7 @@ describe('liferay resource migration-run', () => {
           );
         }
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
-          const body = JSON.parse(String(init?.body ?? '{}'));
+          const body = parseTestJson<StructuredContentBody>(toTestRequestBody(init?.body) || '{}');
           persistedFields = body.contentFields;
           return new Response('{"id":700}', {status: 200});
         }
@@ -335,7 +331,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"id":301}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationPipeline(
@@ -372,8 +368,7 @@ describe('liferay resource migration-run', () => {
 
     const calls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         const method = init?.method ?? 'GET';
         calls.push(`${method} ${url}`);
 
@@ -400,7 +395,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"id":301}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationPipeline(
@@ -460,8 +455,7 @@ describe('liferay resource migration-run', () => {
     const structureUpdateBodies: Array<Record<string, unknown>> = [];
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url, init) => {
         const method = init?.method ?? 'GET';
 
         if (url.includes('/by-friendly-url-path/global')) {
@@ -490,7 +484,7 @@ describe('liferay resource migration-run', () => {
           );
         }
         if (url.endsWith('/o/data-engine/v2.0/data-definitions/301') && method === 'PUT') {
-          structureUpdateBodies.push(JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>);
+          structureUpdateBodies.push(parseTestJson<Record<string, unknown>>(toTestRequestBody(init?.body) || '{}'));
           return new Response('{"id":301}', {status: 200});
         }
         if (
@@ -514,13 +508,13 @@ describe('liferay resource migration-run', () => {
           );
         }
         if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/700')) {
-          const body = JSON.parse(String(init?.body ?? '{}')) as {contentFields?: typeof persistedFields};
+          const body = parseTestJson<{contentFields?: typeof persistedFields}>(toTestRequestBody(init?.body) || '{}');
           persistedFields = body.contentFields ?? persistedFields;
           return new Response('{"id":700}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceMigrationPipeline(
@@ -532,7 +526,7 @@ describe('liferay resource migration-run', () => {
     expect(result.cleanupRun).toBe(true);
     expect(structureUpdateBodies).toHaveLength(2);
 
-    const cleanupUpdate = structureUpdateBodies[1]!;
+    const cleanupUpdate = structureUpdateBodies[1];
     expect(cleanupUpdate.dataDefinitionFields).toEqual([
       {name: 'newField', customProperties: {fieldReference: 'newField'}},
     ]);
@@ -557,9 +551,7 @@ describe('liferay resource migration-run', () => {
     });
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -580,7 +572,7 @@ describe('liferay resource migration-run', () => {
           return new Response('{"id":301}', {status: 200});
         }
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await expect(

@@ -6,6 +6,7 @@ import path from 'node:path';
 import pRetry, {AbortError} from 'p-retry';
 
 import {CliError} from '../errors.js';
+import {parseJsonRecord, parseJsonUnknown} from '../utils/json.js';
 import {createLiferayApiClient, type HttpApiClient} from './client.js';
 
 export type OAuthClientCredentialsConfig = {
@@ -133,7 +134,7 @@ async function requestWithFallback(apiClient: HttpApiClient, settings: OAuthClie
 function parseTokenResponse(body: string, clientId: string): TokenResponse {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(body);
+    parsed = parseJsonUnknown(body);
   } catch {
     throw new CliError(`Invalid OAuth2 response for clientId=${clientId}.`, {code: 'AUTH_ERROR'});
   }
@@ -159,12 +160,8 @@ function shouldRetryWithClientSecretPost(status: number, body: string): boolean 
     if (normalized === '') {
       return true;
     }
-    try {
-      const parsed = JSON.parse(body) as Record<string, unknown>;
-      return typeof parsed.access_token !== 'string' || parsed.access_token.trim() === '';
-    } catch {
-      return true;
-    }
+    const parsed = parseJsonRecord(body);
+    return !parsed || typeof parsed.access_token !== 'string' || parsed.access_token.trim() === '';
   }
 
   return false;
@@ -218,7 +215,7 @@ async function readCachedToken(
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = parseJsonUnknown(raw);
   } catch {
     return null;
   }
@@ -257,13 +254,15 @@ async function writeCachedToken(
 }
 
 function tokenCacheFile(cacheDir: string, settings: OAuthClientCredentialsConfig): string {
+  const cacheKeySecret = JSON.stringify({
+    clientId: settings.oauth2ClientId,
+    clientSecret: settings.oauth2ClientSecret,
+  });
   const key = crypto
-    .createHash('sha256')
+    .createHmac('sha256', cacheKeySecret)
     .update(
       JSON.stringify({
         url: settings.url,
-        clientId: settings.oauth2ClientId,
-        clientSecret: settings.oauth2ClientSecret,
         scopeAliases: settings.scopeAliases,
       }),
     )

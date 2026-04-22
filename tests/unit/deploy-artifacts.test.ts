@@ -78,11 +78,15 @@ describe('escapeShellArg', () => {
 
 describe('ensureDeployArtifactsFound', () => {
   test('does not throw when artifacts array is non-empty', () => {
-    expect(() => ensureDeployArtifactsFound(['/a/b.jar'], 'module-a')).not.toThrow();
+    expect(() => {
+      ensureDeployArtifactsFound(['/a/b.jar'], 'module-a');
+    }).not.toThrow();
   });
 
   test('throws CliError with DEPLOY_ARTIFACTS_NOT_FOUND when empty', () => {
-    expect(() => ensureDeployArtifactsFound([], 'module-a')).toThrow(CliError);
+    expect(() => {
+      ensureDeployArtifactsFound([], 'module-a');
+    }).toThrow(CliError);
     try {
       ensureDeployArtifactsFound([], 'module-a');
     } catch (error) {

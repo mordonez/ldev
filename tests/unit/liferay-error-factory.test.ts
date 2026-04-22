@@ -250,8 +250,8 @@ describe('Liferay Error Factory', () => {
           authorization: 'Bearer xyz',
         },
       });
-      expect((error.details as unknown as Record<string, unknown>).endpoint).not.toContain('secret');
-      expect((error.details as unknown as Record<string, unknown>).authorization).toBe('[REDACTED]');
+      expect((error.details as Record<string, unknown>).endpoint).not.toContain('secret');
+      expect((error.details as Record<string, unknown>).authorization).toBe('[REDACTED]');
     });
   });
 

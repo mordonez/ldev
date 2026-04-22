@@ -16,6 +16,7 @@ import {
   formatLiferayResourceExportTemplates,
   runLiferayResourceExportTemplates,
 } from '../../src/features/liferay/resource/liferay-resource-export-templates.js';
+import {createStaticTokenClient, createTestFetchImpl, parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 beforeEach(() => {
@@ -40,21 +41,14 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay resource export', () => {
   test('exports structure JSON to file and creates parent directories', async () => {
     const dir = createTempDir('dev-cli-resource-export-structure-');
     const outputPath = path.join(dir, 'nested', 'structure.json');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -69,7 +63,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportStructure(
@@ -91,8 +85,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-structure-sanitize-');
     const outputPath = path.join(dir, 'nested', 'structure.json');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -107,7 +100,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportStructure(
@@ -116,7 +109,9 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(outputPath);
+    const written = parseTestJson<{defaultDataLayout: {pages: Array<{description: string}>}}>(
+      await fs.readFile(outputPath, 'utf8'),
+    );
     expect(written.defaultDataLayout.pages[0].description).toBe('/web/guest/home?p_l_back_url=%2Fgroup%2Fguest');
   });
 
@@ -124,8 +119,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-structure-stable-');
     const outputPath = path.join(dir, 'nested', 'structure.json');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -163,7 +157,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportStructure(
@@ -172,7 +166,24 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(outputPath);
+    const written = parseTestJson<{
+      id?: unknown;
+      dateCreated?: unknown;
+      dateModified?: unknown;
+      externalReferenceCode?: unknown;
+      siteId?: unknown;
+      userId?: unknown;
+      defaultDataLayout: {
+        id?: unknown;
+        dataDefinitionId?: unknown;
+        dataLayoutKey?: unknown;
+        dateCreated?: unknown;
+        dateModified?: unknown;
+        siteId?: unknown;
+        userId?: unknown;
+        dataLayoutPages: Array<{description: string}>;
+      };
+    }>(await fs.readFile(outputPath, 'utf8'));
     expect(written.id).toBeUndefined();
     expect(written.dateCreated).toBeUndefined();
     expect(written.dateModified).toBeUndefined();
@@ -189,6 +200,62 @@ describe('liferay resource export', () => {
     expect(written.defaultDataLayout.dataLayoutPages[0].description).toBe(
       '/o/classic-theme/css/main.css?browserId=other&amp;themeId=classic_WAR_classictheme&amp;languageId=en_US',
     );
+  });
+
+  test('exports structure JSON with stable customProperties ordering', async () => {
+    const dir = createTempDir('dev-cli-resource-export-structure-editor-config-');
+    const outputPath = path.join(dir, 'nested', 'structure.json');
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
+          return new Response(
+            JSON.stringify({
+              dataDefinitionKey: 'BASIC-WEB-CONTENT',
+              dataDefinitionFields: [
+                {
+                  customProperties: {
+                    fieldReference: 'Height',
+                    placeholder: {ca_ES: ''},
+                    numericInputMask: {ca_ES: ''},
+                    htmlAutocompleteAttribute: '',
+                    editorConfig: {
+                      language: 'ca-ES',
+                      extraPlugins: 'addimages,autogrow',
+                      embedProviders: [],
+                      title: false,
+                      contentsCss: ['/o/classic-theme/css/clay.css'],
+                    },
+                  },
+                },
+              ],
+            }),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    await runLiferayResourceExportStructure(
+      CONFIG,
+      {site: '/global', key: 'BASIC-WEB-CONTENT', output: outputPath, pretty: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    const written = await fs.readFile(outputPath, 'utf8');
+    expect(written.indexOf('"fieldReference"')).toBeLessThan(written.indexOf('"htmlAutocompleteAttribute"'));
+    expect(written.indexOf('"htmlAutocompleteAttribute"')).toBeLessThan(written.indexOf('"numericInputMask"'));
+    expect(written.indexOf('"numericInputMask"')).toBeLessThan(written.indexOf('"placeholder"'));
+    expect(written.indexOf('"contentsCss"')).toBeLessThan(written.indexOf('"embedProviders"'));
+    expect(written.indexOf('"embedProviders"')).toBeLessThan(written.indexOf('"extraPlugins"'));
+    expect(written.indexOf('"extraPlugins"')).toBeLessThan(written.indexOf('"title"'));
   });
 
   test('exports structure JSON to default structures layout when output is omitted', async () => {
@@ -214,8 +281,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -230,7 +296,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportStructure(
@@ -249,7 +315,7 @@ describe('liferay resource export', () => {
       'BASIC-WEB-CONTENT.json',
     );
     expect(result.outputPath).toBe(path.resolve(expectedPath));
-    const written = await fs.readJson(expectedPath);
+    const written = parseTestJson<{dataDefinitionKey: string}>(await fs.readFile(expectedPath, 'utf8'));
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
   });
 
@@ -257,8 +323,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-template-');
     const outputPath = path.join(dir, 'template.ftl');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -283,7 +348,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplate(
@@ -301,8 +366,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-template-sanitize-');
     const outputPath = path.join(dir, 'template.ftl');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -327,7 +391,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportTemplate(
@@ -344,8 +408,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-template-stable-');
     const outputPath = path.join(dir, 'template.ftl');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -370,7 +433,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportTemplate(
@@ -408,8 +471,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -434,7 +496,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplate(
@@ -452,8 +514,7 @@ describe('liferay resource export', () => {
     const dir = createTempDir('dev-cli-resource-export-error-');
     const outputPath = path.join(dir, 'missing.json');
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -462,7 +523,7 @@ describe('liferay resource export', () => {
         }
 
         return new Response('not-found', {status: 404});
-      },
+      }),
     });
 
     await expect(
@@ -497,8 +558,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -521,7 +581,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportStructures(
@@ -530,8 +590,11 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(
-      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+    const written = parseTestJson<{dataDefinitionKey: string}>(
+      await fs.readFile(
+        path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+        'utf8',
+      ),
     );
     expect(written.dataDefinitionKey).toBe('BASIC-WEB-CONTENT');
     expect(result.processed).toBe(1);
@@ -561,8 +624,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -585,7 +647,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportStructures(
@@ -621,8 +683,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -645,13 +706,16 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportStructures(config, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT});
 
-    const written = await fs.readJson(
-      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+    const written = parseTestJson<{defaultDataLayout: {pages: Array<{description: string}>}}>(
+      await fs.readFile(
+        path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'BASIC-WEB-CONTENT.json'),
+        'utf8',
+      ),
     );
     expect(written.defaultDataLayout.pages[0].description).toBe('/web/guest/home?p_l_back_url=%2Fgroup%2Fguest');
   });
@@ -679,8 +743,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -695,7 +758,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplates(
@@ -736,8 +799,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -752,7 +814,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplates(
@@ -790,8 +852,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -806,7 +867,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayResourceExportTemplates(config, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -841,8 +902,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/api/jsonws/company/get-companies')) {
           return new Response('[{"companyId":10157}]', {status: 200});
         }
@@ -886,7 +946,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportStructures(
@@ -895,8 +955,11 @@ describe('liferay resource export', () => {
       {apiClient, tokenClient: TOKEN_CLIENT},
     );
 
-    const written = await fs.readJson(
-      path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'GLOBAL_STRUCTURE.json'),
+    const written = parseTestJson<{dataDefinitionKey: string}>(
+      await fs.readFile(
+        path.join(dir, 'liferay', 'resources', 'journal', 'structures', 'global', 'GLOBAL_STRUCTURE.json'),
+        'utf8',
+      ),
     );
     expect(written.dataDefinitionKey).toBe('GLOBAL_STRUCTURE');
     expect(result.scannedSites).toBe(2);
@@ -926,8 +989,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
@@ -986,7 +1048,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportAdts(config, {allSites: true}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -1034,8 +1096,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -1085,7 +1146,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportAdts(
@@ -1123,8 +1184,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
@@ -1154,7 +1214,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportFragments(
@@ -1208,8 +1268,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=200')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
         }
@@ -1254,7 +1313,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportFragments(
@@ -1297,8 +1356,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -1319,7 +1377,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportFragments(
@@ -1361,8 +1419,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -1377,7 +1434,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplates(
@@ -1418,8 +1475,7 @@ describe('liferay resource export', () => {
     await fs.writeFile(path.join(dir, 'docker', '.env'), '');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -1451,7 +1507,7 @@ describe('liferay resource export', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceExportTemplates(

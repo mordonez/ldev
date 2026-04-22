@@ -12,7 +12,7 @@ export type RepoPaths = {
 export function detectRepoPaths(startDir: string): RepoPaths {
   let current = path.resolve(startDir);
 
-  while (true) {
+  for (;;) {
     const dockerDir = path.join(current, 'docker');
     const liferayDir = path.join(current, 'liferay');
     const dockerComposeFile = path.join(dockerDir, 'docker-compose.yml');

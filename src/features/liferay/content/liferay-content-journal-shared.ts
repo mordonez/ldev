@@ -78,7 +78,7 @@ export async function hydrateMissingJournalStructureDefinitions(
       throw error;
     }
 
-    if (!definition?.id || !definition.dataDefinitionKey) {
+    if (!definition.id || !definition.dataDefinitionKey) {
       continue;
     }
 
@@ -96,7 +96,7 @@ export async function fetchJournalArticleRowsInFolder(
   const rows: JsonwsJournalArticleRow[] = [];
   let start = 0;
 
-  while (true) {
+  for (;;) {
     const end = start + pageSize;
     let rawPage: JsonwsJournalArticleRow[];
 

@@ -74,37 +74,37 @@ const mockHttpResponse = <T>(ok: boolean, status: number, data: T): HttpResponse
 });
 
 describe('expectJsonSuccess', () => {
-  test('returns response when ok is true', async () => {
+  test('returns response when ok is true', () => {
     const response = mockHttpResponse(true, 200, {id: 123});
 
-    const result = await expectJsonSuccess(response, 'test-operation');
+    const result = expectJsonSuccess(response, 'test-operation');
 
     expect(result).toBe(response);
   });
 
-  test('throws CliError when ok is false', async () => {
+  test('throws CliError when ok is false', () => {
     const response = mockHttpResponse(false, 404, null);
 
-    await expect(expectJsonSuccess(response, 'test-operation')).rejects.toThrow(CliError);
+    expect(() => expectJsonSuccess(response, 'test-operation')).toThrow(CliError);
   });
 
-  test('includes status code in error message', async () => {
+  test('includes status code in error message', () => {
     const response = mockHttpResponse(false, 500, null);
 
-    await expect(expectJsonSuccess(response, 'fetch-data')).rejects.toThrow(/status=500/);
+    expect(() => expectJsonSuccess(response, 'fetch-data')).toThrow(/status=500/);
   });
 
-  test('includes operation label in error message', async () => {
+  test('includes operation label in error message', () => {
     const response = mockHttpResponse(false, 403, null);
 
-    await expect(expectJsonSuccess(response, 'delete-item')).rejects.toThrow(/delete-item/);
+    expect(() => expectJsonSuccess(response, 'delete-item')).toThrow(/delete-item/);
   });
 
-  test('uses default error code when not provided', async () => {
+  test('uses default error code when not provided', () => {
     const response = mockHttpResponse(false, 500, null);
 
     try {
-      await expectJsonSuccess(response, 'test');
+      expectJsonSuccess(response, 'test');
       expect.fail('Should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(CliError);
@@ -112,11 +112,11 @@ describe('expectJsonSuccess', () => {
     }
   });
 
-  test('uses custom error code when provided', async () => {
+  test('uses custom error code when provided', () => {
     const response = mockHttpResponse(false, 404, null);
 
     try {
-      await expectJsonSuccess(response, 'test', 'CUSTOM_ERROR');
+      expectJsonSuccess(response, 'test', 'CUSTOM_ERROR');
       expect.fail('Should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(CliError);
@@ -124,16 +124,16 @@ describe('expectJsonSuccess', () => {
     }
   });
 
-  test('handles 4xx status codes', async () => {
+  test('handles 4xx status codes', () => {
     const response = mockHttpResponse(false, 400, null);
 
-    await expect(expectJsonSuccess(response, 'bad-request')).rejects.toThrow(/status=400/);
+    expect(() => expectJsonSuccess(response, 'bad-request')).toThrow(/status=400/);
   });
 
-  test('handles 5xx status codes', async () => {
+  test('handles 5xx status codes', () => {
     const response = mockHttpResponse(false, 503, null);
 
-    await expect(expectJsonSuccess(response, 'service-unavailable')).rejects.toThrow(/status=503/);
+    expect(() => expectJsonSuccess(response, 'service-unavailable')).toThrow(/status=503/);
   });
 });
 
@@ -147,15 +147,21 @@ describe('ensureData', () => {
   });
 
   test('throws CliError when data is null', () => {
-    expect(() => ensureData(null, 'template')).toThrow(CliError);
+    expect(() => {
+      ensureData(null, 'template');
+    }).toThrow(CliError);
   });
 
   test('throws CliError when data is undefined', () => {
-    expect(() => ensureData(undefined, 'structure')).toThrow(CliError);
+    expect(() => {
+      ensureData(undefined, 'structure');
+    }).toThrow(CliError);
   });
 
   test('includes field name in error message', () => {
-    expect(() => ensureData(null, 'templateId')).toThrow(/templateId/);
+    expect(() => {
+      ensureData(null, 'templateId');
+    }).toThrow(/templateId/);
   });
 
   test('uses LIFERAY_API_ERROR code', () => {

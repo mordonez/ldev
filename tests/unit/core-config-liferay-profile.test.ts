@@ -124,10 +124,10 @@ describe('liferay profile configuration', () => {
   });
 
   describe('writeLocalLiferayProfile', () => {
-    test('creates new profile file with provided values', async () => {
+    test('creates new profile file with provided values', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         url: 'http://localhost:8080',
         oauth2ClientId: 'client-id',
         oauth2ClientSecret: 'client-secret',
@@ -141,7 +141,7 @@ describe('liferay profile configuration', () => {
       expect(content).toContain('clientSecret: client-secret');
     });
 
-    test('updates existing profile with new values', async () => {
+    test('updates existing profile with new values', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
       fs.writeFileSync(
         profilePath,
@@ -151,7 +151,7 @@ describe('liferay profile configuration', () => {
     clientId: old-id`,
       );
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         url: 'http://new:8080',
         oauth2ClientSecret: 'new-secret',
       });
@@ -162,10 +162,10 @@ describe('liferay profile configuration', () => {
       expect(content).toContain('clientSecret: new-secret');
     });
 
-    test('handles scope aliases', async () => {
+    test('handles scope aliases', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         oauth2ScopeAliases: 'scope1,scope2,scope3',
       });
 
@@ -173,10 +173,10 @@ describe('liferay profile configuration', () => {
       expect(content).toContain('scopeAliases: scope1,scope2,scope3');
     });
 
-    test('handles timeout seconds', async () => {
+    test('handles timeout seconds', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         oauth2TimeoutSeconds: 60,
       });
 
@@ -184,7 +184,7 @@ describe('liferay profile configuration', () => {
       expect(content).toContain('timeoutSeconds: 60');
     });
 
-    test('preserves undefined values in existing profile', async () => {
+    test('preserves undefined values in existing profile', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
       fs.writeFileSync(
         profilePath,
@@ -194,7 +194,7 @@ describe('liferay profile configuration', () => {
     clientId: existing-id`,
       );
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         oauth2ClientSecret: 'new-secret',
       });
 
@@ -204,10 +204,10 @@ describe('liferay profile configuration', () => {
       expect(content).toContain('clientSecret: new-secret');
     });
 
-    test('only writes specified values', async () => {
+    test('only writes specified values', () => {
       const profilePath = path.join(tmpDir, LIFERAY_LOCAL_PROFILE_FILE);
 
-      await writeLocalLiferayProfile(profilePath, {
+      writeLocalLiferayProfile(profilePath, {
         url: 'http://localhost:8080',
       });
 

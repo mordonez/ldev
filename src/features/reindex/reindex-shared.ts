@@ -4,7 +4,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDockerCompose} from '../../core/platform/docker.js';
 import {formatProcessError} from '../../core/platform/process.js';
-import {resolveEnvContext} from '../env/env-shared.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
 
 export type ReindexIndexRow = {
   health: string;
@@ -52,10 +52,10 @@ export async function fetchReindexRows(config: AppConfig): Promise<ReindexIndexR
   })) as Array<Record<string, unknown>>;
   return rows
     .map((row) => ({
-      health: String(row.health ?? ''),
-      status: String(row.status ?? ''),
-      index: String(row.index ?? ''),
-      docsCount: String(row['docs.count'] ?? ''),
+      health: typeof row.health === 'string' ? row.health : '',
+      status: typeof row.status === 'string' ? row.status : '',
+      index: typeof row.index === 'string' ? row.index : '',
+      docsCount: typeof row['docs.count'] === 'string' ? row['docs.count'] : '',
     }))
     .filter((row) => /journal|liferay/i.test(row.index));
 }

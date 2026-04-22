@@ -1,4 +1,5 @@
 import {describe, expect, test, vi} from 'vitest';
+import {Command} from 'commander';
 
 import {
   addOutputFormatOption,
@@ -8,13 +9,13 @@ import {
   withCommandContext,
 } from '../../src/cli/command-helpers.js';
 import type {CommandContext} from '../../src/cli/command-context.js';
+import type {AppConfig} from '../../src/core/config/load-config.js';
+import type {ProjectContext} from '../../src/core/config/project-context.js';
 
 const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): CommandContext => ({
   cwd: '/repo',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: {} as any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  project: {} as any,
+  config: {} as AppConfig,
+  project: {} as ProjectContext,
   printer: {
     format,
     write: vi.fn(),
@@ -26,34 +27,24 @@ const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): 
 
 describe('addOutputFormatOption', () => {
   test('adds format options to command', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockCommand: any = {
-      option: vi.fn().mockReturnThis(),
-    };
+    const mockCommand = new Command('mock');
+    const option = vi.spyOn(mockCommand, 'option');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const result = addOutputFormatOption(mockCommand);
 
     expect(result).toBe(mockCommand);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(mockCommand.option).toHaveBeenCalledWith('--format <format>', expect.any(String), 'text');
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(mockCommand.option).toHaveBeenCalledWith('--json', expect.any(String));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(mockCommand.option).toHaveBeenCalledWith('--ndjson', expect.any(String));
+    expect(option).toHaveBeenCalledWith('--format <format>', expect.any(String), 'text');
+    expect(option).toHaveBeenCalledWith('--json', expect.any(String));
+    expect(option).toHaveBeenCalledWith('--ndjson', expect.any(String));
   });
 
   test('adds format options with custom default', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockCommand: any = {
-      option: vi.fn().mockReturnThis(),
-    };
+    const mockCommand = new Command('mock');
+    const option = vi.spyOn(mockCommand, 'option');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     addOutputFormatOption(mockCommand, 'json');
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    expect(mockCommand.option).toHaveBeenCalledWith('--format <format>', expect.any(String), 'json');
+    expect(option).toHaveBeenCalledWith('--format <format>', expect.any(String), 'json');
   });
 });
 
@@ -69,7 +60,7 @@ describe('renderCommandResult', () => {
   test('renders JSON output when format is json', () => {
     const mockContext = createMockContext('json');
 
-    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
+    renderCommandResult(mockContext, {data: 'result'}, {json: () => ({data: 'json-data'})});
 
     expect(mockContext.printer.write).toHaveBeenCalledWith({data: 'json-data'});
   });
@@ -125,7 +116,7 @@ describe('renderCommandResult', () => {
   test('wraps output in success envelope when strict mode is enabled in json format', () => {
     const mockContext = createMockContext('json', true);
 
-    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
+    renderCommandResult(mockContext, {data: 'result'}, {json: () => ({data: 'json-data'})});
 
     expect(mockContext.printer.write).toHaveBeenCalledWith({
       ok: true,
@@ -136,7 +127,7 @@ describe('renderCommandResult', () => {
   test('wraps output in success envelope when strict mode is enabled in ndjson format', () => {
     const mockContext = createMockContext('ndjson', true);
 
-    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'ndjson-data'}});
+    renderCommandResult(mockContext, {data: 'result'}, {json: () => ({data: 'ndjson-data'})});
 
     expect(mockContext.printer.write).toHaveBeenCalledWith({
       ok: true,
@@ -147,7 +138,7 @@ describe('renderCommandResult', () => {
   test('does not wrap in envelope when strict mode is disabled', () => {
     const mockContext = createMockContext('json', false);
 
-    renderCommandResult(mockContext, {data: 'result'}, {json: {data: 'json-data'}});
+    renderCommandResult(mockContext, {data: 'result'}, {json: () => ({data: 'json-data'})});
 
     expect(mockContext.printer.write).toHaveBeenCalledWith({data: 'json-data'});
   });
@@ -174,23 +165,21 @@ describe('renderCommandResult', () => {
 
 describe('withCommandContext', () => {
   test('creates context and runs action', async () => {
-    const action = vi.fn(() => Promise.resolve());
+    const action = vi.fn<(context: CommandContext) => Promise<void>>(() => Promise.resolve());
 
     await withCommandContext({format: 'json'}, action);
 
     expect(action).toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const context = (action.mock.calls as any)[0]?.[0] as CommandContext;
+    const context = action.mock.calls[0]?.[0];
     expect(context.printer.format).toBe('json');
   });
 
   test('defaults to text format when not specified', async () => {
-    const action = vi.fn(() => Promise.resolve());
+    const action = vi.fn<(context: CommandContext) => Promise<void>>(() => Promise.resolve());
 
     await withCommandContext({}, action);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const context = (action.mock.calls as any)[0]?.[0] as CommandContext;
+    const context = action.mock.calls[0]?.[0];
     expect(context.printer.format).toBe('text');
   });
 

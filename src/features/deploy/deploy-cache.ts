@@ -6,7 +6,7 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {formatProcessError} from '../../core/platform/process.js';
-import {resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../env/env-shared.js';
+import {resolveEnvContext, resolveRuntimeStorage, type RuntimeStorage} from '../../core/runtime/env-context.js';
 import {listDeployArtifacts, syncArtifactsToDirectory, escapeSingleQuotes} from './deploy-artifacts.js';
 import {writePrepareCommit, readPrepareCommit, currentArtifactCommit, type DeployContext} from './deploy-gradle.js';
 
@@ -14,7 +14,7 @@ const CACHE_LOCK_FILE = '.ldev-cache.lock';
 const CACHE_LOCK_ATTEMPTS = 50;
 const CACHE_LOCK_DELAY_MS = 100;
 
-export async function resolveDeployCacheDir(config: AppConfig): Promise<string> {
+export function resolveDeployCacheDir(config: AppConfig): string {
   const envContext = resolveEnvContext(config);
   return resolveRuntimeStorage(envContext, 'liferay-deploy-cache').bindPath;
 }

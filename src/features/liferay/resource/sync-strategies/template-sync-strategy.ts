@@ -88,7 +88,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     let structureIdFilter = '';
     if (opts.structureKey) {
       const structure = await fetchStructureByKey(config, site.id, opts.structureKey, dependencies);
-      structureIdFilter = String(structure.id ?? '');
+      structureIdFilter = ensureString(structure.id, 'structureId');
     }
 
     const inventoryExisting = inventoryTemplates.find((item) => {
@@ -107,21 +107,21 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     const directDdmTemplate = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), opts.key);
 
     const existing = directDdmTemplate
-      ? structureIdFilter === '' || String(directDdmTemplate.classPK ?? '') === structureIdFilter
+      ? structureIdFilter === '' || ensureString(directDdmTemplate.classPK ?? '', 'classPK') === structureIdFilter
         ? directDdmTemplate
         : null
       : null;
 
     if (existing) {
       return {
-        id: String(((existing.templateKey ?? existing.templateId) as string | undefined) ?? ''),
-        name: String(((existing.templateKey ?? existing.templateId) as string | undefined) ?? opts.key),
+        id: ensureString(existing.templateKey ?? existing.templateId, 'templateKey'),
+        name: ensureString(existing.templateKey ?? existing.templateId ?? opts.key, 'templateName'),
         contentHash: localArtifact.contentHash, // Will verify in verify() step
         data: {
           templateId: ensureString(existing.templateId as string | undefined, 'templateId'),
           templateKey: existing.templateKey as string | undefined,
           externalReferenceCode: existing.externalReferenceCode as string | undefined,
-          classPK: String((existing.classPK as string | undefined) ?? ''),
+          classPK: ensureString((existing.classPK as string | undefined) ?? '', 'classPK'),
           script: existing.script as string | undefined,
         },
       };
@@ -130,7 +130,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     // Check inventory as fallback
     if (inventoryExisting) {
       return {
-        id: String(inventoryExisting.id ?? ''),
+        id: String(inventoryExisting.id),
         name: inventoryExisting.name,
         contentHash: localArtifact.contentHash,
         data: {
@@ -170,7 +170,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
             externalReferenceCode: opts.key,
             groupId: String(site.id),
             classNameId: String(classNameId),
-            classPK: String(structure.id ?? ''),
+            classPK: ensureString(structure.id, 'structureId'),
             resourceClassNameId: String(resourceClassNameId),
             nameMap: localizedMap(opts.key),
             descriptionMap: localizedMap(''),
@@ -184,7 +184,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
         dependencies,
       );
 
-      const createdId = String(created.templateKey ?? created.templateId ?? '');
+      const createdId = ensureString(created.templateKey ?? created.templateId, 'templateKey');
 
       return {
         id: createdId,

@@ -48,7 +48,7 @@ export type AdtRowShape = {
  * Fields checked: templateId (as string), ddmTemplate_<templateId>, templateKey, displayName, adtName.
  */
 export function matchesAdtRow(item: AdtRowShape, identifier: string): boolean {
-  const templateId = String(item.templateId ?? '');
+  const templateId = String(item.templateId);
   return (
     identifier === templateId ||
     identifier === `ddmTemplate_${templateId}` ||

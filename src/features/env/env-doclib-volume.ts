@@ -102,7 +102,8 @@ function resolveSharedDoclibPath(mainDockerDir: string): string {
 }
 
 async function resolveDesiredDoclibPath(context: EnvContext, mainDockerDir: string): Promise<string> {
-  const configuredPath = context.envValues.DOCLIB_PATH?.trim();
+  const configuredPathValue = context.envValues.DOCLIB_PATH;
+  const configuredPath = typeof configuredPathValue === 'string' ? configuredPathValue.trim() : '';
   if (configuredPath) {
     const resolvedConfiguredPath = path.resolve(configuredPath);
     if (await fs.pathExists(resolvedConfiguredPath)) {

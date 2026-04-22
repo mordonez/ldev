@@ -30,6 +30,18 @@ const mockToken: TokenResponse = {
   expiresIn: 3600,
 };
 
+function requireDefined<T>(value: T | undefined, message: string): T {
+  if (value === undefined) {
+    throw new Error(message);
+  }
+
+  return value;
+}
+
+function requireCall<T>(call: T | undefined): T {
+  return requireDefined(call, 'Expected mock call to exist');
+}
+
 const createMockApiClient = (): HttpApiClient => ({
   get: vi.fn(),
   delete: vi.fn(),
@@ -64,16 +76,12 @@ describe('LiferayGateway', () => {
       const result = await gateway.getJson<{id: number; name: string}>('/api/test', 'fetch-test');
 
       expect(result).toEqual({id: 1, name: 'test'});
-      expect(apiClient.get).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/test',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-          timeoutSeconds: 45,
-        }),
-      );
+      const [baseUrl, endpoint, rawOptions] = requireCall(vi.mocked(apiClient.get).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/test');
+      expect(options.timeoutSeconds).toBe(45);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('uses config timeoutSeconds', async () => {
@@ -88,11 +96,11 @@ describe('LiferayGateway', () => {
 
       await gateway.getJson('/api/test', 'test');
 
-      expect(apiClient.get).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({timeoutSeconds: 60}),
-      );
+      const [baseUrl, endpoint, rawOptions] = requireCall(vi.mocked(apiClient.get).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/test');
+      expect(options.timeoutSeconds).toBe(60);
     });
 
     test('throws CliError when response not ok (404)', async () => {
@@ -139,7 +147,7 @@ describe('LiferayGateway', () => {
       vi.mocked(apiClient.get).mockResolvedValue(response);
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
-      const result = await gateway.getJson('/api/test', 'fetch');
+      const result = await gateway.getJson<null>('/api/test', 'fetch');
 
       expect(result).toBeNull();
     });
@@ -174,20 +182,16 @@ describe('LiferayGateway', () => {
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
       const payload = {name: 'new-item'};
-      const result = await gateway.postJson('/api/items', payload, 'create-item');
+      const result = await gateway.postJson<{id: number; created: boolean}>('/api/items', payload, 'create-item');
 
       expect(result).toEqual({id: 2, created: true});
-      expect(apiClient.postJson).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/items',
-        payload,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-          timeoutSeconds: 45,
-        }),
-      );
+      const [baseUrl, endpoint, requestBody, rawOptions] = requireCall(vi.mocked(apiClient.postJson).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/items');
+      expect(requestBody).toEqual(payload);
+      expect(options.timeoutSeconds).toBe(45);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('handles error response (400)', async () => {
@@ -215,16 +219,12 @@ describe('LiferayGateway', () => {
       const form = {name: 'value', key: 'test-key'};
       await gateway.postForm('/api/submit', form, 'submit-form');
 
-      expect(apiClient.postForm).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/submit',
-        form,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-        }),
-      );
+      const [baseUrl, endpoint, requestBody, rawOptions] = requireCall(vi.mocked(apiClient.postForm).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/submit');
+      expect(requestBody).toEqual(form);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('handles error response (403)', async () => {
@@ -250,19 +250,15 @@ describe('LiferayGateway', () => {
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
       const form = {name: 'value'};
-      const result = await gateway.postFormRaw('/api/raw-submit', form);
+      const result = await gateway.postFormRaw<{id: number}>('/api/raw-submit', form);
 
       expect(result).toBe(response);
-      expect(apiClient.postForm).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/raw-submit',
-        form,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-        }),
-      );
+      const [baseUrl, endpoint, requestBody, rawOptions] = requireCall(vi.mocked(apiClient.postForm).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/raw-submit');
+      expect(requestBody).toEqual(form);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('does not throw for non-ok responses', async () => {
@@ -273,7 +269,7 @@ describe('LiferayGateway', () => {
       vi.mocked(apiClient.postForm).mockResolvedValue(response);
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
-      const result = await gateway.postFormRaw('/api/raw-submit', {key: 'x'});
+      const result = await gateway.postFormRaw<null>('/api/raw-submit', {key: 'x'});
 
       expect(result.ok).toBe(false);
       expect(result.status).toBe(409);
@@ -294,16 +290,14 @@ describe('LiferayGateway', () => {
 
       await gateway.postMultipart('/api/upload', form, 'upload-file');
 
-      expect(apiClient.postMultipart).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/upload',
-        form,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-        }),
+      const [baseUrl, endpoint, requestBody, rawOptions] = requireCall(
+        vi.mocked(apiClient.postMultipart).mock.calls[0],
       );
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/upload');
+      expect(requestBody).toBe(form);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
   });
 
@@ -317,20 +311,16 @@ describe('LiferayGateway', () => {
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
       const payload = {name: 'updated-name'};
-      const result = await gateway.putJson('/api/items/1', payload, 'update-item');
+      const result = await gateway.putJson<{id: number; updated: boolean}>('/api/items/1', payload, 'update-item');
 
       expect(result).toEqual({id: 1, updated: true});
-      expect(apiClient.putJson).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/items/1',
-        payload,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-          timeoutSeconds: 45,
-        }),
-      );
+      const [baseUrl, endpoint, requestBody, rawOptions] = requireCall(vi.mocked(apiClient.putJson).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/items/1');
+      expect(requestBody).toEqual(payload);
+      expect(options.timeoutSeconds).toBe(45);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('handles error response (409)', async () => {
@@ -358,16 +348,12 @@ describe('LiferayGateway', () => {
       const result = await gateway.deleteJson<{id: number; deleted: boolean}>('/api/items/1', 'delete-item');
 
       expect(result).toEqual({id: 1, deleted: true});
-      expect(apiClient.delete).toHaveBeenCalledWith(
-        'http://localhost:8080',
-        '/api/items/1',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer test-access-token',
-          }),
-          timeoutSeconds: 45,
-        }),
-      );
+      const [baseUrl, endpoint, rawOptions] = requireCall(vi.mocked(apiClient.delete).mock.calls[0]);
+      const options = requireDefined(rawOptions, 'Expected request options');
+      expect(baseUrl).toBe('http://localhost:8080');
+      expect(endpoint).toBe('/api/items/1');
+      expect(options.timeoutSeconds).toBe(45);
+      expect(options.headers?.Authorization).toBe('Bearer test-access-token');
     });
 
     test('uses the token client to obtain the access token', async () => {
@@ -391,7 +377,7 @@ describe('LiferayGateway', () => {
       vi.mocked(apiClient.delete).mockResolvedValue(response);
 
       const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
-      const result = await gateway.deleteJson('/api/items/99', 'delete-item');
+      const result = await gateway.deleteJson<null>('/api/items/99', 'delete-item');
 
       expect(result).toBeNull();
     });

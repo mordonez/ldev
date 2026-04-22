@@ -1,10 +1,12 @@
 import path from 'node:path';
 
 import fs from 'fs-extra';
+import {z} from 'zod';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {runProcess} from '../../core/platform/process.js';
+import {readJsonUnknown} from '../../core/utils/json.js';
 import {runDeployStatus} from '../deploy/deploy-status.js';
 
 import {collectEnvStatus} from './env-health.js';
@@ -33,6 +35,24 @@ export type EnvDiffResult = {
     resolvedBundles: string[];
   };
 };
+
+const envDiffServiceStateSchema = z.object({
+  state: z.string().nullable(),
+  health: z.string().nullable(),
+});
+const envDiffDeployedModuleSchema = z.object({
+  state: z.string(),
+  version: z.string().nullable(),
+});
+const envDiffSnapshotSchema = z.object({
+  capturedAt: z.string(),
+  portalReachable: z.boolean(),
+  liferayState: z.string().nullable(),
+  liferayHealth: z.string().nullable(),
+  serviceStates: z.record(z.string(), envDiffServiceStateSchema),
+  deployedModules: z.record(z.string(), envDiffDeployedModuleSchema),
+  resolvedBundles: z.array(z.string()),
+}) satisfies z.ZodType<EnvDiffSnapshot>;
 
 export async function runEnvDiff(
   config: AppConfig,
@@ -66,7 +86,7 @@ export async function runEnvDiff(
     });
   }
 
-  const baseline = (await fs.readJson(baselineFile)) as EnvDiffSnapshot;
+  const baseline = await readEnvDiffSnapshot(baselineFile);
 
   const addedModules = Object.keys(current.deployedModules).filter((module) => !(module in baseline.deployedModules));
   const removedModules = Object.keys(baseline.deployedModules).filter((module) => !(module in current.deployedModules));
@@ -91,6 +111,10 @@ export async function runEnvDiff(
       resolvedBundles: current.resolvedBundles,
     },
   };
+}
+
+async function readEnvDiffSnapshot(filePath: string): Promise<EnvDiffSnapshot> {
+  return envDiffSnapshotSchema.parse(await readJsonUnknown(filePath));
 }
 
 export function formatEnvDiff(result: EnvDiffResult): string {

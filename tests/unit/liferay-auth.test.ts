@@ -4,6 +4,7 @@ import {describe, expect, test} from 'vitest';
 import {createOAuthTokenClient} from '../../src/core/http/auth.js';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {formatLiferayAuthToken} from '../../src/features/liferay/liferay-auth.js';
+import {createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const SETTINGS = {
@@ -18,8 +19,8 @@ describe('liferay auth', () => {
   test('falls back from Basic auth to client_secret_post', async () => {
     const calls: Array<{headers?: Record<string, string>; form: Record<string, string>}> = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const body = String(init?.body ?? '');
+      fetchImpl: createTestFetchImpl((_url, init) => {
+        const body = toTestRequestBody(init?.body);
         const form = Object.fromEntries(new URLSearchParams(body));
         calls.push({headers: init?.headers as Record<string, string>, form});
 
@@ -28,7 +29,7 @@ describe('liferay auth', () => {
         }
 
         return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
-      },
+      }),
     });
     const tokenClient = createOAuthTokenClient({apiClient, cacheDir: createTempDir('ldev-oauth-test-basic-')});
 
@@ -44,10 +45,10 @@ describe('liferay auth', () => {
   test('retries invalid_client before failing', async () => {
     let attempts = 0;
     const apiClient = createLiferayApiClient({
-      fetchImpl: async () => {
+      fetchImpl: createTestFetchImpl(() => {
         attempts += 1;
         return new Response('{"error":"invalid_client"}', {status: 401});
-      },
+      }),
     });
     const tokenClient = createOAuthTokenClient({
       apiClient,
@@ -63,14 +64,14 @@ describe('liferay auth', () => {
   test('retries without scope after invalid_grant', async () => {
     const seenBodies: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (_input, init) => {
-        const body = String(init?.body ?? '');
+      fetchImpl: createTestFetchImpl((_url, init) => {
+        const body = toTestRequestBody(init?.body);
         seenBodies.push(body);
         if (body.includes('scope=')) {
           return new Response('{"error":"invalid_grant"}', {status: 400});
         }
         return new Response('{"access_token":"token-abcdefgh","token_type":"Bearer","expires_in":120}', {status: 200});
-      },
+      }),
     });
     const tokenClient = createOAuthTokenClient({apiClient, cacheDir: createTempDir('ldev-oauth-test-scope-')});
 
@@ -101,6 +102,7 @@ describe('liferay auth', () => {
     const cacheDir = createTempDir('ldev-oauth-cache-');
     const apiClient = createLiferayApiClient({
       fetchImpl: async () => {
+        await Promise.resolve();
         calls += 1;
         return new Response('{"access_token":"token-cached","token_type":"Bearer","expires_in":3600}', {status: 200});
       },
@@ -124,6 +126,7 @@ describe('liferay auth', () => {
     const cacheDir = createTempDir('ldev-oauth-cache-expiry-');
     const apiClient = createLiferayApiClient({
       fetchImpl: async () => {
+        await Promise.resolve();
         calls += 1;
         return new Response(`{"access_token":"token-${calls}","token_type":"Bearer","expires_in":20}`, {status: 200});
       },

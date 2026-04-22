@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
@@ -8,8 +6,8 @@ import {
   syncArtifact,
   type LocalArtifact,
   type RemoteArtifact,
-  type SyncStrategy,
 } from '../../src/features/liferay/resource/sync-engine.js';
+import {mockApiClient, mockTokenClient} from './sync-strategies/sync-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -43,10 +41,17 @@ const createMockStrategy = (
   remoteArtifact: RemoteArtifact<TestRemoteData> | null = null,
   shouldThrowUpsert = false,
   shouldThrowVerify = false,
-): SyncStrategy<TestLocalData, TestRemoteData> => ({
-  resolveLocal: vi.fn(async () => localArtifact ?? null),
-  findRemote: vi.fn(async () => remoteArtifact ?? null),
+) => ({
+  resolveLocal: vi.fn(async () => {
+    await Promise.resolve();
+    return localArtifact ?? null;
+  }),
+  findRemote: vi.fn(async () => {
+    await Promise.resolve();
+    return remoteArtifact ?? null;
+  }),
   upsert: vi.fn(async () => {
+    await Promise.resolve();
     if (shouldThrowUpsert) {
       throw new Error('Upsert failed');
     }
@@ -59,6 +64,7 @@ const createMockStrategy = (
     );
   }),
   verify: vi.fn(async () => {
+    await Promise.resolve();
     if (shouldThrowVerify) {
       throw new Error('Verify failed');
     }
@@ -218,11 +224,13 @@ describe('syncArtifact', () => {
     test('throws when local artifact not found', async () => {
       const strategy = createMockStrategy(null);
 
-      await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
-      ).rejects.toMatchObject({
-        code: expect.stringContaining('FILE_NOT_FOUND'),
-      });
+      try {
+        await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
+        throw new Error('Expected syncArtifact to throw');
+      } catch (error) {
+        const code = error instanceof Error && 'code' in error ? String(error.code) : '';
+        expect(code).toContain('FILE_NOT_FOUND');
+      }
     });
 
     test('propagates findRemote errors', async () => {
@@ -380,8 +388,7 @@ describe('syncArtifact', () => {
       };
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-      const mockDependencies = {apiClient: {} as any, tokenClient: {} as any};
+      const mockDependencies = {apiClient: mockApiClient({}), tokenClient: mockTokenClient()};
 
       await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}, mockDependencies);
 
@@ -424,12 +431,14 @@ describe('syncArtifact', () => {
       let verifyCalled = false;
 
       vi.mocked(strategy.upsert).mockImplementation(async () => {
+        await Promise.resolve();
         upsertCalled = true;
         expect(verifyCalled).toBe(false); // verify should be called after
         return remoteArtifact;
       });
 
       vi.mocked(strategy.verify).mockImplementation(async () => {
+        await Promise.resolve();
         verifyCalled = true;
         expect(upsertCalled).toBe(true); // upsert should have been called first
       });

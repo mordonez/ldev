@@ -49,8 +49,8 @@ export async function runLiferayResourceExportStructures(
       const result = await exportStructuresForSite(
         config,
         site.siteFriendlyUrl,
-        options?.dir,
-        Boolean(options?.checkOnly),
+        options.dir,
+        Boolean(options.checkOnly),
         dependencies,
       );
       siteResults.push(result);
@@ -60,7 +60,7 @@ export async function runLiferayResourceExportStructures(
 
     return {
       mode: 'all-sites',
-      checkOnly: Boolean(options?.checkOnly),
+      checkOnly: Boolean(options.checkOnly),
       scannedSites: siteResults.length,
       processed,
       diffs,
@@ -93,9 +93,6 @@ export function formatLiferayResourceExportStructures(result: LiferayResourceExp
   }
 
   const site = result.siteResults[0];
-  if (!site) {
-    return result.checkOnly ? 'CHECK_ONLY site=? diffs=0' : 'EXPORTED site=? count=0';
-  }
 
   return result.checkOnly
     ? `CHECK_ONLY site=${site.site} diffs=${site.diffs}`
@@ -117,7 +114,7 @@ async function exportStructuresForSite(
   let diffs = 0;
 
   for (const row of rows) {
-    if (!row.key) {
+    if (row.key === '') {
       continue;
     }
 

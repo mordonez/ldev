@@ -73,8 +73,12 @@ describe('liferay-search', () => {
     expect(result.esUrl).toContain('9201');
     expect(result.rows[0]?.index).toBe('liferay-sidecar');
     expect(dockerSpy).toHaveBeenCalledTimes(1);
-    const [cwd, args, options] = dockerSpy.mock.calls[0] ?? [];
-    expect(path.basename(cwd ?? '')).toBe('docker');
+    const [cwd, args, options] =
+      dockerSpy.mock.calls[0] ??
+      (() => {
+        throw new Error('Expected docker command call');
+      })();
+    expect(path.basename(cwd)).toBe('docker');
     expect(args).toEqual(expect.arrayContaining(['exec', '-T', 'liferay', 'curl']));
     expect(options).toEqual(expect.objectContaining({reject: false}));
   });

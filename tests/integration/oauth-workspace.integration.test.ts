@@ -5,6 +5,22 @@ import {describe, expect, test} from 'vitest';
 
 import {createTempWorkspace} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
+import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
+
+type OAuthWorkspacePayload = {
+  command: string;
+  localProfileUpdated: boolean;
+  readWrite: {
+    clientId: string;
+  };
+  scopeAliases: string[];
+  companyId: string;
+  verification: {
+    attempted: boolean;
+    verified: boolean;
+    sanitized: boolean;
+  };
+};
 
 describe('oauth workspace integration', () => {
   test('oauth install provisions workspace bundle/config/profile without gogo', async () => {
@@ -35,7 +51,7 @@ describe('oauth workspace integration', () => {
 
     expect(result.exitCode).toBe(0);
 
-    const parsed = JSON.parse(result.stdout);
+    const parsed = parseTestJson<OAuthWorkspacePayload>(result.stdout);
     expect(parsed.command).toBe('osgi-config');
     expect(parsed.localProfileUpdated).toBe(true);
     expect(parsed.readWrite.clientId).toContain('ldev-');

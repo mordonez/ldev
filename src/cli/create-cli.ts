@@ -7,6 +7,7 @@ import {Command} from 'commander';
 import type {CommandGroup} from './command-group.js';
 import {COMMAND_GROUPS} from './command-groups.js';
 import {buildContextualRootHelp} from './contextual-help.js';
+import {parseJsonUnknown} from '../core/utils/json.js';
 
 function isLdevPackageManifest(value: unknown): value is {version: string; bin?: Record<string, string>} {
   if (!value || typeof value !== 'object') {
@@ -21,7 +22,7 @@ function readPackageVersion(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
     try {
-      const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'));
+      const pkg = parseJsonUnknown(readFileSync(path.join(dir, 'package.json'), 'utf8'));
       if (isLdevPackageManifest(pkg) && pkg.bin?.ldev) {
         return pkg.version;
       }

@@ -8,6 +8,31 @@ import {
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
 import {validateLiferayInventoryPageResultV2} from '../../src/features/liferay/inventory/liferay-inventory-page-schema.js';
+import {createStaticTokenClient, createTestFetchImpl, createTokenClient} from '../../src/testing/cli-test-helpers.js';
+
+function siteResp(id: number, friendlyUrlPath: string, name: string) {
+  return new Response(JSON.stringify({id, friendlyUrlPath, name}), {status: 200});
+}
+
+function layoutsResp(layouts: unknown[]) {
+  return new Response(JSON.stringify(layouts), {status: 200});
+}
+
+function pageDefinitionResp(pageElements: unknown[] = []) {
+  return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements}}}), {status: 200});
+}
+
+function fragmentEntryLinksResp(items: unknown[] = []) {
+  return new Response(JSON.stringify(items), {status: 200});
+}
+
+function classNameIdResp(classNameId = 20006) {
+  return new Response(JSON.stringify({classNameId}), {status: 200});
+}
+
+function groupResp(companyId: number, friendlyURL: string, nameCurrentValue: string, parentGroupId = 0) {
+  return new Response(JSON.stringify({companyId, parentGroupId, friendlyURL, nameCurrentValue}), {status: 200});
+}
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -53,13 +78,7 @@ const EXPECTED_GUEST_TEMPLATE_EXPORT_PATH = path.resolve(
   'NEWS_TEMPLATE.ftl',
 );
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -103,8 +122,7 @@ describe('liferay inventory page', () => {
 
     const seenUrls: string[] = [];
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
+      fetchImpl: createTestFetchImpl((url) => {
         seenUrls.push(url);
 
         if (!url.startsWith('http://localhost:8080/')) {
@@ -112,18 +130,15 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/by-friendly-url-path/facultat-economia-empresa')) {
-          return new Response(
-            '{"id":15503412,"friendlyUrlPath":"/facultat-economia-empresa","name":"Facultat d’Economia i Empresa"}',
-            {status: 200},
-          );
+          return siteResp(15503412, '/facultat-economia-empresa', 'Facultat d’Economia i Empresa');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -149,39 +164,38 @@ describe('liferay inventory page', () => {
     );
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/projecte-recerca-foodcircuits')) {
-          return new Response(
-            '{"id":20117,"friendlyUrlPath":"/projecte-recerca-foodcircuits","name":"Projecte Recerca Foodcircuits"}',
-            {status: 200},
-          );
+          return siteResp(20117, '/projecte-recerca-foodcircuits', 'Projecte Recerca Foodcircuits');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":7144,"plid":7143,"type":"content","nameCurrentValue":"Inici","friendlyURL":"/inici","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: 7144,
+              plid: 7143,
+              type: 'content',
+              nameCurrentValue: 'Inici',
+              friendlyURL: '/inici',
+              hidden: false,
+            },
+          ]);
         }
 
         if (url.includes('/site-pages/inici?fields=pageDefinition')) {
-          return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements: []}}}), {
-            status: 200,
-          });
+          return pageDefinitionResp();
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -201,22 +215,27 @@ describe('liferay inventory page', () => {
 
   test('returns regular page inventory for a resolved layout', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false,"typeSettings":"layout-template-id=2_columns\\nurl=https://example.test"}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: 11,
+              plid: 1011,
+              type: 'content',
+              nameCurrentValue: 'Home',
+              friendlyURL: '/home',
+              hidden: false,
+              typeSettings: 'layout-template-id=2_columns\nurl=https://example.test',
+            },
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
@@ -249,23 +268,20 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response(
-            JSON.stringify([
-              {
-                portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
-                editableValues: JSON.stringify({
-                  journal_content: {
-                    portletPreferencesMap: {
-                      articleId: ['ART-001'],
-                      groupId: ['20121'],
-                      ddmTemplateKey: ['TPL-1'],
-                    },
+          return fragmentEntryLinksResp([
+            {
+              portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
+              editableValues: JSON.stringify({
+                journal_content: {
+                  portletPreferencesMap: {
+                    articleId: ['ART-001'],
+                    groupId: ['20121'],
+                    ddmTemplateKey: ['TPL-1'],
                   },
-                }),
-              },
-            ]),
-            {status: 200},
-          );
+                },
+              }),
+            },
+          ]);
         }
 
         if (url.includes('/journal.journalarticle/get-latest-article')) {
@@ -300,15 +316,15 @@ describe('liferay inventory page', () => {
         }
 
         if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
-          return new Response('{"id":301,"name":"Basic Web Content"}', {status: 200});
+          return new Response(JSON.stringify({id: 301, name: 'Basic Web Content'}), {status: 200});
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -396,22 +412,19 @@ describe('liferay inventory page', () => {
 
   test('skips local fragment export path enrichment outside a repo', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {layoutId: 11, plid: 1011, type: 'content', nameCurrentValue: 'Home', friendlyURL: '/home', hidden: false},
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
@@ -436,15 +449,15 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -459,47 +472,44 @@ describe('liferay inventory page', () => {
     }
 
     expect(result.fragmentEntryLinks).toEqual([{type: 'fragment', fragmentKey: 'banner'}]);
-    const [fragmentEntry] = result.fragmentEntryLinks ?? [];
-    if (!fragmentEntry) {
-      throw new Error('Expected fragment entry');
+    const fragmentEntries = result.fragmentEntryLinks;
+    if (!fragmentEntries) {
+      throw new Error('Expected fragment entries');
     }
+    const fragmentEntry = fragmentEntries[0];
+    expect(fragmentEntry).toBeDefined();
     expect(fragmentEntry).not.toHaveProperty('fragmentExportPath');
     expect(fragmentEntry).not.toHaveProperty('fragmentSiteFriendlyUrl');
   });
 
   test('returns classic portlet layout composition from type settings', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            JSON.stringify([
-              {
-                layoutId: 11,
-                plid: 1011,
-                type: 'portlet',
-                nameCurrentValue: 'Home',
-                friendlyURL: '/home',
-                hidden: false,
-                typeSettings:
-                  'layout-template-id=home\ncolumn-top=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top\ncolumn-fluid=com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_main\ncolumn-fluid-customizable=false\n',
-              },
-            ]),
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: 11,
+              plid: 1011,
+              type: 'portlet',
+              nameCurrentValue: 'Home',
+              friendlyURL: '/home',
+              hidden: false,
+              typeSettings:
+                'layout-template-id=home\ncolumn-top=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top\ncolumn-fluid=com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_main\ncolumn-fluid-customizable=false\n',
+            },
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -548,36 +558,38 @@ describe('liferay inventory page', () => {
     );
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/ub')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/ub","name":"UB"}', {status: 200});
+          return siteResp(20121, '/ub', 'UB');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Inici","friendlyURL":"/inici","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: 11,
+              plid: 1011,
+              type: 'content',
+              nameCurrentValue: 'Inici',
+              friendlyURL: '/inici',
+              hidden: false,
+            },
+          ]);
         }
 
         if (url.includes('/site-pages/inici?fields=pageDefinition')) {
-          return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements: []}}}), {
-            status: 200,
-          });
+          return pageDefinitionResp();
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(CONFIG, {url: '/'}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -593,22 +605,26 @@ describe('liferay inventory page', () => {
 
   test('resolves localized friendly URLs via headless site-pages fallback', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":"11","plid":"1011","type":"content","nameCurrentValue":"Aprende","friendlyURL":"/apren","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: '11',
+              plid: '1011',
+              type: 'content',
+              nameCurrentValue: 'Aprende',
+              friendlyURL: '/apren',
+              hidden: false,
+            },
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/site-pages?page=1&pageSize=100')) {
@@ -623,29 +639,19 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/site-pages/apren?fields=pageDefinition')) {
-          return new Response(
-            JSON.stringify({
-              pageDefinition: {
-                pageElement: {
-                  type: 'Root',
-                  pageElements: [],
-                },
-              },
-            }),
-            {status: 200},
-          );
+          return pageDefinitionResp();
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -665,22 +671,26 @@ describe('liferay inventory page', () => {
 
   test('resolves localized friendly URLs without a locale prefix via locale probing fallback', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":"11","plid":"1011","type":"content","nameCurrentValue":"Aprende","friendlyURL":"/apren","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {
+              layoutId: '11',
+              plid: '1011',
+              type: 'content',
+              nameCurrentValue: 'Aprende',
+              friendlyURL: '/apren',
+              hidden: false,
+            },
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         if (url.includes('/o/headless-delivery/v1.0/sites/20121/site-pages?page=1&pageSize=100')) {
@@ -698,29 +708,19 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/site-pages/apren?fields=pageDefinition')) {
-          return new Response(
-            JSON.stringify({
-              pageDefinition: {
-                pageElement: {
-                  type: 'Root',
-                  pageElements: [],
-                },
-              },
-            }),
-            {status: 200},
-          );
+          return pageDefinitionResp();
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -747,56 +747,41 @@ describe('liferay inventory page', () => {
         oauth2ClientId: 'client-id-token-cache',
       },
     };
-    const tokenClient = {
-      fetchClientCredentialsToken: async () => {
-        tokenCalls += 1;
-        return {
-          accessToken: 'token-123',
-          tokenType: 'Bearer',
-          expiresIn: 3600,
-        };
-      },
-    };
+    const tokenClient = createTokenClient(() => {
+      tokenCalls += 1;
+      return {
+        accessToken: 'token-123',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+      };
+    });
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {layoutId: 11, plid: 1011, type: 'content', nameCurrentValue: 'Home', friendlyURL: '/home', hidden: false},
+          ]);
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
-          return new Response(
-            JSON.stringify({
-              pageDefinition: {
-                pageElement: {
-                  type: 'Root',
-                  pageElements: [],
-                },
-              },
-            }),
-            {status: 200},
-          );
+          return pageDefinitionResp();
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     await runLiferayInventoryPage(config, {url: '/web/guest/home'}, {apiClient, tokenClient});
@@ -806,22 +791,19 @@ describe('liferay inventory page', () => {
 
   test('includes fragment image editables when Liferay returns fragmentImage payloads', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('parentLayoutId=0')) {
-          return new Response(
-            '[{"layoutId":11,"plid":1011,"type":"content","nameCurrentValue":"Home","friendlyURL":"/home","hidden":false}]',
-            {status: 200},
-          );
+          return layoutsResp([
+            {layoutId: 11, plid: 1011, type: 'content', nameCurrentValue: 'Home', friendlyURL: '/home', hidden: false},
+          ]);
         }
 
         if (url.includes('parentLayoutId=11')) {
-          return new Response('[]', {status: 200});
+          return layoutsResp([]);
         }
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
@@ -872,11 +854,11 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return new Response('[]', {status: 200});
+          return fragmentEntryLinksResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -905,11 +887,9 @@ describe('liferay inventory page', () => {
 
   test('returns display page inventory for structured content', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
         if (url.includes('/structured-contents?')) {
@@ -935,16 +915,11 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
-          return new Response(
-            '{"companyId":10157,"parentGroupId":0,"friendlyURL":"/guest","nameCurrentValue":"Guest"}',
-            {
-              status: 200,
-            },
-          );
+          return groupResp(10157, '/guest', 'Guest');
         }
 
         if (url.includes('/by-friendly-url-path/global')) {
-          return new Response('{"id":20122,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+          return siteResp(20122, '/global', 'Global');
         }
 
         if (
@@ -968,7 +943,7 @@ describe('liferay inventory page', () => {
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
-          return new Response('{"classNameId":20006}', {status: 200});
+          return classNameIdResp();
         }
 
         if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121')) {
@@ -1053,7 +1028,7 @@ describe('liferay inventory page', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -1123,9 +1098,7 @@ describe('liferay inventory page', () => {
 
   test('skips local structure and template export path enrichment outside a repo', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -1206,7 +1179,7 @@ describe('liferay inventory page', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPage(
@@ -1239,15 +1212,13 @@ describe('liferay inventory page', () => {
 
   test('fails clearly when layout cannot be resolved', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
-          return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+          return siteResp(20121, '/guest', 'Guest');
         }
 
-        return new Response('[]', {status: 200});
-      },
+        return layoutsResp([]);
+      }),
     });
 
     await expect(

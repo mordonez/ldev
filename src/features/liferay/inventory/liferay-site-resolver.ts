@@ -208,7 +208,7 @@ export function createPaginatedSearchStep(
 
     try {
       while (page <= lastPage) {
-        const pageData = await gateway.getJson<HeadlessPage<SiteLookupPayload>>(
+        const pageData = await gateway.getJson<HeadlessPage<SiteLookupPayload> | null>(
           `/o/headless-admin-site/v1.0/sites?pageSize=100&page=${page}`,
           `list-sites-page-${page}`,
         );

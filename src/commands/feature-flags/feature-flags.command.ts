@@ -29,7 +29,7 @@ Changes are written to portal-ext.properties. Restart the portal for them to tak
     );
 
   addOutputFormatOption(command.command('list').description('List known feature flags and their current state')).action(
-    createFormattedAction(async (context) => runFeatureFlagsList(context.config), {
+    createFormattedAction((context) => Promise.resolve(runFeatureFlagsList(context.config)), {
       text: formatFeatureFlagsList,
     }),
   );

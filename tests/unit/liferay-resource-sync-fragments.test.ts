@@ -7,15 +7,10 @@ import {
   formatLiferayResourceSyncFragments,
   runLiferayResourceSyncFragments,
 } from '../../src/features/liferay/resource/liferay-resource-sync-fragments.js';
+import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 async function createRepoFixture() {
   const repoRoot = createTempDir('dev-cli-resource-sync-fragments-');
@@ -95,9 +90,7 @@ describe('liferay resource fragments-sync', () => {
     await writeFragmentProject(projectDir);
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -118,7 +111,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -146,9 +139,7 @@ describe('liferay resource fragments-sync', () => {
     await writeFragmentProject(projectDir);
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -169,7 +160,7 @@ describe('liferay resource fragments-sync', () => {
           });
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/update-fragment-entry')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentEntryId')).toBe('601');
           expect(form.get('html')).toBe('<div>banner</div>');
           expect(form.get('type')).toBe('1');
@@ -177,7 +168,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -212,9 +203,7 @@ describe('liferay resource fragments-sync', () => {
     });
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -225,7 +214,7 @@ describe('liferay resource fragments-sync', () => {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentCollectionKey')).toBe('ub-base');
           return new Response('{"fragmentCollectionId":1100,"fragmentCollectionKey":"ub-base"}', {status: 200});
         }
@@ -233,14 +222,14 @@ describe('liferay resource fragments-sync', () => {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentEntryKey')).toBe('hero-banner');
           expect(form.get('html')).toBe('<div>banner</div>');
           return new Response('{"fragmentEntryId":3002}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -266,9 +255,7 @@ describe('liferay resource fragments-sync', () => {
     const nestedFragmentDir = path.join(projectDir, 'src', 'ub-base', 'fragments', 'hero-banner');
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -285,13 +272,13 @@ describe('liferay resource fragments-sync', () => {
           return new Response('[]', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmententry/add-fragment-entry')) {
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentEntryKey')).toBe('hero-banner');
           return new Response('{"fragmentEntryId":3002}', {status: 200});
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -316,9 +303,7 @@ describe('liferay resource fragments-sync', () => {
     let addCollectionCalls = 0;
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input, init) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url, init) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -330,7 +315,7 @@ describe('liferay resource fragments-sync', () => {
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
           addCollectionCalls += 1;
-          const form = new URLSearchParams(String(init?.body ?? ''));
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
 
           // First candidate includes serviceContext and fails; second candidate omits it and succeeds.
           if (addCollectionCalls === 1) {
@@ -350,7 +335,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -374,9 +359,7 @@ describe('liferay resource fragments-sync', () => {
     await fs.ensureDir(path.join(repoRoot, 'liferay', 'fragments', 'sites', 'foo'));
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/api/jsonws/company/get-companies')) {
           return new Response('[{"companyId":10157}]', {status: 200});
         }
@@ -403,7 +386,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -452,9 +435,7 @@ describe('liferay resource fragments-sync', () => {
     );
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -489,7 +470,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(
@@ -539,9 +520,7 @@ describe('liferay resource fragments-sync', () => {
     );
 
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -576,7 +555,7 @@ describe('liferay resource fragments-sync', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayResourceSyncFragments(

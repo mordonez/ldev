@@ -13,6 +13,23 @@ type SharedCommandOptions = {
   helpGroup?: string;
 };
 
+type EnvSetupCommandOptions = {
+  with: string[];
+  skipPull?: boolean;
+};
+
+type EnvStartCommandOptions = {
+  activationKeyFile?: string;
+  wait?: boolean;
+  timeout: string;
+};
+
+type EnvLogsCommandOptions = {
+  service?: string;
+  since?: string;
+  follow?: boolean;
+};
+
 export function createEnvSetupCommand(options?: SharedCommandOptions): Command {
   return withOptionalHelpGroup(
     addOutputFormatOption(
@@ -27,9 +44,9 @@ export function createEnvSetupCommand(options?: SharedCommandOptions): Command {
         ),
     ).action(
       createFormattedAction(
-        async (context, commandOptions) =>
+        async (context, commandOptions: EnvSetupCommandOptions) =>
           runEnvSetup(context.config, {
-            with: commandOptions.with as string[],
+            with: commandOptions.with,
             skipPull: Boolean(commandOptions.skipPull),
             printer: context.printer,
           }),
@@ -53,7 +70,7 @@ export function createEnvStartCommand(options?: SharedCommandOptions): Command {
         .option('--timeout <seconds>', 'Health wait timeout in seconds', '250'),
     ).action(
       createFormattedAction(
-        async (context, commandOptions) =>
+        async (context, commandOptions: EnvStartCommandOptions) =>
           createRuntimeAdapter(context.config, {projectType: context.project.projectType}).start({
             activationKeyFile: commandOptions.activationKeyFile,
             wait: commandOptions.wait,
@@ -104,7 +121,7 @@ export function createEnvLogsCommand(options?: SharedCommandOptions): Command {
     .option('--no-follow', 'Do not follow log output')
     .passThroughOptions()
     // escape-hatch: streams output directly; no return value to format
-    .action(async (commandOptions) =>
+    .action(async (commandOptions: EnvLogsCommandOptions) =>
       withCommandContext(commandOptions, async (context) => {
         await createRuntimeAdapter(context.config, {projectType: context.project.projectType}).logs({
           service: commandOptions.service,

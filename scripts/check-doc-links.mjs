@@ -19,6 +19,10 @@ function getNpmCommand() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
 }
 
+/**
+ * @param {string[]} args
+ * @param {import('node:child_process').SpawnOptions} [options]
+ */
 function spawnNpm(args, options = {}) {
   return spawn(getNpmCommand(), args, {
     cwd: process.cwd(),
@@ -28,8 +32,13 @@ function spawnNpm(args, options = {}) {
   });
 }
 
+/**
+ * @param {string | URL} url
+ * @param {number} [timeoutMs]
+ */
 async function waitForPreview(url, timeoutMs = 30_000) {
   const startedAt = Date.now();
+  const urlText = String(url);
 
   while (Date.now() - startedAt < timeoutMs) {
     try {
@@ -45,11 +54,12 @@ async function waitForPreview(url, timeoutMs = 30_000) {
     await delay(500);
   }
 
-  throw new Error(`Timed out waiting for docs preview at ${url}`);
+  throw new Error(`Timed out waiting for docs preview at ${urlText}`);
 }
 
 async function getCriticalAssetUrls() {
   const html = await readFile(previewBuildPath, 'utf8');
+  /** @type {string[]} */
   const assetUrls = [];
   const appScriptMatch = html.match(/<script type="module" src="([^"]+)"/);
 
@@ -64,9 +74,14 @@ async function getCriticalAssetUrls() {
   return assetUrls;
 }
 
+/**
+ * @param {string | URL} baseUrl
+ * @param {number} [timeoutMs]
+ */
 async function waitForCriticalAssets(baseUrl, timeoutMs = 30_000) {
   const assetUrls = await getCriticalAssetUrls();
   const startedAt = Date.now();
+  const baseUrlText = String(baseUrl);
 
   while (Date.now() - startedAt < timeoutMs) {
     let allReady = true;
@@ -92,10 +107,15 @@ async function waitForCriticalAssets(baseUrl, timeoutMs = 30_000) {
     await delay(500);
   }
 
-  throw new Error(`Timed out waiting for docs assets at ${baseUrl}`);
+  throw new Error(`Timed out waiting for docs assets at ${baseUrlText}`);
 }
 
+/**
+ * @param {string | URL} baseUrl
+ */
 async function assertRequiredRoutes(baseUrl) {
+  const baseUrlText = String(baseUrl);
+
   for (const route of requiredCleanUrls) {
     const response = await fetch(new URL(route, baseUrl), {
       redirect: 'follow',
@@ -108,7 +128,9 @@ async function assertRequiredRoutes(baseUrl) {
     const contentType = response.headers.get('content-type') ?? '';
 
     if (!contentType.includes('text/html')) {
-      throw new Error(`Required docs route failed: ${route} returned non-HTML content type "${contentType}"`);
+      throw new Error(
+        `Required docs route failed: ${route} from ${baseUrlText} returned non-HTML content type "${contentType}"`,
+      );
     }
   }
 }

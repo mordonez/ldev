@@ -1,14 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-
 import fs from 'fs-extra';
 import path from 'node:path';
 import {describe, expect, test, vi, afterEach, beforeEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import type {HttpApiClient} from '../../../src/core/http/client.js';
 import {structureSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/structure-sync-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
+import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -112,7 +110,7 @@ describe('structureSyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn().mockResolvedValue({
             ok: false,
             status: 404,
@@ -120,14 +118,8 @@ describe('structureSyncStrategy', () => {
             headers: new Headers(),
             body: '{"error":"Not found"}',
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       const result = await structureSyncStrategy.findRemote(
@@ -156,7 +148,7 @@ describe('structureSyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn().mockResolvedValue({
             ok: true,
             status: 200,
@@ -164,14 +156,8 @@ describe('structureSyncStrategy', () => {
             headers: new Headers(),
             body: JSON.stringify(remoteStructure),
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       const result = await structureSyncStrategy.findRemote(
@@ -210,7 +196,7 @@ describe('structureSyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn(),
           postJson: vi.fn().mockResolvedValue({
             ok: true,
@@ -219,14 +205,8 @@ describe('structureSyncStrategy', () => {
             headers: new Headers(),
             body: '{"id":"struct-999"}',
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
         sleep: vi.fn().mockResolvedValue(undefined),
       };
 
@@ -281,16 +261,10 @@ describe('structureSyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn(),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       // The structure strategy throws a breaking change error when fields are removed without migration plan
@@ -344,7 +318,7 @@ describe('structureSyncStrategy', () => {
       };
 
       const mockDependencies = {
-        apiClient: {
+        apiClient: mockApiClient({
           get: vi.fn(),
           putJson: vi.fn().mockResolvedValue({
             ok: true,
@@ -353,14 +327,8 @@ describe('structureSyncStrategy', () => {
             headers: new Headers(),
             body: '{"id":"struct-100"}',
           }),
-        } as any,
-        tokenClient: {
-          fetchClientCredentialsToken: vi.fn().mockResolvedValue({
-            accessToken: 'token',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-          }),
-        } as any,
+        }),
+        tokenClient: mockTokenClient(),
       };
 
       // Should not throw

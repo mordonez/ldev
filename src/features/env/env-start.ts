@@ -32,6 +32,9 @@ export async function runEnvStart(
     activationKeyFile?: string;
   },
 ): Promise<EnvStartResult> {
+  const waitForHealth = options?.wait ?? true;
+  const startupTimeoutSeconds = options?.timeoutSeconds ?? 250;
+
   if (config.repoRoot && resolveWorktreeContext(config.repoRoot).isWorktree) {
     await runWorktreeEnv({cwd: config.cwd, printer: options?.printer});
   }
@@ -61,27 +64,27 @@ export async function runEnvStart(
     });
   }
 
-  if (options?.wait ?? true) {
+  if (waitForHealth) {
     try {
       if (options?.printer) {
         await withProgress(options.printer, 'Waiting for Liferay to become ready', async () => {
           await waitForServiceHealthy(context, 'liferay', {
-            timeoutSeconds: options?.timeoutSeconds ?? 250,
+            timeoutSeconds: startupTimeoutSeconds,
             processEnv: composeEnv,
           });
         });
         await withProgress(options.printer, 'Waiting for portal to finish deploying bundles', async () => {
           await waitForPortalReady(context.portalUrl, {
-            timeoutMs: (options?.timeoutSeconds ?? 250) * 1000,
+            timeoutMs: startupTimeoutSeconds * 1000,
           });
         });
       } else {
         await waitForServiceHealthy(context, 'liferay', {
-          timeoutSeconds: options?.timeoutSeconds ?? 250,
+          timeoutSeconds: startupTimeoutSeconds,
           processEnv: composeEnv,
         });
         await waitForPortalReady(context.portalUrl, {
-          timeoutMs: (options?.timeoutSeconds ?? 250) * 1000,
+          timeoutMs: startupTimeoutSeconds * 1000,
         });
       }
     } catch (error) {
@@ -95,7 +98,7 @@ export async function runEnvStart(
     ok: true,
     dockerDir: context.dockerDir,
     portalUrl: context.portalUrl,
-    waitedForHealth: options?.wait ?? true,
+    waitedForHealth: waitForHealth,
     activationKeyFile: activationKey.destinationFile,
   };
 }

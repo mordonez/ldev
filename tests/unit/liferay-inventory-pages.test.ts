@@ -5,6 +5,7 @@ import {
   formatLiferayInventoryPages,
   runLiferayInventoryPages,
 } from '../../src/features/liferay/inventory/liferay-inventory-pages.js';
+import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 const CONFIG = {
   cwd: '/tmp/repo',
@@ -24,20 +25,12 @@ const CONFIG = {
   },
 };
 
-const TOKEN_CLIENT = {
-  fetchClientCredentialsToken: async () => ({
-    accessToken: 'token-123',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-  }),
-};
+const TOKEN_CLIENT = createStaticTokenClient();
 
 describe('liferay inventory pages', () => {
   test('lists a hierarchical tree for a resolved site', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/guest')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
         }
@@ -61,7 +54,7 @@ describe('liferay inventory pages', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPages(CONFIG, {site: '/guest'}, {apiClient, tokenClient: TOKEN_CLIENT});
@@ -95,9 +88,7 @@ describe('liferay inventory pages', () => {
 
   test('limits recursion with max-depth', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
@@ -110,7 +101,7 @@ describe('liferay inventory pages', () => {
         }
 
         throw new Error(`Unexpected URL ${url}`);
-      },
+      }),
     });
 
     const result = await runLiferayInventoryPages(
@@ -171,15 +162,13 @@ describe('liferay inventory pages', () => {
 
   test('surfaces layout listing errors clearly', async () => {
     const apiClient = createLiferayApiClient({
-      fetchImpl: async (input) => {
-        const url = String(input);
-
+      fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
 
         return new Response('boom', {status: 500});
-      },
+      }),
     });
 
     await expect(

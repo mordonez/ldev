@@ -1,6 +1,5 @@
 ﻿import fs from 'fs-extra';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
 
 import pWaitFor from 'p-wait-for';
 
@@ -9,7 +8,12 @@ import type {AppConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
-import {formatProcessError, normalizeProcessEnv, runProcess} from '../../core/platform/process.js';
+import {
+  formatProcessError,
+  normalizeProcessEnv,
+  runProcess,
+  spawnDetachedProcess,
+} from '../../core/platform/process.js';
 
 export type DbFilesDownloadResult = {
   ok: true;
@@ -206,7 +210,7 @@ async function ensureDoclibBackupBackground(options: {
 
   const outFd = await fs.open(logFile, 'a');
   const normalizedEnv = normalizeProcessEnv(process.env);
-  const child = spawn(
+  const child = spawnDetachedProcess(
     'lcp',
     [
       'backup',
@@ -289,7 +293,7 @@ async function findDirectoryNamed(root: string, name: string, maxDepth: number):
     }
 
     const entries = await fs.readdir(current.dir, {withFileTypes: true}).catch((error: NodeJS.ErrnoException) => {
-      if (error?.code === 'EACCES' || error?.code === 'EPERM' || error?.code === 'ENOENT') {
+      if (error.code === 'EACCES' || error.code === 'EPERM' || error.code === 'ENOENT') {
         return [];
       }
 

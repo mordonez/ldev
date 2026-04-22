@@ -39,7 +39,7 @@ export async function runDeployAll(config: AppConfig, options?: {printer?: Print
   const context = resolveDeployContext(config);
   await ensureGradleWrapper(context);
 
-  const cacheDir = await resolveDeployCacheDir(config);
+  const cacheDir = resolveDeployCacheDir(config);
   const [cacheCommit, headCommit, cacheArtifacts] = await Promise.all([
     readPrepareCommit(cacheDir),
     resolveHeadCommit(context.repoRoot),

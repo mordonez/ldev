@@ -1,5 +1,5 @@
 import {CliError} from '../../../core/errors.js';
-import {trimLeadingSlash} from '../../../core/utils/text.js';
+import {normalizeScalarString, trimLeadingSlash} from '../../../core/utils/text.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 
 export type HeadlessSitePageActions = {
@@ -350,12 +350,7 @@ function asObject(value: unknown): {[key: string]: unknown} | null {
 }
 
 function toStringOrUndefined(value: unknown): string | undefined {
-  if (value == null) {
-    return undefined;
-  }
-
-  const normalized = String(value).trim();
-  return normalized === '' ? undefined : normalized;
+  return normalizeScalarString(value);
 }
 
 function toPositiveNumber(value: unknown): number | undefined {

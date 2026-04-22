@@ -45,13 +45,12 @@ export async function runEnvClean(
     await cleanTask();
   }
 
-  let doclibVolumeRemoved = false;
   const doclibVolume = context.envValues.DOCLIB_VOLUME_NAME || `${context.composeProjectName}-doclib`;
   const volumeResult = await runDockerOrThrow(['volume', 'rm', doclibVolume], {
     env: options?.processEnv,
     reject: false,
   });
-  doclibVolumeRemoved = volumeResult.ok;
+  const doclibVolumeRemoved = volumeResult.ok;
 
   for (const storage of resolveManagedStorages(context)) {
     if (storage.mode !== 'volume') {

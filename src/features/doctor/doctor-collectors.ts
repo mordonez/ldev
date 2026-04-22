@@ -8,12 +8,12 @@ import YAML from 'yaml';
 import type {AppConfig} from '../../core/config/load-config.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
 import {readEnvFile} from '../../core/config/env-file.js';
-import {detectProject, detectProjectType} from '../../core/config/project-type.js';
+import {detectProject} from '../../core/config/project-type.js';
 import {detectRepoPaths} from '../../core/config/repo-paths.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
 import {isWorktree} from '../../core/platform/git.js';
-import {runAiStatus} from '../ai/ai-status.js';
+import {runAiStatus} from '../../core/runtime/ai-status.js';
 import type {
   DoctorContext,
   DoctorDependencies,
@@ -36,7 +36,6 @@ export async function collectDoctorContext(
   const dependencies = options?.dependencies;
   const detectCapabilitiesFn = dependencies?.detectCapabilities ?? detectCapabilities;
   const detectProjectFn = dependencies?.detectProject ?? detectProject;
-  const detectProjectTypeFn = dependencies?.detectProjectType ?? detectProjectType;
   const detectRepoPathsFn = dependencies?.detectRepoPaths ?? detectRepoPaths;
   const fileExistsFn = dependencies?.fileExists ?? fs.existsSync;
   const getTotalMemoryBytesFn = dependencies?.getTotalMemoryBytes ?? os.totalmem;
@@ -52,7 +51,6 @@ export async function collectDoctorContext(
     env,
     dependencies: {
       detectProject: detectProjectFn,
-      detectProjectType: detectProjectTypeFn,
       detectRepoPaths: detectRepoPathsFn,
       readEnvFile: readEnvFileFn,
       readProfileFile: readProfileFileFn,
@@ -342,7 +340,9 @@ export async function checkTcpPort(host: string, port: number): Promise<DoctorPo
     });
 
     server.once('listening', () => {
-      server.close(() => resolve('free'));
+      server.close(() => {
+        resolve('free');
+      });
     });
 
     server.listen(port, host === '0.0.0.0' ? undefined : host);
@@ -359,7 +359,7 @@ function readProfileFile(filePath: string): Record<string, string> {
     return {};
   }
 
-  const parsed = YAML.parse(fs.readFileSync(filePath, 'utf8'));
+  const parsed: unknown = YAML.parse(fs.readFileSync(filePath, 'utf8'));
   const flattened: Record<string, string> = {};
   flatten(parsed, '', flattened);
   return flattened;
@@ -378,5 +378,12 @@ function flatten(value: unknown, prefix: string, target: Record<string, string>)
     return;
   }
 
-  target[prefix] = String(value);
+  if (typeof value === 'string') {
+    target[prefix] = value;
+    return;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    target[prefix] = `${value}`;
+  }
 }

@@ -41,6 +41,36 @@ function formatInventorySitesResult(result: LiferayInventorySite[] | ContentStat
   return Array.isArray(result) ? formatLiferayInventorySites(result) : formatContentStats(result);
 }
 
+type InventoryPagesCommandOptions = {
+  site: string;
+  privateLayout?: boolean;
+  maxDepth: string;
+};
+
+type InventoryPageCommandOptions = {
+  url?: string;
+  site?: string;
+  friendlyUrl?: string;
+  privateLayout?: boolean;
+  verbose?: boolean;
+};
+
+type InventoryStructuresCommandOptions = {
+  site: string;
+  pageSize: string;
+  withTemplates?: boolean;
+  allSites?: boolean;
+};
+
+type InventoryTemplatesCommandOptions = {
+  site: string;
+  pageSize: string;
+};
+
+type InventoryPreflightCommandOptions = {
+  forceRefresh?: boolean;
+};
+
 export function createInventoryCommands(parent: Command): void {
   const inventory = new Command('inventory')
     .helpGroup('Discovery:')
@@ -189,7 +219,7 @@ Notes:
       .option('--max-depth <maxDepth>', 'Maximum recursion depth', '12'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: InventoryPagesCommandOptions) =>
         runLiferayInventoryPages(context.config, {
           site: options.site,
           privateLayout: Boolean(options.privateLayout),
@@ -210,7 +240,7 @@ Notes:
       .option('--verbose', 'Show fragment/widget details: element name, CSS classes, custom CSS'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: InventoryPageCommandOptions) =>
         runLiferayInventoryPage(context.config, {
           url: options.url,
           site: options.site,
@@ -218,7 +248,9 @@ Notes:
           privateLayout: Boolean(options.privateLayout),
           verbose: Boolean(options.verbose),
         }),
-      (options) => ({text: (result) => formatLiferayInventoryPage(result, Boolean(options.verbose))}),
+      (options: InventoryPageCommandOptions) => ({
+        text: (result) => formatLiferayInventoryPage(result, Boolean(options.verbose)),
+      }),
     ),
   );
 
@@ -232,7 +264,7 @@ Notes:
       .option('--all-sites', 'List structures for all accessible sites in one run'),
   ).action(
     createFormattedAction(
-      async (context, options) => {
+      async (context, options: InventoryStructuresCommandOptions) => {
         const pageSize = Number.parseInt(options.pageSize, 10) || 200;
 
         if (options.allSites) {
@@ -262,7 +294,7 @@ Notes:
       .option('--page-size <pageSize>', 'Headless page size', '200'),
   ).action(
     createFormattedAction(
-      async (context, options) =>
+      async (context, options: InventoryTemplatesCommandOptions) =>
         runLiferayInventoryTemplates(context.config, {
           site: options.site,
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
@@ -279,7 +311,8 @@ Notes:
     'text',
   ).action(
     createFormattedAction(
-      async (context, options) => runLiferayPreflight(context.config, {forceRefresh: Boolean(options.forceRefresh)}),
+      async (context, options: InventoryPreflightCommandOptions) =>
+        runLiferayPreflight(context.config, {forceRefresh: Boolean(options.forceRefresh)}),
       {text: formatLiferayPreflight},
     ),
   );

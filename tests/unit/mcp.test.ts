@@ -18,6 +18,7 @@ describe('mcp', () => {
     fs.writeFileSync(path.join(repoRoot, 'configs', 'local', 'portal-ext.properties'), 'feature.flag.LPD-63311=true\n');
 
     const fetchMock = vi.fn(async (url: string) => {
+      await Promise.resolve();
       if (url.endsWith('/o/mcp')) {
         return new Response('{"message":"Session ID required"}', {
           status: 400,
@@ -47,6 +48,7 @@ describe('mcp', () => {
 
   test('probe initializes an MCP session', async () => {
     const fetchMock = vi.fn(async () => {
+      await Promise.resolve();
       const headers = new Headers();
       headers.set('Mcp-Session-Id', 'session-123');
       return new Response(
@@ -82,7 +84,10 @@ describe('mcp', () => {
   });
 
   test('probe fails with MCP endpoint not found when no endpoint responds', async () => {
-    const fetchMock = vi.fn(async () => new Response('not found', {status: 404}));
+    const fetchMock = vi.fn(async () => {
+      await Promise.resolve();
+      return new Response('not found', {status: 404});
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(
@@ -137,7 +142,10 @@ describe('mcp', () => {
     for (const testCase of cases) {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => testCase.response.clone()),
+        vi.fn(async () => {
+          await Promise.resolve();
+          return testCase.response.clone();
+        }),
       );
 
       await expect(
@@ -441,9 +449,16 @@ describe('mcp', () => {
         } as never,
         {authorizationHeader: 'Basic abc'},
       ),
-    ).rejects.toMatchObject({
-      code: LiferayErrorCode.MCP_PARSE_ERROR,
-      message: expect.stringContaining('Invalid MCP JSON payload'),
+    ).rejects.toSatisfy((error: unknown) => {
+      if (!(error instanceof Error)) {
+        return false;
+      }
+
+      return (
+        'code' in error &&
+        error.code === LiferayErrorCode.MCP_PARSE_ERROR &&
+        error.message.includes('Invalid MCP JSON payload')
+      );
     });
   });
 });

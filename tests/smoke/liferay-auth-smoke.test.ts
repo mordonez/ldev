@@ -1,7 +1,11 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
 import {createCli} from '../../src/cli/create-cli.js';
-import {captureProcessOutput, createLiferayCliRepoFixture} from '../../src/testing/cli-test-helpers.js';
+import {
+  captureProcessOutput,
+  createLiferayCliRepoFixture,
+  toTestRequestUrl,
+} from '../../src/testing/cli-test-helpers.js';
 
 describe('liferay auth smoke', () => {
   let repoRoot: string;
@@ -44,7 +48,8 @@ describe('liferay auth smoke', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string | URL | Request) => {
-        const url = String(input);
+        await Promise.resolve();
+        const url = toTestRequestUrl(input);
         if (url.endsWith('/o/oauth2/token')) {
           return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {
             status: 200,
@@ -76,10 +81,10 @@ describe('liferay auth smoke', () => {
   test('dev-cli liferay auth token --raw works with fake fetch', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(
-        async () =>
-          new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200}),
-      ),
+      vi.fn(async () => {
+        await Promise.resolve();
+        return new Response('{"access_token":"token-12345678","token_type":"Bearer","expires_in":3600}', {status: 200});
+      }),
     );
 
     const originalCwd = process.cwd();

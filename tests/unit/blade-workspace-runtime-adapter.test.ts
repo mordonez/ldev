@@ -21,18 +21,24 @@ describe('BladeWorkspaceRuntimeAdapter', () => {
     const activationKeyFile = path.join(workspaceRoot, 'activation-key-test.xml');
     fs.writeFileSync(activationKeyFile, '<activation-key />');
 
-    const runProcess = vi.fn(async (command: string, args?: string[]) => {
+    const runProcess = vi.fn((command: string, args?: string[]) => {
       const normalizedArgs = args ?? [];
 
       if (command === 'blade' && normalizedArgs[0] === 'version') {
-        return {ok: true, stdout: 'blade version 8', stderr: '', command: 'blade version', exitCode: 0};
+        return Promise.resolve({
+          ok: true,
+          stdout: 'blade version 8',
+          stderr: '',
+          command: 'blade version',
+          exitCode: 0,
+        });
       }
 
       if (command === 'blade' && normalizedArgs[0] === 'server' && normalizedArgs[1] === 'start') {
-        return {ok: true, stdout: '', stderr: '', command: 'blade server start', exitCode: 0};
+        return Promise.resolve({ok: true, stdout: '', stderr: '', command: 'blade server start', exitCode: 0});
       }
 
-      throw new Error(`Unexpected command ${command} ${normalizedArgs.join(' ')}`);
+      return Promise.reject(new Error(`Unexpected command ${command} ${normalizedArgs.join(' ')}`));
     });
 
     const adapter = new BladeWorkspaceRuntimeAdapter(

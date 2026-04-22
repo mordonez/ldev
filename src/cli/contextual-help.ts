@@ -70,7 +70,7 @@ export function buildContextualRootSummary(cwd: string): string {
       '  ldev worktree ...',
       '',
     );
-  } else if (context.projectType === 'ldev-native') {
+  } else {
     lines.push(
       'Runtime-core here:',
       '  ldev setup',

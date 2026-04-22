@@ -3,12 +3,13 @@ import path from 'node:path';
 import os from 'node:os';
 
 import JSZip from 'jszip';
+import {z} from 'zod';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runStep} from '../../core/output/run-step.js';
-import {runDbImport} from '../db/db-import.js';
+import {readJsonUnknown} from '../../core/utils/json.js';
 
 export type RestoreResult = {
   ok: true;
@@ -17,11 +18,25 @@ export type RestoreResult = {
   databaseRestored: boolean;
 };
 
+export type RestoreDatabase = (
+  dumpFile: string,
+  options: {
+    processEnv?: NodeJS.ProcessEnv;
+    printer?: Printer;
+  },
+) => Promise<void>;
+
 type SnapshotManifest = {
   capturedAt: string;
   databaseDumpFile: string;
   copiedPaths: string[];
 };
+
+const snapshotManifestSchema = z.object({
+  capturedAt: z.string(),
+  databaseDumpFile: z.string(),
+  copiedPaths: z.array(z.string()),
+}) satisfies z.ZodType<SnapshotManifest>;
 
 export async function runRestore(
   config: AppConfig,
@@ -32,6 +47,7 @@ export async function runRestore(
     skipFiles?: boolean;
     printer?: Printer;
     processEnv?: NodeJS.ProcessEnv;
+    restoreDatabase?: RestoreDatabase;
   },
 ): Promise<RestoreResult> {
   if (!config.repoRoot || !config.liferayDir) {
@@ -53,7 +69,7 @@ export async function runRestore(
       throw new CliError(`manifest.json not found in ${snapshotDir}`, {code: 'RESTORE_SNAPSHOT_NOT_FOUND'});
     }
 
-    const manifest = (await fs.readJson(manifestFile)) as SnapshotManifest;
+    const manifest = await readSnapshotManifest(manifestFile);
     const restoredPaths: string[] = [];
 
     if (!(options.skipFiles ?? false)) {
@@ -74,14 +90,16 @@ export async function runRestore(
 
     let databaseRestored = false;
     if (!(options.skipDb ?? false)) {
+      if (!options.restoreDatabase) {
+        throw new CliError('restore requires a database import handler unless --skip-db is used.', {
+          code: 'RESTORE_DB_IMPORT_UNAVAILABLE',
+        });
+      }
+
+      const restoreDatabase = options.restoreDatabase;
       const dumpFile = path.join(snapshotDir, manifest.databaseDumpFile);
       await runStep(options.printer, 'Restoring database from snapshot', async () => {
-        await runDbImport(config, {
-          file: dumpFile,
-          force: true,
-          processEnv: options.processEnv,
-          printer: undefined,
-        });
+        await restoreDatabase(dumpFile, {processEnv: options.processEnv});
       });
       databaseRestored = true;
     }
@@ -97,6 +115,10 @@ export async function runRestore(
       await fs.remove(extractedDir).catch(() => undefined);
     }
   }
+}
+
+async function readSnapshotManifest(filePath: string): Promise<SnapshotManifest> {
+  return snapshotManifestSchema.parse(await readJsonUnknown(filePath));
 }
 
 export function formatRestore(result: RestoreResult): string {
