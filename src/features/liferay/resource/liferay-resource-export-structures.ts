@@ -114,6 +114,10 @@ async function exportStructuresForSite(
   let diffs = 0;
 
   for (const row of rows) {
+    if (row.key === '') {
+      continue;
+    }
+
     const structure = await runLiferayResourceGetStructure(config, {site, key: row.key}, dependencies);
     const normalizedPayload = normalizeLiferayStructurePayload(structure.raw);
     const filePath = path.join(outputDir, `${row.key}.json`);

@@ -208,12 +208,12 @@ export function createPaginatedSearchStep(
 
     try {
       while (page <= lastPage) {
-        const pageData = await gateway.getJson<HeadlessPage<SiteLookupPayload>>(
+        const pageData = await gateway.getJson<HeadlessPage<SiteLookupPayload> | null>(
           `/o/headless-admin-site/v1.0/sites?pageSize=100&page=${page}`,
           `list-sites-page-${page}`,
         );
 
-        const items = Array.isArray(pageData.items) ? pageData.items : [];
+        const items = Array.isArray(pageData?.items) ? pageData.items : [];
 
         for (const item of items) {
           const friendlyUrlPath = normalizeFriendlyUrl(item.friendlyUrlPath ?? '');
@@ -228,7 +228,7 @@ export function createPaginatedSearchStep(
           }
         }
 
-        lastPage = pageData.lastPage ?? 1;
+        lastPage = pageData?.lastPage ?? 1;
         page += 1;
       }
     } catch (error) {
