@@ -255,12 +255,11 @@ async function writeCachedToken(
 
 function tokenCacheFile(cacheDir: string, settings: OAuthClientCredentialsConfig): string {
   const key = crypto
-    .createHash('sha256')
+    .createHmac('sha256', settings.oauth2ClientSecret)
     .update(
       JSON.stringify({
         url: settings.url,
         clientId: settings.oauth2ClientId,
-        clientSecret: settings.oauth2ClientSecret,
         scopeAliases: settings.scopeAliases,
       }),
     )
