@@ -15,6 +15,10 @@ function normalizeValue(value: unknown, path: string[]): unknown {
   }
 
   if (isRecord(value)) {
+    if (isCustomPropertiesPath(path)) {
+      return normalizeCustomProperties(value, path);
+    }
+
     return Object.fromEntries(
       Object.entries(value)
         .filter(([key]) => !shouldOmitKey(path, key))
@@ -35,6 +39,18 @@ function shouldOmitKey(path: string[], key: string): boolean {
   }
 
   return false;
+}
+
+function isCustomPropertiesPath(path: string[]): boolean {
+  return path.includes('customProperties');
+}
+
+function normalizeCustomProperties(record: Record<string, unknown>, path: string[]): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(record)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nestedValue]) => [key, normalizeValue(nestedValue, [...path, key])]),
+  );
 }
 
 const ROOT_VOLATILE_KEYS = new Set(['id', 'siteId', 'userId', 'dateCreated', 'dateModified', 'externalReferenceCode']);

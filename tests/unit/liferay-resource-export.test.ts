@@ -202,6 +202,62 @@ describe('liferay resource export', () => {
     );
   });
 
+  test('exports structure JSON with stable customProperties ordering', async () => {
+    const dir = createTempDir('dev-cli-resource-export-structure-editor-config-');
+    const outputPath = path.join(dir, 'nested', 'structure.json');
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/by-data-definition-key/BASIC-WEB-CONTENT')) {
+          return new Response(
+            JSON.stringify({
+              dataDefinitionKey: 'BASIC-WEB-CONTENT',
+              dataDefinitionFields: [
+                {
+                  customProperties: {
+                    fieldReference: 'Height',
+                    placeholder: {ca_ES: ''},
+                    numericInputMask: {ca_ES: ''},
+                    htmlAutocompleteAttribute: '',
+                    editorConfig: {
+                      language: 'ca-ES',
+                      extraPlugins: 'addimages,autogrow',
+                      embedProviders: [],
+                      title: false,
+                      contentsCss: ['/o/classic-theme/css/clay.css'],
+                    },
+                  },
+                },
+              ],
+            }),
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    await runLiferayResourceExportStructure(
+      CONFIG,
+      {site: '/global', key: 'BASIC-WEB-CONTENT', output: outputPath, pretty: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    const written = await fs.readFile(outputPath, 'utf8');
+    expect(written.indexOf('"fieldReference"')).toBeLessThan(written.indexOf('"htmlAutocompleteAttribute"'));
+    expect(written.indexOf('"htmlAutocompleteAttribute"')).toBeLessThan(written.indexOf('"numericInputMask"'));
+    expect(written.indexOf('"numericInputMask"')).toBeLessThan(written.indexOf('"placeholder"'));
+    expect(written.indexOf('"contentsCss"')).toBeLessThan(written.indexOf('"embedProviders"'));
+    expect(written.indexOf('"embedProviders"')).toBeLessThan(written.indexOf('"extraPlugins"'));
+    expect(written.indexOf('"extraPlugins"')).toBeLessThan(written.indexOf('"title"'));
+  });
+
   test('exports structure JSON to default structures layout when output is omitted', async () => {
     const dir = createTempDir('dev-cli-resource-export-structure-default-');
     const config = {
