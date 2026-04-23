@@ -172,12 +172,24 @@ function inferComposeServices(dockerDir: string | null, dockerEnv: Record<string
 
 function inferComposeFiles(dockerEnv: Record<string, string>): string[] {
   const composeFile = normalizeBlank(dockerEnv.COMPOSE_FILE);
+  return composeFile ? splitComposeFileEntries(composeFile) : ['docker-compose.yml'];
+}
+
+function splitComposeFileEntries(composeFile: string): string[] {
+  const separator = detectComposeFileSeparator(composeFile);
+
   return composeFile
-    ? composeFile
-        .split(path.delimiter)
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    : ['docker-compose.yml'];
+    .split(separator)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function detectComposeFileSeparator(composeFile: string): string {
+  if (composeFile.includes(';')) {
+    return ';';
+  }
+
+  return path.delimiter;
 }
 
 function resolveLocalPath(rootDir: string | null, child: string): string | null {
