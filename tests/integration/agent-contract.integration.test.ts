@@ -14,6 +14,7 @@ type AgentContextPayload = {
   ai: Record<string, unknown>;
   platform: Record<string, unknown>;
   commands: Record<string, unknown>;
+  issues: Array<Record<string, unknown>>;
 };
 
 type AgentBootstrapPayload = {
@@ -40,6 +41,7 @@ describe('agent contract integration', () => {
     expect(parsed.inventory).toHaveProperty('modules');
     expect(parsed.ai).toHaveProperty('manifestPresent');
     expect(parsed.platform).toHaveProperty('tools');
+    expect(Array.isArray(parsed.issues)).toBe(true);
   }, 30000);
 
   test('context --json includes the current command readiness matrix', async () => {

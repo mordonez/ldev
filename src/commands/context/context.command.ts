@@ -18,7 +18,8 @@ Use this command first when you need to discover:
   which command areas are ready right now
 
 Offline and fast; this command does not contact Docker or the portal.
-Use doctor when you need readiness checks.
+It may include lightweight local runtime diagnostics in the JSON payload.
+Use doctor when you need the full readiness contract.
 
 Preferred format for automation:
   context --json
@@ -45,6 +46,8 @@ Preferred format for automation:
               'inventory.modules.sample',
               'platform.tools.*',
               'commands.*.supported',
+              'issues[].code',
+              'issues[].severity',
             ],
           };
         }
