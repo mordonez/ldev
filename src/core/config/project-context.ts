@@ -7,6 +7,7 @@ import {readProfileFile as readLiferayProfileFile, resolveLiferayProfileFiles} f
 import {detectProject, type ProjectType} from './project-type.js';
 import {detectRepoPaths} from './repo-paths.js';
 import {buildAppConfig} from './config-builder.js';
+import {resolveProjectInventory, type ProjectInventory} from './project-inventory.js';
 
 export type ProjectContext = {
   cwd: string;
@@ -41,6 +42,7 @@ export type ProjectContext = {
   workspace: {
     product: string | null;
   };
+  inventory: ProjectInventory;
   paths: {
     structures: string;
     templates: string;
@@ -128,6 +130,15 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
   const httpPort = repoPaths.repoRoot ? dockerEnv.LIFERAY_HTTP_PORT || '8080' : null;
   const workspaceProduct =
     projectType === 'blade-workspace' && projectDetection.root ? readWorkspaceProduct(projectDetection.root) : null;
+  const inventory = resolveProjectInventory({
+    repoRoot: resolvedRepoRoot,
+    liferayDir: repoPaths.liferayDir,
+    dockerDir: repoPaths.dockerDir,
+    projectType,
+    dockerEnv,
+    paths: resolvedPaths,
+    workspaceProduct,
+  });
 
   return {
     cwd,
@@ -168,6 +179,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     workspace: {
       product: workspaceProduct,
     },
+    inventory,
     paths: resolvedPaths,
     config,
   };

@@ -121,9 +121,9 @@ export function buildNextSteps(
   if (project) {
     steps.push('Project skills are project-owned: ldev ai update will not overwrite them.');
   }
-  steps.push('Run `ldev context --json` to verify the agent can operate.');
+  steps.push('Run `ldev ai bootstrap --intent=develop --json` to verify the agent can operate.');
   steps.push(
-    'If `liferay.oauth2Configured` is false in the context output, run `ldev oauth install --write-env` to enable portal commands.',
+    'If OAuth2 credential status is missing in bootstrap context, run `ldev oauth install --write-env` to enable portal commands.',
   );
   return steps;
 }

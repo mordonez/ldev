@@ -1,98 +1,80 @@
-import type {DoctorCheck, DoctorCheckStatus, DoctorContext, DoctorReport} from './doctor-types.js';
-import {countScopeAliases} from './doctor-collectors.js';
+import type {DoctorCheck, DoctorCheckScope, DoctorCheckStatus, DoctorContext, DoctorReport} from './doctor-types.js';
 
-export function assembleDoctorReport(ctx: DoctorContext, checks: DoctorCheck[]): DoctorReport {
+export function assembleDoctorReport(
+  ctx: DoctorContext,
+  checks: DoctorCheck[],
+  durationMs = 0,
+  ranChecks: DoctorCheckScope[] = ['basic'],
+  sections?: Pick<DoctorReport, 'runtime' | 'portal' | 'osgi'>,
+): DoctorReport {
+  const normalizedChecks = checks.map((check) => normalizeCheck(check));
   const summary = {
-    passed: checks.filter((c) => c.status === 'pass').length,
-    warned: checks.filter((c) => c.status === 'warn').length,
-    failed: checks.filter((c) => c.status === 'fail').length,
-    skipped: checks.filter((c) => c.status === 'skip').length,
+    passed: normalizedChecks.filter((c) => c.status === 'pass').length,
+    warned: normalizedChecks.filter((c) => c.status === 'warn').length,
+    failed: normalizedChecks.filter((c) => c.status === 'fail').length,
+    skipped: normalizedChecks.filter((c) => c.status === 'skip').length,
+    durationMs,
   };
 
   return {
     ok: summary.failed === 0,
+    contractVersion: 2,
+    generatedAt: new Date().toISOString(),
+    ranChecks,
     summary,
-    capabilities: ctx.capabilities,
-    tools: ctx.tools,
-    environment: {
-      cwd: ctx.project.cwd,
+    stamp: {
       projectType: ctx.project.projectType,
-      repoRoot: ctx.project.repo.root,
-      inRepo: ctx.project.repo.inRepo,
-      isWorktree: ctx.worktree,
-      bindIp: ctx.project.env.bindIp,
-      httpPort: ctx.project.env.httpPort,
       portalUrl: ctx.project.env.portalUrl,
-      dataRoot: ctx.project.env.dataRoot,
-      activationKeyFile: ctx.activationKeyFile,
-      dockerDir: ctx.project.repo.dockerDir,
-      liferayDir: ctx.project.repo.liferayDir,
-      files: {
-        dockerEnv: ctx.project.files.dockerEnv,
-        liferayProfile: ctx.project.files.liferayProfile,
-        liferayLocalProfile: ctx.project.files.liferayLocalProfile,
-      },
+      contractVersion: 2,
     },
-    config: {
-      liferay: {
-        url: ctx.config.liferay.url,
-        oauth2ClientIdConfigured: ctx.config.liferay.oauth2ClientId.trim() !== '',
-        oauth2ClientSecretConfigured: ctx.config.liferay.oauth2ClientSecret.trim() !== '',
-        scopeAliasesCount: countScopeAliases(ctx.config.liferay.scopeAliases),
-        timeoutSeconds: ctx.config.liferay.timeoutSeconds,
-      },
-      sources: ctx.configSources,
+    tools: {
+      git: toolStatusFromCheck(ctx.tools.git, normalizedChecks, 'git'),
+      blade: toolStatusFromCheck(ctx.tools.blade, normalizedChecks, 'blade'),
+      docker: toolStatusFromCheck(ctx.tools.docker, normalizedChecks, 'docker'),
+      dockerDaemon: toolStatusFromCheck(ctx.tools.dockerDaemon, normalizedChecks, 'docker-daemon'),
+      dockerCompose: toolStatusFromCheck(ctx.tools.dockerCompose, normalizedChecks, 'docker-compose'),
+      node: toolStatusFromCheck(ctx.tools.node, normalizedChecks, 'node'),
+      java: toolStatusFromCheck(ctx.tools.java, normalizedChecks, 'java'),
+      lcp: toolStatusFromCheck(ctx.tools.lcp, normalizedChecks, 'lcp'),
+      playwrightCli: toolStatusFromCheck(ctx.tools.playwrightCli, normalizedChecks, 'playwright-cli'),
     },
-    ai: ctx.ai,
-    checks,
+    checks: normalizedChecks,
+    readiness: buildReadiness(ctx, normalizedChecks),
+    runtime: sections?.runtime ?? null,
+    portal: sections?.portal ?? null,
+    osgi: sections?.osgi ?? null,
   };
 }
 
 export function formatDoctor(report: DoctorReport): string {
   const lines = [
-    `Doctor: ${report.ok ? 'OK' : 'FAIL'} (${report.summary.passed} pass, ${report.summary.warned} warn, ${report.summary.failed} fail${report.summary.skipped > 0 ? `, ${report.summary.skipped} skip` : ''})`,
-    '',
-    'Checks',
-    ...report.checks.map((check) => `${formatStatus(check.status)} ${check.label}: ${check.summary}`),
-    '',
-    'Context',
-    `cwd=${report.environment.cwd}`,
-    `projectType=${report.environment.projectType}`,
-    `repoRoot=${report.environment.repoRoot ?? '-'}`,
-    `worktree=${report.environment.isWorktree}`,
-    `bindIp=${report.environment.bindIp ?? '-'}`,
-    `httpPort=${report.environment.httpPort ?? '-'}`,
-    `portalUrl=${report.environment.portalUrl ?? '-'}`,
-    `dataRoot=${report.environment.dataRoot ?? '-'}`,
-    `activationKeyFile=${report.environment.activationKeyFile ?? '-'}`,
-    `dockerEnv=${report.environment.files.dockerEnv ?? '-'}`,
-    `liferayProfile=${report.environment.files.liferayProfile ?? '-'}`,
-    `liferayLocalProfile=${report.environment.files.liferayLocalProfile ?? '-'}`,
-    '',
-    'Config',
-    `liferay.url=${report.config.liferay.url} (source=${report.config.sources.url})`,
-    `oauth2ClientIdConfigured=${report.config.liferay.oauth2ClientIdConfigured} (source=${report.config.sources.oauth2ClientId})`,
-    `oauth2ClientSecretConfigured=${report.config.liferay.oauth2ClientSecretConfigured} (source=${report.config.sources.oauth2ClientSecret})`,
-    `scopeAliasesCount=${report.config.liferay.scopeAliasesCount} (source=${report.config.sources.scopeAliases})`,
-    `timeoutSeconds=${report.config.liferay.timeoutSeconds} (source=${report.config.sources.timeoutSeconds})`,
-    '',
-    'AI',
-    `manifestPresent=${report.ai.manifestPresent}`,
-    `managedRules=${report.ai.managedRules}`,
-    `modifiedRules=${report.ai.modifiedRules}`,
-    `stalePackageRules=${report.ai.stalePackageRules}`,
-    `staleRuntimeRules=${report.ai.staleRuntimeRules}`,
+    `${report.summary.passed} passed   ${report.summary.warned} warned   ${report.summary.failed} failed   (${(report.summary.durationMs / 1000).toFixed(1)}s)`,
   ];
+  const actionableChecks = report.checks.filter((check) => check.status === 'warn' || check.status === 'fail');
 
-  const recommendationLines = report.checks
-    .filter((check) => check.details && check.details.length > 0)
-    .flatMap((check) => check.details ?? [])
-    .map((detail) => `- ${detail}`);
-  const aiWarningLines = report.ai.warnings.map((warning) => `- ${warning}`);
-
-  if (recommendationLines.length > 0 || aiWarningLines.length > 0) {
-    lines.push('', 'Recommendations', ...recommendationLines, ...aiWarningLines);
+  if (actionableChecks.length > 0) {
+    lines.push(
+      '',
+      ...actionableChecks.flatMap((check) => [
+        `${formatStatus(check.status)} ${check.id.padEnd(18)} ${check.summary}`,
+        ...(check.remedy ? [`   -> ${check.remedy}`] : []),
+      ]),
+    );
   }
+
+  const probeLines = [
+    report.runtime ? `Runtime: ${formatStatus(report.runtime.status)} ${report.runtime.summary}` : null,
+    report.portal ? `Portal:  ${formatStatus(report.portal.status)} ${report.portal.summary}` : null,
+    report.osgi ? `OSGi:    ${formatStatus(report.osgi.status)} ${report.osgi.summary}` : null,
+  ].filter((line): line is string => line !== null);
+
+  if (probeLines.length > 0) {
+    lines.push('', ...probeLines);
+  }
+
+  lines.push('', 'Run `ldev doctor --runtime` to check running containers.');
+  lines.push('Run `ldev doctor --portal` to validate Liferay HTTP + OAuth.');
+  lines.push('Run `ldev doctor --osgi` to validate Gogo connectivity.');
 
   return lines.join('\n');
 }
@@ -108,4 +90,68 @@ export function formatStatus(status: DoctorCheckStatus): string {
     default:
       return '[FAIL]';
   }
+}
+
+function normalizeCheck(check: DoctorCheck): DoctorCheck {
+  return {
+    id: check.id,
+    status: check.status,
+    scope: check.scope ?? 'basic',
+    summary: check.summary,
+    remedy: check.remedy ?? check.details?.[0],
+  };
+}
+
+function toolStatusFromCheck(
+  tool: DoctorReport['tools'][keyof DoctorReport['tools']],
+  checks: DoctorCheck[],
+  checkId: string,
+): DoctorReport['tools'][keyof DoctorReport['tools']] {
+  const check = checks.find((entry) => entry.id === checkId);
+  const status = check?.status === 'fail' ? 'fail' : check?.status === 'warn' ? 'warn' : tool.status;
+
+  return {
+    status,
+    available: tool.available,
+    version: tool.version,
+    reason: tool.reason,
+  };
+}
+
+function buildReadiness(ctx: DoctorContext, checks: DoctorCheck[]): DoctorReport['readiness'] {
+  const statusOf = (id: string) => checks.find((check) => check.id === id)?.status;
+  const hasAny = (ids: string[], statuses: DoctorCheckStatus[]) =>
+    checks.some((check) => ids.includes(check.id) && statuses.includes(check.status));
+  const repoBlocked = hasAny(['repo-root', 'project-type'], ['fail']);
+  const nativeRuntimeBlocked =
+    ctx.project.projectType === 'ldev-native' && hasAny(['docker', 'docker-compose', 'docker-daemon'], ['fail']);
+  const workspaceRuntimeBlocked = ctx.project.projectType === 'blade-workspace' && hasAny(['blade'], ['fail']);
+  const runtimePrereqBlocked = repoBlocked || nativeRuntimeBlocked || workspaceRuntimeBlocked;
+  const runtimeProbeRequested = statusOf('runtime-services') !== undefined;
+  const portalProbeRequested = statusOf('portal-http') !== undefined;
+  const osgiProbeRequested = statusOf('osgi-gogo') !== undefined;
+  const oauthBlocked = hasAny(['liferay-url', 'liferay-oauth2-client'], ['fail', 'warn']);
+  const nativeRuntime = ctx.project.projectType === 'ldev-native';
+
+  return {
+    setup: runtimePrereqBlocked || !nativeRuntime ? 'blocked' : 'ready',
+    start: runtimePrereqBlocked ? 'blocked' : 'ready',
+    deploy:
+      runtimePrereqBlocked || (runtimeProbeRequested && statusOf('runtime-services') !== 'pass') ? 'blocked' : 'ready',
+    reindex:
+      repoBlocked || oauthBlocked
+        ? 'blocked'
+        : portalProbeRequested
+          ? statusOf('portal-http') === 'pass' && statusOf('portal-oauth') !== 'fail'
+            ? 'ready'
+            : 'blocked'
+          : 'unknown',
+    osgi: runtimePrereqBlocked
+      ? 'blocked'
+      : osgiProbeRequested
+        ? statusOf('osgi-gogo') === 'pass'
+          ? 'ready'
+          : 'blocked'
+        : 'unknown',
+  };
 }

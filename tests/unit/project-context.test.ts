@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
 
+import {resolveProjectInventory} from '../../src/core/config/project-inventory.js';
 import {resolveProjectContext} from '../../src/core/config/project-context.js';
 import {FIXTURE_YAML} from '../../src/testing/fixtures.js';
 import {createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
@@ -13,11 +14,22 @@ describe('project-context', () => {
 
     fs.writeFileSync(
       path.join(repoRoot, 'docker', '.env'),
-      ['COMPOSE_PROJECT_NAME=labweb', 'BIND_IP=127.0.0.1', 'LIFERAY_HTTP_PORT=8081', 'ENV_DATA_ROOT=./data/lab'].join(
-        '\n',
-      ),
+      [
+        'COMPOSE_PROJECT_NAME=labweb',
+        'BIND_IP=127.0.0.1',
+        'LIFERAY_HTTP_PORT=8081',
+        'GOGO_PORT=11312',
+        'LIFERAY_IMAGE=liferay/dxp:2026.q1.0-lts',
+        `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.postgres.yml'].join(path.delimiter)}`,
+        'ENV_DATA_ROOT=./data/lab',
+      ].join('\n'),
     );
     fs.writeFileSync(path.join(repoRoot, '.liferay-cli.yml'), FIXTURE_YAML);
+    fs.writeFileSync(path.join(repoRoot, 'liferay', 'gradle.properties'), 'liferay.workspace.product=dxp-2026.q1.0\n');
+    fs.mkdirSync(path.join(repoRoot, 'liferay', 'modules', 'search-customization'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay', 'themes', 'admin-theme'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'liferay', 'resources', 'journal', 'structures', 'article.json'), '{}\n');
 
     const project = resolveProjectContext({cwd: path.join(repoRoot, 'liferay')});
 
@@ -30,6 +42,39 @@ describe('project-context', () => {
     expect(project.env.portalUrl).toBe('http://localhost:8081');
     expect(project.env.dataRoot).toBe(path.join(repoRoot, 'docker', 'data', 'lab'));
     expect(project.workspace.product).toBeNull();
+    expect(project.inventory.liferay.product).toBe('dxp-2026.q1.0');
+    expect(project.inventory.liferay.version).toBe('dxp-2026.q1.0');
+    expect(project.inventory.liferay.image).toBe('liferay/dxp:2026.q1.0-lts');
+    expect(project.inventory.runtime.services).toEqual(['liferay', 'postgres']);
+    expect(project.inventory.runtime.ports.http).toBe('8081');
+    expect(project.inventory.runtime.ports.gogo).toBe('11312');
+    expect(project.inventory.local.modules).toEqual({count: 1, sample: ['search-customization']});
+    expect(project.inventory.local.themes).toEqual({count: 1, sample: ['admin-theme']});
+    expect(project.inventory.resources.structures.count).toBe(1);
+  });
+
+  test('preserves Windows absolute compose paths when COMPOSE_FILE uses Windows delimiters', () => {
+    const composeFiles = ['C:\\repo\\docker\\docker-compose.yml', 'C:\\repo\\docker\\docker-compose.postgres.yml'];
+
+    const inventory = resolveProjectInventory({
+      repoRoot: 'C:\\repo',
+      liferayDir: 'C:\\repo\\liferay',
+      dockerDir: null,
+      projectType: 'ldev-native',
+      dockerEnv: {
+        COMPOSE_FILE: composeFiles.join(';'),
+      },
+      paths: {
+        structures: 'liferay/resources/journal/structures',
+        templates: 'liferay/resources/journal/templates',
+        adts: 'liferay/resources/journal/adts',
+        fragments: 'liferay/resources/fragments',
+        migrations: 'liferay/resources/migrations',
+      },
+      workspaceProduct: null,
+    });
+
+    expect(inventory.runtime.composeFiles).toEqual(composeFiles);
   });
 
   test('reports blade-workspace as project type without pretending it is an ldev-native repo', () => {

@@ -50,6 +50,10 @@ describe('capabilities', () => {
           await Promise.resolve();
           return BASE_CAPABILITIES;
         },
+        detectProject: () => ({
+          type: 'ldev-native',
+          root: '/repo',
+        }),
         detectRepoPaths: () => ({
           repoRoot: '/repo',
           dockerDir: '/repo/docker',
@@ -64,6 +68,7 @@ describe('capabilities', () => {
         readEnvFile: () => ({
           BIND_IP: 'localhost',
           LIFERAY_HTTP_PORT: '8080',
+          LIFERAY_IMAGE: 'liferay/dxp:2026.q1.0-lts',
           LIFERAY_CLI_URL: 'http://docker-env:8080',
           LIFERAY_CLI_OAUTH2_CLIENT_ID: 'docker-id',
           LIFERAY_CLI_HTTP_TIMEOUT_SECONDS: '45',
@@ -87,17 +92,15 @@ describe('capabilities', () => {
       },
     });
 
-    expect(report.capabilities).toHaveProperty('os');
+    expect(report.contractVersion).toBe(2);
     expect(report.tools.git.available).toBe(true);
+    expect(report.tools.git.status).toBe('pass');
     expect(report.tools.blade.available).toBe(true);
     expect(report.tools.dockerDaemon.available).toBe(true);
-    expect(report.environment.repoRoot).toBe('/repo');
-    expect(report.environment.isWorktree).toBe(true);
-    expect(report.environment.portalUrl).toBe('http://docker-env:8080');
-    expect(report.config.sources.url).toBe('dockerEnv');
-    expect(report.config.sources.oauth2ClientId).toBe('dockerEnv');
-    expect(report.config.sources.oauth2ClientSecret).toBe('env');
-    expect(report.config.liferay.scopeAliasesCount).toBe(2);
+    expect(report.stamp.projectType).toBe('ldev-native');
+    expect(report.stamp.portalUrl).toBe('http://docker-env:8080');
+    expect(report.checks.find((check) => check.id === 'liferay-url')?.summary).toContain('source=dockerEnv');
+    expect(report.checks.find((check) => check.id === 'liferay-oauth2-client')?.summary).toContain('secret=env');
     expect(report.checks.some((check) => check.id === 'liferay-oauth2-client' && check.status === 'pass')).toBe(true);
   });
 
@@ -166,8 +169,8 @@ describe('capabilities', () => {
     expect(report.checks.some((check) => check.id === 'docker' && check.status === 'fail')).toBe(true);
 
     const text = formatDoctor(report);
-    expect(text).toContain('Doctor: FAIL');
-    expect(text).toContain('Recommendations');
+    expect(text).toContain('failed');
+    expect(text).toContain('->');
     expect(text).toContain('LIFERAY_CLI_OAUTH2_CLIENT_ID');
   });
 
@@ -220,7 +223,7 @@ describe('capabilities', () => {
       },
     });
 
-    expect(path.normalize(report.environment.activationKeyFile ?? '')).toBe(
+    expect(report.checks.find((check) => check.id === 'activation-key')?.summary).toContain(
       path.normalize(path.resolve('/repo/keys/not-an-activation-file.xml')),
     );
     expect(report.checks.find((check) => check.id === 'host-memory')?.status).toBe('warn');
@@ -288,9 +291,69 @@ describe('capabilities', () => {
       },
     });
 
-    expect(report.environment.projectType).toBe('blade-workspace');
+    expect(report.stamp.projectType).toBe('blade-workspace');
     expect(report.checks.find((check) => check.id === 'docker')?.status).toBe('warn');
     expect(report.checks.find((check) => check.id === 'docker-compose')?.status).toBe('warn');
     expect(report.checks.find((check) => check.id === 'blade')?.status).toBe('pass');
+  });
+
+  test('blocks workspace runtime readiness when blade CLI is missing', async () => {
+    const report = await runDoctor('/workspace', {
+      env: {},
+      config: {
+        ...BASE_CONFIG,
+        cwd: '/workspace',
+        repoRoot: '/workspace',
+        dockerDir: null,
+        liferayDir: null,
+        files: {
+          dockerEnv: null,
+          liferayProfile: null,
+        },
+      },
+      dependencies: {
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return {
+            ...BASE_CAPABILITIES,
+            hasBlade: false,
+            hasDocker: false,
+            hasDockerCompose: false,
+          };
+        },
+        detectProject: () => ({
+          type: 'blade-workspace',
+          root: '/workspace',
+        }),
+        detectProjectType: () => 'blade-workspace',
+        detectRepoPaths: () => ({
+          repoRoot: '/workspace',
+          dockerDir: null,
+          liferayDir: null,
+          dockerEnvFile: null,
+          liferayProfileFile: null,
+        }),
+        readEnvFile: () => ({}),
+        readProfileFile: () => ({}),
+        runProcess: async () => {
+          await Promise.resolve();
+          return {
+            command: 'missing',
+            stdout: '',
+            stderr: '',
+            exitCode: 1,
+            ok: false,
+          };
+        },
+        isWorktree: async () => {
+          await Promise.resolve();
+          return false;
+        },
+      },
+    });
+
+    expect(report.checks.find((check) => check.id === 'blade')?.status).toBe('fail');
+    expect(report.readiness.start).toBe('blocked');
+    expect(report.readiness.deploy).toBe('blocked');
   });
 });
