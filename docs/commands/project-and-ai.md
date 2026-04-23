@@ -82,6 +82,7 @@ Aggregate project context and the doctor checks needed for an agent intent.
 ```bash
 ldev ai bootstrap --intent=discover --json
 ldev ai bootstrap --intent=develop --json
+ldev --repo-root ../main-checkout ai bootstrap --intent=develop --json
 ldev ai bootstrap --intent=develop --cache=60 --json
 ldev ai bootstrap --intent=deploy --json
 ldev ai bootstrap --intent=troubleshoot --json
@@ -97,6 +98,9 @@ intent needs readiness, `doctor`.
 	readiness for local editing, without runtime, portal, or OSGi probes.
 - `--cache <seconds>` reuses the full bootstrap result for the same intent and
 	working tree while the cached entry is newer than the requested TTL.
+
+When you are inside a worktree but need context from the main checkout,
+prefer the global form `ldev --repo-root <path> ai bootstrap ...`.
 
 ## Typical next steps
 

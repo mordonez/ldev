@@ -7,6 +7,7 @@ describe('createCli', () => {
     const cli = createCli();
     const optionNames = cli.options.map((option) => option.long);
 
+    expect(optionNames).toContain('--repo-root');
     expect(optionNames).not.toContain('--liferay-url');
     expect(optionNames).not.toContain('--liferay-client-id');
     expect(optionNames).not.toContain('--liferay-client-secret');

@@ -36,6 +36,7 @@ type AiStatusCommandOptions = {
 type AiBootstrapCommandOptions = {
   intent: string;
   cache?: string;
+  repoRoot?: string;
 };
 
 export function createAiCommand(): Command {

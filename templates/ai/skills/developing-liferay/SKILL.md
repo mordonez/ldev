@@ -65,6 +65,14 @@ ldev portal inventory page --url <fullUrl> --json
 ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
+If you are inside a worktree and the main runtime is still the source of truth
+for discovery, keep your shell in the worktree and call the global form:
+
+```bash
+ldev --repo-root <main-root> portal inventory page --url <fullUrl> --json
+ldev --repo-root <main-root> ai bootstrap --intent=develop --json
+```
+
 Use file exports when you need the current source of truth from the portal:
 
 ```bash

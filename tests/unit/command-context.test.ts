@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import {afterEach, describe, expect, test} from 'vitest';
 
-import {createCommandContext} from '../../src/cli/command-context.js';
+import {createCommandContext, resolveCommandRoot} from '../../src/cli/command-context.js';
 import {createTempRepo} from '../../src/testing/temp-repo.js';
 
 describe('command-context', () => {
@@ -26,6 +26,36 @@ describe('command-context', () => {
     expect(context.cwd).toBe(repoRoot);
     expect(context.config.cwd).toBe(repoRoot);
     expect(context.config.repoRoot).toBe(repoRoot);
+  });
+
+  test('uses explicit repoRoot option before REPO_ROOT and cwd', () => {
+    const explicitRepoRoot = createTempRepo();
+    process.env.REPO_ROOT = createTempRepo();
+
+    const context = createCommandContext({cwd: '/tmp/ignored-cwd', repoRoot: explicitRepoRoot});
+
+    expect(context.cwd).toBe(explicitRepoRoot);
+    expect(context.config.cwd).toBe(explicitRepoRoot);
+    expect(context.config.repoRoot).toBe(explicitRepoRoot);
+  });
+
+  test('resolves top-level --repo-root from argv when command options do not include repoRoot', () => {
+    const repoRoot = createTempRepo();
+    process.argv = ['node', 'ldev', '--repo-root', repoRoot, 'doctor', '--json'];
+
+    const resolved = resolveCommandRoot({cwd: '/tmp/fallback'});
+
+    expect(resolved).toBe(repoRoot);
+  });
+
+  test('prefers repoRoot option over top-level --repo-root in argv', () => {
+    const optionRepoRoot = createTempRepo();
+    const argvRepoRoot = createTempRepo();
+    process.argv = ['node', 'ldev', '--repo-root', argvRepoRoot, 'doctor', '--json'];
+
+    const resolved = resolveCommandRoot({cwd: '/tmp/fallback', repoRoot: optionRepoRoot});
+
+    expect(resolved).toBe(optionRepoRoot);
   });
 
   test('applies portal namespace liferay overrides from argv', () => {

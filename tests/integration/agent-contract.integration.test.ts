@@ -1,7 +1,10 @@
+import fs from 'fs-extra';
 import {describe, expect, test} from 'vitest';
 
+import path from 'node:path';
+
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
-import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
+import {createLiferayCliRepoFixture, parseTestJson} from '../../src/testing/cli-test-helpers.js';
 
 type AgentContextPayload = {
   ok: boolean;
@@ -73,5 +76,24 @@ describe('agent contract integration', () => {
     expect(parsed.ok).toBe(true);
     expect(parsed.intent).toBe('discover');
     expect(parsed.doctor).toBeNull();
+  }, 30000);
+
+  test('top-level --repo-root makes ai bootstrap resolve context from another checkout root', async () => {
+    const mainRepoRoot = await createLiferayCliRepoFixture('ldev-ai-bootstrap-main-');
+    const worktreeLikeDir = path.join(mainRepoRoot, '.worktrees', 'issue-123');
+    await fs.ensureDir(worktreeLikeDir);
+
+    const result = await runCli(['--repo-root', mainRepoRoot, 'ai', 'bootstrap', '--intent=develop', '--json'], {
+      cwd: worktreeLikeDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = parseTestJson<AgentBootstrapPayload>(result.stdout);
+    const contextProject = parsed.context.project as {root?: unknown};
+
+    expect(parsed.ok).toBe(true);
+    expect(parsed.intent).toBe('develop');
+    expect(contextProject.root).toBe(mainRepoRoot);
+    expect(parsed.doctor).toHaveProperty('readiness');
   }, 30000);
 });

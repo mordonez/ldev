@@ -15,6 +15,7 @@ export type CommandContext = {
 
 type CommandContextOptions = {
   cwd?: string;
+  repoRoot?: string;
   format?: string;
   strict?: boolean;
   json?: boolean;
@@ -36,7 +37,7 @@ type LiferayConnectionOverrides = {
 };
 
 export function createCommandContext(options?: CommandContextOptions): CommandContext {
-  const cwd = process.env.REPO_ROOT?.trim() || options?.cwd || process.cwd();
+  const cwd = resolveCommandRoot(options, process.argv, process.env);
   const project = resolveProjectContext({cwd, env: process.env});
   const overrides = resolveLiferayConnectionOverrides(options, process.argv, process.env);
   const config = applyLiferayConnectionOverrides(project.config, overrides);
@@ -51,6 +52,16 @@ export function createCommandContext(options?: CommandContextOptions): CommandCo
     printer: createPrinter(format),
     strict,
   };
+}
+
+export function resolveCommandRoot(
+  options: Pick<CommandContextOptions, 'cwd' | 'repoRoot'> | undefined,
+  argv: string[] = process.argv,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const repoRootOverride = resolveRepoRootOverride(options?.repoRoot, argv, env);
+
+  return repoRootOverride || options?.cwd || process.cwd();
 }
 
 function resolveStrictMode(options?: {strict?: boolean}): boolean {
@@ -182,6 +193,20 @@ function validateStringOverride(value: string, flag: string): string {
   }
 
   return value;
+}
+
+function resolveRepoRootOverride(optionValue: unknown, argv: string[], env: NodeJS.ProcessEnv): string {
+  const fromOptions = typeof optionValue === 'string' ? optionValue.trim() : '';
+  if (fromOptions !== '') {
+    return fromOptions;
+  }
+
+  const fromArgv = findArgvOptionValue(argv, '--repo-root');
+  if (fromArgv !== '') {
+    return fromArgv;
+  }
+
+  return env.REPO_ROOT?.trim() ?? '';
 }
 
 function findArgvOptionValue(argv: string[], flag: string): string {

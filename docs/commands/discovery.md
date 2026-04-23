@@ -9,7 +9,12 @@ Namespace-scoped connection overrides are available for remote execution on `lde
 
 ```bash
 ldev portal --liferay-url https://portal.example.com inventory sites --json
+ldev --repo-root ../.. portal inventory sites --json
 ```
+
+Use `ldev --repo-root <path> ...` when the command should resolve local portal URL,
+OAuth2 credentials, and docker/.env from another checkout root, such as the
+main repo while your shell stays inside a worktree.
 
 ## `ldev context`
 

@@ -12,6 +12,7 @@ type DoctorCommandOptions = {
   runtime?: boolean;
   portal?: boolean;
   osgi?: boolean;
+  repoRoot?: string;
 };
 
 export function createDoctorCommand(): Command {
