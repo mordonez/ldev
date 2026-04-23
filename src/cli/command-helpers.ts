@@ -49,6 +49,7 @@ export async function withCommandContext<TOptions extends object>(
   run: (context: CommandContext) => Promise<void>,
 ): Promise<void> {
   const context = createCommandContext({
+    repoRoot: (options as {repoRoot?: string}).repoRoot,
     format: (options as {format?: string}).format,
     strict: (options as {strict?: boolean}).strict,
   });

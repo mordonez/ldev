@@ -14,6 +14,8 @@ worktree capabilities available.
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD
 ldev worktree setup --name issue-NUM --with-env
+ldev worktree setup --name issue-NUM --with-env --stop-main-for-clone
+ldev worktree setup --name issue-NUM --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/issue-NUM
 pwd
 git rev-parse --show-toplevel
@@ -60,6 +62,7 @@ if you need to filter the output.
 ldev context --json
 ldev logs --since 5m --no-follow
 ldev worktree env --json
+ldev --repo-root ../.. portal inventory page --url <mainRuntimeUrl> --json
 ```
 
 For issue work that starts from a URL, this inspection must be followed by:
@@ -97,14 +100,15 @@ Do not proceed as if a partial setup succeeded.
 
 Choose exactly one path and follow it completely:
 
-### Path A — Stop main, then retry with `--with-env` (preferred)
+### Path A — Use the automatic handoff flags
 
 Use this when you need portal commands (`ldev portal ...`, `ldev resource ...`,
 deploy, browser validation) as part of the issue workflow.
 
 ```bash
-ldev stop                                    # from the main checkout
-ldev worktree setup --name issue-NUM --with-env
+ldev worktree setup --name issue-NUM --with-env --stop-main-for-clone
+# optional: also restore main automatically after the clone finishes
+ldev worktree setup --name issue-NUM --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/issue-NUM
 ldev start
 ldev status --json
@@ -134,6 +138,17 @@ git status --short
 
 If the task later requires portal access, exit Path B, go back to the main
 checkout, stop the main env, and restart from Path A.
+
+### Path C — Stay in the worktree, discover through the main checkout
+
+Use this only for read-only discovery when the main runtime is the one that is
+actually running.
+
+```bash
+ldev --repo-root ../.. portal inventory sites --json
+ldev --repo-root ../.. portal inventory page --url /web/guest/home --json
+ldev --repo-root ../.. ai bootstrap --intent=develop --json
+```
 
 ---
 

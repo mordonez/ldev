@@ -164,6 +164,14 @@ ldev start
 ldev status --json
 ```
 
+On non-Btrfs setups where the main environment is already running, use the
+handoff flags only when the team approved that stop/restart flow:
+
+```bash
+ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone
+ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone --restart-main-after-clone
+```
+
 Use a worktree when:
 
 - one branch is reproducing an incident and another is active development
@@ -233,4 +241,5 @@ ldev worktree env --json
 - Prefer `ldev logs diagnose --json` as the first diagnosis surface; use raw logs as a follow-up tool.
 - If the issue depends on production data, reproduce that state locally before proposing fixes.
 - If isolation matters, prefer `ldev worktree setup --with-env` over ad hoc branch switching.
+- If a worktree needs read-only discovery against the main runtime, use `ldev --repo-root <main-root> ...` instead of changing directories.
 - After finding the root cause, switch to `developing-liferay` or `deploying-liferay` for the actual fix path.

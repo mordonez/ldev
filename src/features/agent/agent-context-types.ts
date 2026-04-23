@@ -17,7 +17,6 @@ export type AgentContextIssue = {
   severity: 'info' | 'warning' | 'error';
   message: string;
 };
-
 export type AgentContextReport = {
   ok: true;
   contractVersion: 2;

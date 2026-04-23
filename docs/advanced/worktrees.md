@@ -15,6 +15,15 @@ cd .worktrees/incident-123
 ldev start
 ```
 
+If the main environment is still running and your platform cannot clone state
+hot, you can opt into a temporary handoff instead of doing the stop/start
+sequence manually:
+
+```bash
+ldev worktree setup --name incident-123 --with-env --stop-main-for-clone
+ldev worktree setup --name incident-123 --with-env --stop-main-for-clone --restart-main-after-clone
+```
+
 ## Why use it
 
 - keep production-repro work separate from feature work
@@ -32,6 +41,14 @@ If your project uses runtime storage overrides such as:
 - `docker-compose.elasticsearch.volume.yml`
 
 make sure those files already exist in the branch history before you create the worktree. A local copy in the main checkout is not enough if it has not been committed into the branch the worktree uses.
+
+If you are inside a worktree and still need read-only discovery against the
+main runtime, target it explicitly instead of changing directories:
+
+```bash
+ldev --repo-root ../.. portal inventory page --url /web/guest/home --json
+ldev --repo-root ../.. resource structure --site /global --key BASIC --json
+```
 
 ## Clean up
 

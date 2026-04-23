@@ -119,6 +119,15 @@ ldev portal inventory pages --site /global
 ldev portal inventory page --url /home --json
 ```
 
+If you later work from a git worktree and need read-only discovery against the
+main runtime, keep your shell where it is and target the main checkout
+explicitly:
+
+```bash
+ldev --repo-root ../.. portal inventory sites --json
+ldev --repo-root ../.. ai bootstrap --intent=develop --json
+```
+
 Next:
 
 - [First Incident](/getting-started/first-incident)

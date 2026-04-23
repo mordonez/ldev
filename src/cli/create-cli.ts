@@ -6,6 +6,7 @@ import {Command} from 'commander';
 
 import type {CommandGroup} from './command-group.js';
 import {COMMAND_GROUPS} from './command-groups.js';
+import {resolveCommandRoot} from './command-context.js';
 import {buildContextualRootHelp} from './contextual-help.js';
 import {parseJsonUnknown} from '../core/utils/json.js';
 
@@ -43,9 +44,14 @@ export function createCli(cwd = process.cwd(), groups: CommandGroup[] = COMMAND_
     .name('ldev')
     .version(version)
     .description('Liferay local development CLI')
+    .option('--repo-root <path>', 'Resolve repo-local context from another checkout root')
     .enablePositionalOptions()
     .showHelpAfterError()
-    .addHelpText('after', () => `\n${buildContextualRootHelp(cwd)}`);
+    .addHelpText(
+      'after',
+      () =>
+        `\n${buildContextualRootHelp(resolveCommandRoot({cwd}, process.argv, process.env))}\n\nEnvironment: REPO_ROOT=<path> sets the default checkout root and is overridden by --repo-root.`,
+    );
 
   for (const group of groups) {
     group.register(program);

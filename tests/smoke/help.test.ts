@@ -89,6 +89,17 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
   }, 30000);
 
+  test('root help honors top-level --repo-root and documents REPO_ROOT', async () => {
+    const targetDir = createTempRepo();
+
+    const result = await runCli(['--repo-root', targetDir, '--help'], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Detected project type: ldev-native');
+    expect(result.stdout).toContain(`Detected root: ${targetDir}`);
+    expect(result.stdout).toContain('Environment: REPO_ROOT=<path> sets the default checkout root');
+  }, 30000);
+
   test('--version matches package.json', async () => {
     const result = await runCli(['--version'], {cwd: CLI_CWD});
     expect(result.exitCode).toBe(0);
@@ -203,6 +214,14 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('search');
     expect(result.stdout).toContain('audit');
     expect(result.stdout).toContain('theme-check');
+  }, 10000);
+
+  test('worktree setup help documents automatic main handoff flags', async () => {
+    const result = await runCli(['worktree', 'setup', '--help'], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('--stop-main-for-clone');
+    expect(result.stdout).toContain('--restart-main-after-clone');
   }, 10000);
 
   test('mcp --help documents the MCP diagnostic flow', async () => {

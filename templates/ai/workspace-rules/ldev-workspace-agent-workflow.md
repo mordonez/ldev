@@ -37,6 +37,10 @@ Prefer atomic commands. Do not use plural resource commands or a broad deploy
 unless a human explicitly asks for a bulk operation and the risk is written down
 first.
 
+If you are inside a worktree and need read-only discovery against the main
+runtime, keep the current shell where it is and prefix the command with
+`ldev --repo-root <main-root>` instead of changing directories.
+
 Do not use deploy commands for Journal templates, ADTs, fragments, or
 structures. Those are runtime resource changes: use `ldev resource import-*`
 and validate browser-visible behavior with `playwright-cli`.

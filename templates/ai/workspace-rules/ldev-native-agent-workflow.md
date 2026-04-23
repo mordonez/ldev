@@ -74,3 +74,7 @@ resume, shell change, terminal tab change, or command that may have changed the
 current directory, re-run the root check before editing. For editor or agent
 tools that accept a `workdir`, set it to the confirmed worktree root or a
 subdirectory under it; do not rely on a previous terminal prompt.
+
+If you are inside a worktree and need read-only discovery against the main
+runtime, do not change directories just for that. Prefix the command with
+`ldev --repo-root <main-root>` instead.

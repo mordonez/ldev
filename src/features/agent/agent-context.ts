@@ -7,8 +7,8 @@ import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {getCurrentBranchName, isWorktree} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
-import {collectEnvStatus} from '../env/env-health.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
+import {collectEnvStatus} from '../env/env-health.js';
 import {runAiStatus} from '../ai/ai-status.js';
 import type {AgentContextIssue, AgentContextReport, CommandStatus, Presence} from './agent-context-types.js';
 

@@ -27,6 +27,8 @@ Create an isolated git worktree and (optionally) prepare its local env.
 ```bash
 ldev worktree setup --name incident-123 --with-env
 ldev worktree setup --name feature-x --base origin/main --with-env
+ldev worktree setup --name feature-x --with-env --stop-main-for-clone
+ldev worktree setup --name feature-x --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/incident-123
 ldev start
 
@@ -39,6 +41,8 @@ ldev worktree gc --days 14 --apply
 ```
 
 - `setup` — create or reuse a worktree under `.worktrees/<name>`
+- `setup --stop-main-for-clone` — opt-in: stop main automatically when a non-Btrfs clone needs exclusive access
+- `setup --restart-main-after-clone` — opt-in: after an automatic stop, start main again without waiting for full portal readiness
 - `start` — prepare and start the worktree's local env
 - `env` — prepare or inspect the worktree's local env wiring
 - `clean` — destructive; requires `--force`; optionally deletes `fix/<name>` branch

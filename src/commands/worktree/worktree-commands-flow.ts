@@ -7,6 +7,7 @@ import {
 } from '../../cli/command-helpers.js';
 import {runEnvSetup} from '../../features/env/env-setup.js';
 import {runEnvStart} from '../../features/env/env-start.js';
+import {runEnvStop} from '../../features/env/env-stop.js';
 import {formatWorktreeEnv, runWorktreeEnv} from '../../features/worktree/worktree-env.js';
 import {formatWorktreeSetup, runWorktreeSetup} from '../../features/worktree/worktree-setup.js';
 import {formatWorktreeStart, runWorktreeStart} from '../../features/worktree/worktree-start.js';
@@ -15,6 +16,8 @@ type WorktreeSetupCommandOptions = {
   name: string;
   base?: string;
   withEnv?: boolean;
+  stopMainForClone?: boolean;
+  restartMainAfterClone?: boolean;
 };
 
 type WorktreeStartCommandOptions = {
@@ -34,7 +37,15 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .description('Create or reuse a git worktree and optionally prepare its local env')
       .requiredOption('--name <name>', 'Worktree name')
       .option('--base <ref>', 'Base ref for a new worktree branch')
-      .option('--with-env', 'Prepare worktree local env after creation'),
+      .option('--with-env', 'Prepare worktree local env after creation')
+      .option(
+        '--stop-main-for-clone',
+        'Stop the main environment first when non-Btrfs state cloning needs exclusive access',
+      )
+      .option(
+        '--restart-main-after-clone',
+        'After an automatic stop, start the main environment again without waiting for full portal readiness',
+      ),
   ).action(
     createFormattedAction(
       async (context, options: WorktreeSetupCommandOptions) =>
@@ -43,7 +54,11 @@ export function registerWorktreeFlowCommands(command: Command): void {
           name: options.name,
           baseRef: options.base,
           withEnv: Boolean(options.withEnv),
+          stopMainForClone: Boolean(options.stopMainForClone),
+          restartMainAfterClone: Boolean(options.restartMainAfterClone),
           printer: context.printer,
+          stopEnv: runEnvStop,
+          startEnv: runEnvStart,
         }),
       {text: formatWorktreeSetup},
     ),

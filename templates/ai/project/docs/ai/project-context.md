@@ -25,12 +25,16 @@ reusable across multiple projects, move it into a vendor skill instead.
 
 ```bash
 ldev ai bootstrap --intent=develop --json
+ldev --repo-root ../main-checkout ai bootstrap --intent=develop --json
 ldev setup
 ldev start
 ldev status
 ldev logs --since 5m --no-follow
 ldev stop
 ```
+
+Use the global `--repo-root` form when an agent is inside a worktree but needs
+read-only discovery or bootstrap context from the main checkout.
 
 ## Project Layout
 

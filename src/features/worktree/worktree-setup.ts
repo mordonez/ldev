@@ -12,6 +12,22 @@ import {runWorktreeEnv} from './worktree-env.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 import {assertSafeMainEnvClone, resolveBtrfsConfig} from './worktree-state.js';
 
+type WorktreeEnvStopFn = (
+  config: ReturnType<typeof loadConfig>,
+  options?: {processEnv?: NodeJS.ProcessEnv; printer?: Printer},
+) => Promise<unknown>;
+
+type WorktreeEnvStartFn = (
+  config: ReturnType<typeof loadConfig>,
+  options?: {
+    wait?: boolean;
+    timeoutSeconds?: number;
+    processEnv?: NodeJS.ProcessEnv;
+    printer?: Printer;
+    activationKeyFile?: string;
+  },
+) => Promise<unknown>;
+
 export type WorktreeSetupResult = {
   ok: true;
   worktreeName: string;
@@ -19,6 +35,9 @@ export type WorktreeSetupResult = {
   branch: string;
   reused: boolean;
   envPrepared: boolean;
+  mainEnvStoppedForClone: boolean;
+  mainEnvRestartedAfterClone: boolean;
+  mainRestartError?: string;
 };
 
 export async function runWorktreeSetup(options: {
@@ -26,7 +45,12 @@ export async function runWorktreeSetup(options: {
   name: string;
   baseRef?: string;
   withEnv?: boolean;
+  stopMainForClone?: boolean;
+  restartMainAfterClone?: boolean;
   printer?: Printer;
+  stopEnv?: WorktreeEnvStopFn;
+  startEnv?: WorktreeEnvStartFn;
+  prepareWorktreeEnv?: typeof runWorktreeEnv;
 }): Promise<WorktreeSetupResult> {
   const config = loadConfig({cwd: options.cwd, env: process.env});
   if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
@@ -39,13 +63,48 @@ export async function runWorktreeSetup(options: {
   }
 
   const context = resolveWorktreeContext(config.repoRoot);
+  const stopMainForClone = Boolean(options.stopMainForClone);
+  const restartMainAfterClone = Boolean(options.restartMainAfterClone);
+  const withEnv = Boolean(options.withEnv);
+  const prepareWorktreeEnv = options.prepareWorktreeEnv ?? runWorktreeEnv;
 
-  if (options.withEnv ?? false) {
-    const mainConfig = loadConfig({cwd: context.mainRepoRoot, env: process.env});
+  if ((stopMainForClone || restartMainAfterClone) && !withEnv) {
+    throw WorktreeErrors.capabilityMissing(
+      '--stop-main-for-clone and --restart-main-after-clone require --with-env because they only apply to state cloning.',
+    );
+  }
+
+  if (restartMainAfterClone && !stopMainForClone) {
+    throw WorktreeErrors.capabilityMissing('--restart-main-after-clone requires --stop-main-for-clone.');
+  }
+
+  if ((stopMainForClone && !options.stopEnv) || (restartMainAfterClone && !options.startEnv)) {
+    throw WorktreeErrors.capabilityMissing(
+      'worktree setup handoff requires injected env start/stop actions from the command layer.',
+    );
+  }
+
+  let mainConfig = null as ReturnType<typeof loadConfig> | null;
+  let mainEnvStoppedForClone = false;
+  let mainEnvRestartedAfterClone = false;
+  let mainRestartError: string | undefined;
+
+  if (withEnv) {
+    mainConfig = loadConfig({cwd: context.mainRepoRoot, env: process.env});
     const mainEnvContext = resolveEnvContext(mainConfig);
     const mainValues = readEnvFile(mainEnvContext.dockerEnvFile);
     const btrfs = await resolveBtrfsConfig(mainEnvContext, mainValues);
-    await assertSafeMainEnvClone(mainEnvContext, btrfs, process.env);
+
+    try {
+      await assertSafeMainEnvClone(mainEnvContext, btrfs, process.env);
+    } catch (error) {
+      if (!stopMainForClone) {
+        throw error;
+      }
+
+      await options.stopEnv?.(mainConfig, {processEnv: process.env, printer: options.printer});
+      mainEnvStoppedForClone = true;
+    }
   }
 
   const target = resolveWorktreeTarget(context.mainRepoRoot, options.name);
@@ -76,12 +135,28 @@ export async function runWorktreeSetup(options: {
   }
 
   let envPrepared = false;
-  if (options.withEnv ?? false) {
-    await runWorktreeEnv({
-      cwd: target.worktreeDir,
-      printer: options.printer,
-    });
-    envPrepared = true;
+
+  try {
+    if (withEnv) {
+      await prepareWorktreeEnv({
+        cwd: target.worktreeDir,
+        printer: options.printer,
+      });
+      envPrepared = true;
+    }
+  } finally {
+    if (mainEnvStoppedForClone && restartMainAfterClone && mainConfig) {
+      try {
+        await options.startEnv?.(mainConfig, {
+          wait: false,
+          processEnv: process.env,
+          printer: options.printer,
+        });
+        mainEnvRestartedAfterClone = true;
+      } catch (error) {
+        mainRestartError = error instanceof Error ? error.message : 'Failed to restart the main environment.';
+      }
+    }
   }
 
   return {
@@ -91,6 +166,9 @@ export async function runWorktreeSetup(options: {
     branch: target.branch,
     reused,
     envPrepared,
+    mainEnvStoppedForClone,
+    mainEnvRestartedAfterClone,
+    ...(mainRestartError ? {mainRestartError} : {}),
   };
 }
 
@@ -103,6 +181,15 @@ export function formatWorktreeSetup(result: WorktreeSetupResult): string {
     lines.push('Local environment: prepared');
   } else {
     lines.push(`Next step: cd ${result.worktreeDir} && ldev start`);
+  }
+  if (result.mainEnvStoppedForClone) {
+    lines.push('Main environment: stopped for clone');
+  }
+  if (result.mainEnvRestartedAfterClone) {
+    lines.push('Main environment: restarted');
+  }
+  if (result.mainRestartError) {
+    lines.push(`Main environment restart warning: ${result.mainRestartError}`);
   }
   return lines.join('\n');
 }

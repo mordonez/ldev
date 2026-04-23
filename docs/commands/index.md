@@ -26,6 +26,7 @@ Reference sections:
 
 Main entry points promoted to the top level:
 
+- `ldev --repo-root <path> ...` when you need to target another local checkout root
 - `ldev context`, `ldev doctor`
 - `ldev setup`, `ldev start`, `ldev stop`, `ldev status`
 - `ldev logs`, `ldev logs diagnose`, `ldev shell`
