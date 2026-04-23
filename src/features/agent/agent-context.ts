@@ -6,8 +6,11 @@ import {resolveProjectContext} from '../../core/config/project-context.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {getCurrentBranchName, isWorktree} from '../../core/platform/git.js';
+import {runProcess} from '../../core/platform/process.js';
+import {resolveEnvContext} from '../../core/runtime/env-context.js';
+import {collectEnvStatus} from '../env/env-health.js';
 import {runAiStatus} from '../ai/ai-status.js';
-import type {AgentContextReport, CommandStatus, Presence} from './agent-context-types.js';
+import type {AgentContextIssue, AgentContextReport, CommandStatus, Presence} from './agent-context-types.js';
 
 export type {AgentContextReport};
 
@@ -34,6 +37,7 @@ export async function runAgentContext(
     inRepo ? isWorktreeFn(cwd) : Promise.resolve(false),
     runAiStatus(project.cwd),
   ]);
+  const issues = await collectAgentIssues(config, project.projectType);
 
   return {
     ok: true,
@@ -103,6 +107,7 @@ export async function runAgentContext(
       },
     },
     commands: buildContextCommands(project, platform, config),
+    issues,
   };
 }
 
@@ -124,7 +129,97 @@ export function formatAgentContext(report: AgentContextReport): string {
     `Resources: ${report.paths.resources.structures.count} structures | ${report.paths.resources.templates.count} templates | ${report.paths.resources.adts.count} adts | ${report.paths.resources.fragments.count} fragments | ${report.paths.resources.migrations.count} migrations`,
     `Tools:    ${tools.join(' ') || 'none'}${missingTools.length > 0 ? `  (missing: ${missingTools.join(', ')})` : ''}`,
     `Commands: ${commands.join(', ') || 'none'} available`,
+    `Issues:   ${report.issues.length}`,
   ].join('\n');
+}
+
+async function collectAgentIssues(config: AppConfig, projectType: string): Promise<AgentContextIssue[]> {
+  if (projectType === 'blade-workspace') {
+    return [
+      {
+        code: 'workspace-runtime-pending',
+        severity: 'info',
+        message: 'Blade workspace detected; runtime readiness is partial until the workspace adapter is implemented.',
+      },
+    ];
+  }
+
+  if (!config.repoRoot || !config.dockerDir || !config.liferayDir) {
+    return [{code: 'repo-missing', severity: 'error', message: 'No valid project was detected'}];
+  }
+
+  const issues: AgentContextIssue[] = [];
+  const envContext = resolveEnvContext(config);
+  const status = await collectEnvStatus(envContext, {processEnv: process.env}).catch(() => null);
+
+  if (status) {
+    if (!status.portalReachable) {
+      issues.push({
+        code: 'portal-unreachable',
+        severity: 'warning',
+        message: 'The local portal is not reachable.',
+      });
+    }
+
+    if (!status.liferay || status.liferay.state !== 'running') {
+      issues.push({
+        code: 'liferay-not-running',
+        severity: 'error',
+        message: 'The Liferay container is not running.',
+      });
+    } else if (status.liferay.health && status.liferay.health !== 'healthy') {
+      issues.push({
+        code: 'liferay-unhealthy',
+        severity: 'warning',
+        message: `Liferay health is ${status.liferay.health}.`,
+      });
+    }
+
+    const resolvedBundles = await detectResolvedBundles(config.dockerDir);
+    if (resolvedBundles > 0) {
+      issues.push({
+        code: 'osgi-resolved-bundles',
+        severity: 'warning',
+        message: `Detected ${resolvedBundles} OSGi bundles in RESOLVED state.`,
+      });
+    }
+  }
+
+  const diskResult = await runProcess('df', ['-P', envContext.dataRoot], {env: process.env, reject: false}).catch(
+    () => null,
+  );
+  const usageLine = diskResult?.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '')[1];
+  const usedPct = Number.parseInt(usageLine?.split(/\s+/)[4]?.replace('%', '') ?? '', 10);
+
+  if (Number.isFinite(usedPct) && usedPct >= 90) {
+    issues.push({
+      code: 'disk-high',
+      severity: 'warning',
+      message: `Docker data root disk usage is high (${usedPct}%).`,
+    });
+  }
+
+  return issues;
+}
+
+async function detectResolvedBundles(dockerDir: string): Promise<number> {
+  const result = await runProcess(
+    'docker',
+    ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'echo "lb -s" | telnet localhost 11311 || true'],
+    {cwd: dockerDir, env: process.env, reject: false},
+  );
+
+  if (!result.ok) {
+    return 0;
+  }
+
+  return result.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim().toLowerCase())
+    .filter((line) => line.includes('|resolved|')).length;
 }
 
 function buildContextCommands(

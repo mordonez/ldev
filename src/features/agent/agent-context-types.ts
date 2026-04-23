@@ -12,6 +12,11 @@ export type CommandStatus = {
   missing: string[];
 };
 
+export type AgentContextIssue = {
+  code: string;
+  severity: 'info' | 'warning' | 'error';
+  message: string;
+};
 export type AgentContextReport = {
   ok: true;
   contractVersion: 2;
@@ -80,4 +85,5 @@ export type AgentContextReport = {
     };
   };
   commands: Record<string, CommandStatus>;
+  issues: AgentContextIssue[];
 };
