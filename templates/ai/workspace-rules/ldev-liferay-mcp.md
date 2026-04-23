@@ -35,7 +35,7 @@ Prefer direct `ldev` workflows when:
 MCP endpoints that require authentication use the same OAuth2 credentials as
 headless API calls. Before using MCP with authenticated endpoints:
 
-1. Verify OAuth2 is configured: `ldev context --json` → `liferay.oauth2Configured`
+1. Verify OAuth2 is configured: `ldev context --json` → `liferay.auth.oauth2.clientId.status` and `liferay.auth.oauth2.clientSecret.status`
 2. If `false`, run `ldev oauth install --write-env` and re-check.
 3. For OAuth2 portal setup and scope requirements, see the `oauth2-setup.md`
    reference in the `developing-liferay` skill.

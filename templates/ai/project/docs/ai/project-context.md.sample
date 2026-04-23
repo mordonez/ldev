@@ -20,11 +20,11 @@ Document facts an agent cannot derive on its own at runtime:
 
 ## What NOT to put here
 
-Do not document anything an agent can derive from `ldev context --json` or
+Do not document anything an agent can derive from `ldev ai bootstrap --intent=discover --json`, `ldev context --json`, or
 `ldev status --json` at any time:
 
-- Portal URL, OAuth2 configuration flags, available `ldev` commands, runtime env
-  type — all of these are live fields in `ldev context --json`.
+- Portal URL, OAuth2 credential status, available `ldev` commands, runtime env
+  type — all of these are live fields in bootstrap/context output.
 - Docker image or Java version if `ldev context --json` already exposes them.
 - Step-by-step reproduction of a single bug fix (that belongs in the PR/commit).
 - Temporary workaround steps that should become permanent fixes.
@@ -67,7 +67,7 @@ URL, a known structure key, a project-specific path convention.
 
 ```bash
 ldev doctor
-ldev context --json
+ldev ai bootstrap --intent=develop --json
 ldev setup
 ldev start
 ldev status --json
@@ -141,8 +141,7 @@ or prepare commands as a default validation step.
 - Diagnose local runtime before deeper fixes:
 
 ```bash
-ldev doctor --json
-ldev context --json
+ldev ai bootstrap --intent=troubleshoot --json
 ldev status --json
 ldev logs --since 10m --service liferay --no-follow
 ```
@@ -153,7 +152,7 @@ ldev logs --since 10m --service liferay --no-follow
 ## Maintenance Notes
 
 - Keep this file factual and updated as the project evolves.
-- Remove any section that `ldev context --json` can now answer — it has become
+- Remove any section that `ldev ai bootstrap --intent=discover --json` can now answer — it has become
   redundant and will drift.
 - If a section becomes generally reusable across projects, move it to a vendor
   skill under `templates/ai/skills/` instead of expanding this file.

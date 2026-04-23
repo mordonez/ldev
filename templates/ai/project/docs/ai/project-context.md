@@ -24,7 +24,7 @@ reusable across multiple projects, move it into a vendor skill instead.
 ## Local Runtime
 
 ```bash
-ldev doctor
+ldev ai bootstrap --intent=develop --json
 ldev setup
 ldev start
 ldev status

@@ -57,8 +57,7 @@ Agents are a layer on top of the operational CLI, not the product story. Once th
 
 ```bash
 ldev ai install --target .
-ldev context --json
-ldev doctor --json
+ldev ai bootstrap --intent=develop --json
 ldev portal inventory sites --json
 ldev logs diagnose --json
 ```

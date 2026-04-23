@@ -18,9 +18,13 @@ Resolve repo, runtime, and Liferay context as one snapshot.
 ```bash
 ldev context
 ldev context --json
+ldev context --describe --json
 ```
 
-`context` is the entry point for humans and agents: it returns repo root, worktree, compose project name, resolved portal URL, and which command areas are ready.
+`context` is the offline project snapshot: it returns repo root, worktree,
+resolved Liferay product/version, resource paths, runtime config, platform
+tool availability, and which command areas are supported. It does not contact
+Docker or the portal.
 
 ## `ldev portal check`
 

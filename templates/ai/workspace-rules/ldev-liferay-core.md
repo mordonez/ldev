@@ -37,6 +37,6 @@ Common default local portal credentials for a fresh Liferay bundle are:
 - Password: `test`
 
 In an `ldev` project, do not assume the portal URL. Resolve it from
-`ldev context --json` and use `env.portalUrl`.
+`ldev context --json` and use `liferay.portalUrl`.
 
 Do not assume a Blade Workspace layout unless the project type is explicitly `blade-workspace`.

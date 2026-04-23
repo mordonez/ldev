@@ -25,7 +25,7 @@ For browser issue reproduction, if the project provides localized admin menu map
 under `docs/ai/menu/*.i18n.json`, prefer those direct paths instead of ad hoc
 UI clicking. Resolve placeholders from:
 
-- `ldev context --json` (`env.portalUrl`)
+- `ldev context --json` (`liferay.portalUrl`)
 - `ldev portal inventory sites --json` (`siteFriendlyUrl`, `groupId`)
 
 ## Multi-Site Resource Origin

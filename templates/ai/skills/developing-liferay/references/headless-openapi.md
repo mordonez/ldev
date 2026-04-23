@@ -1,6 +1,6 @@
 # Liferay Headless OpenAPI Catalog
 
-Use `ldev context --json` and read `env.portalUrl`; replace `<portalUrl>` with
+Use `ldev context --json` and read `liferay.portalUrl`; replace `<portalUrl>` with
 that value instead of hardcoding a host or port. In a local runtime,
 `<portalUrl>` is often `http://127.0.0.1:8080` or `http://localhost:8080`.
 

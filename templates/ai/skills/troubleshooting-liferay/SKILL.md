@@ -1,6 +1,6 @@
 ---
 name: troubleshooting-liferay
-description: "Use when the local Liferay runtime is failing, unhealthy or behaving incorrectly and the cause is not yet clear."
+description: 'Use when the local Liferay runtime is failing, unhealthy or behaving incorrectly and the cause is not yet clear.'
 ---
 
 # Troubleshooting Liferay
@@ -13,19 +13,29 @@ depends on production-like data or isolated worktree state.
 ## Required bootstrap
 
 ```bash
-ldev doctor --json
-ldev context --json
-ldev status --json
+ldev ai bootstrap --intent=troubleshoot --json
 ```
 
-> `ldev context --json` returns `commands.*` to identify which namespaces are
-> ready and `liferay.oauth2Configured` to distinguish network vs. auth failures.
+This returns `context` plus targeted doctor checks and readiness.
+Inspect:
+
+- `context.commands.*` — supported command namespaces and missing requirements.
+- `context.liferay.auth.oauth2.*.status` — configured credentials, not proof of validity.
+- `doctor.checks[]` — active failures and remedies.
+- `doctor.readiness.*` — command-level readiness.
 
 If the env is not running, start it before deeper analysis:
 
 ```bash
 ldev start
 ```
+
+## Bootstrap fields
+
+- Required fields: `context.commands.*`, `context.liferay.portalUrl`,
+  `context.liferay.auth.oauth2.*.status`, `doctor.checks[]`, `doctor.readiness.*`.
+- If any of those fields is missing, stop and report that the installed `ldev`
+  AI assets are out of sync with the CLI.
 
 ## Core diagnosis flow
 
@@ -163,6 +173,7 @@ Use a worktree when:
 ### Reindex issues
 
 References:
+
 - `references/reindex-after-import.md`
 - `references/reindex-journal.md`
 
@@ -199,6 +210,7 @@ ldev portal reindex speedup-off
 Use these only when diagnosis points to broken local runtime state:
 
 Reference:
+
 - `references/ddm-migration.md`
 
 ```bash

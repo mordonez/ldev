@@ -1,7 +1,7 @@
 # Liferay Headless OpenAPI Catalog
 
 Use this reference when extending `ldev` with Liferay headless REST calls.
-Resolve the runtime base URL from `ldev context --json` (`env.portalUrl` or
+Resolve the runtime base URL from `ldev context --json` (`liferay.portalUrl` or
 `liferay.url`) and append the OpenAPI path.
 
 The local examples from the labweb runtime use `http://127.0.0.1:8080`, but code

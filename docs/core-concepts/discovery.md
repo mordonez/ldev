@@ -47,6 +47,7 @@ Preflight checks availability of `adminSite`, `adminUser`, and JSONWS API surfac
 ## Runtime discovery
 
 ```bash
+ldev ai bootstrap --intent=discover --json
 ldev context --json
 ldev status
 ldev doctor --json
@@ -60,7 +61,9 @@ These commands tell you:
 - whether the environment is ready for portal operations
 - which command areas are ready right now
 
-`ldev context` is the canonical entry point. Agents and humans should both start there.
+`ldev context` is the canonical offline snapshot. Agents should normally start
+with `ldev ai bootstrap --intent=discover --json`, which wraps that snapshot in
+the agent-facing shape.
 
 ## Why discovery comes first
 

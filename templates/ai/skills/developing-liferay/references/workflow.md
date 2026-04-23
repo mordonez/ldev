@@ -113,5 +113,5 @@ and only then script it with OAuth2 or another verified auth flow.
   verify `statusCode` after import when a workflow may be active.
 - Do not remove a workflow assignment from a production site to unblock a single
   import; approve or reject the pending task instead.
-- Use `ldev context --json` to resolve `env.portalUrl` and auth readiness before
+- Use `ldev context --json` to resolve `liferay.portalUrl` and auth readiness before
   attempting scripted workflow calls.

@@ -91,7 +91,7 @@ Example — Object named `CustomerRequest`, plural `customerRequests`:
 
 ```bash
 # Resolve the actual local portal URL from ldev instead of hardcoding localhost
-PORTAL_URL="$(ldev context --json | jq -r '.env.portalUrl')"
+PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 
 # List entries
 curl -s -H "Authorization: Bearer <token>" \

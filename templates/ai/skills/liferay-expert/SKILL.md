@@ -1,6 +1,6 @@
 ---
 name: liferay-expert
-description: "Use when the task is technical Liferay work and it is not yet clear whether the next step is implementation, deployment or troubleshooting."
+description: 'Use when the task is technical Liferay work and it is not yet clear whether the next step is implementation, deployment or troubleshooting.'
 ---
 
 # Liferay Expert
@@ -15,13 +15,22 @@ specialist skill quickly.
 Run this bootstrap first:
 
 ```bash
-ldev context --json
+ldev ai bootstrap --intent=discover --json
 ```
 
-> `ldev context --json` returns `commands.*` (which namespaces are ready),
-> `liferay.oauth2Configured` (auth state), `env.portalUrl` and `paths.*`
-> (local resource dirs). Use these fields to decide routing before running
-> deeper commands.
+Use `bootstrap.context` to decide routing:
+
+- `context.commands.*` — supported command namespaces and missing requirements.
+- `context.liferay.auth.oauth2.*.status` — configured auth state.
+- `context.liferay.portalUrl` — effective local portal URL.
+- `context.paths.resources.*` — local resource dirs.
+
+## Bootstrap fields
+
+- Required fields: `context.commands.*`, `context.liferay.version`,
+  `context.liferay.edition`, `context.paths.resources.*`.
+- If any of those fields is missing, stop and report that the installed `ldev`
+  AI assets are out of sync with the CLI.
 
 If the site is not known, discover it:
 
