@@ -1,6 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
-import {runDoctor, type DoctorReport, type DoctorToolStatus} from '../doctor/doctor.service.js';
+import {detectCapabilities} from '../../core/platform/capabilities.js';
+import {resolveProjectContext} from '../../core/config/project-context.js';
 
 export type AgentCapabilityStatus = {
   supported: boolean;
@@ -10,34 +11,9 @@ export type AgentCapabilityStatus = {
 
 export type AgentCapabilitiesReport = {
   ok: true;
-  contractVersion: '1';
+  contractVersion: 2;
   platform: PlatformCapabilities;
-  tools: DoctorReport['tools'];
-  environment: DoctorReport['environment'];
-  config: {
-    liferayUrlConfigured: boolean;
-    liferayOauth2Configured: boolean;
-    scopeAliasesCount: number;
-  };
-  commands: {
-    doctor: AgentCapabilityStatus;
-    context: AgentCapabilityStatus;
-    setup: AgentCapabilityStatus;
-    start: AgentCapabilityStatus;
-    stop: AgentCapabilityStatus;
-    status: AgentCapabilityStatus;
-    logs: AgentCapabilityStatus;
-    shell: AgentCapabilityStatus;
-    project: AgentCapabilityStatus;
-    env: AgentCapabilityStatus;
-    deploy: AgentCapabilityStatus;
-    db: AgentCapabilityStatus;
-    worktree: AgentCapabilityStatus;
-    liferay: AgentCapabilityStatus;
-    osgi: AgentCapabilityStatus;
-    reindex: AgentCapabilityStatus;
-    ai: AgentCapabilityStatus;
-  };
+  commands: Record<string, AgentCapabilityStatus>;
 };
 
 export async function runAgentCapabilities(
@@ -45,80 +21,43 @@ export async function runAgentCapabilities(
   options?: {
     config?: AppConfig;
     env?: NodeJS.ProcessEnv;
-    doctorReport?: DoctorReport;
   },
 ): Promise<AgentCapabilitiesReport> {
-  const doctorReport =
-    options?.doctorReport ??
-    (await runDoctor(cwd, {
-      config: options?.config,
-      env: options?.env,
-    }));
-
-  const repoReady = doctorReport.environment.inRepo;
-  const projectType = doctorReport.environment.projectType;
-  const liferayUrlConfigured = doctorReport.config.liferay.url.trim() !== '';
+  const project = resolveProjectContext({cwd, env: options?.env});
+  const config = options?.config ?? project.config;
+  const platform = await detectCapabilities(cwd, {processEnv: options?.env});
+  const repoReady = project.repo.inRepo;
+  const nativeRuntimeReady = project.projectType === 'ldev-native' && repoReady;
+  const workspaceRuntimeReady = project.projectType === 'blade-workspace' && repoReady && platform.hasBlade;
+  const liferayUrlConfigured = config.liferay.url.trim() !== '';
   const liferayOauth2Configured =
-    doctorReport.config.liferay.oauth2ClientIdConfigured && doctorReport.config.liferay.oauth2ClientSecretConfigured;
-  const nativeRuntimeReady =
-    projectType === 'ldev-native' &&
-    repoReady &&
-    doctorReport.tools.docker.available &&
-    doctorReport.tools.dockerCompose.available;
-  const workspaceRuntimeReady = projectType === 'blade-workspace' && repoReady && doctorReport.tools.blade.available;
+    config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== '';
 
   return {
     ok: true,
-    contractVersion: '1',
-    platform: doctorReport.capabilities,
-    tools: doctorReport.tools,
-    environment: doctorReport.environment,
-    config: {
-      liferayUrlConfigured,
-      liferayOauth2Configured,
-      scopeAliasesCount: doctorReport.config.liferay.scopeAliasesCount,
-    },
+    contractVersion: 2,
+    platform,
     commands: {
-      doctor: capabilityStatus(),
-      context: capabilityStatus(),
       setup: capabilityStatus(
-        capabilityRequirement(projectType === 'ldev-native', 'ldev-native-runtime'),
+        capabilityRequirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
         repoRequirement(repoReady),
-        dockerToolReady(doctorReport.tools.docker),
-        dockerComposeToolReady(doctorReport.tools.dockerCompose),
+        capabilityRequirement(platform.hasDocker, 'docker'),
+        capabilityRequirement(platform.hasDockerCompose, 'docker-compose'),
       ),
       start: capabilityStatus(capabilityRequirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
-      stop: capabilityStatus(capabilityRequirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
-      status: capabilityStatus(capabilityRequirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
-      logs: capabilityStatus(capabilityRequirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
-      shell: capabilityStatus(capabilityRequirement(nativeRuntimeReady, 'runtime-adapter')),
-      project: capabilityStatus(),
-      env: capabilityStatus(repoRequirement(repoReady)),
-      deploy: capabilityStatus(
-        capabilityRequirement(projectType === 'ldev-native' || workspaceRuntimeReady, 'runtime-adapter'),
-      ),
-      db: capabilityStatus(
-        repoRequirement(repoReady),
-        capabilityRequirement(projectType === 'ldev-native', 'ldev-native-runtime'),
-      ),
-      worktree: capabilityStatus(
-        repoRequirement(repoReady),
-        capabilityRequirement(doctorReport.capabilities.supportsWorktrees, 'git-worktrees'),
-      ),
-      liferay: capabilityStatus(repoRequirement(repoReady), capabilityRequirement(liferayUrlConfigured, 'liferay-url')),
-      osgi: capabilityStatus(
-        repoRequirement(repoReady),
-        capabilityRequirement(projectType === 'ldev-native', 'ldev-native-runtime'),
-        dockerToolReady(doctorReport.tools.docker),
-        dockerComposeToolReady(doctorReport.tools.dockerCompose),
-      ),
+      deploy: capabilityStatus(capabilityRequirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
       reindex: capabilityStatus(
         repoRequirement(repoReady),
-        capabilityRequirement(projectType === 'ldev-native', 'ldev-native-runtime'),
+        capabilityRequirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
         capabilityRequirement(liferayUrlConfigured, 'liferay-url'),
         capabilityRequirement(liferayOauth2Configured, 'liferay-oauth2'),
       ),
-      ai: capabilityStatus(),
+      osgi: capabilityStatus(
+        repoRequirement(repoReady),
+        capabilityRequirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
+        capabilityRequirement(platform.hasDocker, 'docker'),
+        capabilityRequirement(platform.hasDockerCompose, 'docker-compose'),
+      ),
     },
   };
 }
@@ -126,11 +65,9 @@ export async function runAgentCapabilities(
 export function formatAgentCapabilities(report: AgentCapabilitiesReport): string {
   return [
     `Contract: agent-v${report.contractVersion}`,
-    `Repo detected: ${report.environment.inRepo ? 'yes' : 'no'}`,
     `Docker compose ready: ${report.commands.start.supported ? 'yes' : 'no'}`,
-    `Liferay API ready: ${report.commands.liferay.supported ? 'yes' : 'no'}`,
-    `OAuth2 ready: ${report.config.liferayOauth2Configured ? 'yes' : 'no'}`,
-    `Worktrees: ${report.commands.worktree.supported ? 'yes' : 'no'}`,
+    `Reindex ready: ${report.commands.reindex.supported ? 'yes' : 'no'}`,
+    `Worktrees: ${report.platform.supportsWorktrees ? 'yes' : 'no'}`,
   ].join('\n');
 }
 
@@ -156,12 +93,4 @@ function repoRequirement(available: boolean): AgentRequirement {
 
 function capabilityRequirement(available: boolean, name: string): AgentRequirement {
   return {name, available};
-}
-
-function dockerToolReady(tool: DoctorToolStatus): AgentRequirement {
-  return capabilityRequirement(tool.available, 'docker');
-}
-
-function dockerComposeToolReady(tool: DoctorToolStatus): AgentRequirement {
-  return capabilityRequirement(tool.available, 'docker-compose');
 }

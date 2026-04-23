@@ -75,11 +75,33 @@ ldev ai status --target . --format text
 
 Defaults to JSON. Use this before `install` or `update` on an existing project to see what is managed, what has drifted, and what is project-owned.
 
+## `ldev ai bootstrap`
+
+Aggregate project context and the doctor checks needed for an agent intent.
+
+```bash
+ldev ai bootstrap --intent=discover --json
+ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
+ldev ai bootstrap --intent=deploy --json
+ldev ai bootstrap --intent=troubleshoot --json
+ldev ai bootstrap --intent=migrate-resources --json
+ldev ai bootstrap --intent=osgi-debug --json
+```
+
+Use this as the standard agent entrypoint. It returns `context` and, when the
+intent needs readiness, `doctor`.
+
+- `discover` stays context-only.
+- `develop` keeps `doctor` intentionally cheap: repo/config/tool presence and
+	readiness for local editing, without runtime, portal, or OSGi probes.
+- `--cache <seconds>` reuses the full bootstrap result for the same intent and
+	working tree while the cached entry is newer than the requested TTL.
+
 ## Typical next steps
 
 ```bash
-ldev doctor --json
-ldev context --json
+ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
 In Blade workspaces, `ldev ai install` coexists with the official AI folders and the `.workspace-rules` workflow instead of replacing them.

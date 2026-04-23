@@ -1,6 +1,6 @@
 ---
 name: deploying-liferay
-description: "Use when the code or resource change already exists and the task is to build, deploy and verify it in a local ldev runtime."
+description: 'Use when the code or resource change already exists and the task is to build, deploy and verify it in a local ldev runtime.'
 ---
 
 # Deploying Liferay
@@ -10,13 +10,26 @@ verification.
 
 ## Required bootstrap
 
-1. `ldev context --json`
-2. `ldev status --json`
-3. If the env is not running: `ldev start`
+```bash
+ldev ai bootstrap --intent=deploy --json
+```
 
-> `ldev context --json` provides `env.portalUrl`, `commands.*` (which namespaces
-> are ready) and `paths.*` (local resource dirs). Check `commands.deploy` and
-> `commands.portal` before proceeding.
+This returns `context` plus deploy-oriented readiness. Inspect:
+
+- `context.liferay.portalUrl` — effective local portal URL.
+- `context.commands.deploy` — deploy command support and missing requirements.
+- `context.paths.resources.*` — local resource dirs when deploying portal resources.
+- `doctor.readiness.deploy` — `"ready" | "blocked" | "unknown"`.
+
+If `doctor.readiness.deploy == "blocked"`, stop and resolve the listed doctor
+checks before deploying.
+
+## Bootstrap fields
+
+- Required fields: `context.commands.deploy`, `context.liferay.portalUrl`,
+  `context.paths.resources.*`, `doctor.readiness.deploy`.
+- If any of those fields is missing, stop and report that the installed `ldev`
+  AI assets are out of sync with the CLI.
 
 ## Smallest deploy first
 
@@ -148,4 +161,5 @@ Minimum done criteria:
 - If the env is unhealthy, stop here and switch to `troubleshooting-liferay`.
 
 Reference:
+
 - `references/worktree-pitfalls.md`

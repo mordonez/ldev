@@ -34,8 +34,9 @@ Some commands default to JSON because their output is primarily structured:
 ## Commands you will use most
 
 ```bash
-ldev doctor --json
+ldev ai bootstrap --intent=develop --json
 ldev context --json
+ldev doctor --json
 ldev status
 ldev portal check --json
 ldev portal inventory sites --json
@@ -77,7 +78,7 @@ Common exit codes:
 ```bash
 ldev portal inventory page --url /home --json > page-home.json
 ldev logs diagnose --since 10m --json > diagnosis.json
-ldev context --json > context.json
+ldev ai bootstrap --intent=develop --json > bootstrap.json
 ```
 
 The point is not automation for its own sake. The point is reliable inputs for diagnosis and verification.

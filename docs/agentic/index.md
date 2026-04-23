@@ -16,12 +16,10 @@ The tool is the execution layer. The value is still in Liferay maintenance work:
 
 ## Context snapshots
 
-Use `context` first so an agent has the same runtime picture a developer would use.
+Use bootstrap first so an agent has the same project facts and readiness picture a developer would use.
 
 ```bash
-ldev context --json
-ldev status --json
-ldev doctor --json
+ldev ai bootstrap --intent=develop --json
 ```
 
 ## Bootstrap the repo first
@@ -129,18 +127,18 @@ canonical Safety Invariants section of that file applies to every task regardles
 
 Summary of the six phases a well-behaved agent follows:
 
-| Phase | When | Commands |
-|-------|------|----------|
-| Pre-flight | Always, before any task | `ldev context --json` |
-| Health check | Task touches runtime | `ldev doctor --json`, `ldev status --json` |
-| Discovery | Task mentions portal surface | `ldev portal inventory ...` |
-| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
-| Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
-| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`; runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
+| Phase                | When                         | Commands                                                                                                                                                                                                          |
+| -------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pre-flight           | Always, before any task      | `ldev ai bootstrap --intent=discover --json` or `ldev ai bootstrap --intent=develop --json`                                                                                                                       |
+| Health check         | Task touches runtime         | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json`                                                                                                                            |
+| Discovery            | Task mentions portal surface | `ldev portal inventory ...`                                                                                                                                                                                       |
+| Pre-mutation check   | Before any resource change   | `ldev resource import-* --check-only`                                                                                                                                                                             |
+| Mutation             | After check-only passes      | `ldev resource import-*`, `ldev deploy ...`                                                                                                                                                                       |
+| Post-mutation verify | After any mutation           | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`; runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
 
 Key invariants (full list in `AGENTS.md → Safety Invariants`):
 
-- Always read `env.portalUrl` from context — never assume.
+- Always read `liferay.portalUrl` from context — never assume.
 - Always consume `--json`. Never parse human-readable output.
 - Always run `--check-only` before resource mutations.
 - Never use plural resource commands without explicit human approval.

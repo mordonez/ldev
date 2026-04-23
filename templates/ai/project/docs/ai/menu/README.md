@@ -33,7 +33,7 @@ Use these placeholders when needed:
 
 Resolve placeholders with:
 
-1. ldev context --json (env.portalUrl)
+1. ldev context --json (liferay.portalUrl)
 2. ldev portal inventory sites --json (siteFriendlyUrl and groupId)
 
 ## Starter coverage

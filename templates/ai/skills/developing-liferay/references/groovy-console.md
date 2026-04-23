@@ -46,7 +46,7 @@ require the full portal Groovy console — never the gogo shell.
 
 Or by URL: `<portalUrl>/group/control_panel/manage/-/server/script`
 
-Resolve `portalUrl` from `ldev context --json` (field: `env.portalUrl`).
+Resolve `portalUrl` from `ldev context --json` (field: `liferay.portalUrl`).
 
 > **DXP 2024.Q3+**: scripting is disabled by default. If the Script Console is not visible,
 > a system administrator must enable it in:

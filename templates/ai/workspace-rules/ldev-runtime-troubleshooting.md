@@ -10,10 +10,10 @@ alwaysApply: false
 
 When a local Liferay runtime behaves unexpectedly, prefer this sequence:
 
-1. `ldev doctor --json`
-2. `ldev context --json`
-3. `ldev status --json`
-4. `ldev logs diagnose --json`
+1. `ldev ai bootstrap --intent=troubleshoot --json`
+2. `ldev status --json`
+3. `ldev logs diagnose --json`
+4. `ldev doctor --json` if you need individual check details beyond bootstrap
 
 Do not start by guessing. Establish:
 

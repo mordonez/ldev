@@ -1,74 +1,18 @@
-﻿import type {AppConfig} from '../../core/config/load-config.js';
+import path from 'node:path';
+
+import type {AppConfig} from '../../core/config/load-config.js';
 import type {ProjectContext} from '../../core/config/project-context.js';
 import {resolveProjectContext} from '../../core/config/project-context.js';
 import type {PlatformCapabilities} from '../../core/platform/capabilities.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
-import {getCurrentBranchName, getGitCommonDir, isWorktree} from '../../core/platform/git.js';
+import {getCurrentBranchName, isWorktree} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
 import {collectEnvStatus} from '../env/env-health.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {runAiStatus} from '../ai/ai-status.js';
-import {runAgentCapabilities, type AgentCapabilitiesReport} from './agent-capabilities.js';
+import type {AgentContextIssue, AgentContextReport, CommandStatus, Presence} from './agent-context-types.js';
 
-export type AgentContextReport = {
-  ok: true;
-  contractVersion: '1';
-  cwd: string;
-  projectType: string;
-  repo: {
-    root: string | null;
-    inRepo: boolean;
-    isWorktree: boolean;
-    branch: string | null;
-    gitCommonDir: string | null;
-  };
-  files: {
-    dockerDir: string | null;
-    liferayDir: string | null;
-    dockerEnv: string | null;
-    liferayProfile: string | null;
-  };
-  paths: {
-    structures: string | null;
-    templates: string | null;
-    adts: string | null;
-    fragments: string | null;
-    migrations: string | null;
-  };
-  env: {
-    composeProjectName: string | null;
-    dataRoot: string | null;
-    bindIp: string | null;
-    httpPort: string | null;
-    portalUrl: string | null;
-  };
-  liferay: {
-    url: string;
-    oauth2Configured: boolean;
-    oauth2ClientIdConfigured: boolean;
-    oauth2ClientSecretConfigured: boolean;
-    scopeAliases: string[];
-    scopeAliasesCount: number;
-    timeoutSeconds: number;
-  };
-  workspace: {
-    product: string | null;
-  };
-  ai: {
-    manifestPresent: boolean;
-    managedRules: number;
-    modifiedRules: number;
-    staleRuntimeRules: number;
-    warnings: string[];
-  };
-  platform: PlatformCapabilities;
-  commands: AgentCapabilitiesReport['commands'];
-  issues: {
-    code: string;
-    severity: 'info' | 'warning' | 'error';
-    message: string;
-  }[];
-};
+export type {AgentContextReport};
 
 export async function runAgentContext(
   cwd: string,
@@ -77,7 +21,6 @@ export async function runAgentContext(
     project?: ProjectContext;
     detectCapabilitiesFn?: typeof detectCapabilities;
     getCurrentBranchNameFn?: typeof getCurrentBranchName;
-    getGitCommonDirFn?: typeof getGitCommonDir;
     isWorktreeFn?: typeof isWorktree;
   },
 ): Promise<AgentContextReport> {
@@ -85,96 +28,112 @@ export async function runAgentContext(
   const config = options?.config ?? project.config;
   const detectCapabilitiesFn = options?.detectCapabilitiesFn ?? detectCapabilities;
   const getCurrentBranchNameFn = options?.getCurrentBranchNameFn ?? getCurrentBranchName;
-  const getGitCommonDirFn = options?.getGitCommonDirFn ?? getGitCommonDir;
   const isWorktreeFn = options?.isWorktreeFn ?? isWorktree;
-
   const inRepo = project.repo.inRepo;
-  const [platform, branch, gitCommonDir, worktree] = await Promise.all([
+
+  const [platform, branch, worktree, aiStatus] = await Promise.all([
     detectCapabilitiesFn(cwd),
     inRepo ? getCurrentBranchNameFn(cwd) : Promise.resolve(null),
-    inRepo ? getGitCommonDirFn(cwd) : Promise.resolve(null),
     inRepo ? isWorktreeFn(cwd) : Promise.resolve(false),
+    runAiStatus(project.cwd),
   ]);
-  const capabilities = await runAgentCapabilities(cwd, {config, env: process.env});
-  const aiStatus = await runAiStatus(project.cwd);
   const issues = await collectAgentIssues(config, project.projectType);
 
   return {
     ok: true,
-    contractVersion: '1',
-    cwd: project.cwd,
-    projectType: project.projectType,
-    repo: {
+    contractVersion: 2,
+    generatedAt: new Date().toISOString(),
+    project: {
+      type: project.projectType,
+      cwd: project.cwd,
       root: project.repo.root,
-      inRepo,
-      isWorktree: worktree,
       branch,
-      gitCommonDir,
+      isWorktree: worktree,
+      worktreeRoot: worktree ? project.repo.root : null,
     },
-    files: {
+    liferay: {
+      product: project.inventory.liferay.product,
+      version: normalizeLiferayVersion(project.inventory.liferay.version),
+      edition: detectLiferayEdition(project.inventory.liferay.product ?? project.inventory.liferay.image),
+      image: project.inventory.liferay.image,
+      portalUrl: project.env.portalUrl ?? config.liferay.url,
+      auth: {
+        oauth2: {
+          clientId: presence(config.liferay.oauth2ClientId, resolveClientIdSource(project)),
+          clientSecret: presence(config.liferay.oauth2ClientSecret, resolveClientSecretSource(project)),
+          scopes: project.liferay.scopeAliasesList.length,
+        },
+      },
+      timeoutSeconds: config.liferay.timeoutSeconds,
+    },
+    paths: {
       dockerDir: project.repo.dockerDir,
       liferayDir: project.repo.liferayDir,
       dockerEnv: project.files.dockerEnv,
       liferayProfile: project.files.liferayProfile,
+      liferayLocalProfile: project.files.liferayLocalProfile,
+      resources: project.inventory.resources,
     },
-    paths: {
-      structures: project.paths.structures,
-      templates: project.paths.templates,
-      adts: project.paths.adts,
-      fragments: project.paths.fragments,
-      migrations: project.paths.migrations,
-    },
-    env: {
+    runtime: {
+      adapter: project.projectType,
+      composeFiles: project.inventory.runtime.composeFiles,
+      services: project.inventory.runtime.services,
+      ports: project.inventory.runtime.ports,
       composeProjectName: project.env.composeProjectName,
-      dataRoot: project.env.dataRoot,
-      bindIp: project.env.bindIp,
-      httpPort: project.env.httpPort,
-      portalUrl: project.env.portalUrl,
+      dataRoot: collapseHome(project.env.dataRoot),
     },
-    liferay: {
-      url: config.liferay.url,
-      oauth2Configured: project.liferay.oauth2Configured,
-      oauth2ClientIdConfigured: config.liferay.oauth2ClientId.trim() !== '',
-      oauth2ClientSecretConfigured: config.liferay.oauth2ClientSecret.trim() !== '',
-      scopeAliases: project.liferay.scopeAliasesList,
-      scopeAliasesCount: project.liferay.scopeAliasesList.length,
-      timeoutSeconds: config.liferay.timeoutSeconds,
-    },
-    workspace: {
-      product: project.workspace.product,
-    },
+    inventory: project.inventory.local,
     ai: {
       manifestPresent: aiStatus.manifestPresent,
       managedRules: aiStatus.summary.managedRules,
       modifiedRules: aiStatus.summary.modified,
       staleRuntimeRules: aiStatus.summary.staleRuntime,
-      warnings: aiStatus.warnings,
     },
-    platform,
-    commands: capabilities.commands,
+    platform: {
+      os: platform.os,
+      tools: {
+        git: platform.hasGit,
+        docker: platform.hasDocker,
+        dockerCompose: platform.hasDockerCompose,
+        java: platform.hasJava,
+        node: platform.hasNode,
+        blade: platform.hasBlade,
+        lcp: platform.hasLcp,
+        playwrightCli: platform.hasPlaywrightCli,
+      },
+      features: {
+        worktrees: platform.supportsWorktrees,
+        btrfsSnapshots: platform.supportsBtrfsSnapshots,
+      },
+    },
+    commands: buildContextCommands(project, platform, config),
     issues,
   };
 }
 
 export function formatAgentContext(report: AgentContextReport): string {
+  const tools = Object.entries(report.platform.tools)
+    .filter(([, available]) => available)
+    .map(([name]) => name);
+  const missingTools = Object.entries(report.platform.tools)
+    .filter(([, available]) => !available)
+    .map(([name]) => name);
+  const commands = Object.entries(report.commands)
+    .filter(([, command]) => command.supported)
+    .map(([name]) => name);
+
   return [
-    `Contract: agent-v${report.contractVersion}`,
-    `Project type: ${report.projectType}`,
-    `Repo: ${report.repo.root ?? 'not-detected'}`,
-    `Branch: ${report.repo.branch ?? 'n/a'}`,
-    `Worktree: ${report.repo.isWorktree ? 'yes' : 'no'}`,
-    `Portal URL: ${report.env.portalUrl ?? report.liferay.url}`,
-    `Compose project: ${report.env.composeProjectName ?? 'n/a'}`,
-    `OAuth2 configured: ${report.liferay.oauth2Configured ? 'yes' : 'no'}`,
-    `AI rules manifest: ${report.ai.manifestPresent ? 'yes' : 'no'}`,
-    `Issues: ${report.issues.length}`,
+    `${path.basename(report.project.root ?? report.project.cwd)} | ${report.project.type} | ${report.liferay.product ?? 'liferay'} | branch ${report.project.branch ?? 'n/a'}`,
+    `Portal:   ${report.liferay.portalUrl ?? 'n/a'}   (oauth2 ${oauthMarker(report)}  scopes ${report.liferay.auth.oauth2.scopes})`,
+    `Modules:  ${report.inventory.modules.count}   Themes: ${report.inventory.themes.count}   CE: ${report.inventory.clientExtensions.count}   WARs: ${report.inventory.wars.count}`,
+    `Resources: ${report.paths.resources.structures.count} structures | ${report.paths.resources.templates.count} templates | ${report.paths.resources.adts.count} adts | ${report.paths.resources.fragments.count} fragments | ${report.paths.resources.migrations.count} migrations`,
+    `Tools:    ${tools.join(' ') || 'none'}${missingTools.length > 0 ? `  (missing: ${missingTools.join(', ')})` : ''}`,
+    `Commands: ${commands.join(', ') || 'none'} available`,
+    `Issues:   ${report.issues.length}`,
   ].join('\n');
 }
 
-async function collectAgentIssues(
-  config: AppConfig,
-  projectType: string,
-): Promise<{code: string; severity: 'info' | 'warning' | 'error'; message: string}[]> {
+async function collectAgentIssues(config: AppConfig, projectType: string): Promise<AgentContextIssue[]> {
   if (projectType === 'blade-workspace') {
     return [
       {
@@ -189,26 +148,30 @@ async function collectAgentIssues(
     return [{code: 'repo-missing', severity: 'error', message: 'No valid project was detected'}];
   }
 
-  const issues: {code: string; severity: 'info' | 'warning' | 'error'; message: string}[] = [];
+  const issues: AgentContextIssue[] = [];
   const envContext = resolveEnvContext(config);
   const status = await collectEnvStatus(envContext, {processEnv: process.env}).catch(() => null);
 
   if (status) {
     if (!status.portalReachable) {
-      issues.push({code: 'portal-unreachable', severity: 'warning', message: 'El portal no responde en la URL local'});
+      issues.push({
+        code: 'portal-unreachable',
+        severity: 'warning',
+        message: 'The local portal is not reachable.',
+      });
     }
 
     if (!status.liferay || status.liferay.state !== 'running') {
       issues.push({
         code: 'liferay-not-running',
         severity: 'error',
-        message: 'The Liferay container is not running',
+        message: 'The Liferay container is not running.',
       });
     } else if (status.liferay.health && status.liferay.health !== 'healthy') {
       issues.push({
         code: 'liferay-unhealthy',
         severity: 'warning',
-        message: `Health de Liferay=${status.liferay.health}`,
+        message: `Liferay health is ${status.liferay.health}.`,
       });
     }
 
@@ -217,19 +180,26 @@ async function collectAgentIssues(
       issues.push({
         code: 'osgi-resolved-bundles',
         severity: 'warning',
-        message: `Se detectaron bundles OSGi en estado RESOLVED: ${resolvedBundles}`,
+        message: `Detected ${resolvedBundles} OSGi bundles in RESOLVED state.`,
       });
     }
   }
 
-  const diskResult = await runProcess('df', ['-P', envContext.dataRoot], {reject: false}).catch(() => null);
+  const diskResult = await runProcess('df', ['-P', envContext.dataRoot], {env: process.env, reject: false}).catch(
+    () => null,
+  );
   const usageLine = diskResult?.stdout
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== '')[1];
   const usedPct = Number.parseInt(usageLine?.split(/\s+/)[4]?.replace('%', '') ?? '', 10);
+
   if (Number.isFinite(usedPct) && usedPct >= 90) {
-    issues.push({code: 'disk-high', severity: 'warning', message: `Disco alto en Docker data root: ${usedPct}%`});
+    issues.push({
+      code: 'disk-high',
+      severity: 'warning',
+      message: `Docker data root disk usage is high (${usedPct}%).`,
+    });
   }
 
   return issues;
@@ -239,8 +209,9 @@ async function detectResolvedBundles(dockerDir: string): Promise<number> {
   const result = await runProcess(
     'docker',
     ['compose', 'exec', '-T', 'liferay', 'sh', '-lc', 'echo "lb -s" | telnet localhost 11311 || true'],
-    {cwd: dockerDir, reject: false},
+    {cwd: dockerDir, env: process.env, reject: false},
   );
+
   if (!result.ok) {
     return 0;
   }
@@ -249,4 +220,131 @@ async function detectResolvedBundles(dockerDir: string): Promise<number> {
     .split(/\r?\n/)
     .map((line) => line.trim().toLowerCase())
     .filter((line) => line.includes('|resolved|')).length;
+}
+
+function buildContextCommands(
+  project: ProjectContext,
+  platform: PlatformCapabilities,
+  config: AppConfig,
+): Record<string, CommandStatus> {
+  const repoReady = project.repo.inRepo;
+  const nativeRuntimeReady = project.projectType === 'ldev-native' && repoReady;
+  const workspaceRuntimeReady = project.projectType === 'blade-workspace' && repoReady && platform.hasBlade;
+  const liferayUrlConfigured = config.liferay.url.trim() !== '';
+  const oauth2Configured =
+    config.liferay.oauth2ClientId.trim() !== '' && config.liferay.oauth2ClientSecret.trim() !== '';
+
+  return Object.fromEntries(
+    Object.entries({
+      setup: commandStatus(
+        requirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
+        requirement(repoReady, 'repo'),
+        requirement(platform.hasDocker, 'docker'),
+        requirement(platform.hasDockerCompose, 'docker-compose'),
+      ),
+      start: commandStatus(requirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
+      deploy: commandStatus(requirement(nativeRuntimeReady || workspaceRuntimeReady, 'runtime-adapter')),
+      reindex: commandStatus(
+        requirement(repoReady, 'repo'),
+        requirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
+        requirement(liferayUrlConfigured, 'liferay-url'),
+        requirement(oauth2Configured, 'liferay-oauth2'),
+      ),
+      osgi: commandStatus(
+        requirement(repoReady, 'repo'),
+        requirement(project.projectType === 'ldev-native', 'ldev-native-runtime'),
+        requirement(platform.hasDocker, 'docker'),
+        requirement(platform.hasDockerCompose, 'docker-compose'),
+      ),
+      worktree: commandStatus(requirement(repoReady, 'repo'), requirement(platform.supportsWorktrees, 'git-worktrees')),
+      liferay: commandStatus(requirement(repoReady, 'repo'), requirement(liferayUrlConfigured, 'liferay-url')),
+    }).filter(([, command]) => command.requires.length > 0),
+  );
+}
+
+function commandStatus(...requirements: {available: boolean; name: string}[]): CommandStatus {
+  return {
+    supported: requirements.every((entry) => entry.available),
+    requires: requirements.map((entry) => entry.name),
+    missing: requirements.filter((entry) => !entry.available).map((entry) => entry.name),
+  };
+}
+
+function requirement(available: boolean, name: string): {available: boolean; name: string} {
+  return {available, name};
+}
+
+function presence(value: string, source: Presence['source']): Presence {
+  return {
+    status: value.trim() === '' ? 'missing' : 'present',
+    source,
+  };
+}
+
+function resolveClientIdSource(project: ProjectContext): Presence['source'] {
+  if (hasKey(project.values.localProfile, 'liferay.oauth2.clientId')) {
+    return 'localProfile';
+  }
+  if (hasKey(project.values.dockerEnv, 'LIFERAY_CLI_OAUTH2_CLIENT_ID')) {
+    return 'dockerEnv';
+  }
+  if (hasKey(project.values.profile, 'liferay.oauth2.clientId')) {
+    return 'profile';
+  }
+  return 'fallback';
+}
+
+function resolveClientSecretSource(project: ProjectContext): Presence['source'] {
+  if (hasKey(project.values.localProfile, 'liferay.oauth2.clientSecret')) {
+    return 'localProfile';
+  }
+  if (hasKey(project.values.dockerEnv, 'LIFERAY_CLI_OAUTH2_CLIENT_SECRET')) {
+    return 'dockerEnv';
+  }
+  if (hasKey(project.values.profile, 'liferay.oauth2.clientSecret')) {
+    return 'profile';
+  }
+  return 'fallback';
+}
+
+function hasKey(values: Record<string, string>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(values, key);
+}
+
+function normalizeLiferayVersion(version: string | null): string | null {
+  if (!version) {
+    return null;
+  }
+  return version
+    .replace(/^liferay\/(?:dxp|portal):/i, '')
+    .replace(/^dxp-?/i, '')
+    .replace(/^portal-?/i, '')
+    .replace(/-lts$/i, '');
+}
+
+function detectLiferayEdition(value: string | null): 'dxp' | 'portal' | null {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.toLowerCase();
+  if (normalized.includes('dxp')) {
+    return 'dxp';
+  }
+  if (normalized.includes('portal')) {
+    return 'portal';
+  }
+  return null;
+}
+
+function collapseHome(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const home = process.env.HOME || process.env.USERPROFILE;
+  return home && value.startsWith(home) ? `~${value.slice(home.length)}` : value;
+}
+
+function oauthMarker(report: AgentContextReport): string {
+  const oauth = report.liferay.auth.oauth2;
+  return oauth.clientId.status === 'present' && oauth.clientSecret.status === 'present' ? 'yes' : 'no';
 }

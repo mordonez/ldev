@@ -1,6 +1,6 @@
 ---
 name: developing-liferay
-description: "Use when you need to change Liferay code, themes, structured content resources or fragment source in a project that runs with ldev."
+description: 'Use when you need to change Liferay code, themes, structured content resources or fragment source in a project that runs with ldev.'
 ---
 
 # Developing Liferay
@@ -10,15 +10,48 @@ clear.
 
 ## Required bootstrap
 
-1. `ldev doctor`
-2. `ldev context --json`
-3. If the local env is not running yet: `ldev start`
+```bash
+ldev ai bootstrap --intent=develop --json
+```
 
-> `ldev context --json` returns `paths.*` (local resource dirs), `env.portalUrl`,
-> `liferay.oauth2Configured` and `commands.*` (which namespaces are ready — includes
-> `commands.portal` and `commands.resource`). Use these values to resolve paths and
-> verify auth before running any portal command.
-> Full field reference: `references/ldev-context.md`
+This returns `context` (offline project facts) and `doctor.readiness` (whether
+the commands this skill uses are ready). Inspect:
+
+- `context.liferay.version` and `context.liferay.edition` — portal APIs differ.
+- `context.paths.resources.*` — resource dirs for import/export.
+- `context.liferay.auth.oauth2.clientId.status` and `clientSecret.status` —
+  `"present"` means ldev has credentials configured.
+- `context.commands.*` — command support and missing requirements.
+- `doctor.readiness.*` — cheap readiness summary; runtime-oriented commands stay
+  `"unknown"` until you run deploy/runtime probes.
+
+Do not run `ldev doctor` as generic bootstrap. Use it only when readiness or
+diagnosis matters.
+
+`develop` keeps `doctor` intentionally cheap: it validates repo/config/tool
+presence and command readiness for local editing, but it does not run runtime,
+portal, or OSGi probes. When those matter, call `ldev doctor --runtime`,
+`ldev doctor --portal`, or `ldev doctor --osgi` explicitly.
+
+## Bootstrap fields
+
+- Required fields: `context.liferay.version`, `context.paths.resources.*`,
+  `context.liferay.auth.oauth2.*.status`, `doctor.readiness.*`.
+- If any of those fields is missing, stop and report that the installed `ldev`
+  AI assets are out of sync with the CLI.
+
+## Fast path
+
+If `ldev ai bootstrap --intent=develop --cache=60 --json` shows the required
+resource directory exists, OAuth2 credentials are present, and the relevant
+`context.commands.*` entry is supported, proceed with the smallest relevant
+edit or resource command.
+
+Before deployment or runtime verification, switch to:
+
+```bash
+ldev ai bootstrap --intent=deploy --json
+```
 
 ## Discovery first
 
@@ -125,6 +158,7 @@ ldev logs --since 2m --service liferay --no-follow
 Use when the change lives in `modules/` or another deployable Gradle unit.
 
 References:
+
 - `references/osgi.md`
 - `references/extending-liferay.md`
 
@@ -147,6 +181,7 @@ Use for custom data models on DXP 7.4+ that need their own headless REST API
 without traditional OSGi modules.
 
 References:
+
 - `references/objects.md` — field types, relationships, auto-generated API, Actions, Validations
 - `references/oauth2-setup.md` — OAuth2 portal setup and `ldev oauth install --write-env`
 - `references/headless-openapi.md` — local OpenAPI spec URLs for headless REST discovery
@@ -158,6 +193,7 @@ Each command requires its identifier; use `--check-only` to preview before
 mutating.
 
 References:
+
 - `references/structures.md` — CLI workflow (export, validate, import)
 - `references/structure-field-catalog.md` — field type JSON catalog (use when authoring or editing structure JSON directly)
 - `references/workflow.md` — approval workflow states, inspection, and publish failures

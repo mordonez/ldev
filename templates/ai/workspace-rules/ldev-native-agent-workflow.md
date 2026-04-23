@@ -13,6 +13,9 @@ alwaysApply: true
 
 Preferred task-shaped entry points after bootstrap:
 
+- `ldev ai bootstrap --intent=discover --json`
+- `ldev ai bootstrap --intent=develop --json`
+- `ldev ai bootstrap --intent=deploy --json`
 - `ldev context --json`
 - `ldev status --json`
 - `ldev portal inventory sites --json`
@@ -24,8 +27,8 @@ Preferred task-shaped entry points after bootstrap:
 - `ldev deploy module <module-name> --format json`
 - `ldev deploy theme --format json`
 
-Run `ldev doctor --json` only when runtime health, installed tools,
-browser automation, or deploy verification are part of the task. Run
+Run `ldev doctor --json` only when you need diagnosis beyond the bootstrap
+readiness result. Run
 `ldev mcp check --json` only when the task depends on MCP or when no direct
 `ldev` command covers the required portal surface.
 

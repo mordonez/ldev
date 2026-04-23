@@ -9,12 +9,28 @@ Every command accepts `--json` or `--ndjson` for structured output, plus `--stri
 
 ## `ldev doctor`
 
-Validate prerequisites and the effective resolved config.
+Diagnose environment health and command readiness. Use `ldev context` when you
+need an offline project snapshot; use `ldev doctor` when you need pass/warn/fail
+checks.
 
 ```bash
 ldev doctor
 ldev doctor --json
+ldev doctor --list-checks --json
+ldev doctor --readiness deploy
+ldev doctor --runtime --json
+ldev doctor --portal --json
+ldev doctor --osgi --json
 ```
+
+`doctor --json` keeps the default basic diagnostics. Extra runtime probes are
+opt-in:
+
+- `--runtime` adds Docker Compose service state into `doctor.runtime`.
+- `--portal` adds HTTP and OAuth token probes into `doctor.portal`.
+- `--osgi` adds Gogo connectivity and bundle summary into `doctor.osgi`.
+
+These blocks are `null` unless explicitly requested.
 
 ## `ldev setup`
 

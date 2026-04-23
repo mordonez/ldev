@@ -20,7 +20,7 @@ Quick rules:
 - Keep one browser helper active at a time per session name. Do not run helpers in
   parallel against the same session — open first, then sequence snapshot / run-code /
   goto / screenshot.
-- Lock the browser host to `ldev context --json → env.portalUrl`. Do not mix `localhost`
+- Lock the browser host to `ldev context --json → liferay.portalUrl`. Do not mix `localhost`
   and `127.0.0.1` after authentication.
 - If local virtual host routing sends the browser to another site while `curl` reaches
   the expected page, record it as a browser-routing limitation and finish validation with
@@ -131,7 +131,7 @@ The sample below uses placeholder test credentials. Replace with project-specifi
 test user credentials when they differ.
 
 ```bash
-PORTAL_URL="$(ldev context --json | jq -r '.env.portalUrl')"
+PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 playwright-cli -s=page-editor-<issue> open "${PORTAL_URL}/c/portal/login"
 CODE=$(cat <<'EOF'
 async function (page) {
@@ -167,7 +167,7 @@ playwright-cli -s=runtime-<issue> open "<runtimeUrl>"
 playwright-cli -s=editor-<issue> open "<editUrl>"
 
 # 3. Login first if the editor requires it
-PORTAL_URL="$(ldev context --json | jq -r '.env.portalUrl')"
+PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 playwright-cli -s=editor-<issue> open "${PORTAL_URL}/c/portal/login"
 
 # 4. Make changes via run-code
@@ -204,4 +204,3 @@ ldev logs --since 2m --no-follow
 playwright-cli close-all || true
 playwright-cli kill-all || true
 ```
-

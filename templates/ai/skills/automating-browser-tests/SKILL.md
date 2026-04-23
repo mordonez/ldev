@@ -1,6 +1,6 @@
 ---
 name: automating-browser-tests
-description: "Use when a project needs Playwright-based browser checks, visual evidence or page-editor workflows on top of an ldev runtime."
+description: 'Use when a project needs Playwright-based browser checks, visual evidence or page-editor workflows on top of an ldev runtime.'
 ---
 
 # Automating Browser Tests
@@ -13,20 +13,18 @@ mobile viewport, login flows, page layout mutations, and cleanup patterns.
 ## Required bootstrap
 
 ```bash
-ldev context --json
-ldev status --json
-ldev doctor --json
+ldev ai bootstrap --intent=develop --json
 ldev portal inventory page --url <fullUrl> --json
 ```
 
 Before opening Playwright, lock these fields from bootstrap:
 
-- `env.portalUrl`: use this exact host for the whole browser session — do not mix `localhost` and `127.0.0.1`.
+- `context.liferay.portalUrl`: use this exact host for the whole browser session — do not mix `localhost` and `127.0.0.1`.
 - `ldev portal inventory page --url <fullUrl> --json` → `adminUrls.*`, `siteFriendlyUrl`, `groupId`, `layout.plid`.
 
-Check `ldev doctor --json` → `tools.playwrightCli.available` before starting any browser flow.
+Check `doctor.tools.playwrightCli.status == "pass"` before starting any browser flow.
 
-If `tools.playwrightCli.available` is `false`:
+If `doctor.tools.playwrightCli.status != "pass"`:
 
 ```bash
 npm install -g @playwright/cli@latest
@@ -57,6 +55,7 @@ If the menu entrypoint exists:
 - Prefer those map paths for direct admin navigation instead of brittle label clicks.
 - Resolve placeholders from runtime facts:
   - `portalUrl` from `ldev context --json`
+    (`context.liferay.portalUrl`)
   - `site` and `siteGroupId` from `ldev portal inventory sites --json`
 - Start an authenticated admin session before opening admin map paths.
 - Keep map data project-owned. Do not copy project literals into vendor skills.
@@ -117,4 +116,3 @@ to the browser host before opening. Full page layout mutation pattern is in `REF
   `curl`, `ldev portal inventory ...`, and runtime logs instead of a misleading screenshot.
 - If Chrome is unavailable but Firefox/WebKit works, report that explicitly.
 - If a session reports `session-busy`, wait and retry sequentially.
-

@@ -171,13 +171,15 @@ export async function detectTool(
   args: string[],
 ): Promise<DoctorToolStatus> {
   if (!available) {
-    return {available: false, version: null};
+    return {status: 'warn', available: false, version: null, reason: 'not-in-path'};
   }
 
   const result = await runProcessFn(command, args);
   return {
+    status: result.ok ? 'pass' : 'warn',
     available: result.ok,
     version: extractVersion(result),
+    reason: result.ok ? undefined : 'command-failed',
   };
 }
 
@@ -188,8 +190,10 @@ export async function detectToolAlways(
 ): Promise<DoctorToolStatus> {
   const result = await runProcessFn(command, args);
   return {
+    status: result.ok ? 'pass' : 'warn',
     available: result.ok,
     version: extractVersion(result),
+    reason: result.ok ? undefined : 'command-failed',
   };
 }
 

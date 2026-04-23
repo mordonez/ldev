@@ -1,6 +1,6 @@
 ---
 name: migrating-journal-structures
-description: "Use when a Journal structure or template change requires controlled data migration, staged validation or cleanup."
+description: 'Use when a Journal structure or template change requires controlled data migration, staged validation or cleanup.'
 ---
 
 # Migrating Journal Structures
@@ -11,18 +11,28 @@ validated as a migration, not as a simple import.
 ## Required bootstrap
 
 ```bash
-ldev context --json
-ldev start
+ldev ai bootstrap --intent=migrate-resources --json
 ```
 
-> `ldev context --json` returns `paths.migrations` and `paths.structures` — the
-> local directories where descriptors and structure files are expected by default.
+Use `bootstrap.context.paths.resources.migrations` and
+`bootstrap.context.paths.resources.structures` for descriptor and structure
+locations. Use `doctor.readiness.reindex` and portal checks to decide whether
+the runtime is ready for migration validation.
+
+## Bootstrap fields
+
+- Required fields: `context.paths.resources.migrations`,
+  `context.paths.resources.structures`, `context.liferay.auth.oauth2.*.status`,
+  `doctor.readiness.reindex`.
+- If any of those fields is missing, stop and report that the installed `ldev`
+  AI assets are out of sync with the CLI.
 
 > **Always run migrations inside a worktree, never against the main environment.**
 > Worktrees provide an isolated portal instance that can be restored or discarded
 > if the migration produces unexpected results. Running migrations against a shared
 > or production-like environment without a worktree makes rollback difficult or
 > impossible. Create and start an isolated environment first:
+>
 > ```bash
 > ldev worktree setup --name <issue-name>
 > ldev worktree start <issue-name>
@@ -40,7 +50,7 @@ Do **not** use the Liferay UI for this. Edit the structure JSON directly and
 import it:
 
 ```bash
-# 1. Write or edit the structure JSON under paths.structures/<site>/<KEY>.json
+# 1. Write or edit the structure JSON under context.paths.resources.structures.path/<site>/<KEY>.json
 #    Use ../developing-liferay/references/structure-field-catalog.md for the correct field shapes.
 
 # 2. Validate before importing:
@@ -74,7 +84,7 @@ ldev resource migration-init --site /<site> --key <STRUCTURE_KEY>
 ```
 
 Add `--templates` to include associated templates in the generated descriptor.
-The output defaults to `paths.migrations/<site>/<key>.migration.json`.
+The output defaults to `context.paths.resources.migrations.path/<site>/<key>.migration.json`.
 
 Edit the descriptor to define:
 
@@ -87,14 +97,14 @@ Edit the descriptor to define:
 
 **Descriptor fields reference:**
 
-| Field | Purpose |
-|-------|---------|
-| `"templates": true` | Include associated templates in the pipeline run |
-| `"dependentStructures": ["KEY"]` | Structures the pipeline must verify exist before running |
-| `"introduce.rootFolderIds": [id]` | Scope to a folder tree (recursive) |
-| `"introduce.folderIds": [id]` | Scope to exact folders only (non-recursive) |
-| `"introduce.articleIds": [id]` | Scope to specific content items |
-| _(no scope field)_ | Scan all content in the site (use with caution on large sites) |
+| Field                             | Purpose                                                        |
+| --------------------------------- | -------------------------------------------------------------- |
+| `"templates": true`               | Include associated templates in the pipeline run               |
+| `"dependentStructures": ["KEY"]`  | Structures the pipeline must verify exist before running       |
+| `"introduce.rootFolderIds": [id]` | Scope to a folder tree (recursive)                             |
+| `"introduce.folderIds": [id]`     | Scope to exact folders only (non-recursive)                    |
+| `"introduce.articleIds": [id]`    | Scope to specific content items                                |
+| _(no scope field)_                | Scan all content in the site (use with caution on large sites) |
 
 **Mapping syntax:**
 

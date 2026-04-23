@@ -66,8 +66,9 @@ What it writes (variables available after the command completes):
 | `LIFERAY_CLI_OAUTH2_READONLY_CLIENT_ID` | Optional read-only Client ID when a read-only app is provisioned |
 | `LIFERAY_CLI_OAUTH2_READONLY_CLIENT_SECRET` | Optional read-only Client Secret |
 
-After running this command, `ldev context --json` should return
-`liferay.oauth2Configured: true`. Verify before proceeding with agent workflows
+After running this command, `ldev context --json` should show
+`liferay.auth.oauth2.clientId.status: "present"` and
+`liferay.auth.oauth2.clientSecret.status: "present"`. Verify before proceeding with agent workflows
 that depend on OAuth.
 
 ## Obtaining a token manually
@@ -76,7 +77,7 @@ For debugging or one-off scripts:
 
 ```bash
 curl -s -X POST \
-  "$(ldev context --json | jq -r '.env.portalUrl')/o/oauth2/token" \
+  "$(ldev context --json | jq -r '.liferay.portalUrl')/o/oauth2/token" \
   -d "grant_type=client_credentials" \
   -d "client_id=<CLIENT_ID>" \
   -d "client_secret=<CLIENT_SECRET>" \
@@ -88,7 +89,7 @@ Use the token as a Bearer header:
 ```bash
 curl -s \
   -H "Authorization: Bearer <token>" \
-  "$(ldev context --json | jq -r '.env.portalUrl')/o/headless-delivery/v2.0/sites"
+  "$(ldev context --json | jq -r '.liferay.portalUrl')/o/headless-delivery/v2.0/sites"
 ```
 
 ## When the token expires
@@ -106,7 +107,7 @@ in Liferay). When a token expires:
 
 | Symptom | Likely cause |
 |---|---|
-| `ldev context --json` shows `liferay.oauth2Configured: false` after install | `ldev oauth install --write-env` was not run, or the local profile/env values are still missing |
+| `ldev context --json` shows OAuth2 credential status as `"missing"` after install | `ldev oauth install --write-env` was not run, or the local profile/env values are still missing |
 | `401 Unauthorized` on API call | Token expired or wrong scopes — verify scopes cover the endpoint being called |
 | `403 Forbidden` on API call | Token is valid but the OAuth2 application lacks the required scope, or the service account lacks the portal role |
 | `invalid_client` on token request | Client ID or Secret is wrong — re-check against the portal OAuth2 application |
