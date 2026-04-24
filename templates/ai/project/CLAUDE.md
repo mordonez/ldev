@@ -6,8 +6,6 @@ Claude should read this file after `AGENTS.md`.
 
 This file is the Claude-specific entrypoint for project-owned context. Keep it
 short. Put long-lived project knowledge in [docs/ai/project-context.md](docs/ai/project-context.md) if that file exists.
-Use [docs/ai/project-context.md.sample](docs/ai/project-context.md.sample) only
-as a human template when creating the real project context file.
 
 ## Read Next
 
