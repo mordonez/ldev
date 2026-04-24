@@ -18,6 +18,10 @@ Quick rules:
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with a shell-native multiline
   literal: `cat <<'EOF'` in bash/zsh, `@'...'@` in PowerShell.
+- **Never chain `open` and `run-code` in the same terminal command** using `;`, `&&`,
+  or any other combinator. Run `open` first as a standalone command and wait for it to
+  complete before running `run-code` as a separate command. Chaining them races the
+  browser session setup against the script execution and causes unpredictable failures.
 - **`run-code` transforms shell operators**: the shell intercepts `||`, `&&`, `>`,
   and `<` before JavaScript sees them. Use ternary expressions (`condition ? a : b`)
   or `if/else` blocks inside `run-code` functions instead of `||` or `&&`. Always
