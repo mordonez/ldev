@@ -10,6 +10,20 @@ worktree capabilities available.
 > **Never use `git worktree add` directly.** `ldev worktree setup` is required — it handles
 > environment isolation, database copying, and Btrfs snapshots beyond what git provides alone.
 
+> **Never reuse a pre-existing worktree for a new issue.** The repository may already have
+> worktrees from previous issues visible in `ldev ai bootstrap`, `ldev status`,
+> `ldev worktree env`, or `git worktree list` output. These belong to other tasks and must
+> be ignored. Even if a name matches the project naming convention, do not navigate into an
+> existing worktree unless the user explicitly instructs you to reuse it. Always create a
+> fresh worktree with `ldev worktree setup --name <current-issue-id>`. Derive the name
+> exclusively from the issue identifier the user provided in this session, never by
+> guessing or applying the naming convention to an existing directory.
+>
+> **If the user has not provided an issue identifier in this session, derive a short
+> descriptive name from the task being worked on (e.g. `fix-share-social-media`,
+> `feat-novedad-default`). Do not invent a numeric identifier and do not reuse an
+> existing worktree name found in the repository.
+
 ```bash
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD

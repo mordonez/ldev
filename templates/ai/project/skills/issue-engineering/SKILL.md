@@ -104,6 +104,14 @@ If isolated worktrees are available:
 
 - prepare the isolated worktree with `ldev worktree setup --with-env`
 - use project worktree naming conventions if the repository has them
+- **the worktree name must be derived from the issue identifier provided in this
+  session, never guessed or inferred from existing worktrees in the repository**
+- **if the user has not provided an issue identifier, derive a short descriptive name
+  from the task (e.g. `fix-share-social-media`); do not invent a numeric identifier
+  and do not reuse an existing worktree name found in the repository**
+- **other worktrees visible in `ldev ai bootstrap`, `ldev status`, `ldev worktree env`,
+  or `git worktree list` output belong to other issues; do not navigate into them
+  unless the user explicitly says to reuse one**
 - read `references/worktree-env.md` and apply its Isolation Gate as an
   always-on edit boundary, not only during worktree creation
 - keep environment-specific cleanup tied to the actual worktree used
