@@ -30,7 +30,7 @@ Do not use this skill when:
 
 1. Decide whether the task needs a runtime-backed worktree or a git-only worktree.
 2. Choose a traceable worktree name and do not reuse existing worktrees unless the user explicitly asked for that reuse.
-3. Create the worktree with `ldev worktree setup --name <worktree-name>` and add `--with-env` when the task needs its own runtime.
+3. For git-only worktrees, use `ldev worktree setup --name <worktree-name>`. For runtime-backed worktrees, always use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone`.
 4. Enter `.worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel` before editing.
 5. For runtime-backed worktrees, run `ldev start`, `ldev status --json`, and wait for startup logs before portal-facing actions.
 6. Keep the confirmed root as an active edit boundary for the whole task.

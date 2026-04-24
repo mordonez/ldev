@@ -158,18 +158,17 @@ When a risky fix or a production-like reproduction should not share runtime
 state with the main checkout, isolate it:
 
 ```bash
-ldev worktree setup --name incident-<id> --with-env
+ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/incident-<id>
 ldev start
 ldev status --json
 ```
 
-On non-Btrfs setups where the main environment is already running, use the
-handoff flags only when the team approved that stop/restart flow:
+If a human explicitly wants the main checkout left stopped after cloning, use
+this exception path instead:
 
 ```bash
 ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone
-ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone --restart-main-after-clone
 ```
 
 Use a worktree when:
@@ -240,6 +239,6 @@ ldev worktree env --json
 - Do not parse human text if a stable JSON variant exists.
 - Prefer `ldev logs diagnose --json` as the first diagnosis surface; use raw logs as a follow-up tool.
 - If the issue depends on production data, reproduce that state locally before proposing fixes.
-- If isolation matters, prefer `ldev worktree setup --with-env` over ad hoc branch switching.
+- If isolation matters, prefer `ldev worktree setup --name <name> --with-env --stop-main-for-clone --restart-main-after-clone` over ad hoc branch switching.
 - If a worktree needs read-only discovery against the main runtime, use `ldev --repo-root <main-root> ...` instead of changing directories.
 - After finding the root cause, switch to `developing-liferay` or `deploying-liferay` for the actual fix path.

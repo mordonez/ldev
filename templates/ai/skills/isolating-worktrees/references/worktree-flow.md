@@ -16,11 +16,11 @@ inspection, recovery, and cleanup.
 > **Never use `git worktree add` directly.** `ldev worktree setup` handles
 > environment isolation beyond git alone.
 
+For agent-driven runtime-backed work, always use the full handoff command:
+
 ```bash
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD
-ldev worktree setup --name <worktree-name> --with-env
-ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone
 ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/<worktree-name>
 pwd
@@ -29,6 +29,13 @@ git status --short
 ldev start
 ldev status --json
 ```
+
+Use plain `ldev worktree setup --name <worktree-name>` only for git-only
+worktrees with no isolated runtime.
+
+Use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone`
+only when a human explicitly wants the main checkout left stopped after the
+clone. That is an exception path, not the default agent flow.
 
 If the primary checkout is not on `main`, do not rely on the implicit base
 branch. Pass the intended `--base <ref>` explicitly or stop and confirm the
@@ -97,12 +104,13 @@ Use this when the task needs `ldev portal ...`, `ldev resource ...`, deploys,
 or browser validation.
 
 ```bash
-ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone
 ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/<worktree-name>
 ldev start
 ldev status --json
 ```
+
+This is the canonical agent path.
 
 ### Path B — Git-only worktree
 
@@ -117,6 +125,18 @@ git status --short
 
 Do not run portal, resource, deploy, logs, or browser commands from a git-only
 worktree.
+
+### Path B.1 — Leave main stopped intentionally
+
+Use this only when a human explicitly approves leaving the main checkout down
+after cloning runtime state.
+
+```bash
+ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone
+cd .worktrees/<worktree-name>
+ldev start
+ldev status --json
+```
 
 ### Path C — Stay in the worktree, discover through the main checkout
 
