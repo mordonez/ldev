@@ -16,7 +16,7 @@ alwaysApply: true
 - For these mutating tasks, enforce this gate order without exceptions:
   `Red-1` reproduction -> worktree isolation/root lock -> `Red-2` reproduction ->
   import/deploy verification -> `Red -> Green` visual validation.
-- When that isolation needs a runtime-backed worktree, always use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone`. Use bare `--stop-main-for-clone` only when a human explicitly wants the main checkout left stopped after the clone.
+- When that isolation needs a runtime-backed worktree, ask the user whether the main environment needs to run in parallel with the worktree. Default is `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped to conserve resources). Add `--restart-main-after-clone` only if the user confirms they need main running alongside the worktree.
 
 Preferred task-shaped entry points after bootstrap:
 

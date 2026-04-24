@@ -16,9 +16,15 @@ inspection, recovery, and cleanup.
 > **Never use `git worktree add` directly.** `ldev worktree setup` handles
 > environment isolation beyond git alone.
 
-For agent-driven runtime-backed work, always use the full handoff command.
-Run these two phases in order — do not skip ahead to phase 2 before phase 1 is
-complete.
+For agent-driven runtime-backed work, run these two phases in order — do not
+skip ahead to phase 2 before phase 1 is complete.
+
+Before running setup, ask the user: **"Do you need the main environment running
+in parallel with the worktree?"**
+- Default (no): use `--stop-main-for-clone` only. Main stays stopped, conserving
+  resources for the worktree.
+- If yes: add `--restart-main-after-clone` so main restarts automatically after
+  the clone.
 
 **Phase 1 — from the main checkout:**
 
@@ -26,6 +32,11 @@ complete.
 # If not on main, stop and ask the user for --base <ref> before continuing
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD
+
+# Default (main stays stopped):
+ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone
+
+# Only if user confirmed they need main running in parallel:
 ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone
 ```
 
@@ -46,9 +57,9 @@ stop and ask the user to confirm the working directory before running `ldev star
 Use plain `ldev worktree setup --name <worktree-name>` only for git-only
 worktrees with no isolated runtime.
 
-Use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone`
-only when a human explicitly wants the main checkout left stopped after the
-clone. That is an exception path, not the default agent flow.
+`--restart-main-after-clone` is optional. Only add it when the user explicitly
+confirms they need the main environment running in parallel. Leaving main stopped
+is the default because it conserves resources for the worktree runtime.
 
 If the primary checkout is not on `main`, do not rely on the implicit base
 branch. Pass the intended `--base <ref>` explicitly or stop and confirm the
