@@ -79,6 +79,19 @@ Before any file edit, confirm the target path is under the worktree root returne
 `git rev-parse --show-toplevel`. Do not write changes into the primary checkout.
 Re-confirm the worktree root after any interruption, context resume, or shell change.
 
+## Active Worktree Lock
+
+When a user starts from an existing worktree/branch, keep that worktree as the active lock for the full conversation.
+
+1. Do not switch to a different worktree or branch unless the user explicitly requests the switch.
+2. Resolve and store one explicit `lockedRoot` at bootstrap from the current editor file path and terminal CWD.
+3. If editor file path and terminal CWD point to different roots, stop and ask the user which root to lock before running any command.
+4. Before edits, discovery, deploys, imports, or validation, run commands from that locked root only.
+5. Use a shell-native directory change when enforcing the lock (`cd` in sh/bash/zsh/fish on Linux/macOS, `Set-Location` in PowerShell on Windows).
+6. If command history or previous notes mention another worktree, do not follow it automatically; ask the user first.
+7. Do not claim success from another runtime context; evidence must come from the active locked worktree runtime.
+
+
 ## Safety Rules
 
 1. Always start with `ldev context --json`. Use `commands.*` to verify readiness before running any command.

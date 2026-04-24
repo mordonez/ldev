@@ -87,6 +87,17 @@ Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
   - `ldev context --json`
   - `ldev status --json`
 
+
+## Branch and Worktree Lock
+
+- Treat the current user-selected worktree as locked for the whole session.
+- Do not switch to another worktree, checkout another branch, or run commands from another repo root unless the user explicitly asks for that switch in the current chat.
+- Resolve and store one explicit `lockedRoot` at bootstrap from the current editor file path and terminal CWD.
+- If editor file path and terminal CWD point to different roots, stop and ask for explicit user confirmation before running any command.
+- Prefix command sequences with an explicit shell-native directory change to the locked worktree root before running discovery, validation, import, deploy, or mutating commands that generate evidence (`cd` in sh/bash/zsh/fish on Linux/macOS, `Set-Location` in PowerShell on Windows).
+- Before reporting any import/deploy/edit as successful, verify in the same locked worktree runtime context (`ldev status --json` and read-after-write evidence).
+- If context appears to point at a different worktree than the locked one, stop and ask for confirmation instead of continuing.
+
 ## MCP Usage
 
 - Treat MCP as optional. Do not assume it is enabled in every runtime.
