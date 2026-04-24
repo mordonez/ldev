@@ -21,6 +21,8 @@ Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything
 It defines the project issue workflow: intake → technical routing → validation → PR.
 If the repository has `ldev-native` capabilities available, follow its
 isolated worktree guidance as a mandatory gate before mutating runtime state.
+Use `.agents/skills/isolating-worktrees/SKILL.md` for the canonical setup and
+edit-root lock flow when worktree isolation is required.
 
 **Liferay technical execution after issue workflow intake/reproduction gates:**
 Use `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.

@@ -43,7 +43,7 @@ For bulk version cleanup, prefer a Groovy script (see below).
 
 ## Groovy script for bulk version cleanup
 
-See `../developing-liferay/references/groovy-console.md` for console access.
+See `../../developing-liferay/references/groovy-console.md` for console access.
 
 Preview articles with many versions before deleting:
 

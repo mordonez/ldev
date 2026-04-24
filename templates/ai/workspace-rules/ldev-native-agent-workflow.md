@@ -19,8 +19,8 @@ alwaysApply: true
 
 Preferred task-shaped entry points after bootstrap:
 
-- `ldev ai bootstrap --intent=discover --json`
-- `ldev ai bootstrap --intent=develop --json`
+- `ldev ai bootstrap --intent=discover --cache=60 --json`
+- `ldev ai bootstrap --intent=develop --cache=60 --json`
 - `ldev ai bootstrap --intent=deploy --json`
 - `ldev context --json`
 - `ldev status --json`

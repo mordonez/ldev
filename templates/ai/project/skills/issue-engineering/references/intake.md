@@ -57,10 +57,9 @@ can tell you which page/resource is actually involved.
 
 ```bash
 # Only run if the project has created this script
+# On Windows, replace `python` with `py` if `python` is not in PATH
 python .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
 ```
-
-On Windows, use `py` if `python` is not registered on `PATH`.
 
 ## What to Add to the Issue
 

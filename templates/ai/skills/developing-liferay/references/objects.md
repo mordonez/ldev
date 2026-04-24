@@ -90,7 +90,7 @@ Publishing an Object definition immediately creates a versioned REST API:
 Example — Object named `CustomerRequest`, plural `customerRequests`:
 
 ```bash
-# Resolve the actual local portal URL from ldev instead of hardcoding localhost
+# bash/zsh (requires jq)
 PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 
 # List entries
@@ -109,10 +109,24 @@ curl -s -H "Authorization: Bearer <token>" \
   "$PORTAL_URL/o/c/customerrequests/v1.0/<id>"
 ```
 
+```powershell
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+curl.exe -s -H "Authorization: Bearer <token>" "$PortalUrl/o/c/customerrequests/v1.0/"
+curl.exe -s -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" "$PortalUrl/o/c/customerrequests/v1.0/" -d '{"fieldName": "value"}'
+curl.exe -s -H "Authorization: Bearer <token>" "$PortalUrl/o/c/customerrequests/v1.0/<id>"
+```
+
 Discover available Object APIs from the running portal:
 
 ```bash
-ldev mcp openapis --json | jq '.[] | select(.name | test("^c/"))'
+# bash/zsh (requires jq)
+ldev mcp openapis --json | jq -r '.[] | select(.name | test("^c/")) | .name'
+```
+
+```powershell
+(ldev mcp openapis --json | ConvertFrom-Json) |
+  Where-Object { $_.name -match '^c/' } |
+  Select-Object -ExpandProperty name
 ```
 
 ### Pagination
@@ -139,7 +153,14 @@ Discover the exact supported fields and operations from the running portal
 before scripting against them:
 
 ```bash
-ldev mcp openapis --json | jq '.[] | select(.name | test("object|^c/"; "i")) | .name'
+# bash/zsh (requires jq)
+ldev mcp openapis --json | jq -r '.[] | select(.name | test("object|^c/"; "i")) | .name'
+```
+
+```powershell
+(ldev mcp openapis --json | ConvertFrom-Json) |
+  Where-Object { $_.name -match 'object|^c/' } |
+  Select-Object -ExpandProperty name
 ```
 
 ## Object Actions

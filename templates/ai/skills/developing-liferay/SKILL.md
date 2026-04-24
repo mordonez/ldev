@@ -11,7 +11,7 @@ clear.
 ## Required bootstrap
 
 ```bash
-ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
 This returns `context` (offline project facts) and `doctor.readiness` (whether
@@ -70,7 +70,7 @@ for discovery, keep your shell in the worktree and call the global form:
 
 ```bash
 ldev --repo-root <main-root> portal inventory page --url <fullUrl> --json
-ldev --repo-root <main-root> ai bootstrap --intent=develop --json
+ldev --repo-root <main-root> ai bootstrap --intent=develop --cache=60 --json
 ```
 
 Use file exports when you need the current source of truth from the portal:
@@ -81,6 +81,14 @@ ldev resource export-template --site /<site> --id <TEMPLATE_ID>
 ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
+
+## Decision: import vs. migrate
+
+Use the standard file import workflow when the resource change is compatible
+with existing data.
+
+Switch to `migrating-journal-structures` before editing when existing Journal
+content makes a direct import risky.
 
 ## Repository-backed resource workflow
 
@@ -119,11 +127,6 @@ for a bulk refresh and accepted the larger diff.
 ### 3. Edit the exported files locally
 
 Review the exported resource files like any other source change.
-
-Use resource migrations instead of plain imports when existing Journal content
-makes the change risky:
-
-- switch to `migrating-journal-structures`
 
 ### 4. Validate before mutating
 

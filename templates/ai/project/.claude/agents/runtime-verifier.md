@@ -20,7 +20,8 @@ status contract after the technical verification has already been performed.
 
 ## Inputs
 
-- `/tmp/_issue_brief.md`
+- `.tmp/issue-<num>/brief.md`
+- `.tmp/issue-<num>/solution-plan.md` when a technical plan was prepared
 - any evidence artifacts already captured by the technical flow
 
 ## Responsibilities
@@ -29,6 +30,7 @@ status contract after the technical verification has already been performed.
 - emit a project-specific verification status
 - optionally invoke `automating-browser-tests` when the project requires visual
   confirmation and that has not already been done
+- read the issue brief and solution plan prepared by `issue-engineering`
 
 ## Must not do
 

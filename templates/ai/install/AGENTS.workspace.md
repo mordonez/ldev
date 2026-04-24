@@ -42,6 +42,16 @@ Before changing code or runtime state:
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
+## Optional Shell Helpers
+
+- `jq` is not installed by default on every machine. Check with `jq --version`.
+- Install when needed:
+  - Windows: `winget install jqlang.jq`
+  - macOS: `brew install jq`
+  - Linux (Debian/Ubuntu): `sudo apt install jq`
+- In reusable agent docs, prefer direct JSON parsing by the agent or shell-native
+  parsing (`ConvertFrom-Json` in PowerShell) instead of assuming `jq` exists.
+
 ## Safety Invariants
 
 These rules apply to every task, regardless of the skill in use:
@@ -58,6 +68,10 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
+
+If this workspace also uses `ldev-native` capabilities, apply the additional
+mutating-task gates from `isolating-worktrees` and any installed project issue
+workflow before changing code, resources, or runtime state.
 
 ## Workflow Rule
 
@@ -102,18 +116,13 @@ Before using MCP:
 
 - Before using a `git`, `blade`, or ad hoc shell command to accomplish something,
   check `ldev --help` to verify no `ldev` equivalent exists.
-- If this repository uses isolated worktrees through `ldev`, never use `git worktree add`
-  directly. Use `ldev worktree setup --name <name> --with-env` instead — it handles
-  environment isolation, database copying, and Btrfs snapshots on top of the git
-  worktree. `git worktree add` alone is incomplete and unsafe for that workflow.
-- After creating an isolated worktree, immediately `cd` into it and confirm the
-  editing root with `git rev-parse --show-toplevel`. Do not edit files whose
-  absolute path belongs to the primary checkout when the task requires a
-  worktree.
-- Treat the confirmed worktree root as an edit boundary, not a one-time check.
-  Before any file edit, make sure the tool `workdir` and every target path are
-  under that root. Re-run the check after interruptions, context resumes, shell
-  changes, or any step that may have changed directories.
+- If this repository uses isolated worktrees through `ldev`, use
+  `isolating-worktrees` for the canonical setup, recovery, and cleanup flow.
+- Never use `git worktree add` directly. `git worktree add` alone is incomplete
+  and unsafe for that workflow.
+- After creating an isolated worktree, confirm the editing root with
+  `git rev-parse --show-toplevel` and treat that root as an active edit
+  boundary for the whole task.
 - Use **Blade/Liferay Workspace** as the standard project structure.
 - Use `blade` commands when Workspace rules or docs call for them.
 - Use `ldev` for diagnostics, context discovery, deploy verification, and
@@ -123,8 +132,10 @@ Before using MCP:
   `import-adt`, `import-fragment`) over plural commands.
 - Prefer `ldev deploy module <module-name>` or `ldev deploy theme` over broader
   deploy commands. Do not use a broad deploy as a default validation step.
+- Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
+  explicitly requires fresh runtime or portal state.
 - Prefer the task-shaped public contract first:
-  - `ldev ai bootstrap --intent=discover --json` for read-only discovery
+  - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
   - `ldev context --json`
@@ -155,11 +166,13 @@ Use these as the standard reusable entrypoints:
 
 - `liferay-expert`
 - `developing-liferay`
+- `isolating-worktrees`
 - `deploying-liferay`
 - `troubleshooting-liferay`
 - `migrating-journal-structures`
 - `automating-browser-tests`
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
+<!-- Replaced at install time by ldev ai install. Do not edit. -->
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation

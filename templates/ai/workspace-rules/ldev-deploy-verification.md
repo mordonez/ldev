@@ -13,7 +13,13 @@ When a change affects deployable code or assets:
 1. confirm the runtime is healthy with `ldev status --json`
 2. deploy with the narrowest suitable deploy command
 3. verify runtime/deploy behavior with `ldev logs diagnose --since 5m --json`
-4. use `ldev portal inventory ... --json` when the change affects page behavior or content rendering
+4. use `ldev portal check --json` as a fast structured health/readiness snapshot after deploys
+5. use `ldev portal inventory ... --json` when the change affects page behavior or content rendering
+
+`ldev portal check --json` is a structured verdict, not a replacement for logs
+or resource read-back. Use it to confirm the portal is reachable and then pair
+it with `ldev logs diagnose --json` or resource/page verification for the
+actual changed surface.
 
 Use deploy commands only for deployable artifacts:
 

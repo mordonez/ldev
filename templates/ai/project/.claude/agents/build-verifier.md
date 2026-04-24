@@ -22,14 +22,15 @@ Canonical technical guidance lives in:
 
 ## Inputs
 
-- `/tmp/_issue_brief.md`
-- `/tmp/_solution_plan.md`
+- `.tmp/issue-<num>/brief.md`
+- `.tmp/issue-<num>/solution-plan.md`
 
 ## What this wrapper may do
 
 - execute the already-chosen deploy command
 - report a build or deploy failure in a consistent project format
 - enforce a project-specific success string if the repository wants one
+- read the issue brief and solution plan already prepared by `issue-engineering`
 
 ## What this wrapper must not do
 

@@ -152,7 +152,7 @@ structure type across all selected folders instead of per folder.
 
 ### Isolated worktree troubleshooting
 
-Reference: `references/worktree-flow.md`
+Use `isolating-worktrees` for the canonical setup, root lock, recovery, and cleanup flow.
 
 When a risky fix or a production-like reproduction should not share runtime
 state with the main checkout, isolate it:

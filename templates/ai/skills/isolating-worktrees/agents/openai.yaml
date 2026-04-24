@@ -1,0 +1,4 @@
+interface:
+  display_name: "Isolating Worktrees"
+  short_description: "Create, lock, recover, and clean isolated ldev worktrees"
+  default_prompt: "Use $isolating-worktrees to set up or validate an isolated ldev-native worktree, keep edits inside the confirmed worktree root, and recover safely from worktree setup blockers."

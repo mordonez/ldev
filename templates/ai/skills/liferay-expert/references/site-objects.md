@@ -47,7 +47,7 @@ inventory pass before choosing export/import commands.
 Do not assume the browser URL site is the source of truth. Export from the
 site that actually owns the object.
 
-See also: `../developing-liferay/references/structures.md` for the full
+See also: `../../developing-liferay/references/structures.md` for the full
 export/import workflow.
 
 ## Content Volume
@@ -85,5 +85,13 @@ If the translation export from the portal UI is failing:
 5. If the portal exports nothing for a specific content type, use MCP to investigate:
    ```bash
    ldev mcp check --json
-   ldev mcp openapis --json | jq '.[] | select(.name | test("translation"; "i")) | .name'
+   # bash/zsh (requires jq)
+   ldev mcp openapis --json | jq -r '.[] | select(.name | test("translation"; "i")) | .name'
+   ```
+
+   ```powershell
+   ldev mcp check --json
+   (ldev mcp openapis --json | ConvertFrom-Json) |
+     Where-Object { $_.name -match 'translation' } |
+     Select-Object -ExpandProperty name
    ```

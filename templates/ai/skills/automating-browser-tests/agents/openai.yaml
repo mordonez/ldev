@@ -1,0 +1,4 @@
+interface:
+  display_name: "Automating Browser Tests"
+  short_description: "Run Playwright-based browser checks and capture visual evidence"
+  default_prompt: "Use $automating-browser-tests to reproduce or validate Liferay behavior in the browser with Playwright and save evidence under .tmp/."

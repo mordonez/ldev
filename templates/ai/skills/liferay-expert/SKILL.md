@@ -15,8 +15,12 @@ specialist skill quickly.
 Run this bootstrap first:
 
 ```bash
-ldev ai bootstrap --intent=discover --json
+ldev ai bootstrap --intent=discover --cache=60 --json
 ```
+
+Use `--cache=60` for read-only discovery. If the task depends on fresh runtime
+or portal state, switch to the task-shaped command that probes that surface
+instead of forcing a no-cache discovery bootstrap.
 
 Use `bootstrap.context` to decide routing:
 

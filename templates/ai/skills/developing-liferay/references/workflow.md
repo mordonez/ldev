@@ -46,7 +46,15 @@ curl examples:
 
 ```bash
 ldev mcp check --json
-ldev mcp openapis --json | jq '.[] | select(.name | test("workflow|structured-content"; "i")) | .name'
+# bash/zsh (requires jq)
+ldev mcp openapis --json | jq -r '.[] | select(.name | test("workflow|structured-content"; "i")) | .name'
+```
+
+```powershell
+ldev mcp check --json
+(ldev mcp openapis --json | ConvertFrom-Json) |
+   Where-Object { $_.name -match 'workflow|structured-content' } |
+   Select-Object -ExpandProperty name
 ```
 
 ## Check which workflow is assigned to an asset class

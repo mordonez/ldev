@@ -5,18 +5,15 @@ description: 'Use for any task that can mutate code, resources, or runtime state
 
 # Issue Engineering
 
-This skill is intentionally thin.
+Use this skill for the project-specific issue process only.
 
-It does not own the technical `ldev` playbooks. Vendor skills do.
-
-Use this overlay only for project-specific issue process:
+It owns:
 
 - issue intake and scope notes
-- worktree naming conventions if the project wants them and the runtime supports them
+- issue worktree naming conventions
 - temporary issue artifacts and handoff files
-- human-review handoff expectations
-- GitHub comments, evidence, and closure policy
-- team-specific escalation and cleanup rules
+- human-review expectations
+- project-specific evidence, closure, and cleanup rules
 
 For technical execution, always route to vendor skills:
 
@@ -30,24 +27,12 @@ For `ldev-native`, this skill is mandatory before technical execution whenever
 the task mutates code, resources, or runtime state, even without a formal
 GitHub issue.
 
-## Boundary
+For scope boundaries and invalid shortcuts, read
+`references/boundary-rules.md` only when needed.
 
-This project skill must not become the canonical source for:
+## Hard gates
 
-- discovery with `ldev portal inventory ...`
-- runtime diagnosis with `ldev doctor`, `ldev context`, `ldev status`, or `ldev logs ...`
-- export/import resource workflows
-- deploy and runtime verification
-- production-to-local reproduction workflows
-- generic `ldev worktree` technical guidance
-
-If that knowledge is reusable across `ldev` projects, move it into vendor
-skills instead.
-
-## Recommended usage
-
-For `ldev-native` mutating tasks, this sequence is mandatory and must be
-executed in order:
+For `ldev-native` mutating tasks, execute this order without skipping:
 
 1. `Red-1` reproduction in the current runtime
 2. isolated worktree setup and active edit-root lock
@@ -55,7 +40,10 @@ executed in order:
 4. import/deploy verification with runtime evidence
 5. `Red -> Green` visual validation on the same local URL
 
-### 1. Intake
+For `blade-workspace`, keep the same intake and validation discipline but do
+not invent a fake worktree phase.
+
+## 1. Intake
 
 Review the issue in the tracker and capture only project-specific process data:
 
@@ -68,7 +56,7 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
-### 2. Reproduce
+## 2. Reproduce before edits
 
 **This step is a hard gate. Do not proceed to worktree setup or code changes without it.**
 
@@ -97,7 +85,7 @@ For `ldev-native`, this gate has two moments:
 Do not treat a production screenshot as `Red`. Production evidence explains the
 issue; local reproduction defines the bug you are actually fixing.
 
-### 3. Worktree isolation
+## 3. Isolate the edit root
 
 **For `ldev-native` projects this step is mandatory, not optional.**
 If the project defines agent invariants in `docs/ai/project-context.md`, those
@@ -105,29 +93,13 @@ invariants require a worktree before any code change or runtime mutation.
 Do not skip this step regardless of whether the user asks to skip commits or
 work in a lightweight mode.
 
-**These justifications are invalid and must not be used to skip this step:**
-- "We are already on a feature branch, not main" - branch isolation is not runtime isolation.
-- "The change is small" - size does not waive the invariant.
-- "The runtime is already running" - that is the main environment; it must not be mutated.
-- "The user did not ask for a worktree" - the invariant applies regardless of user phrasing.
-- "This is not a formal GitHub issue" - origin does not waive the invariant.
-
-If you find yourself reasoning toward any of these, stop and create the worktree.
-
 If isolated worktrees are available:
 
-- prepare the isolated worktree with `ldev worktree setup --with-env`
+- use the vendor skill `isolating-worktrees` for setup, root lock, recovery,
+  and cleanup
 - use project worktree naming conventions if the repository has them
-- **the worktree name must be derived from the issue identifier provided in this
-  session, never guessed or inferred from existing worktrees in the repository**
-- **if the user has not provided an issue identifier, derive a short descriptive name
-  from the task (e.g. `fix-share-social-media`); do not invent a numeric identifier
-  and do not reuse an existing worktree name found in the repository**
-- **other worktrees visible in `ldev ai bootstrap`, `ldev status`, `ldev worktree env`,
-  or `git worktree list` output belong to other issues; do not navigate into them
-  unless the user explicitly says to reuse one**
-- read `references/worktree-env.md` and apply its Isolation Gate as an
-  always-on edit boundary, not only during worktree creation
+- read `references/worktree-env.md` only for project-specific worktree
+  conventions layered on top of that vendor skill
 - keep environment-specific cleanup tied to the actual worktree used
 - after `ldev start`, reproduce the bug again in the worktree runtime before the
   first code change
@@ -135,7 +107,19 @@ If isolated worktrees are available:
 If the repository is a `blade-workspace`, do not invent a fake worktree phase.
 Stay in the repository process flow and use vendor skills directly.
 
-### 4. Technical execution
+## 4. Prepare artifacts and route the technical work
+
+Before routing technical work, prepare the issue artifacts this repository
+expects under `.tmp/issue-<num>/`:
+
+- `brief.md` — created after intake and `Red-1` reproduction; summarize the
+  verified local URL, resolved surface, symptom checklist, and any hard blockers
+- `solution-plan.md` — created only after the technical direction is known;
+  capture the smallest intended fix path, validation plan, and the vendor skill
+  that owns execution
+
+These files are the inputs for thin wrappers such as `issue-resolver`,
+`build-verifier`, and `runtime-verifier`. Do not write them under `/tmp/`.
 
 Route by task:
 
@@ -150,7 +134,7 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-### 5. Validation is not optional
+## 5. Validate Red -> Green before handoff
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
 validation with Playwright is required before handoff regardless of whether
@@ -183,7 +167,7 @@ omitting it.
 Do not declare completion if any gate above is missing. Missing evidence means
 the task remains in `Red`.
 
-### 6. Project handoff
+## Project handoff
 
 After technical work is complete, apply the project process:
 
@@ -192,7 +176,7 @@ After technical work is complete, apply the project process:
 - attach screenshots or evidence if the project requires them
 - wait for explicit human validation before opening a pull request or posting PR-related issue comments
 
-### 7. Cleanup
+## Cleanup
 
 Only apply cleanup rules that are specific to this repository's process.
 
@@ -201,25 +185,14 @@ skills or `AGENTS.md`, not here.
 
 ## Allowed project-specific references
 
+- `references/boundary-rules.md`
 - `references/issue-workflow-contract.md`
 - `references/intake.md`
+- `references/playwright-liferay.md`
+- `references/validation.md`
 - `references/github-visual-evidence.md`
 - `references/human-review-and-cleanup.md`
 - `references/human-review-checklist.md`
 - `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
 - `scripts/prepare_issue.py`
 - project brief templates under `templates/`
-
-## Disallowed drift
-
-Do not add large technical runbooks here for:
-
-- OSGi diagnosis
-- page discovery
-- resource ownership discovery
-- export/import commands
-- deploy command selection
-- migration pipeline execution
-- generic worktree troubleshooting
-
-Those are reusable and must live in vendor-managed skills.

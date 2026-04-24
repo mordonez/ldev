@@ -2,6 +2,7 @@ automating-browser-tests
 capturing-session-knowledge
 deploying-liferay
 developing-liferay
+isolating-worktrees
 liferay-expert
 migrating-journal-structures
 troubleshooting-liferay

@@ -11,7 +11,16 @@ Use this reference when validation or reproduction depends on the portal in a br
 ## Minimum Runtime Verification
 
 ```bash
+# bash/zsh
 mkdir -p .tmp/issue-NUM
+playwright-cli -s=runtime-NUM open "<portalUrl>/affected-path"
+playwright-cli -s=runtime-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/before.png', fullPage: true }); }"
+playwright-cli -s=runtime-NUM close
+```
+
+```powershell
+# PowerShell
+New-Item -ItemType Directory -Force .tmp/issue-NUM | Out-Null
 playwright-cli -s=runtime-NUM open "<portalUrl>/affected-path"
 playwright-cli -s=runtime-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/before.png', fullPage: true }); }"
 playwright-cli -s=runtime-NUM close
@@ -33,7 +42,7 @@ ldev portal page-layout export --url <fullUrl>
 
 3. Review the project Playwright login/editor patterns in:
 
-`../.agents/skills/automating-browser-tests/REFERENCE.md`
+`../../automating-browser-tests/REFERENCE.md`
 
 ## Signals That You Should Use Playwright
 

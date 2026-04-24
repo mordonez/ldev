@@ -73,23 +73,37 @@ that depend on OAuth.
 
 ## Obtaining a token manually
 
-For debugging or one-off scripts:
+For debugging or one-off scripts, prefer shell-native JSON parsing. Use `jq`
+only when it is already installed.
 
 ```bash
+# bash/zsh (requires jq)
+PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 curl -s -X POST \
-  "$(ldev context --json | jq -r '.liferay.portalUrl')/o/oauth2/token" \
+  "$PORTAL_URL/o/oauth2/token" \
   -d "grant_type=client_credentials" \
   -d "client_id=<CLIENT_ID>" \
   -d "client_secret=<CLIENT_SECRET>" \
   | jq -r '.access_token'
 ```
 
+```powershell
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+$TokenResponse = curl.exe -s -X POST "$PortalUrl/o/oauth2/token" -d "grant_type=client_credentials" -d "client_id=<CLIENT_ID>" -d "client_secret=<CLIENT_SECRET>"
+($TokenResponse | ConvertFrom-Json).access_token
+```
+
 Use the token as a Bearer header:
 
 ```bash
+# bash/zsh (requires jq)
 curl -s \
   -H "Authorization: Bearer <token>" \
-  "$(ldev context --json | jq -r '.liferay.portalUrl')/o/headless-delivery/v2.0/sites"
+  "$PORTAL_URL/o/headless-delivery/v2.0/sites"
+```
+
+```powershell
+curl.exe -s -H "Authorization: Bearer <token>" "$PortalUrl/o/headless-delivery/v2.0/sites"
 ```
 
 ## When the token expires
