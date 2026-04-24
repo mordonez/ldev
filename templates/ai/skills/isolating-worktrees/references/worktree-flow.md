@@ -16,19 +16,32 @@ inspection, recovery, and cleanup.
 > **Never use `git worktree add` directly.** `ldev worktree setup` handles
 > environment isolation beyond git alone.
 
-For agent-driven runtime-backed work, always use the full handoff command:
+For agent-driven runtime-backed work, always use the full handoff command.
+Run these two phases in order — do not skip ahead to phase 2 before phase 1 is
+complete.
+
+**Phase 1 — from the main checkout:**
 
 ```bash
+# If not on main, stop and ask the user for --base <ref> before continuing
 git branch --show-current
 git rev-parse --abbrev-ref origin/HEAD
 ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone
+```
+
+**Phase 2 — from inside the worktree (change directory first):**
+
+```bash
 cd .worktrees/<worktree-name>
 pwd
-git rev-parse --show-toplevel
+git rev-parse --show-toplevel   # must show .worktrees/<worktree-name> before continuing
 git status --short
-ldev start
+ldev start                      # starts the worktree runtime, NOT main
 ldev status --json
 ```
+
+If `git rev-parse --show-toplevel` does not show a path inside `.worktrees/<worktree-name>`,
+stop and ask the user to confirm the working directory before running `ldev start`.
 
 Use plain `ldev worktree setup --name <worktree-name>` only for git-only
 worktrees with no isolated runtime.
@@ -106,11 +119,15 @@ or browser validation.
 ```bash
 ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/<worktree-name>
+git rev-parse --show-toplevel
 ldev start
 ldev status --json
 ```
 
-This is the canonical agent path.
+This is the canonical agent path. The `git rev-parse --show-toplevel` after `cd`
+is mandatory — it locks the shell to the worktree root before starting the
+runtime. Never run `ldev start` from the main checkout to start a worktree
+runtime.
 
 ### Path B — Git-only worktree
 

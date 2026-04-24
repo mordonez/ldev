@@ -30,11 +30,12 @@ Do not use this skill when:
 
 1. Decide whether the task needs a runtime-backed worktree or a git-only worktree.
 2. Choose a traceable worktree name and do not reuse existing worktrees unless the user explicitly asked for that reuse.
-3. For git-only worktrees, use `ldev worktree setup --name <worktree-name>`. For runtime-backed worktrees, always use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone`.
-4. Enter `.worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel` before editing.
-5. For runtime-backed worktrees, run `ldev start`, `ldev status --json`, and wait for startup logs before portal-facing actions.
-6. Keep the confirmed root as an active edit boundary for the whole task.
-7. Clean up only after explicit human approval.
+3. Check the current branch with `git branch --show-current`. If the primary checkout is not on `main`, stop and ask the user which base branch the worktree should use before running setup. Pass it as `--base <ref>` to `ldev worktree setup`.
+4. For git-only worktrees, use `ldev worktree setup --name <worktree-name>`. For runtime-backed worktrees, always use `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone --restart-main-after-clone`.
+5. Immediately after setup, `cd .worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel`. Do not run any further commands until the root is confirmed. If you cannot confirm that the current directory is inside `.worktrees/<worktree-name>`, stop and ask the user to confirm the working directory before continuing.
+6. For runtime-backed worktrees, run `ldev start` **from inside the worktree directory**, then `ldev status --json`, and wait for startup logs before portal-facing actions. If `ldev start` would run from the main checkout, stop and ask the user which runtime to start instead of proceeding autonomously.
+7. Keep the confirmed root as an active edit boundary for the whole task.
+8. Clean up only after explicit human approval.
 
 ## Reference
 
