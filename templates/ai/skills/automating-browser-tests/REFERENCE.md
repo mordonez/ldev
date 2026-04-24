@@ -18,6 +18,11 @@ Quick rules:
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with a shell-native multiline
   literal: `cat <<'EOF'` in bash/zsh, `@'...'@` in PowerShell.
+- **`run-code` transforms shell operators**: the shell intercepts `||`, `&&`, `>`,
+  and `<` before JavaScript sees them. Use ternary expressions (`condition ? a : b`)
+  or `if/else` blocks inside `run-code` functions instead of `||` or `&&`. Always
+  assign the code to a variable first (using `cat <<'EOF'` or `@'...'@`) so the
+  shell cannot split or reinterpret it.
 - Keep one browser helper active at a time per session name. Do not run helpers in
   parallel against the same session — open first, then sequence snapshot / run-code /
   goto / screenshot.

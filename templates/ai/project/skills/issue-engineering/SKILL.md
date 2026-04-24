@@ -56,6 +56,13 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
+Before leaving intake, scan the issue for ambiguous references to fields,
+layouts, or components (ordinals like "el primero", cross-references like
+"igual que X", vague selectors like "the description field"). If any are found,
+apply the **Ambiguity Escape** in `references/intake.md` and ask the user for
+the exact field key, structure ID, or layout section before proceeding to
+reproduction.
+
 ## 2. Reproduce before edits
 
 **This step is a hard gate. Do not proceed to worktree setup or code changes without it.**
@@ -106,6 +113,28 @@ If isolated worktrees are available:
 
 If the repository is a `blade-workspace`, do not invent a fake worktree phase.
 Stay in the repository process flow and use vendor skills directly.
+
+## 3.5. Lock scope before the first edit
+
+**Before writing any code or importing any resource**, confirm the planned scope
+matches exactly what the issue states:
+
+1. List every file or resource you plan to change.
+2. Annotate each item with the reason it appears in the issue description.
+3. Remove any item that is not explicitly required or implied by the issue.
+4. If you discover a field, layout, or resource that is not in the original scope,
+   stop, add it to `solution-plan.md`, and surface it to the user before proceeding.
+
+Common scope-creep traps:
+
+- Adding new structure fields when the issue says to reorder or show/hide existing ones.
+- Modifying a widget layout (grid columns, container) when the issue targets a template.
+- Changing a CSS class globally when only one component is affected.
+
+If during planning you discover a file, resource, or field that was not
+mentioned or clearly implied by the issue, surface it to the user and update
+`solution-plan.md` before proceeding. A planning-time discovery is not
+authorization to expand scope.
 
 ## 4. Prepare artifacts and route the technical work
 
@@ -159,6 +188,37 @@ Validation must follow a visible `Red -> Green` loop:
 A screenshot file existing is not enough. The agent must compare the issue's
 expected/actual behaviors against the final page state and explicitly confirm
 the symptom is gone.
+
+**DOM counters (element counts, selector presence) are supplementary evidence
+only.** A counter that returns `1` proves an element exists; it does not prove
+the page looks correct. Visual validation is required in addition to any
+scripted assertions.
+
+**Side-by-side comparison is required before declaring Green:**
+
+- Open `before.png` (captured at Red) and the new `after.png` side by side.
+- Confirm every symptom from the issue description is no longer visible.
+- Confirm no new visual regressions appear (unexpected layout shifts, overlapping
+  elements, missing sections).
+
+**Human confirmation is required before declaring Green:**
+
+Do not self-declare the issue as fixed. Present the side-by-side evidence to the
+user and wait for explicit confirmation. The phrase "looks good" or "visually
+correct" from the user is the only valid gate to close the Red loop.
+
+**Revert-first on regression:** If a symptom appears in `after.png` (or in
+the running page) that was **not present in Red**, do not patch over it.
+
+1. Identify which commit, import, or deploy introduced the new symptom.
+2. Revert that unit to the pre-edit state (`git checkout <file>`, re-import
+   the previous resource, or redeploy the previous artifact).
+3. Confirm the regression is gone (the page matches Red, not a new broken state).
+4. Then restart the fix with the new constraint understood.
+
+Patching a regression with additional code accumulates invisible scope and
+makes the final diff harder to review. Always shrink back to the known-good
+baseline before trying again.
 
 If worktree isolation was skipped or the runtime is not available, explicitly
 block this step and tell the user validation is pending rather than silently

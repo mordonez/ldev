@@ -74,6 +74,24 @@ python .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
 - Unreproduced diagnoses
 - Claims based only on the production URL without local page inspection
 
+## Ambiguity Escape
+
+If the issue contains **relative or comparative references** to fields, layouts,
+or components, stop and ask the user for clarification before planning the fix.
+Patterns that require clarification:
+
+- **Field ordinal**: "the first field", "the first field that appears"
+  → Ask: "Which exact field key or DDM name is this referring to?"
+- **Cross-reference to another resource**: "same way as X", "iquals to Y",
+  "like the Z"
+  → Export X or Y first and confirm the exact behavior being replicated.
+- **Vague selector**: "the image", "the title", "the description"
+  → Resolve it through `ldev resource export-*` or portal inventory before assuming.
+- **Behavioral reference without a field key**: "show/hide the date", "hide the field"
+  → Confirm the exact DDM field name by exporting the structure first.
+
+Do not assume. A wrong assumption at intake becomes scope creep at edit time.
+
 ## Reproduce the Symptom
 
 After confirming the local URL and surface, capture the failing state **before
