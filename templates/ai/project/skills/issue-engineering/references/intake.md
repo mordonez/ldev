@@ -82,7 +82,7 @@ Patterns that require clarification:
 
 - **Field ordinal**: "the first field", "the first field that appears"
   → Ask: "Which exact field key or DDM name is this referring to?"
-- **Cross-reference to another resource**: "same way as X", "iquals to Y",
+- **Cross-reference to another resource**: "same way as X", "equals Y",
   "like the Z"
   → Export X or Y first and confirm the exact behavior being replicated.
 - **Vague selector**: "the image", "the title", "the description"

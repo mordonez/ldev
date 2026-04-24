@@ -63,7 +63,7 @@ function mapSourceToInstalled(relativePath) {
 }
 
 function extractInlineRelativePaths(content) {
-  const matches = content.matchAll(/`((?:\.\.\/|\.\/)[^`\s]+)`/g);
+  const matches = content.matchAll(/`((?:\.\.\/|\.\/|references\/)[^`\s]+)`/g);
   /** @type {string[]} */
   const references = [];
 

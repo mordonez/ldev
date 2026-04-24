@@ -208,7 +208,7 @@ they appear in the default API response. Filter by `status`:
 /o/c/customerrequests/v1.0/?filter=status eq 'pending'
 ```
 
-See `references/workflow.md` for inspection and approval flows.
+See `workflow.md` for inspection and approval flows.
 
 ## Canonical modern pattern
 

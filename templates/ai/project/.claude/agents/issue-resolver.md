@@ -51,5 +51,5 @@ If the technical flow is unclear, stop and route back to
 - `READY_FOR_TECHNICAL_FLOW`
 - `ESCALATE: <project blocker>`
 - optional artifacts:
-	- `.tmp/issue-<num>/brief.md`
-	- `.tmp/issue-<num>/solution-plan.md`
+  - `.tmp/issue-<num>/brief.md`
+  - `.tmp/issue-<num>/solution-plan.md`
