@@ -30,9 +30,12 @@ export async function runDeployWatch(
   const moduleFilter = options?.module?.trim() || null;
   const watchedRoots = await resolveWatchRoots(context.liferayDir, moduleFilter);
   if (watchedRoots.length === 0) {
-    throw new CliError('No paths were found under liferay/modules or liferay/themes to watch.', {
-      code: 'DEPLOY_WATCH_PATHS_NOT_FOUND',
-    });
+    throw new CliError(
+      'No paths were found under liferay/modules, liferay/themes, or liferay/client-extensions to watch.',
+      {
+        code: 'DEPLOY_WATCH_PATHS_NOT_FOUND',
+      },
+    );
   }
 
   const intervalMs = options?.intervalMs ?? 1200;
@@ -81,9 +84,14 @@ export async function resolveWatchRoots(liferayDir: string, moduleFilter: string
   const roots: string[] = [];
   const modulesDir = path.join(liferayDir, 'modules');
   const themesDir = path.join(liferayDir, 'themes');
+  const clientExtDir = path.join(liferayDir, 'client-extensions');
 
   if (moduleFilter) {
-    const candidates = [path.join(modulesDir, moduleFilter), path.join(themesDir, moduleFilter)];
+    const candidates = [
+      path.join(modulesDir, moduleFilter),
+      path.join(themesDir, moduleFilter),
+      path.join(clientExtDir, moduleFilter),
+    ];
     for (const candidate of candidates) {
       if (await fs.pathExists(candidate)) {
         roots.push(candidate);
@@ -97,6 +105,9 @@ export async function resolveWatchRoots(liferayDir: string, moduleFilter: string
   }
   if (await fs.pathExists(themesDir)) {
     roots.push(themesDir);
+  }
+  if (await fs.pathExists(clientExtDir)) {
+    roots.push(clientExtDir);
   }
 
   return roots;
@@ -115,7 +126,7 @@ export function groupChangesByModule(
     const namespace = segments[0];
     const moduleName = moduleFilter ?? segments[1];
 
-    if ((namespace !== 'modules' && namespace !== 'themes') || !moduleName) {
+    if ((namespace !== 'modules' && namespace !== 'themes' && namespace !== 'client-extensions') || !moduleName) {
       continue;
     }
 
