@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.2](https://github.com/mordonez/ldev/compare/ldev-v0.5.1...ldev-v0.5.2) (2026-04-24)
+
+
+### Bug Fixes
+
+* add AI bootstrap and scoped doctor probes for agent context ([#113](https://github.com/mordonez/ldev/issues/113)) ([366eb7a](https://github.com/mordonez/ldev/commit/366eb7a431b2bfa52f1ddb49405b2d553108f486))
+* add global repo-root targeting and worktree handoff flow ([#115](https://github.com/mordonez/ldev/issues/115)) ([feb32d2](https://github.com/mordonez/ldev/commit/feb32d2a215f19bb6377cd3ad59c959f577f0abd))
+* **ai-templates:** harden AI templates for small-model safety and cross-OS compatibility ([#116](https://github.com/mordonez/ldev/issues/116)) ([a4ae0a1](https://github.com/mordonez/ldev/commit/a4ae0a191a6330b68f12029fca1875a3cd0d3585))
+
 ## [0.5.1](https://github.com/mordonez/ldev/compare/ldev-v0.5.0...ldev-v0.5.1) (2026-04-21)
 
 
