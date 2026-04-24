@@ -1,7 +1,7 @@
 ---
 
 description: Resource sync and Journal migration guidance using `ldev`
-globs: liferay/resources/**,configs/**,modules/**
+globs: **/resources/**,configs/**,modules/**
 alwaysApply: false
 
 ---

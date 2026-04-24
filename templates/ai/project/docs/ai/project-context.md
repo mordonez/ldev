@@ -24,8 +24,8 @@ reusable across multiple projects, move it into a vendor skill instead.
 ## Local Runtime
 
 ```bash
-ldev ai bootstrap --intent=develop --json
-ldev --repo-root ../main-checkout ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
+ldev --repo-root ../main-checkout ai bootstrap --intent=develop --cache=60 --json
 ldev setup
 ldev start
 ldev status

@@ -21,6 +21,9 @@ Before changing code or runtime state:
    `ldev` command covers the required portal surface.
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
+6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
+  mutates code, resources, or runtime state, read it first regardless of
+  whether the request came from GitHub, chat, or an ad-hoc instruction.
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -40,6 +43,8 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
+11. For `ldev-native`, any task that mutates code/resources/runtime must execute this gate order without exceptions: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red -> Green` visual validation.
+12. Invalid skip reasons include: no formal GitHub issue, task is small, already on a feature branch, runtime already running, or user did not explicitly request validation/worktree steps.
 
 ## ldev Command Resolution
 
@@ -53,26 +58,34 @@ When instructions say `ldev ...`, resolve the CLI in this order:
 For agent work, treat `npx.cmd @mordonezdev/ldev` as the Windows-safe fallback.
 Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
 
+## Optional Shell Helpers
+
+- `jq` is not installed by default on every machine. Check with `jq --version`.
+- Install when needed:
+  - Windows: `winget install jqlang.jq`
+  - macOS: `brew install jq`
+  - Linux (Debian/Ubuntu): `sudo apt install jq`
+- In reusable agent docs, prefer direct JSON parsing by the agent or shell-native
+  parsing (`ConvertFrom-Json` in PowerShell) instead of assuming `jq` exists.
+
 ## Default Operating Rules
 
 - Use `ldev` as the official entrypoint. Do not fall back to legacy wrappers or
   ad hoc project scripts when an `ldev` command already exists.
 - Before using a `git`, `blade`, or ad hoc shell command to accomplish something,
   check `ldev --help` to verify no `ldev` equivalent exists.
-- Never use `git worktree add` directly. Use `ldev worktree setup --name <name> --with-env`
-  instead — it handles environment isolation, database copying, and Btrfs snapshots
-  on top of the git worktree. `git worktree add` alone is incomplete and unsafe for
-  this workflow.
-- After creating an isolated worktree, immediately `cd` into it and confirm the
-  editing root with `git rev-parse --show-toplevel`. Do not edit files whose
-  absolute path belongs to the primary checkout when the task requires a
-  worktree.
-- Treat the confirmed worktree root as an edit boundary, not a one-time check.
-  Before any file edit, make sure the tool `workdir` and every target path are
-  under that root. Re-run the check after interruptions, context resumes, shell
-  changes, or any step that may have changed directories.
+- If an `ldev-native` task needs isolated runtime state or a confirmed edit
+  boundary, use `isolating-worktrees` for the canonical setup, recovery, and
+  cleanup flow. For runtime-backed worktrees, ask the user whether main needs to run in parallel with the worktree. Default: `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped). Add `--restart-main-after-clone` only if the user confirms they need main running alongside.
+- Never use `git worktree add` directly. `git worktree add` alone is incomplete
+  and unsafe for this workflow.
+- After creating an isolated worktree, confirm the editing root with
+  `git rev-parse --show-toplevel` and treat that root as an active edit
+  boundary for the whole task.
+- Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
+  explicitly requires fresh runtime or portal state.
 - Prefer the task-shaped public contract first:
-  - `ldev ai bootstrap --intent=discover --json` for read-only discovery
+  - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
   - `ldev context --json`
@@ -86,6 +99,19 @@ Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
   - `ldev doctor --json`
   - `ldev context --json`
   - `ldev status --json`
+
+
+## Branch and Worktree Lock
+
+- Treat the current user-selected worktree as locked for the whole session.
+- For detailed setup and recovery, use `isolating-worktrees`. Keep this section
+  focused on the always-on lock invariant only.
+- Do not switch to another worktree, checkout another branch, or run commands from another repo root unless the user explicitly asks for that switch in the current chat.
+- Resolve and store one explicit `lockedRoot` at bootstrap from the current editor file path and terminal CWD.
+- If editor file path and terminal CWD point to different roots, stop and ask for explicit user confirmation before running any command.
+- Prefix command sequences with an explicit shell-native directory change to the locked worktree root before running discovery, validation, import, deploy, or mutating commands that generate evidence (`cd` in sh/bash/zsh/fish on Linux/macOS, `Set-Location` in PowerShell on Windows).
+- Before reporting any import/deploy/edit as successful, verify in the same locked worktree runtime context (`ldev status --json` and read-after-write evidence).
+- If context appears to point at a different worktree than the locked one, stop and ask for confirmation instead of continuing.
 
 ## MCP Usage
 
@@ -136,11 +162,13 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 
 - `liferay-expert`: router for technical Liferay work.
 - `developing-liferay`: implementation guidance for code, themes, content resources and fragments.
+- `isolating-worktrees`: isolated `ldev-native` worktree setup, edit-root lock, recovery and cleanup.
 - `deploying-liferay`: build, deploy and runtime verification flow.
 - `troubleshooting-liferay`: diagnosis and recovery flow.
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
+<!-- Replaced at install time by ldev ai install. Do not edit. -->
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation

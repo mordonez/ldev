@@ -1,22 +1,19 @@
 ---
 name: issue-engineering
-description: 'Use when a project wants a thin issue-process overlay on top of vendor ldev skills for intake, human review handoff, evidence, and cleanup.'
+description: 'Use for any task that can mutate code, resources, or runtime state in this project (GitHub issue, chat request, or ad-hoc), to enforce intake/reproduction gates, evidence, and human handoff.'
 ---
 
 # Issue Engineering
 
-This skill is intentionally thin.
+Use this skill for the project-specific issue process only.
 
-It does not own the technical `ldev` playbooks. Vendor skills do.
-
-Use this overlay only for project-specific issue process:
+It owns:
 
 - issue intake and scope notes
-- worktree naming conventions if the project wants them and the runtime supports them
+- issue worktree naming conventions
 - temporary issue artifacts and handoff files
-- human-review handoff expectations
-- GitHub comments, evidence, and closure policy
-- team-specific escalation and cleanup rules
+- human-review expectations
+- project-specific evidence, closure, and cleanup rules
 
 For technical execution, always route to vendor skills:
 
@@ -26,23 +23,27 @@ For technical execution, always route to vendor skills:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 
-## Boundary
+For `ldev-native`, this skill is mandatory before technical execution whenever
+the task mutates code, resources, or runtime state, even without a formal
+GitHub issue.
 
-This project skill must not become the canonical source for:
+For scope boundaries and invalid shortcuts, read
+`references/boundary-rules.md` only when needed.
 
-- discovery with `ldev portal inventory ...`
-- runtime diagnosis with `ldev doctor`, `ldev context`, `ldev status`, or `ldev logs ...`
-- export/import resource workflows
-- deploy and runtime verification
-- production-to-local reproduction workflows
-- generic `ldev worktree` technical guidance
+## Hard gates
 
-If that knowledge is reusable across `ldev` projects, move it into vendor
-skills instead.
+For `ldev-native` mutating tasks, execute this order without skipping:
 
-## Recommended usage
+1. `Red-1` reproduction in the current runtime
+2. isolated worktree setup and active edit-root lock
+3. `Red-2` reproduction in the worktree runtime
+4. import/deploy verification with runtime evidence
+5. `Red -> Green` visual validation on the same local URL
 
-### 1. Intake
+For `blade-workspace`, keep the same intake and validation discipline but do
+not invent a fake worktree phase.
+
+## 1. Intake
 
 Review the issue in the tracker and capture only project-specific process data:
 
@@ -55,7 +56,14 @@ Review the issue in the tracker and capture only project-specific process data:
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 
-### 2. Reproduce
+Before leaving intake, scan the issue for ambiguous references to fields,
+layouts, or components (ordinals like "el primero", cross-references like
+"igual que X", vague selectors like "the description field"). If any are found,
+apply the **Ambiguity Escape** in `references/intake.md` and ask the user for
+the exact field key, structure ID, or layout section before proceeding to
+reproduction.
+
+## 2. Reproduce before edits
 
 **This step is a hard gate. Do not proceed to worktree setup or code changes without it.**
 
@@ -84,7 +92,7 @@ For `ldev-native`, this gate has two moments:
 Do not treat a production screenshot as `Red`. Production evidence explains the
 issue; local reproduction defines the bug you are actually fixing.
 
-### 3. Worktree isolation
+## 3. Isolate the edit root
 
 **For `ldev-native` projects this step is mandatory, not optional.**
 If the project defines agent invariants in `docs/ai/project-context.md`, those
@@ -92,20 +100,13 @@ invariants require a worktree before any code change or runtime mutation.
 Do not skip this step regardless of whether the user asks to skip commits or
 work in a lightweight mode.
 
-**These justifications are invalid and must not be used to skip this step:**
-- "We are already on a feature branch, not main" - branch isolation is not runtime isolation.
-- "The change is small" - size does not waive the invariant.
-- "The runtime is already running" - that is the main environment; it must not be mutated.
-- "The user did not ask for a worktree" - the invariant applies regardless of user phrasing.
-
-If you find yourself reasoning toward any of these, stop and create the worktree.
-
 If isolated worktrees are available:
 
-- prepare the isolated worktree with `ldev worktree setup --with-env`
+- use the vendor skill `isolating-worktrees` for setup, root lock, recovery,
+  and cleanup
 - use project worktree naming conventions if the repository has them
-- read `references/worktree-env.md` and apply its Isolation Gate as an
-  always-on edit boundary, not only during worktree creation
+- read `references/worktree-env.md` only for project-specific worktree
+  conventions layered on top of that vendor skill
 - keep environment-specific cleanup tied to the actual worktree used
 - after `ldev start`, reproduce the bug again in the worktree runtime before the
   first code change
@@ -113,7 +114,41 @@ If isolated worktrees are available:
 If the repository is a `blade-workspace`, do not invent a fake worktree phase.
 Stay in the repository process flow and use vendor skills directly.
 
-### 4. Technical execution
+## 3.5. Lock scope before the first edit
+
+**Before writing any code or importing any resource**, confirm the planned scope
+matches exactly what the issue states:
+
+1. List every file or resource you plan to change.
+2. Annotate each item with the reason it appears in the issue description.
+3. Remove any item that is not explicitly required or implied by the issue.
+4. If you discover a field, layout, or resource that is not in the original scope,
+   stop, add it to `solution-plan.md`, and surface it to the user before proceeding.
+
+Common scope-creep traps:
+
+- Adding new structure fields when the issue says to reorder or show/hide existing ones.
+- Modifying a widget layout (grid columns, container) when the issue targets a template.
+- Changing a CSS class globally when only one component is affected.
+
+If during planning you discover a file, resource, or field that was not
+mentioned or clearly implied by the issue, surface it to the user and update
+`solution-plan.md` before proceeding. A planning-time discovery is not
+authorization to expand scope.
+
+## 4. Prepare artifacts and route the technical work
+
+Before routing technical work, prepare the issue artifacts this repository
+expects under `.tmp/issue-<num>/`:
+
+- `brief.md` — created after intake and `Red-1` reproduction; summarize the
+  verified local URL, resolved surface, symptom checklist, and any hard blockers
+- `solution-plan.md` — created only after the technical direction is known;
+  capture the smallest intended fix path, validation plan, and the vendor skill
+  that owns execution
+
+These files are the inputs for thin wrappers such as `issue-resolver`,
+`build-verifier`, and `runtime-verifier`. Do not write them under `/tmp/`.
 
 Route by task:
 
@@ -128,7 +163,7 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-### 5. Validation is not optional
+## 5. Validate Red -> Green before handoff
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
 validation with Playwright is required before handoff regardless of whether
@@ -154,11 +189,45 @@ A screenshot file existing is not enough. The agent must compare the issue's
 expected/actual behaviors against the final page state and explicitly confirm
 the symptom is gone.
 
+**DOM counters (element counts, selector presence) are supplementary evidence
+only.** A counter that returns `1` proves an element exists; it does not prove
+the page looks correct. Visual validation is required in addition to any
+scripted assertions.
+
+**Side-by-side comparison is required before declaring Green:**
+
+- Open `before.png` (captured at Red) and the new `after.png` side by side.
+- Confirm every symptom from the issue description is no longer visible.
+- Confirm no new visual regressions appear (unexpected layout shifts, overlapping
+  elements, missing sections).
+
+**Human confirmation is required before declaring Green:**
+
+Do not self-declare the issue as fixed. Present the side-by-side evidence to the
+user and wait for explicit confirmation. The phrase "looks good" or "visually
+correct" from the user is the only valid gate to close the Red loop.
+
+**Revert-first on regression:** If a symptom appears in `after.png` (or in
+the running page) that was **not present in Red**, do not patch over it.
+
+1. Identify which commit, import, or deploy introduced the new symptom.
+2. Revert that unit to the pre-edit state (`git checkout <file>`, re-import
+   the previous resource, or redeploy the previous artifact).
+3. Confirm the regression is gone (the page matches Red, not a new broken state).
+4. Then restart the fix with the new constraint understood.
+
+Patching a regression with additional code accumulates invisible scope and
+makes the final diff harder to review. Always shrink back to the known-good
+baseline before trying again.
+
 If worktree isolation was skipped or the runtime is not available, explicitly
 block this step and tell the user validation is pending rather than silently
 omitting it.
 
-### 6. Project handoff
+Do not declare completion if any gate above is missing. Missing evidence means
+the task remains in `Red`.
+
+## Project handoff
 
 After technical work is complete, apply the project process:
 
@@ -167,7 +236,7 @@ After technical work is complete, apply the project process:
 - attach screenshots or evidence if the project requires them
 - wait for explicit human validation before opening a pull request or posting PR-related issue comments
 
-### 7. Cleanup
+## Cleanup
 
 Only apply cleanup rules that are specific to this repository's process.
 
@@ -176,25 +245,14 @@ skills or `AGENTS.md`, not here.
 
 ## Allowed project-specific references
 
+- `references/boundary-rules.md`
 - `references/issue-workflow-contract.md`
 - `references/intake.md`
+- `references/playwright-liferay.md`
+- `references/validation.md`
 - `references/github-visual-evidence.md`
 - `references/human-review-and-cleanup.md`
 - `references/human-review-checklist.md`
 - `references/worktree-env.md` only when `ldev-native` worktree capabilities are actually available
 - `scripts/prepare_issue.py`
 - project brief templates under `templates/`
-
-## Disallowed drift
-
-Do not add large technical runbooks here for:
-
-- OSGi diagnosis
-- page discovery
-- resource ownership discovery
-- export/import commands
-- deploy command selection
-- migration pipeline execution
-- generic worktree troubleshooting
-
-Those are reusable and must live in vendor-managed skills.

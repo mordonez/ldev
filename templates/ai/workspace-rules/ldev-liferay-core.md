@@ -32,9 +32,12 @@ Common `liferay-learn` documentation paths:
 When the topic is not listed above, query GitHub directly:
 `site:github.com/liferay/liferay-learn [topic]`
 
-Common default local portal credentials for a fresh Liferay bundle are:
+Common default local portal credentials for a fresh Liferay bundle are demo-only:
 - Email: `test@liferay.com`
 - Password: `test`
+
+Use placeholders such as `<test-user-email>` and `<test-user-password>` in
+examples elsewhere, and point back to this file when a demo default is useful.
 
 In an `ldev` project, do not assume the portal URL. Resolve it from
 `ldev context --json` and use `liferay.portalUrl`.

@@ -42,6 +42,9 @@ Common search targets: `docs/dxp/latest/en/installation-and-upgrades/` for
 startup failures, `docs/dxp/latest/en/liferay-development/` for runtime
 extension issues.
 
+On PowerShell, use `curl.exe -I` when you need an HTTP HEAD request. `curl`
+alone may resolve to the `Invoke-WebRequest` alias instead of the real binary.
+
 Use this rule only as a short runtime reminder. Use `ldev` first for local
 operational context. Use MCP later for generic portal-facing operations if
 needed.

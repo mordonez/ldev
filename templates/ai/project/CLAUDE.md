@@ -6,8 +6,6 @@ Claude should read this file after `AGENTS.md`.
 
 This file is the Claude-specific entrypoint for project-owned context. Keep it
 short. Put long-lived project knowledge in [docs/ai/project-context.md](docs/ai/project-context.md) if that file exists.
-Use [docs/ai/project-context.md.sample](docs/ai/project-context.md.sample) only
-as a human template when creating the real project context file.
 
 ## Read Next
 
@@ -18,14 +16,16 @@ as a human template when creating the real project context file.
 
 ## Task Routing
 
-**GitHub issue (any bug, feature request, or improvement):**
+**Any task that changes code, resources, or runtime state (GitHub issue, chat request, or ad-hoc request):**
 Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything else**.
 It defines the project issue workflow: intake → technical routing → validation → PR.
-If the repository has `ldev-native` capabilities available, follow its optional
-isolated worktree guidance before mutating runtime state.
+If the repository has `ldev-native` capabilities available, follow its
+isolated worktree guidance as a mandatory gate before mutating runtime state.
+Use `.agents/skills/isolating-worktrees/SKILL.md` for the canonical setup and
+edit-root lock flow when worktree isolation is required.
 
-**Liferay technical work (not issue-driven):**
-Start with `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.
+**Liferay technical execution after issue workflow intake/reproduction gates:**
+Use `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.
 
 ## Claude-Specific Notes
 

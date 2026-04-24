@@ -16,7 +16,17 @@ Quick rules:
 - Use full-page screenshots as mandatory evidence with `run-code` + `page.screenshot({ fullPage: true })`.
 - Install official skills with `playwright-cli install --skills` before guessing command syntax.
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
-- Build `run-code` snippets into a shell variable with `cat <<'EOF'` and pass once.
+- Build `run-code` snippets into a shell variable with a shell-native multiline
+  literal: `cat <<'EOF'` in bash/zsh, `@'...'@` in PowerShell.
+- **Never chain `open` and `run-code` in the same terminal command** using `;`, `&&`,
+  or any other combinator. Run `open` first as a standalone command and wait for it to
+  complete before running `run-code` as a separate command. Chaining them races the
+  browser session setup against the script execution and causes unpredictable failures.
+- **`run-code` transforms shell operators**: the shell intercepts `||`, `&&`, `>`,
+  and `<` before JavaScript sees them. Use ternary expressions (`condition ? a : b`)
+  or `if/else` blocks inside `run-code` functions instead of `||` or `&&`. Always
+  assign the code to a variable first (using `cat <<'EOF'` or `@'...'@`) so the
+  shell cannot split or reinterpret it.
 - Keep one browser helper active at a time per session name. Do not run helpers in
   parallel against the same session — open first, then sequence snapshot / run-code /
   goto / screenshot.
@@ -131,6 +141,7 @@ The sample below uses placeholder test credentials. Replace with project-specifi
 test user credentials when they differ.
 
 ```bash
+# bash/zsh (requires jq)
 PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 playwright-cli -s=page-editor-<issue> open "${PORTAL_URL}/c/portal/login"
 CODE=$(cat <<'EOF'
@@ -141,6 +152,19 @@ async function (page) {
 }
 EOF
 )
+playwright-cli -s=page-editor-<issue> run-code "$CODE"
+```
+
+```powershell
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+playwright-cli -s=page-editor-<issue> open "$PortalUrl/c/portal/login"
+$CODE = @'
+async function (page) {
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_login").fill("<test-user-email>");
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_password").fill("<test-user-password>");
+  await page.locator("button[type=submit]").first().click();
+}
+'@
 playwright-cli -s=page-editor-<issue> run-code "$CODE"
 ```
 
@@ -167,6 +191,7 @@ playwright-cli -s=runtime-<issue> open "<runtimeUrl>"
 playwright-cli -s=editor-<issue> open "<editUrl>"
 
 # 3. Login first if the editor requires it
+# bash/zsh (requires jq)
 PORTAL_URL="$(ldev context --json | jq -r '.liferay.portalUrl')"
 playwright-cli -s=editor-<issue> open "${PORTAL_URL}/c/portal/login"
 
@@ -177,6 +202,31 @@ async function (page) {
 }
 EOF
 )
+playwright-cli -s=editor-<issue> run-code "$CODE"
+
+# 5. Capture and close
+playwright-cli -s=editor-<issue> screenshot --filename=.tmp/<issue>/after-edit.png
+playwright-cli -s=editor-<issue> close
+```
+
+```powershell
+# 1. Export before touching
+ldev portal page-layout export --url <pageUrl>
+
+# 2. Separate sessions for runtime and editor
+playwright-cli -s=runtime-<issue> open "<runtimeUrl>"
+playwright-cli -s=editor-<issue> open "<editUrl>"
+
+# 3. Login first if the editor requires it
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+playwright-cli -s=editor-<issue> open "$PortalUrl/c/portal/login"
+
+# 4. Make changes via run-code
+$CODE = @'
+async function (page) {
+  /* action */
+}
+'@
 playwright-cli -s=editor-<issue> run-code "$CODE"
 
 # 5. Capture and close

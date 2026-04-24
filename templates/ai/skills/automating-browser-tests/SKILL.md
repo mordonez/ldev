@@ -13,7 +13,7 @@ mobile viewport, login flows, page layout mutations, and cleanup patterns.
 ## Required bootstrap
 
 ```bash
-ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
 ldev portal inventory page --url <fullUrl> --json
 ```
 
@@ -35,6 +35,9 @@ Re-confirm before continuing. Then install official skills:
 ```bash
 playwright-cli install --skills
 ```
+
+This downloads official command metadata. Run it once per machine, or again
+after updating the Playwright CLI.
 
 If that fails, stop and report the install failure. Use `playwright-cli <command> --help`
 and `REFERENCE.md` for the current session.
@@ -63,9 +66,16 @@ If the menu entrypoint exists:
 ## Typical flow
 
 ```bash
-# Create evidence directory (PowerShell: New-Item -ItemType Directory -Force .tmp/<issue>)
+# bash/zsh
 mkdir -p .tmp/<issue-or-session>/
+```
 
+```powershell
+# PowerShell
+New-Item -ItemType Directory -Force .tmp/<issue-or-session>/ | Out-Null
+```
+
+```bash
 playwright-cli -s=<session-name> open "<url>"
 playwright-cli -s=<session-name> run-code "async function (page) { await page.screenshot({ path: '.tmp/<issue>/before-fullpage.png', fullPage: true }); }"
 playwright-cli -s=<session-name> snapshot

@@ -11,7 +11,7 @@ clear.
 ## Required bootstrap
 
 ```bash
-ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
 This returns `context` (offline project facts) and `doctor.readiness` (whether
@@ -70,7 +70,7 @@ for discovery, keep your shell in the worktree and call the global form:
 
 ```bash
 ldev --repo-root <main-root> portal inventory page --url <fullUrl> --json
-ldev --repo-root <main-root> ai bootstrap --intent=develop --json
+ldev --repo-root <main-root> ai bootstrap --intent=develop --cache=60 --json
 ```
 
 Use file exports when you need the current source of truth from the portal:
@@ -81,6 +81,35 @@ ldev resource export-template --site /<site> --id <TEMPLATE_ID>
 ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
+
+### Pattern discovery before writing FTL or DDM logic
+
+Before writing any new FreeMarker template logic or DDM field accessor, grep
+the repository for the canonical pattern used for that field type:
+
+```bash
+# Find how the repo reads boolean or checkbox DDM fields
+grep -rE "getterUtil|getData|has_content" . --include="*.ftl" -l
+grep -rE "getterUtil" . --include="*.ftl" -n | head -20
+
+# Find existing examples for a specific field name
+grep -rE "<DDM_FIELD_NAME>" . --include="*.ftl" -n
+```
+
+Do not invent a new accessor pattern. Copy the dominant pattern from existing
+files.
+
+Common pitfall: using `?has_content` on a boolean DDM field returns `true` even
+when the field value is `false`, because the string `"false"` is non-empty. Use
+`getterUtil.getBoolean(fieldVar.getData())` instead for boolean DDM fields.
+
+## Decision: import vs. migrate
+
+Use the standard file import workflow when the resource change is compatible
+with existing data.
+
+Switch to `migrating-journal-structures` before editing when existing Journal
+content makes a direct import risky.
 
 ## Repository-backed resource workflow
 
@@ -120,11 +149,6 @@ for a bulk refresh and accepted the larger diff.
 
 Review the exported resource files like any other source change.
 
-Use resource migrations instead of plain imports when existing Journal content
-makes the change risky:
-
-- switch to `migrating-journal-structures`
-
 ### 4. Validate before mutating
 
 Preview the local repository state first:
@@ -134,6 +158,13 @@ ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
 ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ```
+
+**`--check-only` semantics:** This flag passes only when the local file is
+byte-identical to what the portal already has stored. It is a drift-detection
+tool, not a pre-import validator. If you have modified the file, `--check-only`
+will always report a hash mismatch — that is expected and correct behavior, not
+an error. Do not interpret a mismatch as a sign that the import will fail.
+Proceed to step 5 (the actual import) after reviewing the diff.
 
 If you intentionally need to validate multiple files, repeat the singular
 import command per changed resource so failures stay attributable.

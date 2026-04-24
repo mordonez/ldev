@@ -63,7 +63,14 @@ If browser routing is wrong for the target virtual host, do not count an unrelat
 screenshot as evidence. Record visual validation as blocked and use:
 
 ```bash
+# bash/zsh
 curl -I "<localUrl>"
+ldev logs --since 2m --no-follow
+```
+
+```powershell
+# PowerShell: use curl.exe to avoid the Invoke-WebRequest alias
+curl.exe -I "<localUrl>"
 ldev logs --since 2m --no-follow
 ```
 

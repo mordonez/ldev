@@ -132,7 +132,7 @@ For a filter that has no visible effect or shows no options:
    ```
 
 For ERC-based filter scripts that fail (e.g. in Groovy or FTL conditions):
-See `../developing-liferay/references/groovy-console.md` for ERC inspection.
+See `../../developing-liferay/references/groovy-console.md` for ERC inspection.
 
 ### 7. Visual issues with "Limpiar" (clear) button
 

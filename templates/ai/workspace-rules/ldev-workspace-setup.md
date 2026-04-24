@@ -23,11 +23,8 @@ Useful variants:
 - `blade server start -d` to start in debug mode
 - `blade server run` to keep the server attached to the current terminal
 
-Default demo login sometimes used in samples and fresh bundles only:
-
-- user: `test@liferay.com`
-- password: `test`
-
-Do not assume these credentials in real environments. Prefer the project's documented login or verify it explicitly.
+For demo credentials in fresh bundles, see `ldev-liferay-core.md`.
+Do not assume demo credentials in real environments. Prefer the project's
+documented login or verify it explicitly.
 
 Use `ldev doctor`, `ldev start`, and `ldev portal check` as the higher-level workflow layer on top of this setup.

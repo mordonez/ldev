@@ -13,7 +13,7 @@ Use this reference for Journal structures, web content templates, and ADTs.
 When creating a new structure or editing `dataDefinitionFields` directly, use the
 field type catalog to get the correct shape for each field:
 
-Reference: `references/structure-field-catalog.md`
+Reference: `structure-field-catalog.md`
 
 ## Resolving the owning site
 

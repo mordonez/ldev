@@ -28,15 +28,9 @@ the runtime is ready for migration validation.
   AI assets are out of sync with the CLI.
 
 > **Always run migrations inside a worktree, never against the main environment.**
-> Worktrees provide an isolated portal instance that can be restored or discarded
-> if the migration produces unexpected results. Running migrations against a shared
-> or production-like environment without a worktree makes rollback difficult or
-> impossible. Create and start an isolated environment first:
->
-> ```bash
-> ldev worktree setup --name <issue-name>
-> ldev worktree start <issue-name>
-> ```
+> Use `../isolating-worktrees/SKILL.md` first to create the isolated worktree,
+> confirm the edit root, and recover safely from setup blockers before running a
+> migration.
 
 ## Recommended workflow
 
@@ -168,10 +162,9 @@ ldev portal reindex tasks --json
 
 ## Guardrails
 
-- **Never run migrations against the main environment.** Always use a worktree
-  (`ldev worktree setup --name <name>` + `ldev worktree start <name>`) so the
-  portal state can be restored or discarded if the migration fails or produces
-  unexpected results.
+- **Never run migrations against the main environment.** Always use the vendor
+  skill `isolating-worktrees` first so the portal state can be restored or
+  discarded if the migration fails or produces unexpected results.
 - Never treat a live content migration as a plain import.
 - Always keep a descriptor file under version control.
 - Always use `migration-init` to scaffold the descriptor; do not write it from scratch.

@@ -20,7 +20,7 @@ Document facts an agent cannot derive on its own at runtime:
 
 ## What NOT to put here
 
-Do not document anything an agent can derive from `ldev ai bootstrap --intent=discover --json`, `ldev context --json`, or
+Do not document anything an agent can derive from `ldev ai bootstrap --intent=discover --cache=60 --json`, `ldev context --json`, or
 `ldev status --json` at any time:
 
 - Portal URL, OAuth2 credential status, available `ldev` commands, runtime env
@@ -67,7 +67,7 @@ URL, a known structure key, a project-specific path convention.
 
 ```bash
 ldev doctor
-ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=develop --cache=60 --json
 ldev setup
 ldev start
 ldev status --json
@@ -152,7 +152,7 @@ ldev logs --since 10m --service liferay --no-follow
 ## Maintenance Notes
 
 - Keep this file factual and updated as the project evolves.
-- Remove any section that `ldev ai bootstrap --intent=discover --json` can now answer — it has become
+- Remove any section that `ldev ai bootstrap --intent=discover --cache=60 --json` can now answer — it has become
   redundant and will drift.
 - If a section becomes generally reusable across projects, move it to a vendor
   skill under `templates/ai/skills/` instead of expanding this file.
