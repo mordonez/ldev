@@ -10,6 +10,12 @@ alwaysApply: true
 
 - Treat `AGENTS.md` as the bootstrap entrypoint.
 - `ldev` owns the full runtime contract in this project type.
+- If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
+  mutates code, resources, or runtime state, run that workflow first regardless
+  of whether the request came from GitHub, chat, or an ad-hoc instruction.
+- For these mutating tasks, enforce this gate order without exceptions:
+  `Red-1` reproduction -> worktree isolation/root lock -> `Red-2` reproduction ->
+  import/deploy verification -> `Red -> Green` visual validation.
 
 Preferred task-shaped entry points after bootstrap:
 

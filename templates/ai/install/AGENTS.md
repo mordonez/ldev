@@ -21,6 +21,9 @@ Before changing code or runtime state:
    `ldev` command covers the required portal surface.
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
+6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
+  mutates code, resources, or runtime state, read it first regardless of
+  whether the request came from GitHub, chat, or an ad-hoc instruction.
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -40,6 +43,8 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
+11. For `ldev-native`, any task that mutates code/resources/runtime must execute this gate order without exceptions: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red -> Green` visual validation.
+12. Invalid skip reasons include: no formal GitHub issue, task is small, already on a feature branch, runtime already running, or user did not explicitly request validation/worktree steps.
 
 ## ldev Command Resolution
 

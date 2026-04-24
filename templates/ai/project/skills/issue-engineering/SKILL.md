@@ -1,6 +1,6 @@
 ---
 name: issue-engineering
-description: 'Use when a project wants a thin issue-process overlay on top of vendor ldev skills for intake, human review handoff, evidence, and cleanup.'
+description: 'Use for any task that can mutate code, resources, or runtime state in this project (GitHub issue, chat request, or ad-hoc), to enforce intake/reproduction gates, evidence, and human handoff.'
 ---
 
 # Issue Engineering
@@ -26,6 +26,10 @@ For technical execution, always route to vendor skills:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 
+For `ldev-native`, this skill is mandatory before technical execution whenever
+the task mutates code, resources, or runtime state, even without a formal
+GitHub issue.
+
 ## Boundary
 
 This project skill must not become the canonical source for:
@@ -41,6 +45,15 @@ If that knowledge is reusable across `ldev` projects, move it into vendor
 skills instead.
 
 ## Recommended usage
+
+For `ldev-native` mutating tasks, this sequence is mandatory and must be
+executed in order:
+
+1. `Red-1` reproduction in the current runtime
+2. isolated worktree setup and active edit-root lock
+3. `Red-2` reproduction in the worktree runtime
+4. import/deploy verification with runtime evidence
+5. `Red -> Green` visual validation on the same local URL
 
 ### 1. Intake
 
@@ -97,6 +110,7 @@ work in a lightweight mode.
 - "The change is small" - size does not waive the invariant.
 - "The runtime is already running" - that is the main environment; it must not be mutated.
 - "The user did not ask for a worktree" - the invariant applies regardless of user phrasing.
+- "This is not a formal GitHub issue" - origin does not waive the invariant.
 
 If you find yourself reasoning toward any of these, stop and create the worktree.
 
@@ -165,6 +179,9 @@ the symptom is gone.
 If worktree isolation was skipped or the runtime is not available, explicitly
 block this step and tell the user validation is pending rather than silently
 omitting it.
+
+Do not declare completion if any gate above is missing. Missing evidence means
+the task remains in `Red`.
 
 ### 6. Project handoff
 

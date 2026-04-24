@@ -145,8 +145,9 @@ Recommended locations:
 - repository docs that describe team-specific architecture or workflows
 
 If `.agents/skills/project-issue-engineering/` exists and the task is driven by
-a GitHub issue or project issue workflow, read that skill for repository
-process after bootstrap. Use vendor skills for the technical execution itself.
+code/resource/runtime mutation, read that skill for repository process after
+bootstrap regardless of whether the request came from GitHub, chat, or ad-hoc
+instructions. Use vendor skills for the technical execution itself.
 
 ## Installed Skills
 

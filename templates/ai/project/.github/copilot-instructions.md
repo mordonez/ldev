@@ -28,13 +28,13 @@ Use `ldev --help` as the source of truth for the public CLI surface.
 
 ## Task Routing
 
-**GitHub issue (bug, feature request, or improvement):**
+**Any task that changes code, resources, or runtime state (GitHub issue, chat request, or ad-hoc request):**
 Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything else**.
 It defines the project issue workflow: intake → technical routing → validation → PR.
-If the repository has `ldev-native` capabilities available, follow its isolated worktree guidance before mutating runtime state.
+If the repository has `ldev-native` capabilities available, follow its isolated worktree guidance as a mandatory gate before mutating runtime state.
 
-**Liferay technical work (not issue-driven):**
-Start with `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.
+**Liferay technical execution after issue workflow intake/reproduction gates:**
+Use `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.
 
 ## Installed Skills
 
@@ -104,3 +104,5 @@ When a user starts from an existing worktree/branch, keep that worktree as the a
 8. Never assume the portal URL — read `env.portalUrl` from `ldev context --json`.
 9. Never use `git worktree add` directly — use `ldev worktree setup --name <name> --with-env`.
 10. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
+11. For `ldev-native`, any task that mutates code/resources/runtime must execute this gate order without exceptions: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red -> Green` visual validation.
+12. These are invalid reasons to skip the mandatory gate order: no formal GitHub issue, task is small, already on a feature branch, runtime already running, or user did not explicitly ask for validation/worktree steps.
