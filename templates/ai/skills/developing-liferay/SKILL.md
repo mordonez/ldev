@@ -82,26 +82,10 @@ ldev resource export-adt --site /<site> --adt <ADT_KEY> --widget-type <widget-ty
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
-### Pattern discovery before writing FTL or DDM logic
-
-Before writing any new FreeMarker template logic or DDM field accessor, grep
-the repository for the canonical pattern used for that field type:
-
-```bash
-# Find how the repo reads boolean or checkbox DDM fields
-grep -rE "getterUtil|getData|has_content" . --include="*.ftl" -l
-grep -rE "getterUtil" . --include="*.ftl" -n | head -20
-
-# Find existing examples for a specific field name
-grep -rE "<DDM_FIELD_NAME>" . --include="*.ftl" -n
-```
-
-Do not invent a new accessor pattern. Copy the dominant pattern from existing
-files.
-
-Common pitfall: using `?has_content` on a boolean DDM field returns `true` even
-when the field value is `false`, because the string `"false"` is non-empty. Use
-`getterUtil.getBoolean(fieldVar.getData())` instead for boolean DDM fields.
+Before writing new FTL or DDM accessor logic, inspect the dominant pattern in
+the repository first. Do not invent a new accessor style when the repo already
+has a stable one. For the repository-backed export/import loop, read
+`references/resource-workflow.md`.
 
 ## Decision: import vs. migrate
 
@@ -111,95 +95,56 @@ with existing data.
 Switch to `migrating-journal-structures` before editing when existing Journal
 content makes a direct import risky.
 
+
 ## Repository-backed resource workflow
 
-When structures, templates, ADTs, or fragments should be reviewed in Git, use
-the full file workflow instead of editing through the UI.
-
-These resources live in the portal runtime. Do not run `ldev deploy theme`,
-`ldev deploy module`, or a broad deploy for them; those commands will not
-apply Journal templates, ADTs, fragments, or structures. Use
-`ldev resource import-*` against a prepared runtime and verify with browser
-automation when the change affects rendered pages.
-
-### 1. Discover exact identifiers
+When structures, templates, ADTs, or fragments should be reviewed in Git,
+use this sequence:
 
 ```bash
+# 1. Discover exact identifiers
 ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
 ldev resource fragments --site /<site> --json
-```
 
-### 2. Export current portal state
-
-Use focused exports when changing one object:
-
-```bash
+# 2. Export current state from portal
 ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
 ldev resource export-template --site /<site> --template <TEMPLATE_ID>
 ldev resource export-adt --site /<site> --adt <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
-```
 
-If you intentionally need several resources, repeat the singular export command
-per resource. Do not use plural export commands unless a human explicitly asked
-for a bulk refresh and accepted the larger diff.
-
-### 3. Edit the exported files locally
-
-Review the exported resource files like any other source change.
-
-### 4. Validate before mutating
-
-Preview the local repository state first:
-
-```bash
+# 3. Edit locally, then validate before import
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
 ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
-```
+# Note: import-fragment has no --check-only flag; validate the source file manually before importing
+ldev resource import-fragment --site /<site> --fragment <fragment-key>
 
-**`--check-only` semantics:** This flag passes only when the local file is
-byte-identical to what the portal already has stored. It is a drift-detection
-tool, not a pre-import validator. If you have modified the file, `--check-only`
-will always report a hash mismatch — that is expected and correct behavior, not
-an error. Do not interpret a mismatch as a sign that the import will fail.
-Proceed to step 5 (the actual import) after reviewing the diff.
-
-If you intentionally need to validate multiple files, repeat the singular
-import command per changed resource so failures stay attributable.
-
-### 5. Apply the smallest safe import
-
-```bash
+# 4. Apply the import (structures, templates, ADTs)
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>
 ldev resource import-template --site /<site> --template <TEMPLATE_ID>
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl>
-ldev resource import-fragment --site /<site> --fragment <fragment-key>
 ```
+
+These resources live in the portal runtime. Do not run `ldev deploy theme`,
+`ldev deploy module`, or a broad deploy for them; those commands will not
+apply Journal templates, ADTs, fragments, or structures.
+
+For bulk export/import, extended examples, and ADT/fragment-specific loops,
+see `references/resource-workflow.md`.
 
 ## Choose the smallest implementation path
 
-### Theme and frontend source
+Choose the narrowest path that matches the changed surface:
 
-Use when the change is in SCSS, JS, theme templates or other packaged theme
-assets.
-
-Reference: `references/theme.md`
+**Theme and frontend source** (SCSS, JS, FreeMarker theme templates):
 
 ```bash
 ldev deploy theme
 ldev logs --since 2m --service liferay --no-follow
 ```
 
-### OSGi modules and Java
-
-Use when the change lives in `modules/` or another deployable Gradle unit.
-
-References:
-
-- `references/osgi.md`
-- `references/extending-liferay.md`
+**OSGi modules and Java code:**
 
 ```bash
 ldev deploy module <module-name>
@@ -207,61 +152,33 @@ ldev osgi status <bundle-symbolic-name> --json
 ldev osgi diag <bundle-symbolic-name> --json
 ```
 
-### Service Builder
+**Journal structures, templates, and ADTs:**
+Use the repository-backed resource workflow above.
 
-Run only after a confirmed Service Builder change to `service.xml` or the
-generated service layer. This is broader than a module deploy, so do not use it
-as a generic fix-up step. If a single generated module can prove the change, use
-`ldev deploy module <module-name>` instead.
+**Service Builder, Liferay Objects, and Fragments:**
+For commands, decision criteria, and examples for these paths, see
+`references/implementation-paths.md`.
 
-### Liferay Objects
+## Portal configuration
 
-Use for custom data models on DXP 7.4+ that need their own headless REST API
-without traditional OSGi modules.
-
-References:
-
-- `references/objects.md` — field types, relationships, auto-generated API, Actions, Validations
-- `references/oauth2-setup.md` — OAuth2 portal setup and `ldev oauth install --write-env`
-- `references/headless-openapi.md` — local OpenAPI spec URLs for headless REST discovery
-
-### Journal structures, templates and ADTs
-
-Use the stable file-based resource workflows instead of ad hoc API calls.
-Each command requires its identifier; use `--check-only` to preview before
-mutating.
-
-References:
-
-- `references/structures.md` — CLI workflow (export, validate, import)
-- `references/structure-field-catalog.md` — field type JSON catalog (use when authoring or editing structure JSON directly)
-- `references/workflow.md` — approval workflow states, inspection, and publish failures
-- `references/groovy-console.md` — portal console scripts, ERC vocabulary fixes, bulk operations with no `ldev` equivalent
+To read or write portal properties and OSGi config from local files:
 
 ```bash
-ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
-ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
-ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
+# Read one portal property or OSGi config PID
+ldev portal config get <target> --json
+ldev portal config get <target> --source source --json   # from source file, not effective
+
+# Write one portal property
+ldev portal config set <target> --value <value> --json
+
+# Write one OSGi config key within a PID
+ldev portal config set <pid> --key <key> --value <value> --json
 ```
 
-When validation looks correct, run the same command without `--check-only`.
-
-### Fragments
-
-Treat fragments as versioned source plus explicit import workflow:
-
-Reference: `references/fragments.md`
-
-```bash
-ldev resource fragments --site /<site> --json
-ldev resource import-fragment --site /<site> --fragment <fragment-key>
-```
-
-> `import-fragment` has no `--check-only` flag. Validate the fragment source
-> file manually before importing.
-
-If the project uses a separate fragment authoring flow outside `ldev`, follow
-that project-owned workflow instead of inventing custom commands.
+Use `config get` before `config set` to confirm the current value. Do not
+guess property keys — resolve them from the portal docs or from existing local
+config files under `configs/`. Changes take effect after `ldev env restart`
+or a portal restart.
 
 ## Guardrails
 
@@ -276,6 +193,14 @@ that project-owned workflow instead of inventing custom commands.
 - Do not guess IDs, keys or site names when `ldev portal inventory ...` can resolve them.
 - For scripts and agents, prefer `--json` on all discovery and verification commands.
 - If a command fails because the portal is not reachable, re-check with `ldev status --json` and start the env before deeper debugging.
+- If the final handoff covers production promotion for templates, ADTs,
+  structures, or fragments, write BOTH:
+  1. The exact `ldev resource import-*` command with site and resource key.
+  2. The equivalent manual Liferay UI fallback path (e.g. Site Menu → Design → Templates)
+     so a human can apply the change without `ldev` access on production.
+  Do not assume `ldev` is available on the target environment. For full wording
+  templates and per-resource-type UI paths, see
+  `references/runtime-resource-production-handoff.md`.
 
 ## Minimum verification
 

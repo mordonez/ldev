@@ -31,6 +31,29 @@ checks before deploying.
 - If any of those fields is missing, stop and report that the installed `ldev`
   AI assets are out of sync with the CLI.
 
+## Prepare before deploy
+
+When the change needs artifact staging before runtime deployment (CI/CD flows,
+fresh checkout, or after a `ldev worktree setup`):
+
+```bash
+ldev deploy prepare
+```
+
+This compiles artifacts and writes commit markers without touching the running
+runtime. Use it before `ldev deploy module` or `ldev deploy theme` when the
+build artifacts are stale or missing.
+
+If the runtime is already running and you need to force preparation anyway:
+
+```bash
+ldev deploy prepare --allow-running-env
+```
+
+Do not use `ldev deploy prepare` as a substitute for `ldev deploy module` or
+`ldev deploy theme` — prepare stages artifacts only; it does not hot-deploy
+them to the running portal.
+
 ## Smallest deploy first
 
 Choose the smallest command that matches the change.
@@ -78,6 +101,11 @@ proved with `ldev deploy module <module-name>` or `ldev deploy theme`.
 For file-based portal resources, use the runtime resource import flow. A Gradle
 or theme deploy will not apply Journal templates, ADTs, fragments, or
 structures.
+
+If the final output includes production promotion instructions for a runtime-backed
+resource, include both the preferred `ldev resource ...` path and the manual
+Liferay UI fallback from
+`../developing-liferay/references/runtime-resource-production-handoff.md`.
 
 Validate before mutating:
 
@@ -158,6 +186,8 @@ Minimum done criteria:
 - Do not mark portal resource work done until the runtime import and browser
   verification have passed in the prepared environment.
 - Prefer `--json` on verification commands when the result will be consumed by an agent.
+- Do not write production notes that only mention `ldev` for runtime-backed
+  resources when the target environment may require manual UI promotion.
 - If the env is unhealthy, stop here and switch to `troubleshooting-liferay`.
 
 Reference:

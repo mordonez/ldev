@@ -23,6 +23,19 @@ validated the work and explicitly asked you to do that.
 - `Not validated`
 - `Unknowns`
 
+For runtime-backed resources such as templates, ADTs, structures, or fragments,
+the deployment notes must include:
+
+- the preferred `ldev` promotion path when available
+- the equivalent manual Liferay UI fallback when remote `ldev` access is not guaranteed
+- the exact site scope and resource identifiers needed to find the same object
+- a note that this is a runtime resource change and must not be applied through
+  theme or module deploy
+
+Use `runtime-resource-handoff-template.md` as the default structure and
+`../../../../skills/developing-liferay/references/runtime-resource-production-handoff.md`
+for the resource-specific fallback rules.
+
 `Validated` should contain only checks you actually executed.
 
 `Not validated` should contain anything you expected to verify but could not.
