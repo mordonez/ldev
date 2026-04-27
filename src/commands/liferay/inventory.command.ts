@@ -10,6 +10,7 @@ import {
 } from '../../features/liferay/content/liferay-content-stats.js';
 import {
   formatLiferayInventoryPage,
+  projectLiferayInventoryPageJson,
   runLiferayInventoryPage,
 } from '../../features/liferay/inventory/liferay-inventory-page.js';
 import {
@@ -53,6 +54,10 @@ type InventoryPageCommandOptions = {
   friendlyUrl?: string;
   privateLayout?: boolean;
   verbose?: boolean;
+  full?: boolean;
+  format?: string;
+  json?: boolean;
+  ndjson?: boolean;
 };
 
 type InventoryStructuresCommandOptions = {
@@ -237,6 +242,7 @@ Notes:
       .option('--site <site>', 'Site friendly URL or numeric ID')
       .option('--friendly-url <friendlyUrl>', 'Friendly URL inside the site, like /home or /w/article')
       .option('--private-layout', 'Resolve the page as private when using --site + --friendly-url')
+      .option('--full', 'Include expanded inspection details in JSON output')
       .option('--verbose', 'Show fragment/widget details: element name, CSS classes, custom CSS'),
   ).action(
     createFormattedAction(
@@ -250,6 +256,7 @@ Notes:
         }),
       (options: InventoryPageCommandOptions) => ({
         text: (result) => formatLiferayInventoryPage(result, Boolean(options.verbose)),
+        json: (result) => projectLiferayInventoryPageJson(result, {full: Boolean(options.full)}),
       }),
     ),
   );
