@@ -156,9 +156,12 @@ Recommended locations:
 - repository docs that describe team-specific architecture or workflows
 
 If `.agents/skills/project-issue-engineering/` exists and the task is driven by
-code/resource/runtime mutation, read that skill for repository process after
-bootstrap regardless of whether the request came from GitHub, chat, or ad-hoc
-instructions. Use vendor skills for the technical execution itself.
+code/resource/runtime mutation, read that skill for non-trivial repository
+process after bootstrap: bug fixes, features, migrations, or anything with
+reproduction risk. For clearly trivial ad-hoc requests where the developer has
+explicitly scoped the exact change, confirm whether they want the full issue
+workflow or prefer to proceed directly. Use vendor skills for the technical
+execution itself.
 
 ## Installed Skills
 

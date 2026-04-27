@@ -13,7 +13,7 @@ Quick rules:
 
 - Use `--filename`, not `--output`, for screenshots.
 - Do not pass `--viewport-width` / `--viewport-height` to `screenshot`; set viewport on an open page with `run-code`.
-- Use full-page screenshots as mandatory evidence with `run-code` + `page.screenshot({ fullPage: true })`.
+- Use full-page screenshots as the recommended default for visual/user-facing evidence with `run-code` + `page.screenshot({ fullPage: true })`.
 - Install official skills with `playwright-cli install --skills` before guessing command syntax.
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with a shell-native multiline

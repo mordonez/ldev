@@ -17,12 +17,10 @@ short. Put long-lived project knowledge in [docs/ai/project-context.md](docs/ai/
 ## Task Routing
 
 **Any task that changes code, resources, or runtime state (GitHub issue, chat request, or ad-hoc request):**
-Read `.agents/skills/project-issue-engineering/SKILL.md` **before doing anything else**.
-It defines the project issue workflow: intake → technical routing → validation → PR.
-If the repository has `ldev-native` capabilities available, follow its
-isolated worktree guidance as a mandatory gate before mutating runtime state.
-Use `.agents/skills/isolating-worktrees/SKILL.md` for the canonical setup and
-edit-root lock flow when worktree isolation is required.
+If `.agents/skills/project-issue-engineering/SKILL.md` exists, read it first for non-trivial work (bug fixes, features, migrations, anything with reproduction risk). For clearly trivial ad-hoc requests where the developer has explicitly scoped the exact change they want, confirm with them whether to follow the full issue engineering workflow or proceed directly — then act per their answer.
+
+If the repository has `ldev-native` capabilities available, worktree isolation is the recommended default for significant changes. For trivial changes, ask the developer before creating a worktree — they may prefer to work directly in the current checkout.
+Use `.agents/skills/isolating-worktrees/SKILL.md` for the canonical setup and edit-root lock flow when worktree isolation is used.
 
 **Liferay technical execution after issue workflow intake/reproduction gates:**
 Use `.agents/skills/liferay-expert/SKILL.md` to route to the right specialist skill.

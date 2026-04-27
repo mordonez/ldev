@@ -1,6 +1,6 @@
 ---
 name: issue-engineering
-description: 'Use for any task that can mutate code, resources, or runtime state in this project (GitHub issue, chat request, or ad-hoc), to enforce intake/reproduction gates, evidence, and human handoff.'
+description: 'Use for non-trivial tasks that mutate code, resources, or runtime state (GitHub issue, feature, bug fix, migration). For clearly trivial ad-hoc changes, confirm with the developer whether the full workflow applies before starting.'
 ---
 
 # Issue Engineering
@@ -23,22 +23,29 @@ For technical execution, always route to vendor skills:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 
-For `ldev-native`, this skill is mandatory before technical execution whenever
-the task mutates code, resources, or runtime state, even without a formal
-GitHub issue.
+For `ldev-native`, this skill is the recommended default before technical execution
+for non-trivial tasks (bug fixes, features, migrations) regardless of whether a
+formal GitHub issue exists. For clearly trivial ad-hoc tasks where the developer
+has explicitly scoped the change, confirm with them first — they may prefer to
+skip intake and proceed directly.
 
 For scope boundaries and invalid shortcuts, read
 `references/boundary-rules.md` only when needed.
 
-## Hard gates
+## Recommended gate order
 
-For `ldev-native` mutating tasks, execute this order without skipping:
+For `ldev-native` non-trivial tasks (bugs, features, migrations), follow this order:
 
 1. `Red-1` reproduction in the current runtime
 2. isolated worktree setup and active edit-root lock
 3. `Red-2` reproduction in the worktree runtime
 4. import/deploy verification with runtime evidence
 5. `Red -> Green` visual validation on the same local URL
+
+For clearly trivial tasks where the developer has explicitly defined the exact scope,
+confirm with them whether the full gate applies or whether they prefer to proceed
+directly. Never omit safety invariants (--check-only, read-after-write, ID resolution)
+regardless of which path is chosen.
 
 For `blade-workspace`, keep the same intake and validation discipline but do
 not invent a fake worktree phase.
@@ -94,11 +101,11 @@ issue; local reproduction defines the bug you are actually fixing.
 
 ## 3. Isolate the edit root
 
-**For `ldev-native` projects this step is mandatory, not optional.**
-If the project defines agent invariants in `docs/ai/project-context.md`, those
-invariants require a worktree before any code change or runtime mutation.
-Do not skip this step regardless of whether the user asks to skip commits or
-work in a lightweight mode.
+**For `ldev-native` projects, worktree isolation is the strongly recommended default.**
+For non-trivial tasks (bug fixes, features, migrations), apply this step without
+negotiation. For clearly trivial tasks where the developer explicitly requests
+lightweight mode, surface the recommendation, explain the risk of working in the
+main checkout, and ask for their explicit go-ahead. Proceed per their answer.
 
 If isolated worktrees are available:
 
@@ -163,23 +170,25 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-## 5. Validate Red -> Green before handoff
+## 5. Validate before handoff
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
-validation with Playwright is required before handoff regardless of whether
-the user asks to skip commits or work in a lightweight mode.
+validation with Playwright is strongly recommended before handoff.
 
 "No commit" only affects the final git step. It does not waive:
 
 - import: `ldev resource import-*` for the changed resource
 - runtime verification: `ldev portal check --json`, `ldev logs diagnose --json`
-- browser validation: Playwright against the affected URL
+- browser validation: Playwright against the affected URL (recommended; if the
+  developer explicitly opts out for a clearly trivial visual change they've already
+  confirmed, note the skip and proceed per their instruction)
 
 When reviewers need visual evidence directly in a GitHub issue or PR comment
 without committing branch artifacts, read
 `references/github-visual-evidence.md` before posting anything.
 
-Validation must follow a visible `Red -> Green` loop:
+For bug fixes, visual regressions, layout changes, and other user-facing runtime
+changes, validation should follow a visible `Red -> Green` loop:
 
 - `Red`: capture the failing local state before the fix
 - `Green`: verify the exact symptom checklist from the issue is now satisfied on
@@ -191,21 +200,22 @@ the symptom is gone.
 
 **DOM counters (element counts, selector presence) are supplementary evidence
 only.** A counter that returns `1` proves an element exists; it does not prove
-the page looks correct. Visual validation is required in addition to any
-scripted assertions.
+the page looks correct. For visual/user-facing changes, prefer visual validation
+in addition to any scripted assertions.
 
-**Side-by-side comparison is required before declaring Green:**
+**Side-by-side comparison is the recommended default before declaring Green:**
 
 - Open `before.png` (captured at Red) and the new `after.png` side by side.
 - Confirm every symptom from the issue description is no longer visible.
 - Confirm no new visual regressions appear (unexpected layout shifts, overlapping
   elements, missing sections).
 
-**Human confirmation is required before declaring Green:**
+**Human confirmation is the recommended default before closing a visual Red loop:**
 
-Do not self-declare the issue as fixed. Present the side-by-side evidence to the
-user and wait for explicit confirmation. The phrase "looks good" or "visually
-correct" from the user is the only valid gate to close the Red loop.
+For visual fixes, present the side-by-side evidence to the user and ask whether it
+looks correct before closing the Red loop. If the developer explicitly chooses a
+lighter validation path for a trivial or tightly scoped change, document that
+choice in the handoff and proceed per their instruction.
 
 **Revert-first on regression:** If a symptom appears in `after.png` (or in
 the running page) that was **not present in Red**, do not patch over it.
