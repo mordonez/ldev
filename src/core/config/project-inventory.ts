@@ -242,7 +242,7 @@ function listDeployArtifacts(liferayDir: string | null): InventoryList {
 
   const sample = fs
     .readdirSync(deployDir, {withFileTypes: true})
-    .filter((entry) => entry.isFile() && /\.(jar|war|xml)$/i.test(entry.name))
+    .filter((entry) => entry.isFile() && /\.(jar|war|xml|zip)$/i.test(entry.name))
     .map((entry) => entry.name)
     .sort();
 

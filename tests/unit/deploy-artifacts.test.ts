@@ -156,6 +156,15 @@ describe('listDeployArtifacts', () => {
     expect(result[0]).toContain('config.xml');
   });
 
+  test('returns .zip files (client extension LUFFAs)', async () => {
+    const dir = path.join(tmpDir, 'zips');
+    await fs.ensureDir(dir);
+    await fs.writeFile(path.join(dir, 'my-client-ext.zip'), '');
+    const result = await listDeployArtifacts(dir);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('my-client-ext.zip');
+  });
+
   test('excludes non-artifact files', async () => {
     const dir = path.join(tmpDir, 'mixed');
     await fs.ensureDir(dir);
@@ -273,5 +282,29 @@ describe('collectModuleArtifacts', () => {
     const result = await collectModuleArtifacts(ctx, 'my-theme');
     expect(result).toHaveLength(1);
     expect(result[0]).toContain('my-theme.war');
+  });
+
+  test('finds .zip artifact in client-extensions dist dir', async () => {
+    const liferayDir = path.join(tmpDir, 'liferay');
+    const distDir = path.join(liferayDir, 'client-extensions', 'my-ext', 'dist');
+    await fs.ensureDir(distDir);
+    await fs.writeFile(path.join(distDir, 'my-ext.zip'), '');
+
+    const ctx = makeContext(liferayDir);
+    const result = await collectModuleArtifacts(ctx, 'my-ext');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('my-ext.zip');
+  });
+
+  test('finds .war artifact in wars build/libs dir', async () => {
+    const liferayDir = path.join(tmpDir, 'liferay');
+    const libsDir = path.join(liferayDir, 'wars', 'my-portlet', 'build', 'libs');
+    await fs.ensureDir(libsDir);
+    await fs.writeFile(path.join(libsDir, 'my-portlet.war'), '');
+
+    const ctx = makeContext(liferayDir);
+    const result = await collectModuleArtifacts(ctx, 'my-portlet');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('my-portlet.war');
   });
 });

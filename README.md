@@ -48,7 +48,6 @@ ldev portal check
 ldev portal inventory page --url /home --json
 ldev osgi diag com.acme.foo.web
 ldev deploy module foo-web
-ldev portal check
 ```
 
 ## 🤖 Agent Workflows

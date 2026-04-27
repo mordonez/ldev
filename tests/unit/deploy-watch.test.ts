@@ -19,4 +19,29 @@ describe('deploy-watch', () => {
     expect(grouped.get('foo')).toHaveLength(1);
     expect(grouped.get('ub-theme')).toHaveLength(1);
   });
+
+  test('groups client-extension changes by deployable unit', () => {
+    const liferayDir = '/repo/liferay';
+    const grouped = groupChangesByModule(
+      liferayDir,
+      [
+        path.join(liferayDir, 'client-extensions', 'my-ext', 'client-extension.yaml'),
+        path.join(liferayDir, 'client-extensions', 'my-ext', 'src', 'index.js'),
+      ],
+      null,
+    );
+
+    expect(grouped.get('my-ext')).toHaveLength(2);
+  });
+
+  test('ignores changes outside known namespaces', () => {
+    const liferayDir = '/repo/liferay';
+    const grouped = groupChangesByModule(
+      liferayDir,
+      [path.join(liferayDir, 'configs', 'dockerenv', 'portal-ext.properties')],
+      null,
+    );
+
+    expect(grouped.size).toBe(0);
+  });
 });

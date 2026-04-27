@@ -91,6 +91,21 @@ async function runGradleTasksForModule(
     return;
   }
 
+  const clientExtDir = path.join(context.liferayDir, 'client-extensions', module);
+  if (await fs.pathExists(clientExtDir)) {
+    await runGradleTask(context, [
+      `:client-extensions:${module}:dockerDeploy`,
+      '-Pliferay.workspace.environment=dockerenv',
+    ]);
+    return;
+  }
+
+  const warDir = path.join(context.liferayDir, 'wars', module);
+  if (await fs.pathExists(warDir)) {
+    await runGradleTask(context, [`:wars:${module}:dockerDeploy`, '-Pliferay.workspace.environment=dockerenv']);
+    return;
+  }
+
   const apiDir = path.join(context.liferayDir, 'modules', module, `${module}-api`);
   const serviceDir = path.join(context.liferayDir, 'modules', module, `${module}-service`);
   if ((await fs.pathExists(apiDir)) && (await fs.pathExists(serviceDir))) {
@@ -111,5 +126,5 @@ async function runGradleTasksForModule(
     return;
   }
 
-  throw DeployErrors.moduleNotFound(`No module or theme named ${module} exists.`);
+  throw DeployErrors.moduleNotFound(`No module, theme, client extension, or war named ${module} exists.`);
 }
