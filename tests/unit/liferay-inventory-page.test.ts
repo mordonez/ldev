@@ -1618,6 +1618,43 @@ describe('liferay inventory page', () => {
     expect(JSON.stringify(projected.contentSummary)).not.toContain('XXIX Premi');
   });
 
+  test('projectLiferayInventoryPageJson decodes HTML entities only once in display summaries', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'displayPage',
+      pageSubtype: 'journalArticle',
+      contentItemType: 'WebContent',
+      siteName: 'Guest',
+      siteFriendlyUrl: '/guest',
+      groupId: 20121,
+      url: '/web/guest/w/news',
+      friendlyUrl: '/w/news',
+      article: {
+        id: 41001,
+        key: 'ART-001',
+        title: 'AT&amp;T &amp;lt;safe&amp;gt;',
+        friendlyUrlPath: 'news',
+        contentStructureId: 301,
+      },
+      journalArticles: [
+        {
+          articleId: 'ART-001',
+          title: 'AT&amp;T &amp;lt;safe&amp;gt;',
+          ddmStructureKey: 'NEWS',
+          description: '<p>Fish &amp;amp; Chips &amp;lt;b&amp;gt;literal&amp;lt;/b&amp;gt;</p>',
+        },
+      ],
+    });
+
+    if (!('contentSummary' in projected) || !projected.contentSummary) {
+      throw new Error('Expected display-page content summary');
+    }
+
+    expect(projected.contentSummary).toMatchObject({
+      headline: 'AT&T &lt;safe&gt;',
+      lead: 'Fish &amp; Chips &lt;b&gt;literal&lt;/b&gt;',
+    });
+  });
+
   test('projectLiferayInventoryPageJson normalizes site-root output into the page envelope', () => {
     const projected = projectLiferayInventoryPageJson({
       pageType: 'siteRoot',

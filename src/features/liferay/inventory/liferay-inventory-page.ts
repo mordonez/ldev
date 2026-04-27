@@ -628,13 +628,17 @@ function stripHtml(value: string): string {
 }
 
 function decodeHtmlEntities(value: string): string {
+  const entityMap: Record<string, string> = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+  };
+
   return value
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(/&(nbsp|amp|lt|gt|quot|#39);/g, (entity) => entityMap[entity] ?? entity)
     .replace(/\s+/g, ' ')
     .trim();
 }
