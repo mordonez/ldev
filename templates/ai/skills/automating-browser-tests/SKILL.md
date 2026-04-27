@@ -117,7 +117,7 @@ to the browser host before opening. Full page layout mutation pattern is in `REF
 
 - Use semantic session names (`issue-NUM`, `page-editor-NUM`), not generic ones.
 - Store evidence under `.tmp/<issue>/` before uploading anywhere.
-- Capture full-page screenshots via `run-code` (`page.screenshot({ fullPage: true })`) as mandatory evidence.
+- Capture full-page screenshots via `run-code` (`page.screenshot({ fullPage: true })`) as the recommended default for visual/user-facing evidence.
 - For flaky failures, use `tracing-start`/`tracing-stop` before guessing.
 - Never validate against production; always reproduce locally first.
 - Inspect the loaded local page with `snapshot` plus `ldev portal inventory page --url`

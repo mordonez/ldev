@@ -32,10 +32,14 @@ ldev resource structure --site /<site> --key <STRUCTURE_KEY>
 ldev resource template --site /<site> --id <TEMPLATE_ID>
 ```
 
-If the change affects a template, ADT, structure, or fragment, visual validation
-is **required**, not optional. Import success alone is not sufficient evidence.
+If the change affects visible output from a template, ADT, structure, or fragment,
+visual validation is the recommended default. Import success alone is not
+sufficient evidence for visual/user-facing changes. For trivial or non-visual
+changes, the developer may choose a lighter validation path; record that decision
+in the handoff.
 
-`before.png` must already exist from the reproduction step in intake. Do not
+When the chosen validation path uses a Red -> Green screenshot loop,
+`before.png` should already exist from the reproduction step in intake. Do not
 re-capture it here; that would overwrite the baseline taken before the fix.
 
 ```bash
@@ -56,8 +60,9 @@ For example:
 - results column width stays stable
 - empty-state message is visible in the results area
 
-Do not mark the issue as fixed until each expected behavior is checked on the
-final local page state.
+For bug fixes and visual changes, do not mark the issue as fixed until each
+expected behavior is checked on the final local page state. For explicitly scoped
+trivial work, record the lighter validation chosen by the developer.
 
 If browser routing is wrong for the target virtual host, do not count an unrelated
 screenshot as evidence. Record visual validation as blocked and use:

@@ -22,8 +22,11 @@ Before changing code or runtime state:
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
-  mutates code, resources, or runtime state, read it first regardless of
-  whether the request came from GitHub, chat, or an ad-hoc instruction.
+   mutates code, resources, or runtime state, read it first for non-trivial work
+   such as bug fixes, features, migrations, or anything with reproduction risk.
+   For clearly trivial ad-hoc requests where the developer has explicitly scoped
+   the exact change, confirm whether they want the full issue workflow or prefer
+   to proceed directly.
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 

@@ -170,7 +170,7 @@ Route by task:
 - browser-based verification or visual evidence:
   - use `automating-browser-tests`
 
-## 5. Validate Red -> Green before handoff
+## 5. Validate before handoff
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
 validation with Playwright is strongly recommended before handoff.
@@ -187,7 +187,8 @@ When reviewers need visual evidence directly in a GitHub issue or PR comment
 without committing branch artifacts, read
 `references/github-visual-evidence.md` before posting anything.
 
-Validation must follow a visible `Red -> Green` loop:
+For bug fixes, visual regressions, layout changes, and other user-facing runtime
+changes, validation should follow a visible `Red -> Green` loop:
 
 - `Red`: capture the failing local state before the fix
 - `Green`: verify the exact symptom checklist from the issue is now satisfied on
@@ -199,21 +200,22 @@ the symptom is gone.
 
 **DOM counters (element counts, selector presence) are supplementary evidence
 only.** A counter that returns `1` proves an element exists; it does not prove
-the page looks correct. Visual validation is required in addition to any
-scripted assertions.
+the page looks correct. For visual/user-facing changes, prefer visual validation
+in addition to any scripted assertions.
 
-**Side-by-side comparison is required before declaring Green:**
+**Side-by-side comparison is the recommended default before declaring Green:**
 
 - Open `before.png` (captured at Red) and the new `after.png` side by side.
 - Confirm every symptom from the issue description is no longer visible.
 - Confirm no new visual regressions appear (unexpected layout shifts, overlapping
   elements, missing sections).
 
-**Human confirmation is required before declaring Green:**
+**Human confirmation is the recommended default before closing a visual Red loop:**
 
-Do not self-declare the issue as fixed. Present the side-by-side evidence to the
-user and wait for explicit confirmation. The phrase "looks good" or "visually
-correct" from the user is the only valid gate to close the Red loop.
+For visual fixes, present the side-by-side evidence to the user and ask whether it
+looks correct before closing the Red loop. If the developer explicitly chooses a
+lighter validation path for a trivial or tightly scoped change, document that
+choice in the handoff and proceed per their instruction.
 
 **Revert-first on regression:** If a symptom appears in `after.png` (or in
 the running page) that was **not present in Red**, do not patch over it.
