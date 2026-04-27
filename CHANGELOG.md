@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.3](https://github.com/mordonez/ldev/compare/ldev-v0.5.2...ldev-v0.5.3) (2026-04-27)
+
+
+### Bug Fixes
+
+* **ai:** clarify validation processes for non-trivial changes and visual evidence ([0c33d4e](https://github.com/mordonez/ldev/commit/0c33d4e78207db23ac6b111447be733dc6247ded))
+* **ai:** make workflow gates scope-aware and developer-flexible ([0c33d4e](https://github.com/mordonez/ldev/commit/0c33d4e78207db23ac6b111447be733dc6247ded))
+* **db:** ensure postgres volume is removed after container cleanup in db import ([#121](https://github.com/mordonez/ldev/issues/121)) ([84e0b59](https://github.com/mordonez/ldev/commit/84e0b594cdfd47cf0bdbade54f44b19aeea6da0f))
+* **deploy:** add client-extension and war deploy support ([#117](https://github.com/mordonez/ldev/issues/117)) ([85929c6](https://github.com/mordonez/ldev/commit/85929c6a8a8d09ffe8d2fae48fd080d42b70662d))
+* **inventory:** simplify portal inventory page with minimal default contract and --full mode  ([#123](https://github.com/mordonez/ldev/issues/123)) ([a49142d](https://github.com/mordonez/ldev/commit/a49142d5ffe39b15d6f40c98e2c11b08a5335f0c))
+
 ## [0.5.2](https://github.com/mordonez/ldev/compare/ldev-v0.5.1...ldev-v0.5.2) (2026-04-24)
 
 
