@@ -5,7 +5,14 @@ description: "Use when a project-owned GitHub issue must be handled end-to-end: 
 
 # Issue Engineering
 
-Use this project-owned skill for the full issue lifecycle.
+> This skill has been promoted to the standard `ldev` vendor surface.
+> The canonical version is installed at `.agents/skills/issue-engineering/SKILL.md`
+> when you run `ldev ai install`.
+>
+> If you are reading this copy from `legacy/`, use the installed version instead.
+> The content below is kept here only as a reference while the project transitions.
+
+Use this skill for the full issue lifecycle.
 
 ## Hard rules
 

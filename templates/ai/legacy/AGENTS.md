@@ -13,15 +13,20 @@ for project-specific context, GitHub workflow and Claude-specific runbooks.
 3. Run:
 
 ```bash
-ldev doctor
+ldev doctor --json
 ldev context --json
+```
+
+If the runtime is not started yet:
+
+```bash
+ldev start
+ldev status --json
 ```
 
 ## Worktree rule
 
 If the task will change tracked files, use an isolated worktree.
-
-Recommended flow:
 
 ```bash
 ldev worktree setup --name <name> --with-env
@@ -34,6 +39,13 @@ If the worktree already exists:
 ```bash
 cd .worktrees/<name>
 ldev start
+```
+
+Verify readiness before working:
+
+```bash
+ldev status --json
+ldev logs --since 2m --service liferay --no-follow
 ```
 
 ## Canonical locations
@@ -53,24 +65,27 @@ Precedence:
 
 ## Recommended entry points
 
-- `/issue-engineering`: end-to-end GitHub issue lifecycle for this project
-- `/liferay-expert`: technical Liferay routing
-- `/capturing-session-knowledge`: write back verified project knowledge
+- `/issue-engineering`: end-to-end GitHub issue lifecycle (vendor skill — installed by `ldev ai install`)
+- `/liferay-expert`: technical Liferay routing when next step is unclear
+- `/capturing-session-knowledge`: write verified project knowledge back to docs
 
 ## Local tooling contract
 
-Use `ldev` as the official local CLI:
+Use `ldev` as the official local CLI. Do not fall back to legacy `task ...`
+wrappers or ad hoc Docker commands when an `ldev` command already exists.
 
-- `ldev setup`
-- `ldev start`
-- `ldev stop`
-- `ldev status`
-- `ldev logs`
-- `ldev shell`
-- `ldev worktree ...`
-- `ldev deploy ...`
-- `ldev osgi ...`
-- `ldev liferay ...`
+```bash
+ldev setup
+ldev start
+ldev stop
+ldev status --json
+ldev logs --since Xm --service liferay --no-follow
+ldev shell
+ldev worktree ...
+ldev deploy ...
+ldev osgi ...
+ldev liferay ...
+```
 
 Use `--json` on `doctor`, `context`, `status` and other supported commands when
 the output will be consumed by scripts or agents.

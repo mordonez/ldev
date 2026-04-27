@@ -1,0 +1,4 @@
+interface:
+  display_name: "Issue Engineering"
+  short_description: "End-to-end GitHub issue lifecycle with isolated worktree and ldev runtime"
+  default_prompt: "Usa $issue-engineering para resolver la issue #NUM de extremo a extremo: worktree aislado, discovery con ldev, fix, verificación de runtime y PR."

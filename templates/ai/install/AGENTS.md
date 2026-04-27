@@ -53,11 +53,12 @@ Keep that local context in the project repo, not in `ldev`.
 
 Use these as the standard reusable entrypoints:
 
-- `liferay-expert`: router for technical Liferay work.
+- `issue-engineering`: end-to-end GitHub issue lifecycle — worktree, fix, verify, PR.
+- `liferay-expert`: router for technical Liferay work when the next step is not yet clear.
 - `developing-liferay`: implementation guidance for code, themes, content resources and fragments.
 - `deploying-liferay`: build, deploy and runtime verification flow.
-- `troubleshooting-liferay`: diagnosis and recovery flow.
-- `migrating-journal-structures`: safe Journal migration playbook.
+- `troubleshooting-liferay`: diagnosis and recovery when the env is unhealthy.
+- `migrating-journal-structures`: safe Journal structure and content migration playbook.
 
 ## Validation
 

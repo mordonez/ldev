@@ -14,6 +14,7 @@ existed in the original `tools/ai` tree.
 | `deploying-liferay` | `tools/ai/skills/deploying-liferay/` | Build, deploy and verify runtime changes | Yes | Maps directly to `ldev deploy`, `ldev osgi`, `ldev logs` |
 | `troubleshooting-liferay` | `tools/ai/skills/troubleshooting-liferay/` | Diagnose runtime failures and recovery paths | Yes | General local runtime guidance |
 | `migrating-journal-structures` | `tools/ai/skills/migrating-journal-structures/` | Run Journal migration workflows safely | Yes | Based on stable `ldev liferay resource ...` flows |
+| `issue-engineering` | `tools/ai/skills/issue-engineering/` | End-to-end GitHub issue lifecycle using ldev | Yes | Uses only `ldev` and `gh`; lifecycle pattern works across any ldev project |
 | Skill authoring rules | `tools/ai/docs/SKILL_STANDARDS.md` | Maintainer guidance for future reusable skills | Internal only | Useful to maintain the package, not installed into projects |
 
 ## Assets Kept Out of the Reusable Surface
@@ -26,12 +27,12 @@ existed in the original `tools/ai` tree.
 | Legacy shell installer | `tools/ai/legacy/install.sh` | Project overlay installer after the standard package | No | Useful for one concrete project overlay, not for the reusable vendor surface |
 | Legacy agent docs | `tools/ai/legacy/agents/` | Architecture and validation for original pipeline | No | Pipeline-specific and legacy |
 | Claude-only runbooks | `tools/ai/legacy/.claude/agents/` | Internal multi-agent pipeline | No | Runtime-specific and not productized |
-| `issue-engineering` | `tools/ai/legacy/skills/issue-engineering/` | GitHub issue lifecycle | No | Workflow-specific, not part of `ldev` core |
-| `resolving-issues` | `tools/ai/legacy/skills/resolving-issues/` | Legacy wrapper | No | Pure compatibility layer |
-| `preparing-github-issues` | `tools/ai/legacy/skills/preparing-github-issues/` | GitHub issue enrichment | No | GitHub workflow specific |
-| `managing-worktree-env` | `tools/ai/legacy/skills/managing-worktree-env/` | Legacy wrapper for worktree lifecycle | No | Compatibility wrapper, not a product skill |
-| `capturing-session-knowledge` | `tools/ai/legacy/skills/capturing-session-knowledge/` | Update project memory after a session | No | Writes project-owned knowledge, not vendor standard |
-| `automating-browser-tests` | `tools/ai/legacy/skills/automating-browser-tests/` | Playwright/UI workflow | No | Depends on project wrappers not provided by `ldev` |
+| `issue-engineering` (legacy copy) | `tools/ai/legacy/skills/issue-engineering/` | Redirect to the promoted vendor skill | No | Canonical version is now in `skills/issue-engineering/` |
+| `resolving-issues` | `tools/ai/legacy/skills/resolving-issues/` | Legacy wrapper pointing to issue-engineering | No | Pure compatibility alias |
+| `preparing-github-issues` | `tools/ai/legacy/skills/preparing-github-issues/` | GitHub issue enrichment with `prepare_issue.py` script | No | Depends on a project-installed script; `ldev liferay inventory` covers the generic case |
+| `managing-worktree-env` | `tools/ai/legacy/skills/managing-worktree-env/` | Detailed worktree lifecycle reference | No | Worktree usage is covered inside `issue-engineering`; standalone wrapper not needed in vendor surface |
+| `capturing-session-knowledge` | `tools/ai/legacy/skills/capturing-session-knowledge/` | Update project memory after a session | No | Writes to project-owned knowledge files; format depends on project conventions |
+| `automating-browser-tests` | `tools/ai/legacy/skills/automating-browser-tests/` | Playwright/UI workflow | No | Depends on `playwright-cli` and `.playwright/cli.config.json` which `ldev` does not provide |
 
 ## Notes
 
@@ -42,3 +43,6 @@ existed in the original `tools/ai` tree.
 - The overlay should be applied after the standard package, not used as a
   standalone replacement.
 - New reusable assets must satisfy the rules in `PRODUCT_RULES.md`.
+- When a legacy skill is promoted to the vendor surface, update this table and
+  convert the legacy copy to a redirect with a note pointing to the canonical
+  location.

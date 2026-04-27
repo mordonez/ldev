@@ -13,7 +13,8 @@ Rules for this folder:
 - It should be safe to copy into a project and adapt in place.
 
 If an asset becomes generally reusable, move it out of `legacy/` and into the
-standard `tools/ai/install/` or `tools/ai/skills/` surface.
+standard `templates/ai/skills/` or `templates/ai/install/` surface.
+Update `docs/ASSET_INVENTORY.md` and convert the legacy copy to a redirect.
 
 ## Recommended adoption flow
 
@@ -26,5 +27,5 @@ ldev ai install --target /path/to/project
 2. Layer the legacy project overlay on top:
 
 ```bash
-bash tools/ai/legacy/install.sh /path/to/project
+bash templates/ai/legacy/install.sh /path/to/project
 ```

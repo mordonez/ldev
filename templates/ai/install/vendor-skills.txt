@@ -1,5 +1,6 @@
 deploying-liferay
 developing-liferay
+issue-engineering
 liferay-expert
 migrating-journal-structures
 troubleshooting-liferay
