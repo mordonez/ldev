@@ -14,7 +14,7 @@ export async function listDeployArtifacts(directory: string): Promise<string[]> 
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => path.join(directory, entry.name))
-    .filter((entryPath) => /\.(jar|war|xml)$/i.test(entryPath));
+    .filter((entryPath) => /\.(jar|war|xml|zip)$/i.test(entryPath));
 }
 
 export async function syncArtifactsToBuildDeploy(context: DeployContext, artifacts: string[]): Promise<number> {
@@ -27,6 +27,8 @@ export async function collectModuleArtifacts(context: DeployContext, module: str
     path.join(context.liferayDir, 'modules', module, `${module}-api`, 'build', 'libs'),
     path.join(context.liferayDir, 'modules', module, `${module}-service`, 'build', 'libs'),
     path.join(context.liferayDir, 'modules', module, 'build', 'libs'),
+    path.join(context.liferayDir, 'client-extensions', module, 'dist'),
+    path.join(context.liferayDir, 'wars', module, 'build', 'libs'),
   ];
 
   const artifacts: string[] = [];
