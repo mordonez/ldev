@@ -41,7 +41,6 @@ export async function runAgentContext(
 
   return {
     ok: true,
-    contractVersion: 2,
     generatedAt: new Date().toISOString(),
     project: {
       type: project.projectType,

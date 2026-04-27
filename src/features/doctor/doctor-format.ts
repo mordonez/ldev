@@ -18,14 +18,12 @@ export function assembleDoctorReport(
 
   return {
     ok: summary.failed === 0,
-    contractVersion: 2,
     generatedAt: new Date().toISOString(),
     ranChecks,
     summary,
     stamp: {
       projectType: ctx.project.projectType,
       portalUrl: ctx.project.env.portalUrl,
-      contractVersion: 2,
     },
     tools: {
       git: toolStatusFromCheck(ctx.tools.git, normalizedChecks, 'git'),

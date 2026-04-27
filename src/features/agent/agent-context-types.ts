@@ -19,7 +19,6 @@ export type AgentContextIssue = {
 };
 export type AgentContextReport = {
   ok: true;
-  contractVersion: 2;
   generatedAt: string;
   project: {
     type: string;

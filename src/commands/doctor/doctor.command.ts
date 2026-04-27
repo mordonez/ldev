@@ -48,7 +48,6 @@ Examples:
         if (options.listChecks) {
           return {
             ok: true,
-            contractVersion: 2,
             checks: report.checks.map((check) => ({
               id: check.id,
               scope: check.scope,

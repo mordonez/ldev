@@ -14,14 +14,12 @@ export function buildDevelopBootstrapDoctor(context: AgentContextReport): Doctor
 
   return {
     ok: summary.failed === 0,
-    contractVersion: 2,
     generatedAt: new Date().toISOString(),
     ranChecks: ['basic'],
     summary,
     stamp: {
       projectType: context.project.type,
       portalUrl: context.liferay.portalUrl,
-      contractVersion: 2,
     },
     tools: buildDevelopTools(context),
     checks,
