@@ -5,6 +5,7 @@ import {describe, expect, test} from 'vitest';
 
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
+import {runProcess} from '../../src/core/platform/process.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 import {runCli} from '../../src/testing/cli-entry.js';
 
@@ -120,6 +121,42 @@ describe('db integration', () => {
     expect(parsed.backupFile).toBe(backupFile);
     expect(parsed.forcedReset).toBe(true);
     expect(await fs.pathExists(path.join(pgData, 'PG_VERSION'))).toBe(false);
+  }, 45000);
+
+  test('db import --force removes an existing postgres volume after removing the postgres container', async () => {
+    const repoRoot = await createDbRepoFixture({postgresDataMode: 'volume'});
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {
+      ...process.env,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_VOLUME_RM_REQUIRES_COMPOSE_RM: '1',
+    };
+
+    const backupFile = path.join(repoRoot, 'docker', 'backups', 'backup.sql');
+    await fs.ensureDir(path.dirname(backupFile));
+    await fs.writeFile(backupFile, 'select 1;\n');
+
+    const volumeName = 'demo-postgres';
+    const createVolume = await runProcess('docker', ['volume', 'create', volumeName], {cwd: repoRoot, env});
+    expect(createVolume.exitCode).toBe(0);
+
+    const result = await runCli(['db', 'import', '--file', backupFile, '--force', '--format', 'json'], {
+      cwd: repoRoot,
+      env,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = parseTestJson<DbImportPayload>(result.stdout);
+    expect(parsed.backupFile).toBe(backupFile);
+    expect(parsed.forcedReset).toBe(true);
+
+    const inspectVolume = await runProcess('docker', ['volume', 'inspect', volumeName], {cwd: repoRoot, env});
+    expect(inspectVolume.exitCode).toBe(1);
+
+    const calls = await readFakeDockerCalls(fakeBinDir);
+    expect(calls).toEqual(
+      expect.arrayContaining(['compose stop postgres', 'compose rm -f -s postgres', `volume rm ${volumeName}`]),
+    );
   }, 45000);
 
   test('db import tolerates EACCES while checking postgres-data and falls back to docker inspection', async () => {
@@ -298,16 +335,23 @@ describe('db integration', () => {
   }, 30000);
 });
 
-async function createDbRepoFixture(): Promise<string> {
+async function createDbRepoFixture(options?: {postgresDataMode?: 'bind' | 'volume'}): Promise<string> {
   const repoRoot = createTempDir('dev-cli-db-');
   await fs.ensureDir(path.join(repoRoot, 'docker'));
   await fs.ensureDir(path.join(repoRoot, 'liferay'));
   await fs.ensureDir(path.join(repoRoot, 'docker', 'sql', 'post-import.d'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  postgres:\n');
-  await fs.writeFile(
-    path.join(repoRoot, 'docker', '.env'),
-    'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_USER=liferay\nPOSTGRES_DB=liferay\n',
-  );
+  const envLines = [
+    'COMPOSE_PROJECT_NAME=demo',
+    'ENV_DATA_ROOT=./data/default',
+    'LDEV_STORAGE_PLATFORM=other',
+    'POSTGRES_USER=liferay',
+    'POSTGRES_DB=liferay',
+  ];
+  if (options?.postgresDataMode === 'volume') {
+    envLines.push('POSTGRES_DATA_MODE=volume', 'POSTGRES_DATA_VOLUME_NAME=demo-postgres');
+  }
+  await fs.writeFile(path.join(repoRoot, 'docker', '.env'), `${envLines.join('\n')}\n`);
   await fs.writeFile(path.join(repoRoot, 'liferay', 'build.gradle'), 'plugins {}\n');
   await fs.writeFile(path.join(repoRoot, 'docker', 'sql', 'post-import.d', '020-second.sql'), 'update test set x=2;\n');
   await fs.writeFile(path.join(repoRoot, 'docker', 'sql', 'post-import.d', '010-first.sql'), 'update test set x=1;\n');
