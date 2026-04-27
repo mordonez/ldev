@@ -82,8 +82,8 @@ structures.
 Validate before mutating:
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
-ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
+ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ldev resource import-fragment --site /<site> --fragment <fragment-key>
 ```
@@ -94,8 +94,8 @@ ldev resource import-fragment --site /<site> --fragment <fragment-key>
 If the preview is correct, re-run without `--check-only`:
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource import-template --site /<site> --id <TEMPLATE_ID>
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource import-template --site /<site> --template <TEMPLATE_ID>
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl>
 ```
 

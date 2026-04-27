@@ -4,7 +4,7 @@ import {describe, expect, test, vi, afterEach, beforeEach} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {LiferayGateway} from '../../src/features/liferay/liferay-gateway.js';
-import {runStructureMigration} from '../../src/features/liferay/resource/liferay-resource-sync-structure-migration.js';
+import {runStructureMigration} from '../../src/features/liferay/resource/migration/index.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const mockConfig: AppConfig = {

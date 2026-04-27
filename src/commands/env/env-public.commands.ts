@@ -1,7 +1,7 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction, withCommandContext} from '../../cli/command-helpers.js';
-import {createRuntimeAdapter} from '../../core/runtime/runtime-adapter-factory.js';
+import {createRuntimeOperations} from '../../core/runtime/runtime-adapter-factory.js';
 import {formatEnvLogsDiagnose, runEnvLogsDiagnose} from '../../features/env/env-logs-diagnose.js';
 import {runEnvShell} from '../../features/env/env-shell.js';
 import {formatEnvSetup, runEnvSetup} from '../../features/env/env-setup.js';
@@ -71,7 +71,7 @@ export function createEnvStartCommand(options?: SharedCommandOptions): Command {
     ).action(
       createFormattedAction(
         async (context, commandOptions: EnvStartCommandOptions) =>
-          createRuntimeAdapter(context.config, {projectType: context.project.projectType}).start({
+          createRuntimeOperations(context.config, {projectType: context.project.projectType}).start({
             activationKeyFile: commandOptions.activationKeyFile,
             wait: commandOptions.wait,
             timeoutSeconds: Number.parseInt(commandOptions.timeout, 10),
@@ -89,7 +89,7 @@ export function createEnvStopCommand(options?: SharedCommandOptions): Command {
     addOutputFormatOption(new Command('stop').description('Stop containers')).action(
       createFormattedAction(
         async (context) =>
-          createRuntimeAdapter(context.config, {projectType: context.project.projectType}).stop({
+          createRuntimeOperations(context.config, {projectType: context.project.projectType}).stop({
             printer: context.printer,
           }),
         {
@@ -105,7 +105,7 @@ export function createEnvStatusCommand(options?: SharedCommandOptions): Command 
   return withOptionalHelpGroup(
     addOutputFormatOption(new Command('status').description('Show environment status'), 'json').action(
       createFormattedAction(
-        async (context) => createRuntimeAdapter(context.config, {projectType: context.project.projectType}).status(),
+        async (context) => createRuntimeOperations(context.config, {projectType: context.project.projectType}).status(),
         {text: formatEnvStatus},
       ),
     ),
@@ -123,7 +123,7 @@ export function createEnvLogsCommand(options?: SharedCommandOptions): Command {
     // escape-hatch: streams output directly; no return value to format
     .action(async (commandOptions: EnvLogsCommandOptions) =>
       withCommandContext(commandOptions, async (context) => {
-        await createRuntimeAdapter(context.config, {projectType: context.project.projectType}).logs({
+        await createRuntimeOperations(context.config, {projectType: context.project.projectType}).logs({
           service: commandOptions.service,
           since: commandOptions.since,
           follow: commandOptions.follow,

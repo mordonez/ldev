@@ -8,7 +8,7 @@ import {
   formatLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-} from '../../src/features/liferay/resource/liferay-resource-migration.js';
+} from '../../src/features/liferay/resource/migration/index.js';
 import {
   createStaticTokenClient,
   createTestFetchImpl,

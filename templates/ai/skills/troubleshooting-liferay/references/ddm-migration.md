@@ -18,8 +18,8 @@ Use this reference when a render or import problem appears to come from a DDM st
 
 ```bash
 ldev portal inventory structures --site /<site> --json
-ldev resource structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource template --site /<site> --id <TEMPLATE_ID>
+ldev resource structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource template --site /<site> --template <TEMPLATE_ID>
 ldev logs --since 10m --service liferay --no-follow
 ```
 

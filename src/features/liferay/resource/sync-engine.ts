@@ -86,6 +86,20 @@ export type SyncStrategy<Local = never, Remote = never> = {
   ): Promise<RemoteArtifact<Remote>>;
 
   /**
+   * Check an existing remote artifact without applying the final mutation.
+   * Strategies only need this when check-only requires artifact-specific
+   * validation beyond verify, such as migration dry-runs.
+   */
+  preview?(
+    config: AppConfig,
+    site: ResolvedSite,
+    localArtifact: LocalArtifact<Local>,
+    remoteArtifact: RemoteArtifact<Remote>,
+    options: Record<string, unknown>,
+    dependencies?: ResourceSyncDependencies,
+  ): Promise<RemoteArtifact<Remote>>;
+
+  /**
    * Verify remote artifact matches local (hash check, etc.).
    * Throw if verification fails.
    */
@@ -115,6 +129,14 @@ export type SyncEngineOptions = {
  */
 export type SyncEngineResult = ResourceSyncResult;
 
+export type SyncArtifactOutcome<Local = never, Remote = never> = {
+  result: SyncEngineResult;
+  localArtifact: LocalArtifact<Local>;
+  initialRemoteArtifact: RemoteArtifact<Remote> | null;
+  changedRemoteArtifact: RemoteArtifact<Remote> | null;
+  verifiedRemoteArtifact: RemoteArtifact<Remote> | null;
+};
+
 /**
  * Orchestrate artifact synchronization using a strategy.
  */
@@ -125,6 +147,20 @@ export async function syncArtifact<Local = never, Remote = never>(
   options: SyncEngineOptions,
   dependencies?: ResourceSyncDependencies,
 ): Promise<SyncEngineResult> {
+  return (await syncArtifactDetailed(config, site, strategy, options, dependencies)).result;
+}
+
+/**
+ * Orchestrate artifact synchronization and expose lifecycle artifacts to callers
+ * that need artifact-specific result fields.
+ */
+export async function syncArtifactDetailed<Local = never, Remote = never>(
+  config: AppConfig,
+  site: ResolvedSite,
+  strategy: SyncStrategy<Local, Remote>,
+  options: SyncEngineOptions,
+  dependencies?: ResourceSyncDependencies,
+): Promise<SyncArtifactOutcome<Local, Remote>> {
   const strategyOpts = options.strategyOptions ?? {};
 
   // 1. Resolve local artifact
@@ -146,17 +182,25 @@ export async function syncArtifact<Local = never, Remote = never>(
   // 4. If missing and check-only (only reachable when createMissing=true)
   if (!remoteArtifact && options.checkOnly) {
     return {
-      status: 'checked_missing',
-      id: '',
-      name: localArtifact.id,
-      extra: '',
+      result: {
+        status: 'checked_missing',
+        id: '',
+        name: localArtifact.id,
+        extra: '',
+      },
+      localArtifact,
+      initialRemoteArtifact: null,
+      changedRemoteArtifact: null,
+      verifiedRemoteArtifact: null,
     };
   }
 
-  // 5. Upsert
-  if (!options.checkOnly) {
-    await strategy.upsert(config, site, localArtifact, remoteArtifact, strategyOpts, dependencies);
-  }
+  // 5. Preview or upsert
+  const changedRemoteArtifact = options.checkOnly
+    ? remoteArtifact && strategy.preview
+      ? await strategy.preview(config, site, localArtifact, remoteArtifact, strategyOpts, dependencies)
+      : null
+    : await strategy.upsert(config, site, localArtifact, remoteArtifact, strategyOpts, dependencies);
 
   // 6. Verify (always, even in check-only mode for hash validation)
   const verifiedRemote = await strategy.findRemote(config, site, localArtifact, strategyOpts, dependencies);
@@ -167,9 +211,15 @@ export async function syncArtifact<Local = never, Remote = never>(
   const finalStatus = options.checkOnly ? 'checked' : remoteArtifact ? 'updated' : 'created';
 
   return {
-    status: finalStatus,
-    id: verifiedRemote?.id ?? localArtifact.id,
-    name: localArtifact.id,
-    extra: '',
+    result: {
+      status: finalStatus,
+      id: verifiedRemote?.id ?? changedRemoteArtifact?.id ?? localArtifact.id,
+      name: localArtifact.id,
+      extra: '',
+    },
+    localArtifact,
+    initialRemoteArtifact: remoteArtifact,
+    changedRemoteArtifact,
+    verifiedRemoteArtifact: verifiedRemote,
   };
 }

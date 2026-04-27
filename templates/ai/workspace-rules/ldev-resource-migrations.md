@@ -13,12 +13,12 @@ covered cleanly by generic portal tools.
 
 Typical entry points:
 
-- `ldev resource export-structure --site /my-site --key <key> --json`
-- `ldev resource export-template --site /my-site --id <id> --json`
-- `ldev resource export-adt --site /my-site --key <key> --widget-type <type> --json`
+- `ldev resource export-structure --site /my-site --structure <key> --json`
+- `ldev resource export-template --site /my-site --template <id> --json`
+- `ldev resource export-adt --site /my-site --adt <key> --widget-type <type> --json`
 - `ldev resource export-fragment --site /my-site --fragment <key> --json`
-- `ldev resource import-structure --site /my-site --key <key> --check-only`
-- `ldev resource import-template --site /my-site --id <id> --check-only`
+- `ldev resource import-structure --site /my-site --structure <key> --check-only`
+- `ldev resource import-template --site /my-site --template <id> --check-only`
 - `ldev resource import-adt --site /my-site --file <file> --check-only`
 - `ldev resource migration-pipeline --migration-file <file>`
 

@@ -76,9 +76,9 @@ ldev --repo-root <main-root> ai bootstrap --intent=develop --cache=60 --json
 Use file exports when you need the current source of truth from the portal:
 
 ```bash
-ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource export-template --site /<site> --id <TEMPLATE_ID>
-ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
+ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource export-template --site /<site> --template <TEMPLATE_ID>
+ldev resource export-adt --site /<site> --adt <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
@@ -135,9 +135,9 @@ ldev resource fragments --site /<site> --json
 Use focused exports when changing one object:
 
 ```bash
-ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource export-template --site /<site> --id <TEMPLATE_ID>
-ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type <widget-type>
+ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource export-template --site /<site> --template <TEMPLATE_ID>
+ldev resource export-adt --site /<site> --adt <ADT_KEY> --widget-type <widget-type>
 ldev resource export-fragment --site /<site> --fragment <FRAGMENT_KEY>
 ```
 
@@ -154,8 +154,8 @@ Review the exported resource files like any other source change.
 Preview the local repository state first:
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
-ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
+ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ```
 
@@ -172,8 +172,8 @@ import command per changed resource so failures stay attributable.
 ### 5. Apply the smallest safe import
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource import-template --site /<site> --id <TEMPLATE_ID>
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource import-template --site /<site> --template <TEMPLATE_ID>
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl>
 ldev resource import-fragment --site /<site> --fragment <fragment-key>
 ```
@@ -239,8 +239,8 @@ References:
 - `references/groovy-console.md` — portal console scripts, ERC vocabulary fixes, bulk operations with no `ldev` equivalent
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
-ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
+ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ```
 

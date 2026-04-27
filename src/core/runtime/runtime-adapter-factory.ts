@@ -5,10 +5,15 @@ import {BladeWorkspaceRuntimeAdapter} from './blade-workspace-runtime-adapter.js
 import {LdevNativeRuntimeAdapter} from './ldev-native-runtime-adapter.js';
 import type {RuntimeAdapter} from './runtime-adapter.js';
 
-export function createRuntimeAdapter(
-  config: AppConfig,
-  options?: {projectType?: ReturnType<typeof resolveProjectContext>['projectType']},
-): RuntimeAdapter {
+type RuntimeProjectType = ReturnType<typeof resolveProjectContext>['projectType'];
+
+export type RuntimeSelectionOptions = {
+  projectType?: RuntimeProjectType;
+};
+
+export type RuntimeOperations = RuntimeAdapter;
+
+export function createRuntimeAdapter(config: AppConfig, options?: RuntimeSelectionOptions): RuntimeAdapter {
   const projectType = options?.projectType ?? resolveProjectContext({cwd: config.cwd}).projectType;
 
   if (projectType === 'ldev-native') {
@@ -22,4 +27,8 @@ export function createRuntimeAdapter(
   throw new CliError('No supported runtime project was detected.', {
     code: 'RUNTIME_PROJECT_NOT_FOUND',
   });
+}
+
+export function createRuntimeOperations(config: AppConfig, options?: RuntimeSelectionOptions): RuntimeOperations {
+  return createRuntimeAdapter(config, options);
 }

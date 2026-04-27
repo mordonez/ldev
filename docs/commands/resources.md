@@ -14,28 +14,28 @@ ldev resource --preflight export-structures --all-sites
 ## Read and inspect
 
 ```bash
-ldev resource structure --site /global --key BASIC-WEB-CONTENT
-ldev resource template --site /global --id MY_TEMPLATE
+ldev resource structure --site /global --structure BASIC-WEB-CONTENT
+ldev resource template --site /global --template MY_TEMPLATE
 ldev resource adts --site /global
 ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
 ```
 
-- `structure` — accepts `--key` or `--id`
-- `template` — `--id` accepts id, key, ERC or visible name
-- `adt` — filter by `--id`, `--key`, `--name`, `--display-style`, `--widget-type`, or explicit `--class-name`
+- `structure` — accepts `--structure`
+- `template` — `--template` accepts id, key, ERC or visible name
+- `adt` — filter by `--adt`, `--id`, `--name`, `--display-style`, `--widget-type`, or explicit `--class-name`
 - `adts` — list all ADTs for a site; add `--include-script` to include template scripts in JSON
 - `fragments` — list fragment collections and entries for a site
 
 ## Export
 
 ```bash
-ldev resource export-structure --site /global --key MY_STRUCTURE
+ldev resource export-structure --site /global --structure MY_STRUCTURE
 ldev resource export-structures --site /global
 ldev resource export-structures --all-sites --check-only
-ldev resource export-template --site /global --id MY_TEMPLATE
+ldev resource export-template --site /global --template MY_TEMPLATE
 ldev resource export-templates --all-sites --continue-on-error
-ldev resource export-adt --site /global --key MY_ADT --widget-type asset-publisher
+ldev resource export-adt --site /global --adt MY_ADT --widget-type asset-publisher
 ldev resource export-adts --all-sites
 ldev resource export-fragment --fragment BASIC_COMPONENT-paragraph --site /global
 ldev resource export-fragments --all-sites
@@ -51,9 +51,9 @@ Key flags:
 ## Import
 
 ```bash
-ldev resource import-structure --file path/to/structure.json --check-only
-ldev resource import-structure --key MY_STRUCTURE --create-missing
-ldev resource import-template --id MY_TEMPLATE --file path/to/template.ftl
+ldev resource import-structure --file path/to/structure.json --structure MY_STRUCTURE --check-only
+ldev resource import-structure --file path/to/structure.json --structure MY_STRUCTURE --create-missing
+ldev resource import-template --template MY_TEMPLATE --file path/to/template.ftl
 ldev resource import-adt --file path/to/adt.ftl --create-missing
 ldev resource import-fragment --fragment BASIC_COMPONENT-paragraph
 ldev resource import-fragments --all-sites
@@ -83,7 +83,7 @@ Structure imports additionally accept the migration options:
 ## Migration
 
 ```bash
-ldev resource migration-init --site /global --key MY_STRUCTURE --templates
+ldev resource migration-init --site /global --structure MY_STRUCTURE --templates
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json --check-only --migration-dry-run
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json --run-cleanup

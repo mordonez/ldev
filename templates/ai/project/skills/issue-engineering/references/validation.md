@@ -28,8 +28,8 @@ If a portal resource applies:
 
 ```bash
 ldev portal inventory page --url <localUrl> --json
-ldev resource structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource template --site /<site> --id <TEMPLATE_ID>
+ldev resource structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource template --site /<site> --template <TEMPLATE_ID>
 ```
 
 If the change affects visible output from a template, ADT, structure, or fragment,

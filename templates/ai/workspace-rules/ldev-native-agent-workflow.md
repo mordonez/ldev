@@ -31,9 +31,9 @@ Preferred task-shaped entry points after bootstrap:
 - `ldev portal inventory sites --json`
 - `ldev portal inventory pages --site /my-site --json`
 - `ldev portal inventory page --url /web/guest/home --json`
-- `ldev resource export-structure --site /my-site --key <key> --json`
-- `ldev resource export-template --site /my-site --id <id> --json`
-- `ldev resource import-structure --site /my-site --key <key> --check-only`
+- `ldev resource export-structure --site /my-site --structure <key> --json`
+- `ldev resource export-template --site /my-site --template <id> --json`
+- `ldev resource import-structure --site /my-site --structure <key> --check-only`
 - `ldev deploy module <module-name> --format json`
 - `ldev deploy theme --format json`
 

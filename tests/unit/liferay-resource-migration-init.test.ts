@@ -6,7 +6,7 @@ import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceMigrationInit,
   runLiferayResourceMigrationInit,
-} from '../../src/features/liferay/resource/liferay-resource-migration-init.js';
+} from '../../src/features/liferay/resource/migration/index.js';
 import {createStaticTokenClient, createTestFetchImpl, parseTestJson} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 

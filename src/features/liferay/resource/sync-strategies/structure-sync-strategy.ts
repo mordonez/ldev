@@ -23,11 +23,7 @@ import {
   type StructureDefinitionPayload,
   structureShapeMatches,
 } from '../liferay-resource-sync-structure-diff.js';
-import {
-  captureMigrationSourceSnapshots,
-  runStructureMigration,
-  type MigrationStats,
-} from '../liferay-resource-sync-structure-migration.js';
+import {captureMigrationSourceSnapshots, runStructureMigration, type MigrationStats} from '../migration/index.js';
 import {normalizeMigrationPhase, shouldRunPostMigration} from '../liferay-resource-sync-structure-utils.js';
 import {ensureString, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
@@ -271,6 +267,17 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     };
   },
 
+  async preview(
+    config: AppConfig,
+    site: ResolvedSite,
+    localArtifact: LocalArtifact<StructureLocalData>,
+    remoteArtifact: RemoteArtifact<StructureRemoteData>,
+    options: Record<string, unknown>,
+    dependencies?: StructureResourceDependencies,
+  ): Promise<RemoteArtifact<StructureRemoteData>> {
+    return structureSyncStrategy.upsert(config, site, localArtifact, remoteArtifact, options, dependencies);
+  },
+
   async verify(
     _config: AppConfig,
     _site: ResolvedSite,
@@ -394,7 +401,7 @@ async function updateStructureWithRecovery(
     }
 
     throw LiferayErrors.resourceTimeoutRecoverable(
-      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource structure --site ${siteFriendlyUrl} --key ${key}' or retry the import once the portal is responsive again.`,
+      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource structure --site ${siteFriendlyUrl} --structure ${key}' or retry the import once the portal is responsive again.`,
       {details: {operation: 'structure-update', key, siteId, recoverable: true}},
     );
   }

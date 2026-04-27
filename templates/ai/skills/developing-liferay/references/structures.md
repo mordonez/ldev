@@ -69,16 +69,16 @@ project docs.
 2. Export current state if needed:
 
 ```bash
-ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource export-template --site /<site> --id <TEMPLATE_ID>
-ldev resource export-adt --site /<site> --id <ADT_ID>
+ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource export-template --site /<site> --template <TEMPLATE_ID>
+ldev resource export-adt --site /<site> --adt <ADT_KEY>
 ```
 
 3. Validate before mutating:
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
-ldev resource import-template --site /<site> --id <TEMPLATE_ID> --check-only
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
+ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
 ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
 ```
 
@@ -91,13 +91,13 @@ current portal state after mutation:
 
 ```bash
 # Structure: confirm current remote payload
-ldev resource structure --site /<site> --key <STRUCTURE_KEY> --json
+ldev resource structure --site /<site> --structure <STRUCTURE_KEY> --json
 
 # Template: confirm current remote payload
-ldev resource template --site /<site> --id <TEMPLATE_ID> --json
+ldev resource template --site /<site> --template <TEMPLATE_ID> --json
 
 # ADT: confirm current remote payload
-ldev resource adt --site /<site> --key <ADT_KEY> --json
+ldev resource adt --site /<site> --adt <ADT_KEY> --json
 
 # Cross-check mapping and ownership
 ldev portal inventory structures --site /<site> --with-templates --json
