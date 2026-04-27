@@ -53,6 +53,7 @@ export async function runDbImport(
   const backupFile = await resolveBackupFile(context.dockerDir, options?.file);
   const postgresStorage = resolvePostgresStorage(context);
   const postgresDataDir = postgresStorage.bindPath;
+  const postgresEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   const postgresDataHasContents = await hasPostgresStorageContents(postgresStorage, options?.processEnv);
   let forcedReset = false;
@@ -71,10 +72,30 @@ export async function runDbImport(
       postgresStorage.mode === 'volume' ? 'Cleaning PostgreSQL volume' : 'Cleaning existing postgres-data',
       async () => {
         if (postgresStorage.mode === 'volume') {
-          await runDocker(['volume', 'rm', postgresStorage.volumeName], {
+          await runDockerCompose(context.dockerDir, ['stop', 'postgres'], {
+            env: postgresEnv,
+            reject: false,
+          });
+          await runDockerCompose(context.dockerDir, ['rm', '-f', '-s', 'postgres'], {
+            env: postgresEnv,
+            reject: false,
+          });
+
+          const removeResult = await runDocker(['volume', 'rm', postgresStorage.volumeName], {
             env: options?.processEnv,
             reject: false,
           });
+
+          if (!removeResult.ok) {
+            throw new CliError(
+              formatProcessError(
+                removeResult,
+                `Could not remove PostgreSQL volume ${postgresStorage.volumeName}. Ensure no container is still using it.`,
+              ),
+              {code: 'DB_IMPORT_POSTGRES_CLEAN_FAILED'},
+            );
+          }
+
           return;
         }
 
@@ -84,8 +105,6 @@ export async function runDbImport(
     );
     forcedReset = true;
   }
-
-  const postgresEnv = buildComposeEnv(context, {withServices: ['postgres'], baseEnv: options?.processEnv});
 
   await runStep(options?.printer, 'Starting postgres', async () => {
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {env: postgresEnv});

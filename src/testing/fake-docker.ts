@@ -106,7 +106,7 @@ if (args[0] === 'compose' && args[1] === 'version') {
 
 if (
   args[0] === 'compose' &&
-  ['pull', 'up', 'stop', 'down', 'restart', 'logs'].includes(args[1] ?? '')
+  ['pull', 'up', 'stop', 'down', 'restart', 'logs', 'rm'].includes(args[1] ?? '')
 ) {
   if (args[1] === 'logs' && process.env.FAKE_DOCKER_LOGS_OUTPUT) {
     print(decodeEscapes(process.env.FAKE_DOCKER_LOGS_OUTPUT));
@@ -237,6 +237,12 @@ if (args[0] === 'run' && args[1] === '--rm') {
 }
 
 if (args[0] === 'volume' && args[1] === 'rm') {
+  if (process.env.FAKE_DOCKER_VOLUME_RM_REQUIRES_COMPOSE_RM === '1') {
+    const calls = fs.existsSync(stateFile) ? fs.readFileSync(stateFile, 'utf8') : '';
+    if (!/^compose rm .* postgres$/m.test(calls)) {
+      fail('volume is in use');
+    }
+  }
   fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.device'), {force: true});
   fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.type'), {force: true});
   process.exit(0);
