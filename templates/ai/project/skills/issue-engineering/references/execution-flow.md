@@ -51,7 +51,7 @@ If isolated worktrees are available:
 - use the vendor skill `isolating-worktrees` for setup, root lock, recovery,
   and cleanup
 - use project worktree naming conventions if the repository has them
-- read `references/worktree-env.md` only for project-specific conventions
+- read `worktree-env.md` only for project-specific conventions
 - keep environment-specific cleanup tied to the actual worktree used
 - after `ldev start`, reproduce the bug again in the worktree runtime before the
   first code change

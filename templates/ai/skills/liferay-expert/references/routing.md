@@ -14,25 +14,25 @@ technical Liferay work and you need the next specialized skill.
 
 ### Troubleshooting
 
-- `../troubleshooting-liferay/references/reindex-after-import.md`
-- `../troubleshooting-liferay/references/reindex-journal.md`
-- `../troubleshooting-liferay/references/ddm-migration.md`
-- `../troubleshooting-liferay/references/search-debug.md`
-- `../troubleshooting-liferay/references/content-versions.md`
+- `../../troubleshooting-liferay/references/reindex-after-import.md`
+- `../../troubleshooting-liferay/references/reindex-journal.md`
+- `../../troubleshooting-liferay/references/ddm-migration.md`
+- `../../troubleshooting-liferay/references/search-debug.md`
+- `../../troubleshooting-liferay/references/content-versions.md`
 
 ### Implementation
 
-- `../developing-liferay/references/theme.md`
-- `../developing-liferay/references/structures.md`
-- `../developing-liferay/references/fragments.md`
-- `../developing-liferay/references/osgi.md`
-- `../developing-liferay/references/extending-liferay.md`
-- `../developing-liferay/references/groovy-console.md`
-- `../developing-liferay/references/workflow.md`
+- `../../developing-liferay/references/theme.md`
+- `../../developing-liferay/references/structures.md`
+- `../../developing-liferay/references/fragments.md`
+- `../../developing-liferay/references/osgi.md`
+- `../../developing-liferay/references/extending-liferay.md`
+- `../../developing-liferay/references/groovy-console.md`
+- `../../developing-liferay/references/workflow.md`
 
 ### Deploy and verify
 
-- `../deploying-liferay/references/worktree-pitfalls.md`
+- `../../deploying-liferay/references/worktree-pitfalls.md`
 
 ## Site-level objects
 

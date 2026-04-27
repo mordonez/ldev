@@ -7,7 +7,7 @@ Use this reference once the affected surface is already clear.
 Use when the change is in SCSS, JS, theme templates, or other packaged theme
 assets.
 
-Reference: `references/theme.md`
+Reference: `theme.md`
 
 ```bash
 ldev deploy theme
@@ -20,8 +20,8 @@ Use when the change lives in `modules/` or another deployable Gradle unit.
 
 References:
 
-- `references/osgi.md`
-- `references/extending-liferay.md`
+- `osgi.md`
+- `extending-liferay.md`
 
 ```bash
 ldev deploy module <module-name>
@@ -43,9 +43,9 @@ without traditional OSGi modules.
 
 References:
 
-- `references/objects.md`
-- `references/oauth2-setup.md`
-- `references/headless-openapi.md`
+- `objects.md`
+- `oauth2-setup.md`
+- `headless-openapi.md`
 
 ## Journal structures, templates, and ADTs
 
@@ -53,10 +53,10 @@ Use the stable file-based resource workflows instead of ad hoc API calls.
 
 References:
 
-- `references/structures.md`
-- `references/structure-field-catalog.md`
-- `references/workflow.md`
-- `references/groovy-console.md`
+- `structures.md`
+- `structure-field-catalog.md`
+- `workflow.md`
+- `groovy-console.md`
 
 ```bash
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
@@ -70,7 +70,7 @@ When validation looks correct, run the same command without `--check-only`.
 
 Treat fragments as versioned source plus explicit import workflow.
 
-Reference: `references/fragments.md`
+Reference: `fragments.md`
 
 ```bash
 ldev resource fragments --site /<site> --json

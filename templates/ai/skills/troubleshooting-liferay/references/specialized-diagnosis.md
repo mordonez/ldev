@@ -33,8 +33,8 @@ Use a worktree when:
 
 References:
 
-- `references/reindex-after-import.md`
-- `references/reindex-journal.md`
+- `reindex-after-import.md`
+- `reindex-journal.md`
 
 ```bash
 ldev portal reindex status --json
@@ -51,7 +51,7 @@ ldev portal reindex speedup-off
 
 ## Search and buscadores
 
-Reference: `references/search-debug.md`
+Reference: `search-debug.md`
 
 Covers search widgets returning 0 results, filter widgets not working,
 persistent visual bugs such as a hidden "Limpiar" button, and guest versus
@@ -59,7 +59,7 @@ authenticated result differences.
 
 ## Content version accumulation or empty language versions
 
-Reference: `references/content-versions.md`
+Reference: `content-versions.md`
 
 Covers excessive version history, empty linguistic versions added by bulk sync
 processes, and Groovy-based cleanup workflows.

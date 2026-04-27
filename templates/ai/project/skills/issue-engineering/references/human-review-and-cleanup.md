@@ -33,7 +33,7 @@ the deployment notes must include:
   theme or module deploy
 
 Use `runtime-resource-handoff-template.md` as the default structure and
-`../../../../skills/developing-liferay/references/runtime-resource-production-handoff.md`
+`../../developing-liferay/references/runtime-resource-production-handoff.md`
 for the resource-specific fallback rules.
 
 `Validated` should contain only checks you actually executed.
