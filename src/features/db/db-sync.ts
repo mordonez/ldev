@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 
-import {DbErrors} from './errors/index.js';
+import {DbErrors} from './errors/db-error-factory.js';
 
 import {runDbDownload, type DbDownloadResult} from './db-download.js';
 import {runDbImport, type DbImportResult} from './db-import.js';

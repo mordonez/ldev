@@ -7,7 +7,7 @@ import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {addGitWorktree, isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
-import {WorktreeErrors} from './errors/index.js';
+import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 import {assertSafeMainEnvClone, resolveBtrfsConfig} from './worktree-state.js';

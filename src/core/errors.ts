@@ -1,3 +1,10 @@
+import {sanitizeErrorDetails, sanitizeErrorMessage} from './errors-sanitize.js';
+
+export type DomainErrorOptions = {
+  sanitize?: boolean;
+  details?: Record<string, unknown>;
+};
+
 export class CliError extends Error {
   readonly code: string;
   readonly exitCode: number;
@@ -23,4 +30,16 @@ export function normalizeCliError(error: unknown): CliError {
 
   const message = error instanceof Error ? error.message : 'Unknown error';
   return new CliError(message);
+}
+
+export function createDomainError(message: string, code: string, options?: DomainErrorOptions): CliError {
+  const sanitize = options?.sanitize !== false;
+  const finalMessage = sanitize ? sanitizeErrorMessage(message) : message;
+  const finalDetails = options?.details
+    ? sanitize
+      ? sanitizeErrorDetails(options.details)
+      : options.details
+    : undefined;
+
+  return new CliError(finalMessage, {code, details: finalDetails});
 }

@@ -6,7 +6,7 @@ import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDockerOrThrow, runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {EnvErrors} from './errors/index.js';
+import {EnvErrors} from './errors/env-error-factory.js';
 import {buildComposeEnv, resolveEnvContext, resolveManagedStorages} from './env-files.js';
 
 export type EnvCleanResult = {

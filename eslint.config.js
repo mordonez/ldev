@@ -57,7 +57,6 @@ const discouragedCrossFeatureImportSelectors = [
 ];
 
 const CROSS_FEATURE_GUARD_FILES = [
-  'src/features/snapshot/**/*.ts',
   'src/features/worktree/**/*.ts',
   'src/features/deploy/**/*.ts',
   'src/features/db/**/*.ts',

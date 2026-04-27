@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
-import {OAuthErrors} from './errors/index.js';
+import {OAuthErrors} from './errors/oauth-error-factory.js';
 import {
   deployBundledOAuthInstallerJar,
   executeOAuthInstallerCommand,

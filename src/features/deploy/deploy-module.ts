@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
-import {DeployErrors} from './errors/index.js';
+import {DeployErrors} from './errors/deploy-error-factory.js';
 
 import {
   collectModuleArtifacts,

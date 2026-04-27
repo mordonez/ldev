@@ -17,7 +17,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../../core/runtime/env-context.js';
-import {WorktreeErrors} from './errors/index.js';
+import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
 

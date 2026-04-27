@@ -42,7 +42,6 @@ Namespaces:
 - `ldev worktree` — isolated branch worktrees
 - `ldev oauth` — OAuth2 app installation
 - `ldev mcp` — Liferay MCP server inspection
-- `ldev feature-flags` — portal feature flag toggles
 - `ldev project` — project scaffold
 - `ldev ai` — reusable AI assets and skills
 

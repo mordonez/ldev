@@ -9,20 +9,13 @@
  *   throw LiferayErrors.resourceError('Could not sync fragment');
  */
 
-import {CliError} from '../../../core/errors.js';
-import {sanitizeErrorMessage, sanitizeErrorDetails} from '../../../core/errors-sanitize.js';
+import {CliError, createDomainError, type DomainErrorOptions} from '../../../core/errors.js';
 import {LiferayErrorCode, getErrorCodeMetadata} from './liferay-error-codes.js';
 
 /**
  * Options for error creation.
  */
-export type LiferayErrorOptions = {
-  /** Sanitize message and details (default: true) */
-  sanitize?: boolean;
-
-  /** Additional context to attach to error */
-  details?: Record<string, unknown>;
-};
+export type LiferayErrorOptions = DomainErrorOptions;
 
 /**
  * Create a CliError with Liferay error code and optional sanitization.
@@ -32,15 +25,7 @@ export type LiferayErrorOptions = {
  * @param options Sanitization and context options
  */
 function createLiferayError(message: string, code: LiferayErrorCode, options?: LiferayErrorOptions): CliError {
-  const sanitize = options?.sanitize !== false;
-  const finalMessage = sanitize ? sanitizeErrorMessage(message) : message;
-  const finalDetails = options?.details
-    ? sanitize
-      ? sanitizeErrorDetails(options.details)
-      : options.details
-    : undefined;
-
-  return new CliError(finalMessage, {code, details: finalDetails});
+  return createDomainError(message, code, options);
 }
 
 /**
