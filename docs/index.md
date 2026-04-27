@@ -86,7 +86,7 @@ ldev context --json
 
 ```bash
 ldev resource export-structures --all-sites 
-ldev resource migration-init --key STR_ARTICLE 
+ldev resource migration-init --structure STR_ARTICLE 
 ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 ```
 

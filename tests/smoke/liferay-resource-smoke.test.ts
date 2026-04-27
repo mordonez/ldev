@@ -101,7 +101,7 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(['resource', 'structure', '--site', '/global', '--key', 'BASIC-WEB-CONTENT'], {
+      await cli.parseAsync(['resource', 'structure', '--site', '/global', '--structure', 'BASIC-WEB-CONTENT'], {
         from: 'user',
       });
     } finally {
@@ -158,7 +158,7 @@ describe('liferay resource smoke', () => {
     try {
       const cli = createCli();
       cli.exitOverride();
-      await cli.parseAsync(['resource', 'template', '--site', '/global', '--id', 'NEWS_TEMPLATE'], {
+      await cli.parseAsync(['resource', 'template', '--site', '/global', '--template', 'NEWS_TEMPLATE'], {
         from: 'user',
       });
     } finally {
@@ -208,7 +208,16 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['resource', 'export-structure', '--site', '/global', '--key', 'BASIC-WEB-CONTENT', '--output', outputPath],
+        [
+          'resource',
+          'export-structure',
+          '--site',
+          '/global',
+          '--structure',
+          'BASIC-WEB-CONTENT',
+          '--output',
+          outputPath,
+        ],
         {from: 'user'},
       );
     } finally {
@@ -268,7 +277,7 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['resource', 'export-template', '--site', '/global', '--id', 'NEWS_TEMPLATE', '--output', outputPath],
+        ['resource', 'export-template', '--site', '/global', '--template', 'NEWS_TEMPLATE', '--output', outputPath],
         {from: 'user'},
       );
     } finally {
@@ -328,7 +337,7 @@ describe('liferay resource smoke', () => {
       const cli = createCli();
       cli.exitOverride();
       await cli.parseAsync(
-        ['resource', 'export-template', '--site', '/global', '--id', 'NEWS_TEMPLATE', '--output', outputPath],
+        ['resource', 'export-template', '--site', '/global', '--template', 'NEWS_TEMPLATE', '--output', outputPath],
         {from: 'user'},
       );
     } finally {

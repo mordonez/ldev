@@ -5,4 +5,4 @@
 - template id or key: [TODO]
 - verification source:
   - `ldev portal inventory templates --site /<site> --json`
-  - `ldev resource template --site /<site> --id <TEMPLATE_ID>`
+  - `ldev resource template --site /<site> --template <TEMPLATE_ID>`

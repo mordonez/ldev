@@ -31,7 +31,7 @@ Note the structure key you want to migrate.
 ## 2. Export the current resource state
 
 ```bash
-ldev resource export-structure --site /global --key MY_STRUCTURE
+ldev resource export-structure --site /global --structure MY_STRUCTURE
 ldev resource export-templates --site /global
 ```
 
@@ -40,7 +40,7 @@ ldev resource export-templates --site /global
 ```bash
 ldev resource migration-init \
   --site /global \
-  --key MY_STRUCTURE \
+  --structure MY_STRUCTURE \
   --templates
 ```
 

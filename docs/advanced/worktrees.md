@@ -47,7 +47,7 @@ main runtime, target it explicitly instead of changing directories:
 
 ```bash
 ldev --repo-root ../.. portal inventory page --url /web/guest/home --json
-ldev --repo-root ../.. resource structure --site /global --key BASIC --json
+ldev --repo-root ../.. resource structure --site /global --structure BASIC --json
 ```
 
 ## Clean up

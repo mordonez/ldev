@@ -7,13 +7,13 @@ or when modifying existing fields. Every structure lives under
 Always export the current version from the portal before editing:
 
 ```bash
-ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
+ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
 ```
 
 Validate before mutating:
 
 ```bash
-ldev resource import-structure --site /<site> --key <STRUCTURE_KEY> --check-only
+ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
 ```
 
 ---

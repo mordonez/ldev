@@ -394,7 +394,7 @@ async function updateStructureWithRecovery(
     }
 
     throw LiferayErrors.resourceTimeoutRecoverable(
-      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource structure --site ${siteFriendlyUrl} --key ${key}' or retry the import once the portal is responsive again.`,
+      `structure-update timed out, and ldev could not confirm whether the update eventually applied. Re-run 'ldev resource structure --site ${siteFriendlyUrl} --structure ${key}' or retry the import once the portal is responsive again.`,
       {details: {operation: 'structure-update', key, siteId, recoverable: true}},
     );
   }

@@ -48,13 +48,13 @@ import it:
 #    Use ../developing-liferay/references/structure-field-catalog.md for the correct field shapes.
 
 # 2. Validate before importing:
-ldev resource import-structure --site /<site> --key <KEY> --check-only
+ldev resource import-structure --site /<site> --structure <KEY> --check-only
 
 # 3. Import to the portal:
-ldev resource import-structure --site /<site> --key <KEY>
+ldev resource import-structure --site /<site> --structure <KEY>
 
 # 4. Confirm the structure exists:
-ldev resource structure --site /<site> --key <KEY> --json
+ldev resource structure --site /<site> --structure <KEY> --json
 ```
 
 Reference: `../developing-liferay/references/structure-field-catalog.md`
@@ -64,8 +64,8 @@ Reference: `../developing-liferay/references/structure-field-catalog.md`
 ```bash
 ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
-ldev resource structure --site /<site> --key <STRUCTURE_KEY> --json
-ldev resource template --site /<site> --id <TEMPLATE_ID> --json
+ldev resource structure --site /<site> --structure <STRUCTURE_KEY> --json
+ldev resource template --site /<site> --template <TEMPLATE_ID> --json
 ```
 
 ### 2. Scaffold a migration descriptor
@@ -74,7 +74,7 @@ Use `migration-init` to generate a base descriptor from the current portal state
 before editing it by hand:
 
 ```bash
-ldev resource migration-init --site /<site> --key <STRUCTURE_KEY>
+ldev resource migration-init --site /<site> --structure <STRUCTURE_KEY>
 ```
 
 Add `--templates` to include associated templates in the generated descriptor.

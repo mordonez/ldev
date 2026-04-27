@@ -30,7 +30,7 @@ Start with discovery so you know the exact site, key, and object you are exporti
 Export one structure:
 
 ```bash
-ldev resource export-structure --site /global --key MY_STRUCTURE
+ldev resource export-structure --site /global --structure MY_STRUCTURE
 ```
 
 Export all structures and templates:

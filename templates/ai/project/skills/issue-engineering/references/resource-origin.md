@@ -13,8 +13,8 @@ Minimum discovery sequence:
 ```bash
 ldev portal inventory page --url <fullUrl> --json
 ldev portal inventory sites --json
-ldev resource export-structure --site /<site> --key <STRUCTURE_KEY>
-ldev resource export-template --site /<site> --id <TEMPLATE_ID>
+ldev resource export-structure --site /<site> --structure <STRUCTURE_KEY>
+ldev resource export-template --site /<site> --template <TEMPLATE_ID>
 ```
 
 Do not assume the site in the browser URL is the same site that owns the structure or template source files. Always resolve the owning site from the inventory before making changes.

@@ -32,7 +32,7 @@ Prefer atomic deploys. Do not use a broad deploy as a default validation step.
 
 Do not use deploy commands for Journal templates, ADTs, fragments, or
 structures. Those require a prepared runtime and `ldev resource import-*`, then
-read-after-write verification with `ldev resource get-*` / `ldev resource export-*`
+read-after-write verification with `ldev resource structure/template/adt` / `ldev resource export-*`
 and `ldev portal inventory ... --json`; use browser validation with `playwright-cli`
 when rendering is affected.
 

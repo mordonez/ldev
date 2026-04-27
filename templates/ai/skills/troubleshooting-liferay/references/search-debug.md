@@ -83,7 +83,7 @@ problem is likely in the widget or ADT configuration:
 For Search Results with an ADT:
 
 ```bash
-ldev resource export-adt --site /<site> --key <ADT_KEY> --widget-type AssetPublisher --json
+ldev resource export-adt --site /<site> --adt <ADT_KEY> --widget-type AssetPublisher --json
 ```
 
 Review the FTL template for conditions that hide results:
