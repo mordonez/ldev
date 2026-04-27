@@ -22,10 +22,10 @@ import {
 import type {ResolvedSite} from '../portal/site-resolution.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildSiteChain, fetchGroupInfo} from '../portal/site-resolution.js';
-import {listDdmTemplates, resolveResourceSite} from '../resource/liferay-resource-shared.js';
+import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
 import {resolveSiteToken} from '../portal/site-token.js';
-import {tryResolveArtifactSiteDir} from '../resource/liferay-resource-paths.js';
+import {tryResolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {
   type ArticleRef,
   fetchContentStructureById,

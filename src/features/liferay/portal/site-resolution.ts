@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {isCliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
@@ -193,8 +194,10 @@ export async function buildSiteChain(
     if (!visited.has(globalSite.id)) {
       chain.push({siteId: globalSite.id, siteFriendlyUrl: globalSite.friendlyUrlPath, siteName: globalSite.name});
     }
-  } catch {
-    // /global is not available on every permission set.
+  } catch (error) {
+    if (!isIgnorableGlobalSiteError(error)) {
+      throw error;
+    }
   }
 
   return chain;
@@ -247,4 +250,8 @@ async function resolveCompanyId(gateway: LiferayGateway, siteId: number): Promis
   }
 
   return companiesResponse.data[0]?.companyId ?? -1;
+}
+
+function isIgnorableGlobalSiteError(error: unknown): boolean {
+  return isCliError(error) && error.code === 'LIFERAY_SITE_NOT_FOUND';
 }

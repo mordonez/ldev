@@ -3,7 +3,7 @@ import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {fetchPagedItems} from './liferay-inventory-shared.js';
 import {resolveSite} from '../portal/site-resolution.js';
-import {listDdmTemplates, resolveResourceSite} from '../resource/liferay-resource-shared.js';
+import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
 import {getOperationPolicy} from '../portal/capabilities.js';
 
 export type LiferayInventoryTemplate = {
