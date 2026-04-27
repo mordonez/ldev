@@ -25,10 +25,6 @@ type DeployStatusPayload = {
   modules: Array<{name: string}>;
 };
 
-type HealthPayload = {
-  overall: string;
-};
-
 type ContextIssuePayload = {
   issues: Array<{code: string}>;
 };
@@ -134,14 +130,10 @@ describe('new features integration', () => {
     expect(parsed.modules).toEqual(expect.arrayContaining([expect.objectContaining({name: 'foo'})]));
   }, 45000);
 
-  test('health and context expose machine-readable diagnostics', async () => {
+  test('context exposes machine-readable diagnostics', async () => {
     const repoRoot = await createEnvRepoFixture();
     const unhealthyBin = await createFakeDockerBin({stateStatus: 'exited', healthStatus: 'unhealthy'});
     const env = {...process.env, PATH: `${unhealthyBin}:${process.env.PATH ?? ''}`};
-
-    const healthResult = await runCli(['health', '--json'], {cwd: repoRoot, env});
-    expect(healthResult.exitCode).toBe(0);
-    expect(parseTestJson<HealthPayload>(healthResult.stdout).overall).toBe('degraded');
 
     const contextResult = await runCli(['context', '--json'], {cwd: repoRoot, env});
     expect(contextResult.exitCode).toBe(0);

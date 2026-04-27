@@ -1,4 +1,4 @@
-import {OAuthErrors} from './errors/index.js';
+import {OAuthErrors} from './errors/oauth-error-factory.js';
 import {writeLocalLiferayProfile} from '../../core/config/liferay-profile.js';
 
 export function writeCredentialsToLocalProfile(

@@ -51,7 +51,6 @@ ldev ai bootstrap --intent=discover --json
 ldev context --json
 ldev status
 ldev doctor --json
-ldev health
 ```
 
 These commands tell you:

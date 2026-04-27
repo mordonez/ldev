@@ -85,5 +85,5 @@ A reproducible environment is a safety feature.
 It lets you:
 
 - debug locally before production changes
-- compare before and after behavior with `env diff` and `perf check`
+- compare before and after behavior with `env diff`
 - verify a fix with the same commands every time

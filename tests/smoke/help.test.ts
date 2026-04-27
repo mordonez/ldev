@@ -128,10 +128,6 @@ describe('smoke help', () => {
     'liferay',
     'doctor',
     'context',
-    'health',
-    'perf',
-    'snapshot',
-    'restore',
   ])(
     '%s --help works',
     async (namespace) => {

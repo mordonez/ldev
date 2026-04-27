@@ -5,8 +5,12 @@ import {describe, expect, test} from 'vitest';
 
 import {resolveProjectInventory} from '../../src/core/config/project-inventory.js';
 import {resolveProjectContext} from '../../src/core/config/project-context.js';
-import {FIXTURE_YAML} from '../../src/testing/fixtures.js';
 import {createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
+
+const FIXTURE_YAML = `
+paths:
+  structures: liferay/resources/journal/structures
+`;
 
 describe('project-context', () => {
   test('preserves native project detection and env defaults for ldev-native repos', () => {

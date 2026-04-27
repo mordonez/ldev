@@ -81,16 +81,6 @@ ldev mcp probe --username admin --password '***'
 
 Environment fallbacks: `LIFERAY_MCP_AUTHORIZATION_HEADER`, `LIFERAY_MCP_USERNAME`, `LIFERAY_MCP_PASSWORD`.
 
-## Feature flags
-
-Read and toggle Liferay feature flags in `portal-ext.properties`. A portal restart is required for changes to take effect.
-
-```bash
-ldev feature-flags list
-ldev feature-flags enable LPD-63311
-ldev feature-flags disable LPD-63311
-```
-
 ## Reindex
 
 Inspect or temporarily tune portal reindex execution.
@@ -135,35 +125,3 @@ Validate Clay icon coverage for a deployed theme.
 ```bash
 ldev portal theme-check --theme ub-theme --json
 ```
-
-## Snapshots (hidden)
-
-Create and restore a logical snapshot bundle of the local environment (DB dump plus repo-managed Liferay state).
-
-```bash
-ldev snapshot --output path/to/snapshot.zip
-ldev restore path/to/snapshot.zip --force
-ldev restore path/to/snapshot/ --force --skip-files
-```
-
-This is different from `ldev env restore`, which rehydrates runtime data from main/BTRFS worktree state.
-
-## Perf (hidden)
-
-Capture and compare lightweight runtime latency baselines.
-
-```bash
-ldev perf baseline
-ldev perf check
-ldev perf check --baseline perf-baseline.json
-```
-
-## Health (hidden)
-
-Unified runtime health snapshot for automation and continuous checks.
-
-```bash
-ldev health
-```
-
-Defaults to JSON.

@@ -4,7 +4,7 @@ import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
-import {WorktreeErrors} from './errors/index.js';
+import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';

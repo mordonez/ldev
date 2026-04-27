@@ -13,16 +13,12 @@ import {
   createEnvStatusCommand,
   createEnvStopCommand,
 } from '../commands/env/env-public.commands.js';
-import {createHealthCommand} from '../commands/health/health.command.js';
 import {createPortalCommand} from '../commands/liferay/liferay.command.js';
-import {createFeatureFlagsCommand} from '../commands/feature-flags/feature-flags.command.js';
 import {createMcpCommand} from '../commands/mcp/mcp.command.js';
 import {createOsgiCommand} from '../commands/osgi/osgi.command.js';
 import {createOAuthCommand} from '../commands/oauth/oauth.command.js';
-import {createPerfCommand} from '../commands/perf/perf.command.js';
 import {createProjectCommand} from '../commands/project/project.command.js';
 import {createResourceCommand} from '../commands/resource/resource.command.js';
-import {createRestoreCommand, createSnapshotCommand} from '../commands/snapshot/snapshot.command.js';
 import {createWorktreeCommand} from '../commands/worktree/worktree.command.js';
 
 export const coreGroup: CommandGroup = {
@@ -52,7 +48,6 @@ export const portalGroup: CommandGroup = {
   register(program) {
     program.addCommand(createPortalCommand().helpGroup(this.group!));
     program.addCommand(createMcpCommand().helpGroup(this.group!));
-    program.addCommand(createFeatureFlagsCommand().helpGroup(this.group!));
     program.addCommand(createOAuthCommand().helpGroup(this.group!));
   },
 };
@@ -97,9 +92,6 @@ export const hiddenGroup: CommandGroup = {
   name: 'hidden',
   version: '0.1.0',
   register(program) {
-    for (const factory of [createHealthCommand, createPerfCommand, createSnapshotCommand, createRestoreCommand]) {
-      program.addCommand(factory(), {hidden: true});
-    }
     program.addCommand(createAiCommand(), {hidden: true});
   },
 };

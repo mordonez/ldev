@@ -10,7 +10,7 @@ import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
 
 import {ensureActivationKeyPrepared} from './env-activation-key.js';
-import {EnvErrors} from './errors/index.js';
+import {EnvErrors} from './errors/env-error-factory.js';
 import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
 import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
 

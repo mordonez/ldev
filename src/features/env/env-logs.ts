@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
-import {EnvErrors} from './errors/index.js';
+import {EnvErrors} from './errors/env-error-factory.js';
 
 import {resolveEnvContext} from './env-files.js';
 

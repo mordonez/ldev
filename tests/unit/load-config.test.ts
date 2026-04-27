@@ -4,8 +4,12 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {loadConfig} from '../../src/core/config/load-config.js';
-import {FIXTURE_YAML} from '../../src/testing/fixtures.js';
 import {createTempRepo} from '../../src/testing/temp-repo.js';
+
+const FIXTURE_YAML = `
+paths:
+  structures: liferay/resources/journal/structures
+`;
 
 describe('load-config', () => {
   test('prefers process env over docker env over yaml over defaults', () => {

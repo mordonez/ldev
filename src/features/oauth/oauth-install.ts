@@ -10,7 +10,7 @@ import {
   resolveOAuthScopeProfileAliases,
   type OAuthScopeProfileName,
 } from './oauth-scope-aliases.js';
-import {OAuthErrors} from './errors/index.js';
+import {OAuthErrors} from './errors/oauth-error-factory.js';
 import {writeCredentialsToLocalProfile} from './oauth-env.js';
 import {deployBundledOAuthInstallerJar, writeOAuthInstallerOsgiConfig} from './oauth-install-bundle.js';
 import {executeOAuthInstallerCommand, buildOAuthInstallGogoCommand, parseKeyValueOutput} from './oauth-install-gogo.js';
