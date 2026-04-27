@@ -4,7 +4,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {LiferayErrors} from '../errors/index.js';
-import {fetchPagedItems, normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
+import {fetchPagedItems} from '../inventory/liferay-inventory-shared.js';
+import {normalizeLocalizedName} from '../portal/site-resolution.js';
 
 export type JsonwsJournalArticleRow = {
   resourcePrimKey?: string;

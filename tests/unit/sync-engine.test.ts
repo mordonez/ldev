@@ -1,7 +1,7 @@
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../src/core/config/load-config.js';
-import type {ResolvedSite} from '../../src/features/liferay/inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../src/features/liferay/portal/site-resolution.js';
 import {
   syncArtifact,
   syncArtifactDetailed,

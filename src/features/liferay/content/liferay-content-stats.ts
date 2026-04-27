@@ -6,7 +6,7 @@ import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/cli
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
 import {LiferayErrors} from '../errors/index.js';
-import {normalizeFriendlyUrl, resolveSite} from '../inventory/liferay-inventory-shared.js';
+import {normalizeFriendlyUrl, resolveSite} from '../portal/site-resolution.js';
 import {runLiferayInventorySites} from '../inventory/liferay-inventory-sites.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {

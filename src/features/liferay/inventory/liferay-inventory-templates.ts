@@ -1,9 +1,10 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import {fetchPagedItems, resolveSite} from './liferay-inventory-shared.js';
+import {fetchPagedItems} from './liferay-inventory-shared.js';
+import {resolveSite} from '../portal/site-resolution.js';
 import {listDdmTemplates, resolveResourceSite} from '../resource/liferay-resource-shared.js';
-import {getOperationPolicy} from './capabilities.js';
+import {getOperationPolicy} from '../portal/capabilities.js';
 
 export type LiferayInventoryTemplate = {
   id: string;

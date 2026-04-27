@@ -4,7 +4,7 @@ import {
   getOperationPolicy,
   type OperationName,
   type TransportSurface,
-} from '../../src/features/liferay/inventory/capabilities.js';
+} from '../../src/features/liferay/portal/capabilities.js';
 
 const ALL_OPERATIONS: OperationName[] = ['site.resolve', 'inventory.listSites', 'inventory.listTemplates'];
 const VALID_SURFACES: TransportSurface[] = [

@@ -1,10 +1,15 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
-import {expectJsonSuccess, resolveSite, type ResolvedSite} from '../inventory/liferay-inventory-shared.js';
+import {expectJsonSuccess} from '../inventory/liferay-inventory-shared.js';
+import {
+  resolveSite,
+  enrichWithCompanyId,
+  type ResolvedSite,
+  type SiteResolutionDependencies,
+} from '../portal/site-resolution.js';
 import {
   toDdmTemplatePayload,
   toFragmentCollectionPayload,
@@ -19,13 +24,7 @@ const DDM_STRUCTURE_CLASS_NAME = 'com.liferay.dynamic.data.mapping.model.DDMStru
 const JOURNAL_ARTICLE_CLASS_NAME = 'com.liferay.journal.model.JournalArticle';
 const ADT_RESOURCE_CLASS_NAME = 'com.liferay.portlet.display.template.PortletDisplayTemplate';
 
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-  gateway?: LiferayGateway;
-  accessToken?: string;
-  forceRefresh?: boolean;
-};
+type ResourceDependencies = SiteResolutionDependencies;
 
 export type ResolvedResourceSite = ResolvedSite & {
   companyId: number;
@@ -33,10 +32,6 @@ export type ResolvedResourceSite = ResolvedSite & {
 
 type ClassNamePayload = {
   classNameId?: number;
-};
-
-type GroupPayload = {
-  companyId?: number;
 };
 
 function createResourceReadGateway(
@@ -65,16 +60,7 @@ export async function resolveResourceSite(
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createResourceReadGateway(config, apiClient, dependencies);
   const resolvedSite = await resolveSite(config, site, {...dependencies, gateway});
-  const companyId = await resolveCompanyId(gateway, resolvedSite.id);
-
-  if (companyId <= 0) {
-    throw LiferayErrors.resourceError(`site sin companyId valido: ${site}`);
-  }
-
-  return {
-    ...resolvedSite,
-    companyId,
-  };
+  return enrichWithCompanyId(resolvedSite, config, {...dependencies, gateway});
 }
 
 export async function fetchStructureTemplateClassIds(
@@ -197,111 +183,6 @@ async function fetchClassNameIdWithGateway(
   }
   classNameIdLookupCache.set(cacheKey, classNameId);
   return classNameId;
-}
-
-export type GroupInfo = {
-  friendlyUrl: string;
-  name: string;
-  parentGroupId: number;
-};
-
-export type ResourceSiteChainEntry = {
-  siteId: number;
-  siteFriendlyUrl: string;
-  siteName: string;
-};
-
-export async function buildResourceSiteChain(
-  config: AppConfig,
-  startSite: string,
-  dependencies?: ResourceDependencies,
-): Promise<ResourceSiteChainEntry[]> {
-  const chain: ResourceSiteChainEntry[] = [];
-  const visited = new Set<number>();
-
-  const firstSite = await resolveResourceSite(config, startSite, dependencies);
-  chain.push({siteId: firstSite.id, siteFriendlyUrl: firstSite.friendlyUrlPath, siteName: firstSite.name});
-  visited.add(firstSite.id);
-
-  let currentGroupInfo = await fetchGroupInfo(config, firstSite.id, dependencies);
-
-  while (currentGroupInfo && currentGroupInfo.parentGroupId > 0 && !visited.has(currentGroupInfo.parentGroupId)) {
-    const parentId = currentGroupInfo.parentGroupId;
-    const parentGroupInfo = await fetchGroupInfo(config, parentId, dependencies);
-    if (!parentGroupInfo) {
-      break;
-    }
-
-    visited.add(parentId);
-    chain.push({
-      siteId: parentId,
-      siteFriendlyUrl: parentGroupInfo.friendlyUrl,
-      siteName: parentGroupInfo.name,
-    });
-    currentGroupInfo = parentGroupInfo;
-  }
-
-  try {
-    const globalSite = await resolveResourceSite(config, '/global', dependencies);
-    if (!visited.has(globalSite.id)) {
-      chain.push({siteId: globalSite.id, siteFriendlyUrl: globalSite.friendlyUrlPath, siteName: globalSite.name});
-    }
-  } catch {
-    // /global is not available on every permission set.
-  }
-
-  return chain;
-}
-
-export async function fetchGroupInfo(
-  config: AppConfig,
-  groupId: number,
-  dependencies?: ResourceDependencies,
-): Promise<GroupInfo | null> {
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const gateway = createResourceReadGateway(config, apiClient, dependencies);
-  const response = await gateway.getRaw<{
-    friendlyURL?: string;
-    friendlyUrl?: string;
-    nameCurrentValue?: string;
-    name?: string;
-    parentGroupId?: number;
-  }>(`/api/jsonws/group/get-group?groupId=${groupId}`);
-
-  if (!response.ok || !response.data) {
-    return null;
-  }
-
-  const data = response.data;
-  const rawFriendlyUrl = data.friendlyURL ?? data.friendlyUrl ?? '';
-  if (!rawFriendlyUrl) {
-    return null;
-  }
-
-  return {
-    friendlyUrl: rawFriendlyUrl.startsWith('/') ? rawFriendlyUrl : `/${rawFriendlyUrl}`,
-    name: data.nameCurrentValue ?? data.name ?? '',
-    parentGroupId: data.parentGroupId ?? -1,
-  };
-}
-
-async function resolveCompanyId(gateway: LiferayGateway, siteId: number): Promise<number> {
-  const groupResponse = await gateway.getRaw<GroupPayload>(`/api/jsonws/group/get-group?groupId=${siteId}`);
-
-  if (groupResponse.ok) {
-    const companyId = groupResponse.data?.companyId ?? -1;
-    if (companyId > 0) {
-      return companyId;
-    }
-  }
-
-  const companiesResponse = await gateway.getRaw<Array<{companyId?: number}>>('/api/jsonws/company/get-companies');
-
-  if (!companiesResponse.ok || !Array.isArray(companiesResponse.data) || companiesResponse.data.length === 0) {
-    return -1;
-  }
-
-  return companiesResponse.data[0]?.companyId ?? -1;
 }
 
 async function fetchDdmTemplates(

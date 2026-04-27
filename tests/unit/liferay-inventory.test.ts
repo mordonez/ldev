@@ -14,7 +14,7 @@ import {
   normalizeLocalizedName,
   resolveSite,
   resolvedSiteCache,
-} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
+} from '../../src/features/liferay/portal/site-resolution.js';
 import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 beforeEach(() => {

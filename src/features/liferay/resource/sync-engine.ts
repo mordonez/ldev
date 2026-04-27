@@ -13,7 +13,7 @@
  */
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {ResolvedSite} from '../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../portal/site-resolution.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
 

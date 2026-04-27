@@ -1,7 +1,8 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import {fetchPagedItems, normalizeLocalizedName, resolveSite} from './liferay-inventory-shared.js';
+import {fetchPagedItems} from './liferay-inventory-shared.js';
+import {normalizeLocalizedName, resolveSite} from '../portal/site-resolution.js';
 import {runLiferayInventoryTemplates} from './liferay-inventory-templates.js';
 import {runLiferayInventorySitesIncludingGlobal} from './liferay-inventory-sites.js';
 

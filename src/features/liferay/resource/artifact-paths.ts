@@ -5,6 +5,9 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../../core/config/liferay-resource-path-defaults.js';
 import {LiferayErrors} from '../errors/index.js';
+import {resolveSiteToken, siteTokenToFriendlyUrl} from '../portal/site-token.js';
+
+export {resolveSiteToken, siteTokenToFriendlyUrl};
 
 export type ArtifactType = 'template' | 'structure' | 'adt' | 'fragment';
 
@@ -65,16 +68,6 @@ export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefine
 
 export function resolveMigrationsBaseDir(config: AppConfig): string {
   return resolveRepoPath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
-}
-
-export function resolveSiteToken(siteFriendlyUrl: string): string {
-  const token = siteFriendlyUrl.replace(/^\//, '').trim();
-  return token === '' ? 'global' : token;
-}
-
-/** Inverse of resolveSiteToken: converts a directory token back to a site friendly URL. */
-export function siteTokenToFriendlyUrl(token: string): string {
-  return token === 'global' ? '/global' : `/${token}`;
 }
 
 type ResolveArtifactFileOptions =

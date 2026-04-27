@@ -6,7 +6,7 @@ import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {buildResourceSiteChain} from './liferay-resource-shared.js';
+import {buildSiteChain} from '../portal/site-resolution.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
 
 type ResourceDependencies = {
@@ -45,7 +45,7 @@ export async function runLiferayResourceGetAdt(
 
   if (options.site?.trim()) {
     // Walk up the site hierarchy: child → parent → … → root. Return the first match.
-    const siteChain = await buildResourceSiteChain(config, options.site, dependencies);
+    const siteChain = await buildSiteChain(config, options.site, dependencies);
 
     for (const site of siteChain) {
       const rows = await runLiferayResourceListAdts(

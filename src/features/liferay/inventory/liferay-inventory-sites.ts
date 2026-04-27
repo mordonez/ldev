@@ -4,10 +4,11 @@ import {createLiferayApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../../core/http/auth.js';
 import {LiferayErrors} from '../errors/index.js';
-import {fetchPagedItems, normalizeFriendlyUrl, normalizeLocalizedName} from './liferay-inventory-shared.js';
+import {fetchPagedItems} from './liferay-inventory-shared.js';
+import {normalizeFriendlyUrl, normalizeLocalizedName} from '../portal/site-resolution.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
-import {getOperationPolicy} from './capabilities.js';
-import {resolveResourceSite} from '../resource/liferay-resource-shared.js';
+import {getOperationPolicy} from '../portal/capabilities.js';
+import {resolveSite} from '../portal/site-resolution.js';
 
 export type LiferayInventorySite = {
   groupId: number;
@@ -90,7 +91,7 @@ export async function runLiferayInventorySitesIncludingGlobal(
   }
 
   if (!byFriendlyUrl.has('/global')) {
-    const globalSite = await resolveResourceSite(config, '/global', dependencies);
+    const globalSite = await resolveSite(config, '/global', dependencies);
     byFriendlyUrl.set('/global', {
       groupId: globalSite.id,
       siteFriendlyUrl: globalSite.friendlyUrlPath,

@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {LiferayErrors} from '../../errors/index.js';
-import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../portal/site-resolution.js';
 import type {FragmentEntryPayload} from '../liferay-resource-payloads.js';
 import {
   createFragmentEntry,
