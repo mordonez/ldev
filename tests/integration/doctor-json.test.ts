@@ -5,7 +5,6 @@ import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 
 type DoctorPayload = {
   ok: boolean;
-  contractVersion: number;
   summary: Record<string, unknown>;
   checks: unknown[];
   stamp: Record<string, unknown>;
@@ -25,7 +24,6 @@ describe('doctor integration', () => {
     expect([0, 1]).toContain(result.exitCode);
     const parsed = parseTestJson<DoctorPayload>(result.stdout);
     expect(typeof parsed.ok).toBe('boolean');
-    expect(parsed.contractVersion).toBe(2);
     expect(parsed.summary).toHaveProperty('passed');
     expect(parsed.summary).toHaveProperty('durationMs');
     expect(Array.isArray(parsed.checks)).toBe(true);

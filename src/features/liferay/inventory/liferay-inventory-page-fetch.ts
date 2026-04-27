@@ -54,7 +54,6 @@ export async function fetchSiteRootInventory(
   const layouts = await fetchLayoutsByParent(gateway, site.id, privateLayout, 0);
 
   return {
-    contractVersion: '2',
     pageType: 'siteRoot',
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
@@ -109,7 +108,6 @@ export async function fetchDisplayPageInventory(
       : undefined;
 
   return {
-    contractVersion: '2',
     pageType: 'displayPage',
     pageSubtype: 'journalArticle',
     contentItemType: 'WebContent',
@@ -187,17 +185,22 @@ export async function fetchRegularPageInventory(
     layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
     fragmentEntryLinks?: PageFragmentEntry[],
     widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>,
+    portlets?: PagePortletSummary[],
   ): {
     layoutTemplateId?: string;
     targetUrl?: string;
     fragmentCount: number;
     widgetCount: number;
   } {
+    const headlessWidgetCount = widgets?.length ?? 0;
+    const fragmentWidgetCount = fragmentEntryLinks?.filter((entry) => entry.type === 'widget').length ?? 0;
+    const classicPortletCount = portlets?.length ?? 0;
+
     return {
       ...(layoutDetails.layoutTemplateId ? {layoutTemplateId: layoutDetails.layoutTemplateId} : {}),
       ...(layoutDetails.targetUrl ? {targetUrl: layoutDetails.targetUrl} : {}),
       fragmentCount: fragmentEntryLinks?.filter((entry) => entry.type === 'fragment').length ?? 0,
-      widgetCount: widgets?.length ?? fragmentEntryLinks?.filter((entry) => entry.type === 'widget').length ?? 0,
+      widgetCount: Math.max(headlessWidgetCount, fragmentWidgetCount, classicPortletCount),
     };
   }
 
@@ -289,7 +292,6 @@ export async function fetchRegularPageInventory(
   }
 
   return {
-    contractVersion: '2',
     pageType: 'regularPage',
     pageSubtype: layout.type ?? '',
     pageUiType: resolveRegularPageUiType(layout.type),
@@ -301,7 +303,7 @@ export async function fetchRegularPageInventory(
     ...(matchedLocale ? {matchedLocale, requestedFriendlyUrl: friendlyUrl} : {}),
     pageName: layout.nameCurrentValue ?? '',
     privateLayout,
-    pageSummary: buildRegularPageSummary(layoutDetails, fragmentEntryLinks, widgets),
+    pageSummary: buildRegularPageSummary(layoutDetails, fragmentEntryLinks, widgets, portlets),
     layout: {
       layoutId: Number(layout.layoutId ?? -1),
       plid: Number(layout.plid ?? -1),

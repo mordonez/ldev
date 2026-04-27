@@ -122,7 +122,6 @@ export type DoctorOsgiReport = {
 
 export type DoctorReport = {
   ok: boolean;
-  contractVersion: 2;
   generatedAt: string;
   ranChecks: DoctorCheckScope[];
   summary: {
@@ -135,7 +134,6 @@ export type DoctorReport = {
   stamp: {
     projectType: string;
     portalUrl: string | null;
-    contractVersion: 2;
   };
   tools: {
     git: DoctorToolStatus;

@@ -48,10 +48,13 @@ export async function withCommandContext<TOptions extends object>(
   options: TOptions,
   run: (context: CommandContext) => Promise<void>,
 ): Promise<void> {
+  const normalizedOptions = normalizeCommandOptions(options);
   const context = createCommandContext({
-    repoRoot: (options as {repoRoot?: string}).repoRoot,
-    format: (options as {format?: string}).format,
-    strict: (options as {strict?: boolean}).strict,
+    repoRoot: (normalizedOptions as {repoRoot?: string}).repoRoot,
+    format: (normalizedOptions as {format?: string}).format,
+    strict: (normalizedOptions as {strict?: boolean}).strict,
+    json: (normalizedOptions as {json?: boolean}).json,
+    ndjson: (normalizedOptions as {ndjson?: boolean}).ndjson,
   });
   await run(context);
 }
@@ -60,28 +63,42 @@ export function createFormattedAction<TOptions extends object, TResult>(
   run: (context: CommandContext, options: TOptions) => Promise<TResult>,
   renderOptions?: RenderOptions<TResult> | ((options: TOptions) => RenderOptions<TResult>),
 ): (options: TOptions) => Promise<void> {
-  return async (options) =>
-    withCommandContext(options, async (context) => {
-      const result = await run(context, options);
+  return async (options) => {
+    const normalizedOptions = normalizeCommandOptions(options);
+
+    return withCommandContext(normalizedOptions, async (context) => {
+      const result = await run(context, normalizedOptions);
       renderCommandResult(
         context,
         result,
-        typeof renderOptions === 'function' ? renderOptions(options) : renderOptions,
+        typeof renderOptions === 'function' ? renderOptions(normalizedOptions) : renderOptions,
       );
     });
+  };
 }
 
 export function createFormattedArgumentAction<TArg, TOptions extends object, TResult>(
   run: (context: CommandContext, argument: TArg, options: TOptions) => Promise<TResult>,
   renderOptions?: RenderOptions<TResult> | ((options: TOptions) => RenderOptions<TResult>),
 ): (argument: TArg, options: TOptions) => Promise<void> {
-  return async (argument, options) =>
-    withCommandContext(options, async (context) => {
-      const result = await run(context, argument, options);
+  return async (argument, options) => {
+    const normalizedOptions = normalizeCommandOptions(options);
+
+    return withCommandContext(normalizedOptions, async (context) => {
+      const result = await run(context, argument, normalizedOptions);
       renderCommandResult(
         context,
         result,
-        typeof renderOptions === 'function' ? renderOptions(options) : renderOptions,
+        typeof renderOptions === 'function' ? renderOptions(normalizedOptions) : renderOptions,
       );
     });
+  };
+}
+
+function normalizeCommandOptions<TOptions extends object>(options: TOptions): TOptions {
+  if (typeof (options as {opts?: unknown}).opts !== 'function') {
+    return options;
+  }
+
+  return (options as TOptions & {opts: () => TOptions}).opts();
 }

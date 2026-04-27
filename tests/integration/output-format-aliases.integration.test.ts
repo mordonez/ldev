@@ -5,7 +5,6 @@ import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
 
 type ContextPayload = {
   ok: boolean;
-  contractVersion: number;
 };
 
 describe('output format aliases integration', () => {
@@ -15,7 +14,6 @@ describe('output format aliases integration', () => {
     expect(result.exitCode).toBe(0);
     const parsed = parseTestJson<ContextPayload>(result.stdout);
     expect(parsed.ok).toBe(true);
-    expect(parsed.contractVersion).toBe(2);
   }, 30000);
 
   test('--ndjson is equivalent to --format ndjson', async () => {
@@ -26,6 +24,5 @@ describe('output format aliases integration', () => {
     expect(lines).toHaveLength(1);
     const parsed = parseTestJson<ContextPayload>(lines[0]);
     expect(parsed.ok).toBe(true);
-    expect(parsed.contractVersion).toBe(2);
   }, 30000);
 });

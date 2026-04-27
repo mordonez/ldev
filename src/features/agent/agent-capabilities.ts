@@ -11,7 +11,6 @@ export type AgentCapabilityStatus = {
 
 export type AgentCapabilitiesReport = {
   ok: true;
-  contractVersion: 2;
   platform: PlatformCapabilities;
   commands: Record<string, AgentCapabilityStatus>;
 };
@@ -35,7 +34,6 @@ export async function runAgentCapabilities(
 
   return {
     ok: true,
-    contractVersion: 2,
     platform,
     commands: {
       setup: capabilityStatus(
@@ -64,7 +62,6 @@ export async function runAgentCapabilities(
 
 export function formatAgentCapabilities(report: AgentCapabilitiesReport): string {
   return [
-    `Contract: agent-v${report.contractVersion}`,
     `Docker compose ready: ${report.commands.start.supported ? 'yes' : 'no'}`,
     `Reindex ready: ${report.commands.reindex.supported ? 'yes' : 'no'}`,
     `Worktrees: ${report.platform.supportsWorktrees ? 'yes' : 'no'}`,

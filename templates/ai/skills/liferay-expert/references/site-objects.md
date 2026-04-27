@@ -2,18 +2,36 @@
 
 ## Display Page Templates
 
-`ldev` does not expose dedicated Display Page Template commands yet.
-Verify MCP availability and use it for inspection:
+`ldev portal inventory page --url <url> --json` exposes Display Page Template
+metadata directly in the default output. No MCP or separate lookup is needed for
+the most common discovery tasks.
+
+For a display page URL, the result includes:
+
+- `page.type: "displayPage"` — confirms the page type
+- `article.*` — article `id`, `key`, `title`, `structureKey`, `externalReferenceCode`, `uuid`
+- `rendering.displayPageDefaultTemplate` — the active Display Page Template key
+- `rendering.displayPageDdmTemplates` — DDM template keys bound to the display page template
+- `rendering.widgetDefaultTemplate` — fallback widget template key
+- `taxonomy.categories` — category names applied to the article
+- `lifecycle.*` — `availableLanguages`, `dateCreated`, `dateModified`, `datePublished`, `neverExpire`
+
+For the full raw data (all content fields, all template candidates, all taxonomy briefs):
+
+```bash
+ldev portal inventory page --url <url> --json --full
+```
+
+`full.articleDetails.displayPageTemplateCandidates` lists every compatible Display Page
+Template key. `full.articleDetails.contentFields` contains all structured content fields.
+`full.contentStructures` exposes the owning structure with its `exportPath`.
+
+For Display Page Template resource management not yet exposed by `ldev` (creating,
+configuring), verify MCP availability:
 
 ```bash
 ldev mcp check --json
 ```
-
-If MCP is available, use OpenAPI discovery to find the relevant endpoint.
-Without MCP, `ldev portal inventory page --url <url> --json` can still confirm
-whether the URL resolves as a display page (`pageType: displayPage`) and which
-article/structure it serves, but it does not expose dedicated Display Page
-Template metadata yet.
 
 ## Navigation Menus
 

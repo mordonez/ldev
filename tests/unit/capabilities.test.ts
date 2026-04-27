@@ -91,8 +91,6 @@ describe('capabilities', () => {
         },
       },
     });
-
-    expect(report.contractVersion).toBe(2);
     expect(report.tools.git.available).toBe(true);
     expect(report.tools.git.status).toBe('pass');
     expect(report.tools.blade.available).toBe(true);

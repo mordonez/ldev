@@ -139,7 +139,6 @@ describe('parseBootstrapCacheTtl', () => {
 function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContextReport {
   return {
     ok: true,
-    contractVersion: 2,
     generatedAt: '2026-04-22T10:00:00.000Z',
     project: {
       type: 'ldev-native',
@@ -236,7 +235,6 @@ function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContex
 function makeDoctorReport(overrides?: Partial<DoctorReport>): DoctorReport {
   return {
     ok: true,
-    contractVersion: 2,
     generatedAt: '2026-04-22T10:00:00.000Z',
     ranChecks: ['basic', 'runtime'],
     summary: {
@@ -249,7 +247,6 @@ function makeDoctorReport(overrides?: Partial<DoctorReport>): DoctorReport {
     stamp: {
       projectType: 'ldev-native',
       portalUrl: 'http://localhost:8080',
-      contractVersion: 2,
     },
     tools: {
       git: {status: 'pass', available: true, version: 'git version'},

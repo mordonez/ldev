@@ -8,7 +8,6 @@ import {createLiferayCliRepoFixture, parseTestJson} from '../../src/testing/cli-
 
 type AgentContextPayload = {
   ok: boolean;
-  contractVersion: number;
   project: Record<string, unknown>;
   paths: Record<string, unknown>;
   runtime: Record<string, unknown>;
@@ -35,7 +34,6 @@ describe('agent contract integration', () => {
     expect(result.exitCode).toBe(0);
     const parsed = parseTestJson<AgentContextPayload>(result.stdout);
     expect(parsed.ok).toBe(true);
-    expect(parsed.contractVersion).toBe(2);
     expect(parsed.project).toHaveProperty('root');
     expect(parsed.paths).toHaveProperty('dockerDir');
     expect(parsed.paths).toHaveProperty('resources');
@@ -53,7 +51,6 @@ describe('agent contract integration', () => {
     expect(result.exitCode).toBe(0);
     const parsed = parseTestJson<AgentContextPayload>(result.stdout);
     expect(parsed.ok).toBe(true);
-    expect(parsed.contractVersion).toBe(2);
     expect(parsed.commands).toHaveProperty('start');
     expect(parsed.commands).toHaveProperty('liferay');
   }, 30000);

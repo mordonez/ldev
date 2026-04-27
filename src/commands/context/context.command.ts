@@ -32,7 +32,6 @@ Preferred format for automation:
         if (options.describe) {
           return {
             ok: true,
-            contractVersion: 2,
             fields: [
               'project.type',
               'project.root',

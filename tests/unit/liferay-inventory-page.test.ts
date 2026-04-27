@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayInventoryPage,
+  projectLiferayInventoryPageJson,
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
@@ -336,7 +337,6 @@ describe('liferay inventory page', () => {
     expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
 
     expect(result).toMatchObject({
-      contractVersion: '2',
       pageType: 'regularPage',
       pageSubtype: 'content',
       pageUiType: 'Content Page',
@@ -521,10 +521,14 @@ describe('liferay inventory page', () => {
     expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
 
     expect(result).toMatchObject({
-      contractVersion: '2',
       pageType: 'regularPage',
       pageSubtype: 'portlet',
       pageUiType: 'Widget Page',
+      pageSummary: {
+        layoutTemplateId: 'home',
+        fragmentCount: 0,
+        widgetCount: 2,
+      },
       portlets: [
         {
           columnId: 'column-top',
@@ -1040,7 +1044,6 @@ describe('liferay inventory page', () => {
     expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
 
     expect(result).toMatchObject({
-      contractVersion: '2',
       pageType: 'displayPage',
       contentItemType: 'WebContent',
       url: '/web/guest/w/news-article',
@@ -1224,5 +1227,454 @@ describe('liferay inventory page', () => {
     await expect(
       runLiferayInventoryPage(CONFIG, {url: '/web/guest/missing'}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('Layout not found');
+  });
+
+  test('projectLiferayInventoryPageJson keeps full widget metadata in full regular-page output', () => {
+    const projected = projectLiferayInventoryPageJson(
+      {
+        pageType: 'regularPage',
+        pageSubtype: 'content',
+        pageUiType: 'Content Page',
+        siteName: 'Guest',
+        siteFriendlyUrl: '/guest',
+        groupId: 20121,
+        url: '/web/guest/home',
+        friendlyUrl: '/home',
+        pageName: 'Home',
+        privateLayout: false,
+        layout: {
+          layoutId: 11,
+          plid: 1011,
+          friendlyUrl: '/home',
+          type: 'content',
+          hidden: false,
+        },
+        layoutDetails: {},
+        adminUrls: {
+          view: 'http://localhost:8080/web/guest/home',
+          edit: 'http://localhost:8080/web/guest/home?p_l_mode=edit',
+          configureGeneral: 'http://localhost:8080/group/guest/general',
+          configureDesign: 'http://localhost:8080/group/guest/design',
+          configureSeo: 'http://localhost:8080/group/guest/seo',
+          configureOpenGraph: 'http://localhost:8080/group/guest/open-graph',
+          configureCustomMetaTags: 'http://localhost:8080/group/guest/custom-meta-tags',
+          translate: 'http://localhost:8080/group/guest/translate',
+        },
+        fragmentEntryLinks: [
+          {
+            type: 'widget',
+            widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+            portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
+            configuration: {articleId: 'ART-001'},
+            elementName: 'Main journal widget',
+            cssClasses: ['widget-shell', 'widget-shell-primary'],
+            customCSS: '.widget-shell-primary { color: red; }',
+          },
+        ],
+      },
+      {full: true},
+    );
+
+    if (!('page' in projected) || projected.page.type !== 'regularPage') {
+      throw new Error('Expected full regular-page widget output');
+    }
+
+    const regularProjected = projected as Extract<
+      ReturnType<typeof projectLiferayInventoryPageJson>,
+      {page: {type: 'regularPage'}}
+    >;
+
+    if (!regularProjected.full?.components?.widgets) {
+      throw new Error('Expected full regular-page widget output');
+    }
+
+    expect(regularProjected.full.components.widgets).toMatchObject([
+      {
+        widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+        portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
+        configuration: {articleId: 'ART-001'},
+        elementName: 'Main journal widget',
+        cssClasses: ['widget-shell', 'widget-shell-primary'],
+        customCSS: '.widget-shell-primary { color: red; }',
+      },
+    ]);
+  });
+
+  test('projectLiferayInventoryPageJson exposes classic portlet composition in default output', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'regularPage',
+      pageSubtype: 'portlet',
+      pageUiType: 'Widget Page',
+      siteName: 'Guest',
+      siteFriendlyUrl: '/guest',
+      groupId: 20121,
+      url: '/web/guest/home',
+      friendlyUrl: '/home',
+      pageName: 'Home',
+      privateLayout: false,
+      pageSummary: {
+        layoutTemplateId: 'home',
+        fragmentCount: 0,
+        widgetCount: 2,
+      },
+      layout: {
+        layoutId: 11,
+        plid: 1011,
+        friendlyUrl: '/home',
+        type: 'portlet',
+        hidden: false,
+      },
+      layoutDetails: {layoutTemplateId: 'home'},
+      adminUrls: {
+        view: 'http://localhost:8080/web/guest/home',
+        edit: 'http://localhost:8080/web/guest/home?p_l_mode=edit',
+        configureGeneral: 'http://localhost:8080/group/guest/general',
+        configureDesign: 'http://localhost:8080/group/guest/design',
+        configureSeo: 'http://localhost:8080/group/guest/seo',
+        configureOpenGraph: 'http://localhost:8080/group/guest/open-graph',
+        configureCustomMetaTags: 'http://localhost:8080/group/guest/custom-meta-tags',
+        translate: 'http://localhost:8080/group/guest/translate',
+      },
+      componentInspectionSupported: false,
+      portlets: [
+        {
+          columnId: 'column-top',
+          position: 0,
+          portletId: 'com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top',
+          portletName: 'com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet',
+          instanceId: 'top',
+          configuration: {columnId: 'column-top', position: '0', layoutTemplateId: 'home'},
+        },
+        {
+          columnId: 'column-fluid',
+          position: 0,
+          portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_main',
+          portletName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+          instanceId: 'main',
+          configuration: {columnId: 'column-fluid', position: '0', layoutTemplateId: 'home'},
+        },
+      ],
+    });
+
+    if (!('page' in projected) || projected.page.type !== 'regularPage') {
+      throw new Error('Expected regular-page output');
+    }
+
+    const regularProjected = projected as Extract<
+      ReturnType<typeof projectLiferayInventoryPageJson>,
+      {page: {type: 'regularPage'}}
+    >;
+
+    expect(regularProjected.summary).toMatchObject({
+      layoutTemplateId: 'home',
+      fragmentCount: 0,
+      widgetCount: 2,
+    });
+    expect(regularProjected.components?.portlets).toEqual([
+      {
+        columnId: 'column-top',
+        position: 0,
+        portletId: 'com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top',
+        portletName: 'com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet',
+        instanceId: 'top',
+        configuration: {columnId: 'column-top', position: '0', layoutTemplateId: 'home'},
+      },
+      {
+        columnId: 'column-fluid',
+        position: 0,
+        portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_main',
+        portletName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
+        instanceId: 'main',
+        configuration: {columnId: 'column-fluid', position: '0', layoutTemplateId: 'home'},
+      },
+    ]);
+    expect(regularProjected.full).toBeUndefined();
+  });
+
+  test('projectLiferayInventoryPageJson keeps cheap regular-page content breadcrumbs in default output', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'regularPage',
+      pageSubtype: 'content',
+      pageUiType: 'Content Page',
+      siteName: 'Guest',
+      siteFriendlyUrl: '/guest',
+      groupId: 20121,
+      url: '/web/guest/home',
+      friendlyUrl: '/home',
+      pageName: 'Home',
+      privateLayout: false,
+      layout: {
+        layoutId: 11,
+        plid: 1011,
+        friendlyUrl: '/home',
+        type: 'content',
+        hidden: false,
+      },
+      layoutDetails: {},
+      adminUrls: {
+        view: 'http://localhost:8080/web/guest/home',
+        edit: 'http://localhost:8080/web/guest/home?p_l_mode=edit',
+        configureGeneral: 'http://localhost:8080/group/guest/general',
+        configureDesign: 'http://localhost:8080/group/guest/design',
+        configureSeo: 'http://localhost:8080/group/guest/seo',
+        configureOpenGraph: 'http://localhost:8080/group/guest/open-graph',
+        configureCustomMetaTags: 'http://localhost:8080/group/guest/custom-meta-tags',
+        translate: 'http://localhost:8080/group/guest/translate',
+      },
+      fragmentEntryLinks: [
+        {
+          type: 'fragment',
+          fragmentKey: 'banner',
+          fragmentSiteFriendlyUrl: '/global',
+          fragmentExportPath: 'C:\\repo\\liferay\\fragments\\banner',
+          contentSummary: 'title=Welcome',
+        },
+      ],
+      journalArticles: [
+        {
+          groupId: 20122,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          articleId: 'ART-001',
+          title: 'Home article',
+          ddmStructureKey: 'BASIC',
+          ddmStructureSiteFriendlyUrl: '/global',
+          structureExportPath: 'C:\\repo\\liferay\\resources\\journal\\structures\\global\\BASIC.json',
+          contentStructureId: 301,
+          ddmTemplateKey: 'BASIC_DETAIL',
+          ddmTemplateSiteFriendlyUrl: '/global',
+          templateExportPath: 'C:\\repo\\liferay\\resources\\journal\\templates\\global\\BASIC_DETAIL.ftl',
+          contentFields: [{path: 'Body', label: 'Body', name: 'body', type: 'string', value: 'Long body'}],
+        },
+      ],
+    });
+
+    if (!('page' in projected) || projected.page.type !== 'regularPage') {
+      throw new Error('Expected regular-page output');
+    }
+
+    const regularProjected = projected as Extract<
+      ReturnType<typeof projectLiferayInventoryPageJson>,
+      {page: {type: 'regularPage'}}
+    >;
+
+    expect(regularProjected.components?.fragments).toEqual([
+      {
+        fragmentKey: 'banner',
+        fragmentSiteFriendlyUrl: '/global',
+        fragmentExportPath: 'C:\\repo\\liferay\\fragments\\banner',
+        contentSummary: 'title=Welcome',
+      },
+    ]);
+    expect(regularProjected.contentRefs).toEqual([
+      {
+        articleId: 'ART-001',
+        title: 'Home article',
+        groupId: 20122,
+        siteFriendlyUrl: '/global',
+        siteName: 'Global',
+        structureKey: 'BASIC',
+        structureSiteFriendlyUrl: '/global',
+        structureExportPath: 'C:\\repo\\liferay\\resources\\journal\\structures\\global\\BASIC.json',
+        contentStructureId: 301,
+        templateKey: 'BASIC_DETAIL',
+        templateSiteFriendlyUrl: '/global',
+        templateExportPath: 'C:\\repo\\liferay\\resources\\journal\\templates\\global\\BASIC_DETAIL.ftl',
+      },
+    ]);
+    expect(JSON.stringify(regularProjected.contentRefs)).not.toContain('Long body');
+  });
+
+  test('projectLiferayInventoryPageJson derives display-page default template only from display-page rendered contents', () => {
+    const projected = projectLiferayInventoryPageJson(
+      {
+        pageType: 'displayPage',
+        pageSubtype: 'journalArticle',
+        contentItemType: 'WebContent',
+        siteName: 'Guest',
+        siteFriendlyUrl: '/guest',
+        groupId: 20121,
+        url: '/web/guest/w/news-article',
+        friendlyUrl: '/w/news-article',
+        article: {
+          id: 41001,
+          key: 'ART-001',
+          title: 'News article',
+          friendlyUrlPath: 'news-article',
+          contentStructureId: 301,
+        },
+        journalArticles: [
+          {
+            groupId: 20121,
+            siteId: 20121,
+            siteFriendlyUrl: '/guest',
+            siteName: 'Guest',
+            articleId: 'ART-001',
+            title: 'News article',
+            ddmStructureKey: 'NEWS',
+            ddmStructureSiteFriendlyUrl: '/global',
+            structureExportPath: 'C:\\repo\\liferay\\resources\\journal\\structures\\global\\NEWS.json',
+            contentStructureId: 301,
+            ddmTemplateKey: 'NEWS_WIDGET_TEMPLATE',
+            ddmTemplateSiteFriendlyUrl: '/global',
+            templateExportPath: 'C:\\repo\\liferay\\resources\\journal\\templates\\global\\NEWS_WIDGET_TEMPLATE.ftl',
+            widgetDefaultTemplate: 'NEWS_WIDGET_TEMPLATE',
+            renderedContents: [
+              {
+                contentTemplateName: 'NEWS_WIDGET_TEMPLATE',
+                renderedContentURL:
+                  'http://localhost:8080/o/headless-delivery/v1.0/structured-contents/41001/rendered-content/NEWS_WIDGET_TEMPLATE',
+                markedAsDefault: true,
+              },
+              {
+                contentTemplateName: 'NEWS_ARTICLE_DETAIL',
+                renderedContentURL:
+                  'http://localhost:8080/o/headless-delivery/v1.0/structured-contents/41001/rendered-content-by-display-page/news_article_detail',
+                markedAsDefault: true,
+              },
+            ],
+          },
+        ],
+        contentStructures: [],
+      },
+      {full: false},
+    );
+
+    if (!('rendering' in projected) || !projected.rendering) {
+      throw new Error('Expected display-page rendering block');
+    }
+
+    expect(projected.rendering).toMatchObject({
+      widgetDefaultTemplate: 'NEWS_WIDGET_TEMPLATE',
+      displayPageDefaultTemplate: 'NEWS_ARTICLE_DETAIL',
+      hasWidgetRendering: true,
+      hasDisplayPageRendering: true,
+    });
+    expect(projected.article).toMatchObject({
+      groupId: 20121,
+      siteId: 20121,
+      siteFriendlyUrl: '/guest',
+      siteName: 'Guest',
+      structureKey: 'NEWS',
+      structureSiteFriendlyUrl: '/global',
+      structureExportPath: 'C:\\repo\\liferay\\resources\\journal\\structures\\global\\NEWS.json',
+      templateKey: 'NEWS_WIDGET_TEMPLATE',
+      templateSiteFriendlyUrl: '/global',
+      templateExportPath: 'C:\\repo\\liferay\\resources\\journal\\templates\\global\\NEWS_WIDGET_TEMPLATE.ftl',
+    });
+  });
+
+  test('projectLiferayInventoryPageJson keeps display summaries on Liferay article fields', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'displayPage',
+      pageSubtype: 'journalArticle',
+      contentItemType: 'WebContent',
+      siteName: 'Facultat',
+      siteFriendlyUrl: '/facultat',
+      groupId: 27528220,
+      url: '/web/facultat/w/news',
+      friendlyUrl: '/w/news',
+      article: {
+        id: 48218747,
+        key: '48218745',
+        title: '20260204-La Dra. Mirèia Guil Egea guanya el premi',
+        friendlyUrlPath: 'news',
+        contentStructureId: 2685187,
+      },
+      journalArticles: [
+        {
+          articleId: '48218745',
+          title: '20260204-La Dra. Mirèia Guil Egea guanya el premi',
+          ddmStructureKey: 'UB_STR_NOVEDAD',
+          description: '<p>Top-level Liferay description&nbsp;only</p>',
+          contentFields: [
+            {
+              path: 'Títol',
+              label: 'Títol',
+              name: 'titulo',
+              type: 'string',
+              value: 'La Dra. Mirèia Guil Egea guanya el XXIX Premi 2025',
+            },
+            {
+              path: 'Descripció',
+              label: 'Descripció',
+              name: 'descripcion',
+              type: 'string',
+              value: '<p>Investigadora del&nbsp;Programa de doctorat</p>',
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!('contentSummary' in projected) || !projected.contentSummary) {
+      throw new Error('Expected display-page content summary');
+    }
+
+    expect(projected.contentSummary).toMatchObject({
+      headline: '20260204-La Dra. Mirèia Guil Egea guanya el premi',
+      lead: 'Top-level Liferay description only',
+    });
+    expect(JSON.stringify(projected.contentSummary)).not.toContain('XXIX Premi');
+  });
+
+  test('projectLiferayInventoryPageJson decodes HTML entities only once in display summaries', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'displayPage',
+      pageSubtype: 'journalArticle',
+      contentItemType: 'WebContent',
+      siteName: 'Guest',
+      siteFriendlyUrl: '/guest',
+      groupId: 20121,
+      url: '/web/guest/w/news',
+      friendlyUrl: '/w/news',
+      article: {
+        id: 41001,
+        key: 'ART-001',
+        title: 'AT&amp;T &amp;lt;safe&amp;gt;',
+        friendlyUrlPath: 'news',
+        contentStructureId: 301,
+      },
+      journalArticles: [
+        {
+          articleId: 'ART-001',
+          title: 'AT&amp;T &amp;lt;safe&amp;gt;',
+          ddmStructureKey: 'NEWS',
+          description: '<p>Fish &amp;amp; Chips &amp;lt;b&amp;gt;literal&amp;lt;/b&amp;gt;</p>',
+        },
+      ],
+    });
+
+    if (!('contentSummary' in projected) || !projected.contentSummary) {
+      throw new Error('Expected display-page content summary');
+    }
+
+    expect(projected.contentSummary).toMatchObject({
+      headline: 'AT&T &lt;safe&gt;',
+      lead: 'Fish &amp; Chips &lt;b&gt;literal&lt;/b&gt;',
+    });
+  });
+
+  test('projectLiferayInventoryPageJson normalizes site-root output into the page envelope', () => {
+    const projected = projectLiferayInventoryPageJson({
+      pageType: 'siteRoot',
+      siteName: 'Guest',
+      siteFriendlyUrl: '/guest',
+      groupId: 20121,
+      url: '/web/guest/',
+      pages: [{layoutId: 11, friendlyUrl: '/home', name: 'Home', type: 'content'}],
+    });
+
+    expect(projected).toMatchObject({
+      page: {
+        type: 'siteRoot',
+        siteName: 'Guest',
+        siteFriendlyUrl: '/guest',
+        groupId: 20121,
+        url: '/web/guest/',
+      },
+      pages: [{layoutId: 11, friendlyUrl: '/home', name: 'Home', type: 'content'}],
+    });
+    expect(projected).not.toHaveProperty('pageType');
   });
 });

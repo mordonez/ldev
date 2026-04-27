@@ -76,7 +76,6 @@ const pageFragmentEntrySchema = z.object({
 });
 
 const siteRootResultSchema = z.object({
-  contractVersion: z.literal('2'),
   pageType: z.literal('siteRoot'),
   siteName: z.string(),
   siteFriendlyUrl: z.string(),
@@ -93,7 +92,6 @@ const siteRootResultSchema = z.object({
 });
 
 const displayPageResultSchema = z.object({
-  contractVersion: z.literal('2'),
   pageType: z.literal('displayPage'),
   pageSubtype: z.literal('journalArticle'),
   contentItemType: z.literal('WebContent'),
@@ -120,7 +118,6 @@ const displayPageResultSchema = z.object({
 });
 
 const regularPageResultSchema = z.object({
-  contractVersion: z.literal('2'),
   pageType: z.literal('regularPage'),
   pageSubtype: z.string(),
   pageUiType: z.string(),

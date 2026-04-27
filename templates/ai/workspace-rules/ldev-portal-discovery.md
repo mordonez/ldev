@@ -23,6 +23,18 @@ Why:
 - stable JSON contract
 - better page/context enrichment than low-level API assembly
 
+The default output is minimal and suitable for most discovery tasks. Use `--full` when
+you need raw data not present by default:
+
+```bash
+ldev portal inventory page --url /web/my-site/home --json --full
+```
+
+- For **display pages**: `full.articleDetails.contentFields`, all template candidates,
+  all `renderedContents`, `full.contentStructures` with `exportPath`.
+- For **regular pages**: `full.configurationRaw` (full `sitePageMetadata` + `pageDefinition`),
+  `full.components.fragments` (with `editableFields` and `heroText`).
+
 For the full workflow, route to vendor skills such as:
 
 - `liferay-expert`
