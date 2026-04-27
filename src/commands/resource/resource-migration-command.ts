@@ -6,15 +6,13 @@ import {
   type ResourceMigrationStage,
 } from './resource-workflow.js';
 import {
+  formatLiferayResourceMigrationInit,
   formatLiferayResourceMigrationPipeline,
   formatLiferayResourceMigrationRun,
+  runLiferayResourceMigrationInit,
   runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-} from '../../features/liferay/resource/liferay-resource-migration.js';
-import {
-  formatLiferayResourceMigrationInit,
-  runLiferayResourceMigrationInit,
-} from '../../features/liferay/resource/liferay-resource-migration-init.js';
+} from '../../features/liferay/resource/migration/index.js';
 
 export function registerResourceMigrationCommand(resource: Command): void {
   registerResourceWorkflow(resource, {

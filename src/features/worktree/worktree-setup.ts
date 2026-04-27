@@ -1,15 +1,15 @@
 ﻿import fs from 'fs-extra';
 
 import {loadConfig} from '../../core/config/load-config.js';
-import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
-import {addGitWorktree, isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
+import {addGitWorktree, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {runWorktreeEnv} from './worktree-env.js';
-import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
+import {prepareWorktreeFlow} from './worktree-flow.js';
+import {resolveWorktreeTarget} from './worktree-paths.js';
 import {assertSafeMainEnvClone, resolveBtrfsConfig} from './worktree-state.js';
 
 type WorktreeEnvStopFn = (
@@ -52,17 +52,7 @@ export async function runWorktreeSetup(options: {
   startEnv?: WorktreeEnvStartFn;
   prepareWorktreeEnv?: typeof runWorktreeEnv;
 }): Promise<WorktreeSetupResult> {
-  const config = loadConfig({cwd: options.cwd, env: process.env});
-  if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
-    throw WorktreeErrors.repoNotFound('worktree setup must be run inside a valid git repository.');
-  }
-
-  const capabilities = await detectCapabilities(config.cwd);
-  if (!capabilities.supportsWorktrees) {
-    throw WorktreeErrors.capabilityMissing('Git worktrees are not available in this environment.');
-  }
-
-  const context = resolveWorktreeContext(config.repoRoot);
+  const {context} = await prepareWorktreeFlow({cwd: options.cwd, commandName: 'setup'});
   const stopMainForClone = Boolean(options.stopMainForClone);
   const restartMainAfterClone = Boolean(options.restartMainAfterClone);
   const withEnv = Boolean(options.withEnv);

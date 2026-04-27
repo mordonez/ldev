@@ -1,12 +1,12 @@
 import fs from 'fs-extra';
 
-import type {AppConfig} from '../../../core/config/load-config.js';
-import type {Printer} from '../../../core/output/printer.js';
-import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
-import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
-import {normalizeScalarString} from '../../../core/utils/text.js';
-import {LiferayErrors} from '../errors/index.js';
-import type {LiferayGateway} from '../liferay-gateway.js';
+import type {AppConfig} from '../../../../core/config/load-config.js';
+import type {Printer} from '../../../../core/output/printer.js';
+import {toBooleanOrFalse} from '../../../../core/utils/coerce.js';
+import {isRecord, type JsonRecord} from '../../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../../core/utils/text.js';
+import {LiferayErrors} from '../../errors/index.js';
+import type {LiferayGateway} from '../../liferay-gateway.js';
 
 export type MigrationRule = {
   source: string;

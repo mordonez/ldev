@@ -1,15 +1,15 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import type {AppConfig} from '../../../core/config/load-config.js';
-import {isRecord, readJsonUnknown, type JsonRecord} from '../../../core/utils/json.js';
-import {normalizeScalarString} from '../../../core/utils/text.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
-import {LiferayErrors} from '../errors/index.js';
-import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
-import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from './liferay-resource-paths.js';
-import type {StructureDefinitionPayload} from './liferay-resource-sync-structure-diff.js';
+import type {AppConfig} from '../../../../core/config/load-config.js';
+import type {OAuthTokenClient} from '../../../../core/http/auth.js';
+import type {HttpApiClient} from '../../../../core/http/client.js';
+import {isRecord, readJsonUnknown, type JsonRecord} from '../../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../../core/utils/text.js';
+import {LiferayErrors} from '../../errors/index.js';
+import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
+import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from '../liferay-resource-paths.js';
+import type {StructureDefinitionPayload} from '../liferay-resource-sync-structure-diff.js';
 
 type ResourceDependencies = {
   apiClient?: HttpApiClient;

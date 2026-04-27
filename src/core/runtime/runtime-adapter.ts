@@ -1,4 +1,3 @@
-import type {AppConfig} from '../config/load-config.js';
 import type {Printer} from '../output/printer.js';
 import type {EnvLogsOptions, EnvLogsResult} from '../../features/env/env-logs.js';
 import type {EnvStartResult} from '../../features/env/env-start.js';
@@ -20,7 +19,7 @@ export type RuntimeStopOptions = {
 };
 
 export interface RuntimeAdapter {
-  readonly kind: AppConfig extends {cwd: string} ? string : never;
+  readonly kind: string;
   start(options?: RuntimeStartOptions): Promise<EnvStartResult>;
   stop(options?: RuntimeStopOptions): Promise<EnvStopResult>;
   status(options?: {processEnv?: NodeJS.ProcessEnv}): Promise<EnvStatusReport>;

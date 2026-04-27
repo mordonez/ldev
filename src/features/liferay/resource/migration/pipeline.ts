@@ -2,18 +2,18 @@ import fs from 'fs-extra';
 import os from 'node:os';
 import path from 'node:path';
 
-import type {AppConfig} from '../../../core/config/load-config.js';
-import {withProgress, type Printer} from '../../../core/output/printer.js';
-import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
-import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
-import {normalizeScalarString} from '../../../core/utils/text.js';
-import {LiferayErrors} from '../errors/index.js';
-import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
-import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
-import {resolveStructureFile} from './liferay-resource-paths.js';
-import {runLiferayResourceSyncStructure} from './liferay-resource-sync-structure.js';
-import {runLiferayResourceSyncTemplate} from './liferay-resource-sync-template.js';
-import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
+import type {AppConfig} from '../../../../core/config/load-config.js';
+import {withProgress, type Printer} from '../../../../core/output/printer.js';
+import {toBooleanOrFalse} from '../../../../core/utils/coerce.js';
+import {isRecord, type JsonRecord} from '../../../../core/utils/json.js';
+import {normalizeScalarString} from '../../../../core/utils/text.js';
+import {LiferayErrors} from '../../errors/index.js';
+import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
+import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
+import {resolveStructureFile} from '../liferay-resource-paths.js';
+import {runLiferayResourceSyncStructure} from '../liferay-resource-sync-structure.js';
+import {runLiferayResourceSyncTemplate} from '../liferay-resource-sync-template.js';
+import type {ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 
 type MigrationStage = 'introduce' | 'cleanup';
 

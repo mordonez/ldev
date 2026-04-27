@@ -4,6 +4,7 @@ import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {ResolvedSite} from '../../src/features/liferay/inventory/liferay-site-resolver.js';
 import {
   syncArtifact,
+  syncArtifactDetailed,
   type LocalArtifact,
   type RemoteArtifact,
 } from '../../src/features/liferay/resource/sync-engine.js';
@@ -41,6 +42,7 @@ const createMockStrategy = (
   remoteArtifact: RemoteArtifact<TestRemoteData> | null = null,
   shouldThrowUpsert = false,
   shouldThrowVerify = false,
+  previewArtifact: RemoteArtifact<TestRemoteData> | null = null,
 ) => ({
   resolveLocal: vi.fn(async () => {
     await Promise.resolve();
@@ -68,6 +70,10 @@ const createMockStrategy = (
     if (shouldThrowVerify) {
       throw new Error('Verify failed');
     }
+  }),
+  preview: vi.fn(async () => {
+    await Promise.resolve();
+    return previewArtifact ?? remoteArtifact!;
   }),
 });
 
@@ -150,6 +156,39 @@ describe('syncArtifact', () => {
 
       expect(strategy.upsert).not.toHaveBeenCalled();
       expect(result.status).toBe('checked');
+    });
+
+    test('uses strategy preview when checkOnly requires artifact-specific validation', async () => {
+      const localArtifact: LocalArtifact<TestLocalData> = {
+        id: 'test-key',
+        normalizedContent: '{"value":"test"}',
+        contentHash: 'hash-123',
+        data: {value: 'test'},
+      };
+
+      const remoteArtifact: RemoteArtifact<TestRemoteData> = {
+        id: 'remote-id',
+        name: 'test-key',
+        data: {remoteValue: 'existing'},
+      };
+
+      const previewArtifact: RemoteArtifact<TestRemoteData> = {
+        id: 'remote-id',
+        name: 'test-key',
+        data: {remoteValue: 'previewed'},
+      };
+
+      const strategy = createMockStrategy(localArtifact, remoteArtifact, false, false, previewArtifact);
+
+      const outcome = await syncArtifactDetailed(mockConfig, mockSite, strategy, {
+        createMissing: true,
+        checkOnly: true,
+      });
+
+      expect(strategy.upsert).not.toHaveBeenCalled();
+      expect(strategy.preview).toHaveBeenCalledWith(mockConfig, mockSite, localArtifact, remoteArtifact, {}, undefined);
+      expect(outcome.result.status).toBe('checked');
+      expect(outcome.changedRemoteArtifact).toEqual(previewArtifact);
     });
 
     test('returns checked_missing when remote missing in checkOnly mode with createMissing', async () => {

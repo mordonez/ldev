@@ -1,9 +1,9 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {Printer} from '../../../core/output/printer.js';
-import {LiferayErrors} from '../errors/index.js';
 import {resolveSite} from '../inventory/liferay-inventory-shared.js';
 import {resolveStructureFile} from './liferay-resource-paths.js';
-import type {MigrationStats} from './liferay-resource-sync-structure-migration.js';
+import type {MigrationStats} from './migration/index.js';
+import {syncArtifactDetailed} from './sync-engine.js';
 import {structureSyncStrategy, type StructureResourceDependencies} from './sync-strategies/structure-sync-strategy.js';
 
 export type ResourceDependencies = StructureResourceDependencies;
@@ -57,52 +57,30 @@ export async function runLiferayResourceSyncStructure(
     printer: options.printer,
   };
 
-  // Call strategy methods
-  const local = await structureSyncStrategy.resolveLocal(config, site, strategyOptions);
-  if (!local) {
-    throw LiferayErrors.resourceFileNotFound(options.key, {details: {key: options.key, structureFile}});
-  }
-
-  const remote = await structureSyncStrategy.findRemote(config, site, local, strategyOptions, dependencies);
-
-  // Guard: missing + !createMissing
-  if (!remote && !options.createMissing) {
-    throw LiferayErrors.resourceError(`Structure '${options.key}' does not exist and create-missing is not enabled.`);
-  }
-
-  // Guard: missing + checkOnly
-  if (!remote && options.checkOnly) {
-    return {
-      status: 'checked_missing',
-      id: '',
-      key: options.key,
-      siteId: site.id,
-      siteFriendlyUrl: site.friendlyUrlPath,
-      structureFile,
-      removedFieldReferences: [],
-    };
-  }
-
-  // Upsert (strategy handles checkOnly/skipUpdate internally)
-  const upserted = await structureSyncStrategy.upsert(config, site, local, remote, strategyOptions, dependencies);
-
-  // Verify
-  await structureSyncStrategy.verify(config, site, local, upserted, dependencies);
-
-  // Determine final status
-  const status = options.checkOnly ? 'checked' : remote ? 'updated' : 'created';
+  const outcome = await syncArtifactDetailed(
+    config,
+    site,
+    structureSyncStrategy,
+    {
+      checkOnly: options.checkOnly,
+      createMissing: options.createMissing,
+      strategyOptions,
+    },
+    dependencies,
+  );
+  const changedRemote = outcome.changedRemoteArtifact;
 
   // Return result
   return {
-    status,
-    id: upserted.id,
+    status: outcome.result.status,
+    id: outcome.result.id,
     key: options.key,
     siteId: site.id,
     siteFriendlyUrl: site.friendlyUrlPath,
     structureFile,
-    removedFieldReferences: upserted.data.removedFieldReferences,
-    ...(upserted.data.recoveredAfterTimeout ? {recoveredAfterTimeout: true} : {}),
-    ...(upserted.data.migration ? {migration: upserted.data.migration} : {}),
+    removedFieldReferences: changedRemote?.data.removedFieldReferences ?? [],
+    ...(changedRemote?.data.recoveredAfterTimeout ? {recoveredAfterTimeout: true} : {}),
+    ...(changedRemote?.data.migration ? {migration: changedRemote.data.migration} : {}),
   };
 }
 

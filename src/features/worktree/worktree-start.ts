@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 
 import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
-import {detectCapabilities} from '../../core/platform/capabilities.js';
-import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
+import {listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
-import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
+import {prepareWorktreeFlow} from './worktree-flow.js';
+import {resolveWorktreeTarget} from './worktree-paths.js';
 
 export type WorktreeStartResult = {
   ok: true;
@@ -42,17 +42,7 @@ export async function runWorktreeStart(options: {
   setupEnv?: WorktreeStartEnvSetup;
   startEnv?: WorktreeStartEnvStart;
 }): Promise<WorktreeStartResult> {
-  const config = loadConfig({cwd: options.cwd, env: process.env});
-  if (!config.repoRoot || !(await isGitRepository(config.repoRoot))) {
-    throw WorktreeErrors.repoNotFound('worktree start must be run inside a valid git repository.');
-  }
-
-  const capabilities = await detectCapabilities(config.cwd);
-  if (!capabilities.supportsWorktrees) {
-    throw WorktreeErrors.capabilityMissing('Git worktrees are not available in this environment.');
-  }
-
-  const context = resolveWorktreeContext(config.repoRoot);
+  const {context} = await prepareWorktreeFlow({cwd: options.cwd, commandName: 'start'});
   await assertPrimaryCheckoutGuardrail(context, 'start a worktree from the wrong checkout root');
 
   const target = options.name
