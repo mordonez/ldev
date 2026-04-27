@@ -27,6 +27,14 @@ If the issue URL is production, use it only as an identifier for discovery. Do
 not use the production host for browser reproduction. Reuse the resolved
 local/runtime URL from `ldev`.
 
+The default output contains the fields needed for most intake tasks (page type,
+article identity, rendering templates, taxonomy, admin URLs). If you need
+content fields, raw template candidates, or the full page definition, add `--full`:
+
+```bash
+ldev portal inventory page --url <issueUrl> --json --full
+```
+
 3. If there is no exact URL, traverse the site:
 
 ```bash

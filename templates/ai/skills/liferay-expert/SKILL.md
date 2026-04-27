@@ -50,6 +50,13 @@ ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
 ```
 
+The default page output is sufficient for routing. Add `--full` when the task
+requires content fields, all template candidates, or the raw page definition:
+
+```bash
+ldev portal inventory page --url <fullUrl> --json --full
+```
+
 ## Routing rules
 
 - If the cause is not clear yet:

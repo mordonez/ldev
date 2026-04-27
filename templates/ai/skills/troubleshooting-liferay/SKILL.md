@@ -79,6 +79,17 @@ ldev portal inventory templates --site /<site> --json
 For structure/template incidents, treat `--with-templates` as the default
 discovery path to avoid separate lookup rounds.
 
+When the default output is not enough (e.g. you need content fields, all template
+candidates, or the raw page definition), add `--full`:
+
+```bash
+ldev portal inventory page --url <fullUrl> --json --full
+```
+
+`--full` adds for display pages: `full.articleDetails.contentFields`, all template
+candidates, all `renderedContents`. For regular pages: `full.configurationRaw` and
+`full.components.fragments` with `editableFields`.
+
 ### Production reproduction
 
 When the issue does not reproduce with clean local data, bring production-like

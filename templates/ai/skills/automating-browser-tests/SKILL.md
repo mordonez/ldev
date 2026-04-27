@@ -20,7 +20,7 @@ ldev portal inventory page --url <fullUrl> --json
 Before opening Playwright, lock these fields from bootstrap:
 
 - `context.liferay.portalUrl`: use this exact host for the whole browser session — do not mix `localhost` and `127.0.0.1`.
-- `ldev portal inventory page --url <fullUrl> --json` → `adminUrls.*`, `siteFriendlyUrl`, `groupId`, `layout.plid`.
+- `ldev portal inventory page --url <fullUrl> --json` → `adminUrls.*`, `page.siteFriendlyUrl`, `page.groupId`, `page.plid`.
 
 Check `doctor.tools.playwrightCli.status == "pass"` before starting any browser flow.
 
