@@ -1,6 +1,6 @@
 ---
 name: issue-engineering
-description: 'Use for any task that can mutate code, resources, or runtime state in this project (GitHub issue, chat request, or ad-hoc), to enforce intake/reproduction gates, evidence, and human handoff.'
+description: 'Use for non-trivial tasks that mutate code, resources, or runtime state (GitHub issue, feature, bug fix, migration). For clearly trivial ad-hoc changes, confirm with the developer whether the full workflow applies before starting.'
 ---
 
 # Issue Engineering
@@ -23,22 +23,29 @@ For technical execution, always route to vendor skills:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 
-For `ldev-native`, this skill is mandatory before technical execution whenever
-the task mutates code, resources, or runtime state, even without a formal
-GitHub issue.
+For `ldev-native`, this skill is the recommended default before technical execution
+for non-trivial tasks (bug fixes, features, migrations) regardless of whether a
+formal GitHub issue exists. For clearly trivial ad-hoc tasks where the developer
+has explicitly scoped the change, confirm with them first — they may prefer to
+skip intake and proceed directly.
 
 For scope boundaries and invalid shortcuts, read
 `references/boundary-rules.md` only when needed.
 
-## Hard gates
+## Recommended gate order
 
-For `ldev-native` mutating tasks, execute this order without skipping:
+For `ldev-native` non-trivial tasks (bugs, features, migrations), follow this order:
 
 1. `Red-1` reproduction in the current runtime
 2. isolated worktree setup and active edit-root lock
 3. `Red-2` reproduction in the worktree runtime
 4. import/deploy verification with runtime evidence
 5. `Red -> Green` visual validation on the same local URL
+
+For clearly trivial tasks where the developer has explicitly defined the exact scope,
+confirm with them whether the full gate applies or whether they prefer to proceed
+directly. Never omit safety invariants (--check-only, read-after-write, ID resolution)
+regardless of which path is chosen.
 
 For `blade-workspace`, keep the same intake and validation discipline but do
 not invent a fake worktree phase.
@@ -94,11 +101,11 @@ issue; local reproduction defines the bug you are actually fixing.
 
 ## 3. Isolate the edit root
 
-**For `ldev-native` projects this step is mandatory, not optional.**
-If the project defines agent invariants in `docs/ai/project-context.md`, those
-invariants require a worktree before any code change or runtime mutation.
-Do not skip this step regardless of whether the user asks to skip commits or
-work in a lightweight mode.
+**For `ldev-native` projects, worktree isolation is the strongly recommended default.**
+For non-trivial tasks (bug fixes, features, migrations), apply this step without
+negotiation. For clearly trivial tasks where the developer explicitly requests
+lightweight mode, surface the recommendation, explain the risk of working in the
+main checkout, and ask for their explicit go-ahead. Proceed per their answer.
 
 If isolated worktrees are available:
 
@@ -166,14 +173,15 @@ Route by task:
 ## 5. Validate Red -> Green before handoff
 
 For runtime-backed resources (ADTs, templates, structures, fragments), browser
-validation with Playwright is required before handoff regardless of whether
-the user asks to skip commits or work in a lightweight mode.
+validation with Playwright is strongly recommended before handoff.
 
 "No commit" only affects the final git step. It does not waive:
 
 - import: `ldev resource import-*` for the changed resource
 - runtime verification: `ldev portal check --json`, `ldev logs diagnose --json`
-- browser validation: Playwright against the affected URL
+- browser validation: Playwright against the affected URL (recommended; if the
+  developer explicitly opts out for a clearly trivial visual change they've already
+  confirmed, note the skip and proceed per their instruction)
 
 When reviewers need visual evidence directly in a GitHub issue or PR comment
 without committing branch artifacts, read

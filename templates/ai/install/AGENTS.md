@@ -43,8 +43,8 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
-11. For `ldev-native`, any task that mutates code/resources/runtime must execute this gate order without exceptions: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red -> Green` visual validation.
-12. Invalid skip reasons include: no formal GitHub issue, task is small, already on a feature branch, runtime already running, or user did not explicitly request validation/worktree steps.
+11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red → Green` visual validation. Before imposing the full gate sequence, briefly assess the task scope: for bug fixes, migrations, and significant feature work, apply the full gate. For clearly trivial changes (single-field config update, copy fix, isolated template tweak the developer explicitly scoped), ask the developer whether they want the full isolation workflow or prefer to proceed in the current checkout.
+12. Safety checks that apply to every task regardless of scope: `--check-only` before any resource import, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, Red-1/Red-2 cycle, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
 
 ## ldev Command Resolution
 
