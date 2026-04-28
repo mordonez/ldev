@@ -16,6 +16,37 @@ Validate before mutating:
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
 ```
 
+## FTL field accessor patterns
+
+Before writing any new FreeMarker template logic or DDM field accessor, grep
+the repository for the canonical pattern used for that field type:
+
+```bash
+# Find how the repo reads boolean or checkbox DDM fields
+grep -rE "getterUtil|getData|has_content" . --include="*.ftl" -l
+grep -rE "getterUtil" . --include="*.ftl" -n | head -20
+
+# Find existing examples for a specific field name
+grep -rE "<DDM_FIELD_NAME>" . --include="*.ftl" -n
+```
+
+Do not invent a new accessor pattern. Copy the dominant pattern from existing files.
+
+**Critical pitfall — boolean/checkbox fields:**
+Using `?has_content` on a boolean DDM field returns `true` even when the field
+value is `false`, because the string `"false"` is non-empty.
+
+```freemarker
+<#-- WRONG: always true even when checkbox is unchecked -->
+<#if myBooleanField?has_content>...</#if>
+
+<#-- CORRECT: use getterUtil.getBoolean to read boolean DDM fields -->
+<#if getterUtil.getBoolean(myBooleanField.getData())>...</#if>
+```
+
+Apply `getterUtil.getBoolean(fieldVar.getData())` for any `checkbox` or
+`boolean` field type.
+
 ---
 
 ## Top-level skeleton

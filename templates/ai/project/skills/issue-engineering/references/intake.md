@@ -8,6 +8,16 @@ Use this reference when the issue arrives with weak technical context or mixes U
 - Turn issue URLs and clues into context verified with `ldev`
 - Make remaining unknowns explicit
 
+## Default URL rule
+
+If the issue, review, bug report, repro steps, or human notes mention portal
+URLs, inspect every one of them immediately with `ldev portal inventory page
+--url` before searching code, reproducing in the browser, or planning a fix.
+
+Treat this as the default entrypoint whenever a relevant URL exists. The goal is
+to turn each URL into concrete portal context first: local/runtime URL, site,
+page type, owning resource, and likely implementation surface.
+
 ## Recommended Flow
 
 1. Read the issue and comments:
@@ -16,7 +26,8 @@ Use this reference when the issue arrives with weak technical context or mixes U
 gh issue view NUM --json title,body,labels,comments
 ```
 
-2. Resolve each reported URL through `ldev` first:
+2. Resolve each reported URL through `ldev` first. If multiple URLs are named,
+run the command for each one rather than picking a single "main" URL:
 
 ```bash
 ldev context --json
@@ -26,6 +37,9 @@ ldev portal inventory page --url <issueUrl> --json
 If the issue URL is production, use it only as an identifier for discovery. Do
 not use the production host for browser reproduction. Reuse the resolved
 local/runtime URL from `ldev`.
+
+If a comment or reviewer drops an additional URL later in the thread, stop and
+inspect that URL too before assuming it is the same surface.
 
 The default output contains the fields needed for most intake tasks (page type,
 article identity, rendering templates, taxonomy, admin URLs). If you need

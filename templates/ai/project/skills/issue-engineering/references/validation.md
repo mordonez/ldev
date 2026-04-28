@@ -17,6 +17,19 @@ Checklist to decide whether the fix is actually done.
 ldev logs --since 2m --no-follow
 ```
 
+Before any validation claim, confirm the edited surface was actually applied to
+the runtime with the matching action:
+
+- module or deployable Gradle unit changed -> `ldev deploy module <module-name>`
+- theme assets or theme CSS/JS/templates changed -> `ldev deploy theme`
+- structure changed -> `ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>`
+- ADT changed -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl>`
+- template changed -> `ldev resource import-template --site /<site> --template <TEMPLATE_ID>`
+- fragment changed -> `ldev resource import-fragment --site /<site> --fragment <fragment-key>`
+- properties or source OSGi config changed -> `ldev env restart`
+
+If that step did not happen, stay in `Red` even if the source files look correct.
+
 If an OSGi module applies:
 
 ```bash

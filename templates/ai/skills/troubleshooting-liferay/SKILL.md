@@ -24,6 +24,19 @@ Inspect:
 - `doctor.checks[]` — active failures and remedies.
 - `doctor.readiness.*` — command-level readiness.
 
+`ldev status --json` returns Docker/container state. `ldev context --json`
+returns offline repo/config/auth facts. They are not interchangeable — use
+`ldev status` only to confirm the env is running, not for routing decisions.
+
+When `doctor.checks[]` contains failures, add the matching scope flag for
+deeper checks:
+
+```bash
+ldev doctor --runtime --json   # container and service health
+ldev doctor --portal --json    # portal API reachability and auth
+ldev doctor --osgi --json      # bundle state and missing requirements
+```
+
 If the env is not running, start it before deeper analysis:
 
 ```bash
@@ -68,7 +81,10 @@ ldev osgi thread-dump
 
 ### Portal discovery issues
 
-If a page, site, structure or template is involved, resolve it from the portal:
+If a page, site, structure or template is involved, resolve it from the portal
+immediately. When the report mentions one or more URLs, inspect every mentioned
+URL with `ldev portal inventory page --url` before code search, browser
+reproduction, or speculative diagnosis:
 
 ```bash
 ldev portal inventory page --url <fullUrl> --json
@@ -78,6 +94,9 @@ ldev portal inventory templates --site /<site> --json
 
 For structure/template incidents, treat `--with-templates` as the default
 discovery path to avoid separate lookup rounds.
+
+Do not assume two reported URLs point to the same page state, site, or owning
+resource until both have been inspected.
 
 When the default output is not enough (e.g. you need content fields, all template
 candidates, or the raw page definition), add `--full`:
@@ -92,136 +111,40 @@ candidates, all `renderedContents`. For regular pages: `full.configurationRaw` a
 
 ### Production reproduction
 
-When the issue does not reproduce with clean local data, bring production-like
-state into the local environment before guessing:
+When a clean local environment is not enough, import production-like state
+before guessing:
 
 ```bash
+# Sync database from Liferay Cloud
 ldev db sync --environment <env> --project <lcp-project> --force
-```
-
-If you already have a local backup file:
-
-```bash
+# OR import a local backup
 ldev db import --file /path/to/backup.sql.gz --force
-```
 
-When the issue depends on Document Library files:
-
-```bash
+# If the issue depends on Document Library files, download them first
 ldev db files-download --environment <env> --project <lcp-project> --doclib-dest docker/doclib/<env>
 ldev db files-mount --path docker/doclib/<env>
-```
+# OR mount a local path directly
+ldev db files-mount --path /path/to/doclib
 
-If the files are not coming from Liferay Cloud, mount the prepared local path:
-
-```bash
-ldev db files-mount --path /path/to/manual/doclib
-```
-
-Then restart the local diagnosis loop:
-
-```bash
+# Restart and verify
 ldev start
 ldev doctor --json
-ldev portal inventory sites --json
 ldev logs diagnose --since 15m --json
 ```
 
-### Post-import content volume
-
-After importing a production database, Journal content volume may be too large
-for practical local reindexing or day-to-day use.
-
-Check content volume per site before reindexing:
+After import, check content volume before reindexing:
 
 ```bash
 ldev portal inventory sites --with-content --sort-by content
 ```
 
-Scope to one site for folder-level detail:
+For database restore options, file-download flows, content pruning, and
+post-import tuning, see `references/production-reproduction.md`.
 
-```bash
-ldev portal inventory sites --site /<site> --with-structures --limit 20
-```
+### Specialized diagnosis paths
 
-If volume is too high, preview a prune first:
-
-```bash
-ldev portal content prune \
-  --group-id <groupId> \
-  --root-folder <folderId> \
-  --keep 100 \
-  --dry-run
-```
-
-Review the dry-run output (`articleCount`, `keptCount`, `deletedCount`,
-`Breakdown by structure`) before applying. Run without `--dry-run` only when
-the plan is correct.
-
-Use `--keep-scope structure` when you want to retain N most recent articles per
-structure type across all selected folders instead of per folder.
-
-### Isolated worktree troubleshooting
-
-Use `isolating-worktrees` for the canonical setup, root lock, recovery, and cleanup flow.
-
-When a risky fix or a production-like reproduction should not share runtime
-state with the main checkout, isolate it:
-
-```bash
-ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone --restart-main-after-clone
-cd .worktrees/incident-<id>
-ldev start
-ldev status --json
-```
-
-If a human explicitly wants the main checkout left stopped after cloning, use
-this exception path instead:
-
-```bash
-ldev worktree setup --name incident-<id> --with-env --stop-main-for-clone
-```
-
-Use a worktree when:
-
-- one branch is reproducing an incident and another is active development
-- a migration or reproduction needs its own local DB or mounted file state
-- you need to compare behavior across branches without mixing runtime state
-
-### Reindex issues
-
-References:
-
-- `references/reindex-after-import.md`
-- `references/reindex-journal.md`
-
-### Search and buscadores not working
-
-Reference: `references/search-debug.md`
-
-Covers: search widget returning 0 results, filter widgets (category/tag) not
-working, persistent visual bugs such as a hidden "Limpiar" button, and guest
-vs. authenticated result differences.
-
-### Content version accumulation or empty language versions
-
-Reference: `references/content-versions.md`
-
-Covers: articles with excessive version history, empty linguistic versions
-added by bulk sync processes, and Groovy-based bulk version cleanup.
-
-```bash
-ldev portal reindex status --json
-ldev portal reindex tasks --json
-ldev portal reindex watch --json
-```
-
-Enable temporary speedup only while an actual reindex is active:
-
-```bash
-ldev portal reindex speedup-on
-ldev portal reindex speedup-off
-```
+Use `references/specialized-diagnosis.md` for isolated worktree incidents,
+reindex incidents, search widget failures, and content-version cleanup cases.
 
 ## Recovery actions
 
@@ -230,6 +153,8 @@ Use these only when diagnosis points to broken local runtime state:
 Reference:
 
 - `references/ddm-migration.md`
+- `references/production-reproduction.md`
+- `references/specialized-diagnosis.md`
 
 ```bash
 ldev stop

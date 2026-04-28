@@ -59,30 +59,12 @@ ldev portal inventory page --url <fullUrl> --json --full
 
 ## Routing rules
 
-- If the cause is not clear yet:
-  - use `troubleshooting-liferay`
-  - useful references there:
-    - `../troubleshooting-liferay/references/reindex-after-import.md`
-    - `../troubleshooting-liferay/references/reindex-journal.md`
-    - `../troubleshooting-liferay/references/ddm-migration.md`
-    - `../troubleshooting-liferay/references/search-debug.md` — for buscador / search widget failures
-    - `../troubleshooting-liferay/references/content-versions.md` — for version accumulation or empty language versions
-- If the change is known and you need to edit source or portal resources:
-  - use `developing-liferay`
-  - useful references there:
-    - `../developing-liferay/references/theme.md`
-    - `../developing-liferay/references/structures.md`
-    - `../developing-liferay/references/fragments.md`
-    - `../developing-liferay/references/osgi.md`
-    - `../developing-liferay/references/extending-liferay.md`
-    - `../developing-liferay/references/groovy-console.md` — for portal console scripts, ERC vocabulary fixes
-    - `../developing-liferay/references/workflow.md` — for publish failures and workflow approval issues
-- If the change already exists and you need to build, deploy or verify runtime:
-  - use `deploying-liferay`
-  - useful reference there:
-    - `../deploying-liferay/references/worktree-pitfalls.md`
-- If the task changes Journal structures with data migration risk:
-  - use `migrating-journal-structures`
+Choose the next specialist skill using `references/routing.md`:
+
+- unclear cause -> `troubleshooting-liferay`
+- known implementation change -> `developing-liferay`
+- existing change that needs deploy or verification -> `deploying-liferay`
+- Journal migration risk -> `migrating-journal-structures`
 
 ## Site-level objects
 
@@ -95,14 +77,64 @@ ldev portal inventory pages --site /<site> --json
 ldev portal inventory page --url <fullUrl> --json
 ```
 
-For details on Display Page Templates, Navigation Menus, multi-site resource
-ownership, and content volume inspection, see
+For deeper routing notes and specialist reference entrypoints, read
+`references/routing.md`. For details on Display Page Templates, Navigation
+Menus, multi-site resource ownership, and content volume inspection, see
 `references/site-objects.md`.
+
+## Discovery commands
+
+Three commands are often confused — use the right one for each situation:
+
+- `ldev context --json` — offline project facts (repo config, auth state, resource
+  paths, version). No runtime required. Use for routing decisions and bootstrap.
+- `ldev status --json` — Docker/runtime state (containers running, ports). Use to
+  confirm the env is up before portal or deploy operations.
+- `ldev doctor --json` — active failures and readiness checks. Cheap by default
+  (repo/config/tool presence only). Add scope flags when runtime checks matter:
+  `--runtime`, `--portal`, `--osgi`.
+
+## AI asset maintenance
+
+When skills or agent context files are out of date:
+
+```bash
+# Check installed skill state and drift
+ldev ai status --target <project-root> --json
+
+# Update vendor skills to the latest published versions
+ldev ai update --target <project-root>
+
+# Update only a specific skill
+ldev ai update --target <project-root> --skill <skill-name>
+```
+
+Run `ldev ai status` first to understand what is installed before updating.
+
+## OAuth2 prerequisite
+
+Most portal and resource commands require OAuth2 credentials. If
+`context.liferay.auth.oauth2.clientId.status` is not `"present"`, set up
+credentials first:
+
+```bash
+ldev start
+ldev oauth install --write-env
+```
+
+`--write-env` persists the credentials to `.liferay-cli.local.yml` so all
+subsequent commands and agents can use them without re-running the installer.
+If the admin account is in password-reset state, unblock it first:
+
+```bash
+ldev oauth admin-unblock
+```
 
 ## Shared guardrails
 
 - Use `ldev` as the official interface.
-- Prefer `ldev context --json`, `ldev doctor --json` and `ldev status --json` for automation and agents.
+- Use `ldev context --json` for offline routing; use `ldev status --json` only
+  to confirm runtime state. They are not interchangeable.
 - Prefer the smallest deploy or import that proves the change.
 - Do not invent portal mutations if an `ldev resource ...` workflow already exists.
 - For site-level objects without dedicated `ldev` commands, verify MCP with
