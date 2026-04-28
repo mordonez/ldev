@@ -164,6 +164,7 @@ Read order:
 Use these as the standard reusable entrypoints when the task needs a deeper playbook:
 
 - `liferay-expert`: router for technical Liferay work.
+- `clarifying-liferay-tasks`: pre-implementation grilling skill that locks the affected Site, Page, resource, module or surface when the request is ambiguous, before any code or import. Use first whenever the request does not name a single owning surface.
 - `developing-liferay`: implementation guidance for code, themes, content resources and fragments.
 - `isolating-worktrees`: isolated `ldev-native` worktree setup, edit-root lock, recovery and cleanup.
 - `deploying-liferay`: build, deploy and runtime verification flow.

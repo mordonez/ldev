@@ -101,6 +101,75 @@ Notes:
 - Prefer the smallest deploy or import that proves a change.
 - For runtime or portal diagnosis, capture the exact failing command or URL first.
 
+## Glossary
+
+Project-specific terms and the canonical Liferay name they map to. Vendor
+skills consume this section via `liferay-expert/references/domain-awareness.md`
+to keep naming consistent in briefs, file names, and PR titles.
+
+Format per term: a one-sentence definition, an explicit list of synonyms to
+avoid, and the relationships that disambiguate it from neighbours.
+
+```md
+**Partner Portal**:
+A logical area of the site exposed under `/web/partners` for B2B users.
+_Avoid_: tenant, sub-site, microsite.
+_Liferay mapping_: Site (group) `partners` with private pages.
+
+**Campaign Article**:
+A Web Content Article whose Journal Structure is `CAMPAIGN`.
+_Avoid_: campaign post, campaign page, banner content.
+_Liferay mapping_: Web Content Article with Structure key `CAMPAIGN`,
+template `CAMPAIGN-DEFAULT`.
+
+**Lead Form**:
+A multi-step form rendered by the `lead-capture-web` module.
+_Avoid_: contact form, registration form.
+_Liferay mapping_: OSGi module `lead-capture-web`, portlet
+`com.acme.lead.capture.web.portlet.LeadCapturePortlet`.
+```
+
+### Relationships (illustrative)
+
+- A **Partner Portal** contains many **Campaign Articles**.
+- A **Lead Form** is embedded in a Page via a Widget Page or Display Page Template.
+- A **Campaign Article** uses Vocabularies `Region` and `Audience` (Categories,
+  not free-form Tags).
+
+### Flagged ambiguities
+
+Capture conflicts here once and resolve them, so the next session does not
+re-litigate them:
+
+- "page" was used to mean both a Liferay Page and a Display Page Template —
+  resolved: keep "Page" for Liferay Pages, use "Display Page Template" verbatim.
+- "user" was used to mean both Liferay User and external Lead — resolved:
+  reserve "User" for Liferay accounts; external prospects are "Leads".
+
+### Example dialogue
+
+> **PM:** "When a partner views a campaign, can they download the asset?"
+>
+> **Dev:** "When a Partner User on the Partner Portal opens a Campaign Article,
+> the linked Document Library file inherits the same site permissions. Yes if
+> the partner role has VIEW on the Asset Library."
+
+Use a short dialogue here that demonstrates how the project terms compose
+naturally. It doubles as a sanity check for new entries: if you cannot write a
+realistic sentence with the term, it probably belongs in code, not in the
+glossary.
+
+### Rules
+
+- Be opinionated. Pick one canonical project name per concept; list everything
+  else as `_Avoid_`.
+- Keep definitions tight (one sentence).
+- Always include a `_Liferay mapping_` line so the term anchors to a concrete
+  Liferay surface (Site / Page / Structure key / Template id / Module / Object
+  definition).
+- Update inline as terms get resolved during a session — do not batch.
+- Drop a term when the codebase no longer uses it.
+
 ## Project Runbooks
 
 - Optional: localized admin menu maps for browser workflows:

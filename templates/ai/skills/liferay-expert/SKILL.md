@@ -10,6 +10,12 @@ This skill is the domain router for reusable `ldev` Liferay workflows.
 It does not contain deep playbooks of its own. Its job is to choose the right
 specialist skill quickly.
 
+## Before exploring
+
+Read `references/domain-awareness.md` for the consumer rules every vendor skill
+follows when reading project files. Apply the project glossary in
+`docs/ai/project-context.md` to all routing notes, brief sections, and PR titles.
+
 ## Start here
 
 Run this bootstrap first:
@@ -61,6 +67,8 @@ ldev portal inventory page --url <fullUrl> --json --full
 
 Choose the next specialist skill using `references/routing.md`:
 
+- ambiguous request (no single owning Site, Page, resource, module or surface
+  yet) -> `clarifying-liferay-tasks` first, then re-route from its output note
 - unclear cause -> `troubleshooting-liferay`
 - known implementation change -> `developing-liferay`
 - existing change that needs deploy or verification -> `deploying-liferay`

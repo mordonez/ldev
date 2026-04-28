@@ -8,6 +8,13 @@ description: 'Use when a Journal structure or template change requires controlle
 Use this skill when a structure change can affect existing content and must be
 validated as a migration, not as a simple import.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to structure keys, template ids,
+descriptor file names, and migration notes. Surface conflicts before authoring
+the descriptor.
+
 ## Required bootstrap
 
 ```bash

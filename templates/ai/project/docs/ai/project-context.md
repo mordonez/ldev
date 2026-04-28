@@ -51,6 +51,22 @@ read-only discovery or bootstrap context from the main checkout.
 - Branch convention: `[TODO]`
 - PR convention: `[TODO]`
 
+## Glossary
+
+Project-specific terms with their canonical Liferay mapping. Vendor skills
+consume this section via `liferay-expert/references/domain-awareness.md`. See
+[project-context.md.sample](project-context.md.sample) for the full format.
+
+```md
+**[Project Term]**:
+[One-sentence definition.]
+_Avoid_: [synonyms agents must not drift to]
+_Liferay mapping_: [Site / Page / Structure key / Template id / Module / Object]
+```
+
+- [TODO] add the 5–10 terms a fresh agent must know to talk about this project
+- [TODO] flag ambiguities resolved during onboarding so they are not re-litigated
+
 ## Project Runbooks
 
 List only what cannot live in a reusable vendor skill:

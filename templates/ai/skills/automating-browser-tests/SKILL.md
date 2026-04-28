@@ -10,6 +10,13 @@ Use `ldev` for portal discovery and runtime state, `playwright-cli` for browser 
 Read `REFERENCE.md` next to this skill for command syntax, browser installation,
 mobile viewport, login flows, page layout mutations, and cleanup patterns.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to session names, evidence file names
+under `.tmp/`, and selector annotations. Surface conflicts before recording
+visual evidence.
+
 ## Required bootstrap
 
 ```bash

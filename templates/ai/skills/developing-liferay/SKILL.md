@@ -8,6 +8,12 @@ description: 'Use when you need to change Liferay code, themes, structured conte
 Use this skill for implementation work after the affected surface is already
 clear.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to all file names, structure keys,
+template ids, and brief sections you produce. Surface conflicts before editing.
+
 ## Required bootstrap
 
 ```bash

@@ -8,6 +8,12 @@ description: 'Use when the code or resource change already exists and the task i
 Use this skill when implementation is already done and the focus is runtime
 verification.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to bundle symbolic names, deploy
+artifact names, and verification notes. Surface conflicts before deploying.
+
 ## Required bootstrap
 
 ```bash

@@ -10,6 +10,12 @@ Use this skill for diagnosis first, not for speculative fixes.
 It is also the reusable home for local reproduction workflows when the issue
 depends on production-like data or isolated worktree state.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to hypothesis names, log search terms,
+and the diagnostic notes you produce. Surface conflicts before deeper analysis.
+
 ## Required bootstrap
 
 ```bash
@@ -51,6 +57,12 @@ ldev start
   AI assets are out of sync with the CLI.
 
 ## Core diagnosis flow
+
+For non-trivial or recurring failures, apply the disciplined loop in
+`references/diagnose-discipline.md` (build feedback loop → reproduce →
+ranked hypotheses → instrument with tagged logs → fix + regression test →
+cleanup). Use the Liferay-specific commands below as the building blocks of
+that loop.
 
 ### Runtime health and logs
 

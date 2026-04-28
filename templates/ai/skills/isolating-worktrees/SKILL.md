@@ -12,6 +12,12 @@ This is the canonical vendor playbook for isolated worktrees. Project skills may
 add naming or review conventions on top, but they should not duplicate the
 technical flow.
 
+## Before exploring
+
+Read `../liferay-expert/references/domain-awareness.md` and apply the project
+glossary in `docs/ai/project-context.md` to worktree names, branch names, and
+issue-id labels. Surface conflicts before running setup.
+
 ## When to use
 
 Use this skill when:

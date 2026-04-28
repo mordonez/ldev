@@ -95,6 +95,7 @@ first.
 Use vendor skills for the full reusable workflow:
 
 - `liferay-expert`
+- `clarifying-liferay-tasks`
 - `troubleshooting-liferay`
 - `developing-liferay`
 - `deploying-liferay`
@@ -168,6 +169,7 @@ execution itself.
 Use these as the standard reusable entrypoints:
 
 - `liferay-expert`
+- `clarifying-liferay-tasks`: pre-implementation grilling skill; use first when the request is ambiguous about Site, Page, resource, module, or owning surface.
 - `developing-liferay`
 - `isolating-worktrees`
 - `deploying-liferay`

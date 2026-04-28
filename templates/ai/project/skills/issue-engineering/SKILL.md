@@ -35,6 +35,16 @@ For scope boundaries and invalid shortcuts, read
 Use `references/execution-flow.md` for the full gate order, worktree phase,
 scope lock, artifact preparation, and vendor-skill routing tree.
 
+## 0. Clarify if the request is ambiguous
+
+If the request, issue body, or chat does not name a single owning Site, Page,
+resource, module, or surface, route to `clarifying-liferay-tasks` first. That
+skill grills the user one question at a time, returns a confirmed surface, and
+then this issue-engineering flow resumes at step 1 with that scope locked.
+
+Skip step 0 only when the developer has already named the exact owning surface
+(for example: "fix typo in fragment `hero-banner`").
+
 ## 1. Intake
 
 Review the issue in the tracker and capture only project-specific process data:
@@ -111,10 +121,18 @@ a CSS class globally when only one component is affected.
 Before routing technical work, create these files under `.tmp/issue-<num>/`:
 
 **`brief.md`** (after Red-1 and Red-2 reproduction):
-- Verified local URL where the symptom reproduces
-- What the symptom looks like (observed vs. expected)
-- Which site, page, or resource is affected
-- Any hard blockers
+
+Use the durable agent-brief format from
+[templates/agent-brief-template.md](templates/agent-brief-template.md). The
+brief is the contract: it must survive days in `ready-for-agent` state and
+remain useful after files are renamed. Quote behavioural contracts and Liferay
+surfaces (Site, Structure key, Template id, Bundle symbolic name, Fragment
+key) — never file paths or line numbers. Pick the matching specialised
+template depending on the surface:
+
+- FTL / Journal Template / ADT / Fragment FTL → `templates/ftl-brief-template.md`
+- OSGi module / Java code / Service Builder → `templates/java-module-brief-template.md`
+- Theme CSS / Fragment CSS / Client Extension CSS → `templates/css-brief-template.md`
 
 **`solution-plan.md`** (after technical direction is known):
 - The smallest intended fix path

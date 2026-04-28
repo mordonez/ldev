@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clarifying Liferay Tasks"
+  short_description: "Grill the user one question at a time to lock the affected Liferay surface before any change"
+  default_prompt: "Use $clarifying-liferay-tasks to interview me about this request and confirm which Site, Page, resource, module or surface it actually targets before any code, deploy or import."

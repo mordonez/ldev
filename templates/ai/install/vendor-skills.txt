@@ -1,5 +1,6 @@
 automating-browser-tests
 capturing-session-knowledge
+clarifying-liferay-tasks
 deploying-liferay
 developing-liferay
 isolating-worktrees

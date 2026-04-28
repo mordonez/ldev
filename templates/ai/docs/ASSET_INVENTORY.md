@@ -13,6 +13,7 @@ existed in the original `tools/ai` tree.
 | Project context template | `templates/ai/project/docs/ai/project-context.md` | Long-form project knowledge scaffold | Yes | Optional project-owned scaffold installed only with `--project-context` or `--project` |
 | Vendor skill manifest | `templates/ai/install/vendor-skills.txt` | Curated list of installable skills | Yes | Keeps install surface explicit and maintainable |
 | `liferay-expert` | `templates/ai/skills/liferay-expert/` | Route technical tasks to the right reusable skill | Yes | General Liferay guidance, no project workflow coupling |
+| `clarifying-liferay-tasks` | `templates/ai/skills/clarifying-liferay-tasks/` | Grill the user one question at a time to lock the affected Liferay surface before any change | Yes | Pre-implementation discipline; reusable across any Liferay project |
 | `developing-liferay` | `templates/ai/skills/developing-liferay/` | Implement code/content/resource changes with `ldev` | Yes | Applies across compatible Liferay repos |
 | `deploying-liferay` | `templates/ai/skills/deploying-liferay/` | Build, deploy and verify runtime changes | Yes | Maps directly to `ldev deploy`, `ldev osgi`, `ldev logs` |
 | `troubleshooting-liferay` | `templates/ai/skills/troubleshooting-liferay/` | Diagnose runtime failures and recovery paths | Yes | General local runtime guidance |
