@@ -137,6 +137,9 @@ see `references/resource-workflow.md`.
 
 Choose the narrowest path that matches the changed surface:
 
+Do not treat a file edit as applied until the matching runtime action below has
+been executed successfully. Editing source alone is still `Red`.
+
 **Theme and frontend source** (SCSS, JS, FreeMarker theme templates):
 
 ```bash
@@ -159,6 +162,20 @@ Use the repository-backed resource workflow above.
 For commands, decision criteria, and examples for these paths, see
 `references/implementation-paths.md`.
 
+Use this mapping as a hard rule after edits:
+
+- changed files under `modules/` or another deployable Gradle unit -> `ldev deploy module <module-name>`
+- changed theme assets, theme CSS, theme JS, or theme FreeMarker templates -> `ldev deploy theme`
+- changed Journal structure source -> `ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>`
+- changed ADT source -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl>`
+- changed Journal template source -> `ldev resource import-template --site /<site> --template <TEMPLATE_ID>`
+- changed fragment source -> `ldev resource import-fragment --site /<site> --fragment <fragment-key>`
+- changed portal properties or source OSGi config files -> `ldev env restart` before validation
+
+If more than one surface changed, run each matching action. Do not assume a
+theme deploy applies module changes, a module deploy applies portal resources,
+or an import applies config changes.
+
 ## Portal configuration
 
 To read or write portal properties and OSGi config from local files:
@@ -180,6 +197,11 @@ guess property keys — resolve them from the portal docs or from existing local
 config files under `configs/`. Changes take effect after `ldev env restart`
 or a portal restart.
 
+If the task edited source configuration files such as `portal-ext.properties`,
+`portal-setup-wizard.properties`, `.config`, or `.cfg` files, do not claim
+runtime validation until the environment has been restarted and the new value
+has been read back or otherwise verified.
+
 ## Guardrails
 
 - Use `ldev` as the entrypoint.
@@ -188,6 +210,8 @@ or a portal restart.
 - Use `ldev deploy module <module-name>` only for modules or deployable Gradle units.
 - Use singular `ldev resource import-*` and `ldev resource export-*` commands for
   Journal templates, ADTs, fragments, and structures.
+- After editing source, always run the matching deploy, import, or restart step
+  before calling the change applied.
 - Do not use plural resource commands or a broad deploy unless a human
   explicitly asks for a bulk operation and the risk is written down first.
 - Do not guess IDs, keys or site names when `ldev portal inventory ...` can resolve them.

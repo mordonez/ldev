@@ -60,7 +60,21 @@ Deploy commands are only for deployable artifacts. Use `ldev deploy theme`
 when the theme changed, and `ldev deploy module <module-name>` when modules or
 deployable Gradle units changed. For Journal templates, ADTs, fragments, and
 structures, use the runtime resource import workflow and validate the affected
-page with `playwright-cli`.
+page with `playwright-cli`. If source config or properties changed, restart the
+environment before validation.
+
+Hard rule after edits:
+
+- `modules/` changed -> `ldev deploy module <module-name>`
+- theme source changed -> `ldev deploy theme`
+- structure changed -> `ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>`
+- ADT changed -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl>`
+- template changed -> `ldev resource import-template --site /<site> --template <TEMPLATE_ID>`
+- fragment changed -> `ldev resource import-fragment --site /<site> --fragment <fragment-key>`
+- properties or source config changed -> `ldev env restart`
+
+Do not say the fix is applied just because files were edited. The matching
+deploy, import, or restart step is part of the fix.
 
 Before creating an isolated worktree, verify the current branch. If the primary
 checkout is not on `main`, pass the intended `--base <ref>` explicitly instead
