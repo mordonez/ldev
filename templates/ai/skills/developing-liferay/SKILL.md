@@ -65,6 +65,12 @@ ldev portal inventory page --url <fullUrl> --json
 ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
+For cross-site structure/template incidents, use:
+
+```bash
+ldev portal inventory structures --with-templates --all-sites --json
+```
+
 If you are inside a worktree and the main runtime is still the source of truth
 for discovery, keep your shell in the worktree and call the global form:
 

@@ -50,6 +50,12 @@ ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
 ```
 
+For cross-site structure/template discovery, prefer:
+
+```bash
+ldev portal inventory structures --with-templates --all-sites --json
+```
+
 The default page output is sufficient for routing. Add `--full` when the task
 requires content fields, all template candidates, or the raw page definition:
 

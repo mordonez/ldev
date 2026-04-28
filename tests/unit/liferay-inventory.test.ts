@@ -349,7 +349,8 @@ describe('liferay inventory structures and templates', () => {
       summary: {totalSites: 1, totalStructures: 2},
     });
 
-    expect(formatLiferayInventoryStructures(result)).toContain('id=302 key=NEWS name=News templates=1');
+    expect(formatLiferayInventoryStructures(result)).toContain('structure=NEWS name=News id=302');
+    expect(formatLiferayInventoryStructures(result)).toContain('template=News Template erc=news-template id=40801');
   });
 
   test('lists structures for all sites in one run', async () => {
@@ -444,8 +445,106 @@ describe('liferay inventory structures and templates', () => {
       summary: {totalSites: 2, totalStructures: 2},
     });
 
-    expect(formatLiferayInventoryStructures(result)).toContain('site=/global groupId=20121 name=Global structures=1');
-    expect(formatLiferayInventoryStructures(result)).toContain('site=/ub groupId=20122 name=UB structures=1');
+    const formatted = formatLiferayInventoryStructures(result);
+
+    expect(formatted).toContain('site=/global name=Global groupId=20121');
+    expect(formatted).toContain('template=Global Template erc=global-template id=41001');
+    expect(formatted).toContain('site=/ub name=UB groupId=20122');
+  });
+
+  test('skips sites that reject structure inventory with 400 in all-sites mode', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/o/headless-admin-site/v1.0/sites?page=1&pageSize=2')) {
+          return new Response(
+            '{"items":[{"id":20121,"friendlyUrlPath":"/global","name":"Global"},{"id":20122,"friendlyUrlPath":"/unsupported","name":"Unsupported"},{"id":20123,"friendlyUrlPath":"/ub","name":"UB"}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal?page=1&pageSize=2')
+        ) {
+          return new Response(
+            '{"items":[{"id":301,"dataDefinitionKey":"GLOBAL_BASIC","name":{"en_US":"Global Basic"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20122/data-definitions/by-content-type/journal?page=1&pageSize=2')
+        ) {
+          return new Response('bad request', {status: 400});
+        }
+
+        if (
+          url.includes('/o/data-engine/v2.0/sites/20123/data-definitions/by-content-type/journal?page=1&pageSize=2')
+        ) {
+          return new Response(
+            '{"items":[{"id":302,"dataDefinitionKey":"UB_STR_NOVEDAD","name":{"en_US":"UB Novedad"}}],"lastPage":1}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayInventoryStructuresAllSites(
+      CONFIG,
+      {pageSize: 2},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result).toEqual({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [{id: 301, key: 'GLOBAL_BASIC', name: 'Global Basic'}],
+        },
+        {
+          siteGroupId: 20123,
+          siteFriendlyUrl: '/ub',
+          siteName: 'UB',
+          structures: [{id: 302, key: 'UB_STR_NOVEDAD', name: 'UB Novedad'}],
+        },
+      ],
+      summary: {totalSites: 2, totalStructures: 2},
+    });
+  });
+
+  test('hides empty sites in tree output for all-sites with templates', () => {
+    const formatted = formatLiferayInventoryStructures({
+      sites: [
+        {
+          siteGroupId: 20121,
+          siteFriendlyUrl: '/global',
+          siteName: 'Global',
+          structures: [
+            {
+              id: 301,
+              key: 'GLOBAL_BASIC',
+              name: 'Global Basic',
+              templates: [{id: '41001', name: 'Global Template', externalReferenceCode: 'global-template'}],
+            },
+          ],
+        },
+        {
+          siteGroupId: 20122,
+          siteFriendlyUrl: '/empty',
+          siteName: 'Empty',
+          structures: [],
+        },
+      ],
+      summary: {totalSites: 2, totalStructures: 1},
+    });
+
+    expect(formatted).toContain('site=/global name=Global groupId=20121');
+    expect(formatted).not.toContain('site=/empty name=Empty groupId=20122');
+    expect(formatted).toContain('totalSites=2');
+    expect(formatted).toContain('totalStructures=1');
   });
 
   test('lists templates for a site', async () => {
@@ -493,6 +592,61 @@ describe('liferay inventory structures and templates', () => {
 
         if (url.includes('/sites/20121/content-templates?page=1&pageSize=200')) {
           return new Response('{"items":[],"lastPage":1}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
+          return new Response('{"classNameId":3001}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":2001}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=3001&resourceClassNameId=2001&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":"40802","templateKey":"LEGACY_NEWS","externalReferenceCode":"legacy-news","nameCurrentValue":"Legacy News","classPK":302,"script":"<#-- legacy -->"}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayInventoryTemplates(CONFIG, {site: '20121'}, {apiClient, tokenClient: TOKEN_CLIENT});
+
+    expect(result).toEqual([
+      {
+        id: '',
+        name: 'Legacy News',
+        contentStructureId: 302,
+        externalReferenceCode: 'legacy-news',
+        templateScript: '<#-- legacy -->',
+      },
+    ]);
+  });
+
+  test('falls back to DDM templates when headless content templates return 400', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/o/headless-admin-site/v1.0/sites/20121')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+
+        if (url.includes('/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response('bad request', {status: 400});
         }
 
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {

@@ -1,6 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
+import {isCliError} from '../../../core/errors.js';
 import {fetchPagedItems} from './liferay-inventory-shared.js';
 import {resolveSite} from '../portal/site-resolution.js';
 import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
@@ -33,12 +34,22 @@ export async function runLiferayInventoryTemplates(
 
   for (const surface of policy.surfaces) {
     if (surface === 'headless-delivery') {
-      const rows = await fetchPagedItems<ContentTemplate>(
-        config,
-        `/o/headless-delivery/v1.0/sites/${site.id}/content-templates`,
-        pageSize,
-        dependencies,
-      );
+      let rows: ContentTemplate[];
+
+      try {
+        rows = await fetchPagedItems<ContentTemplate>(
+          config,
+          `/o/headless-delivery/v1.0/sites/${site.id}/content-templates`,
+          pageSize,
+          dependencies,
+        );
+      } catch (error) {
+        if (isSkippableHeadlessTemplateError(error)) {
+          continue;
+        }
+
+        throw error;
+      }
 
       if (rows.length > 0) {
         return rows.map(normalizeContentTemplate);
@@ -55,6 +66,14 @@ export async function runLiferayInventoryTemplates(
   }
 
   return [];
+}
+
+function isSkippableHeadlessTemplateError(error: unknown): boolean {
+  if (!isCliError(error) || error.code !== 'LIFERAY_INVENTORY_ERROR') {
+    return false;
+  }
+
+  return error.message.includes('status=400') && error.message.includes('/content-templates');
 }
 
 function normalizeContentTemplate(row: ContentTemplate): LiferayInventoryTemplate {
