@@ -8,7 +8,12 @@ import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {resolveManagedStorages} from '../../core/runtime/env-context.js';
-import {resolveWorktreeContext, resolveWorktreeTarget, resolvePortSet, type WorktreeTarget} from './worktree-paths.js';
+import {
+  resolvePortSet,
+  resolveWorktreeContext,
+  resolveWorktreeTargetForContext,
+  type WorktreeTarget,
+} from './worktree-paths.js';
 import {syncWorktreeLocalArtifacts} from './worktree-local-artifacts.js';
 import {cloneInitialWorktreeState, resolveBtrfsConfig, worktreeEnvHasState} from './worktree-state.js';
 
@@ -173,17 +178,15 @@ export function formatWorktreeEnv(result: WorktreeEnvResult): string {
 }
 
 function resolveTarget(context: ReturnType<typeof resolveWorktreeContext>, name?: string): WorktreeTarget {
-  if (name && name.trim() !== '') {
-    return resolveWorktreeTarget(context.mainRepoRoot, name);
-  }
+  const target = resolveWorktreeTargetForContext(context, name);
 
-  if (!context.isWorktree || !context.currentWorktreeName) {
+  if (!target) {
     throw new CliError('worktree env must run inside a worktree or receive --name.', {
       code: 'WORKTREE_NAME_REQUIRED',
     });
   }
 
-  return resolveWorktreeTarget(context.mainRepoRoot, context.currentWorktreeName);
+  return target;
 }
 
 async function ensurePortalExtLocalOverride(worktreeDir: string, httpPort: string): Promise<void> {

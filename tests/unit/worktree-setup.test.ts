@@ -1,14 +1,18 @@
+import os from 'node:os';
+import path from 'node:path';
+
+import fs from 'fs-extra';
 import {beforeEach, describe, expect, test, vi} from 'vitest';
 
 const loadConfigMock = vi.fn();
 const detectCapabilitiesMock = vi.fn();
 const isGitRepositoryMock = vi.fn();
-const listGitWorktreesMock = vi.fn();
+const listGitWorktreeDetailsMock = vi.fn();
 const addGitWorktreeMock = vi.fn();
 const readEnvFileMock = vi.fn();
 const resolveEnvContextMock = vi.fn();
 const resolveWorktreeContextMock = vi.fn();
-const resolveWorktreeTargetMock = vi.fn();
+const resolveWorktreeTargetForContextMock = vi.fn();
 const resolveBtrfsConfigMock = vi.fn();
 const assertSafeMainEnvCloneMock = vi.fn();
 
@@ -21,8 +25,9 @@ vi.mock('../../src/core/platform/capabilities.js', () => ({
 }));
 
 vi.mock('../../src/core/platform/git.js', () => ({
+  areSamePath: (left: string, right: string) => path.resolve(left) === path.resolve(right),
   isGitRepository: isGitRepositoryMock,
-  listGitWorktrees: listGitWorktreesMock,
+  listGitWorktreeDetails: listGitWorktreeDetailsMock,
   addGitWorktree: addGitWorktreeMock,
 }));
 
@@ -36,7 +41,7 @@ vi.mock('../../src/core/runtime/env-context.js', () => ({
 
 vi.mock('../../src/features/worktree/worktree-paths.js', () => ({
   resolveWorktreeContext: resolveWorktreeContextMock,
-  resolveWorktreeTarget: resolveWorktreeTargetMock,
+  resolveWorktreeTargetForContext: resolveWorktreeTargetForContextMock,
 }));
 
 vi.mock('../../src/features/worktree/worktree-state.js', () => ({
@@ -60,14 +65,38 @@ describe('runWorktreeSetup', () => {
     loadConfigMock.mockImplementation(({cwd}: {cwd: string}) => (cwd === mainRepoRoot ? mainConfig : repoConfig));
     detectCapabilitiesMock.mockResolvedValue({supportsWorktrees: true});
     isGitRepositoryMock.mockResolvedValue(true);
-    listGitWorktreesMock.mockResolvedValue([]);
+    listGitWorktreeDetailsMock.mockResolvedValue([]);
     addGitWorktreeMock.mockResolvedValue(undefined);
     readEnvFileMock.mockReturnValue({});
     resolveEnvContextMock.mockReturnValue(mainEnvContext);
     resolveWorktreeContextMock.mockReturnValue(worktreeContext);
-    resolveWorktreeTargetMock.mockReturnValue(worktreeTarget);
+    resolveWorktreeTargetForContextMock.mockReturnValue(worktreeTarget);
     resolveBtrfsConfigMock.mockResolvedValue({enabled: false});
     assertSafeMainEnvCloneMock.mockResolvedValue(undefined);
+  });
+
+  test('reuses an existing external registered worktree when setup runs from the main checkout', async () => {
+    const externalWorktreeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ldev-external-worktree-'));
+    const externalTarget = {name: 'testworktree', worktreeDir: externalWorktreeDir, branch: 'fix/testworktree'};
+    const prepareWorktreeEnv = vi.fn().mockResolvedValue({ok: true});
+
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: mainRepoRoot, branch: 'main', detached: false, prunable: false},
+      {path: externalWorktreeDir, branch: 'feat/testworktree', detached: false, prunable: false},
+    ]);
+    resolveWorktreeTargetForContextMock.mockReturnValue(externalTarget);
+
+    const result = await runWorktreeSetup({
+      cwd: '/repo',
+      name: 'testworktree',
+      withEnv: true,
+      prepareWorktreeEnv,
+    });
+
+    expect(addGitWorktreeMock).not.toHaveBeenCalled();
+    expect(prepareWorktreeEnv).toHaveBeenCalledWith({cwd: externalWorktreeDir, printer: undefined});
+    expect(result.reused).toBe(true);
+    expect(result.worktreeDir).toBe(externalWorktreeDir);
   });
 
   test('stops and restarts main env around with-env clone handoff', async () => {

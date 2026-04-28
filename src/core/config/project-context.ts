@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type {AppConfig} from './schema.js';
+import {resolveLinkedGitWorktree} from '../platform/git.js';
 import {readEnvFile} from './env-file.js';
 import {readProfileFile as readLiferayProfileFile, resolveLiferayProfileFiles} from './liferay-profile.js';
 import {detectProject, type ProjectType} from './project-type.js';
@@ -85,7 +86,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
 
   const projectDetection = detectProjectFn(cwd);
   const detectedRepoPaths = detectRepoPathsFn(cwd);
-  const worktree = detectWorktreePath(cwd);
+  const worktree = detectWorktreePath(cwd) ?? detectWorktreePath(detectedRepoPaths.repoRoot ?? cwd);
   const repoPaths =
     worktree && isWorktreeOverlay(worktree) ? resolveWorktreeRepoPaths(worktree, detectedRepoPaths) : detectedRepoPaths;
   const projectType = projectDetection.type;
@@ -270,6 +271,16 @@ type WorktreePath = {
 
 function detectWorktreePath(startDir: string): WorktreePath | null {
   const resolved = path.resolve(startDir);
+  const linkedWorktree = resolveLinkedGitWorktree(resolved);
+
+  if (linkedWorktree) {
+    return {
+      mainRepoRoot: linkedWorktree.mainRepoRoot,
+      worktreeName: linkedWorktree.worktreeName,
+      worktreeRoot: linkedWorktree.worktreeRoot,
+    };
+  }
+
   const parts = resolved.split(path.sep);
   const markerIndex = parts.lastIndexOf('.worktrees');
 

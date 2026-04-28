@@ -3,13 +3,13 @@
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
-import {addGitWorktree, listGitWorktrees} from '../../core/platform/git.js';
+import {addGitWorktree, areSamePath, listGitWorktreeDetails} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {prepareWorktreeFlow} from './worktree-flow.js';
-import {resolveWorktreeTarget} from './worktree-paths.js';
+import {resolveWorktreeTargetForContext} from './worktree-paths.js';
 import {assertSafeMainEnvClone, resolveBtrfsConfig} from './worktree-state.js';
 
 type WorktreeEnvStopFn = (
@@ -42,7 +42,7 @@ export type WorktreeSetupResult = {
 
 export async function runWorktreeSetup(options: {
   cwd: string;
-  name: string;
+  name?: string;
   baseRef?: string;
   withEnv?: boolean;
   stopMainForClone?: boolean;
@@ -97,12 +97,15 @@ export async function runWorktreeSetup(options: {
     }
   }
 
-  const target = resolveWorktreeTarget(context.mainRepoRoot, options.name);
-  const existing = await listGitWorktrees(context.mainRepoRoot);
+  const existing = await listGitWorktreeDetails(context.mainRepoRoot);
+  const target = resolveWorktreeTargetForContext(context, options.name, existing);
+  if (!target) {
+    throw WorktreeErrors.nameRequired('worktree setup requires a NAME or must run inside the target worktree.');
+  }
 
   let reused = false;
   if (await fs.pathExists(target.worktreeDir)) {
-    if (existing.includes(target.worktreeDir)) {
+    if (existing.some((worktree) => areSamePath(worktree.path, target.worktreeDir))) {
       reused = true;
     } else {
       throw WorktreeErrors.pathConflict(`The path exists but is not a registered git worktree: ${target.worktreeDir}`);

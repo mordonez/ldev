@@ -27,7 +27,7 @@ describe('cleanup integration', () => {
   test('env clean removes local data root inside repo and requires --force', async () => {
     const repoRoot = await createRepoWithEnv();
     const fakeBinDir = await createFakeDockerBin();
-    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
     const reject = await runCli(['env', 'clean'], {cwd: repoRoot, env});
     expect(reject.exitCode).toBe(1);
@@ -108,6 +108,32 @@ describe('cleanup integration', () => {
     expect(gcPreview.exitCode).toBe(0);
     expect(parseTestJson<WorktreeGcPayload>(gcPreview.stdout).candidates).toContain('issue-702');
   }, 90000);
+
+  test('worktree clean deletes the real branch for a reused external worktree', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const externalParent = createTempDir('dev-cli-clean-external-worktree-parent-');
+    const externalRoot = path.join(externalParent, 'external-clean');
+
+    expect(
+      (await runProcess('git', ['worktree', 'add', '-b', 'feat/external-clean', externalRoot, 'HEAD'], {cwd: repoRoot}))
+        .exitCode,
+    ).toBe(0);
+
+    const cleanResult = await runCli(
+      ['worktree', 'clean', 'external-clean', '--force', '--delete-branch', '--format', 'json'],
+      {cwd: repoRoot, env},
+    );
+
+    expect(cleanResult.exitCode).toBe(0);
+    expect(parseTestJson<{branchDeleted: boolean}>(cleanResult.stdout).branchDeleted).toBe(true);
+    expect(await fs.pathExists(externalRoot)).toBe(false);
+    expect(
+      (await runProcess('git', ['show-ref', '--verify', '--quiet', 'refs/heads/feat/external-clean'], {cwd: repoRoot}))
+        .exitCode,
+    ).not.toBe(0);
+  }, 45000);
 
   test('worktree clean preserves ENV_DATA_ROOT outside the worktree perimeter', async () => {
     const repoRoot = await createWorktreeRepoFixture();

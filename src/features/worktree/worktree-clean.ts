@@ -7,8 +7,10 @@ import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {
+  areSamePath,
   deleteGitBranch,
   isGitRepository,
+  listGitWorktreeDetails,
   listGitWorktrees,
   pruneGitWorktrees,
   removeGitWorktree,
@@ -19,7 +21,7 @@ import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {buildComposeEnv, resolveManagedStorages, type RuntimeStorageKey} from '../../core/runtime/env-context.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {resolveBtrfsConfig} from './worktree-state.js';
-import {resolveWorktreeContext, resolveWorktreeTarget} from './worktree-paths.js';
+import {resolveWorktreeContext, resolveWorktreeTargetForContext, type WorktreeTarget} from './worktree-paths.js';
 
 export type WorktreeCleanResult = {
   ok: true;
@@ -49,7 +51,8 @@ export async function runWorktreeClean(options: {
   }
 
   const context = resolveWorktreeContext(config.repoRoot);
-  const target = resolveTarget(context, options.name);
+  const registered = await listGitWorktreeDetails(context.mainRepoRoot);
+  const target = resolveTarget(context, registered, options.name);
   const mainEnvFile = path.join(context.mainRepoRoot, 'docker', '.env');
   const mainEnvValues = readEnvFile(mainEnvFile);
   const mainDockerDir = path.join(context.mainRepoRoot, 'docker');
@@ -70,8 +73,7 @@ export async function runWorktreeClean(options: {
     },
     mainEnvValues,
   );
-  const registered = await listGitWorktrees(context.mainRepoRoot);
-  const isRegistered = registered.includes(target.worktreeDir);
+  const isRegistered = registered.some((worktree) => areSamePath(worktree.path, target.worktreeDir));
   const worktreeDirExists = await fs.pathExists(target.worktreeDir);
   if (
     !isRegistered &&
@@ -143,7 +145,9 @@ export async function runWorktreeClean(options: {
       }
 
       await pruneGitWorktrees(context.mainRepoRoot).catch(() => undefined);
-      const stillRegistered = (await listGitWorktrees(context.mainRepoRoot)).includes(target.worktreeDir);
+      const stillRegistered = (await listGitWorktrees(context.mainRepoRoot)).some((worktreePath) =>
+        areSamePath(worktreePath, target.worktreeDir),
+      );
       if (stillRegistered) {
         throw new CliError(
           `Git still has the worktree registered after cleanup: ${target.worktreeDir}\nRun 'git worktree prune' and retry.`,
@@ -244,13 +248,12 @@ export function formatWorktreeClean(result: WorktreeCleanResult): string {
 
 function resolveTarget(
   context: ReturnType<typeof resolveWorktreeContext>,
+  registeredWorktrees: Awaited<ReturnType<typeof listGitWorktreeDetails>>,
   explicitName?: string,
-): ReturnType<typeof resolveWorktreeTarget> {
-  if (explicitName && explicitName.trim() !== '') {
-    return resolveWorktreeTarget(context.mainRepoRoot, explicitName);
-  }
-  if (context.isWorktree && context.currentWorktreeName) {
-    return resolveWorktreeTarget(context.mainRepoRoot, context.currentWorktreeName);
+): WorktreeTarget {
+  const target = resolveWorktreeTargetForContext(context, explicitName, registeredWorktrees);
+  if (target) {
+    return target;
   }
   throw WorktreeErrors.nameRequired('worktree clean requires a NAME or must run inside the target worktree.');
 }

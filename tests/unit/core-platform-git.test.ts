@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import {describe, expect, test, vi} from 'vitest';
 
 import * as git from '../../src/core/platform/git.js';
@@ -125,6 +129,23 @@ describe('git platform utilities', () => {
     expect(runProcess).not.toHaveBeenCalled();
   });
 
+  test('isWorktree returns true for linked git worktree roots outside .worktrees', async () => {
+    const mainRepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-main-repo-'));
+    const worktreeParent = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-linked-worktree-parent-'));
+    const worktreeRoot = path.join(worktreeParent, 'external-issue');
+    const gitDir = path.join(mainRepoRoot, '.git', 'worktrees', 'external-issue');
+    const runProcess = vi.spyOn(process, 'runProcess');
+
+    fs.mkdirSync(worktreeRoot, {recursive: true});
+    fs.mkdirSync(gitDir, {recursive: true});
+    fs.writeFileSync(path.join(worktreeRoot, '.git'), `gitdir: ${gitDir}\n`);
+
+    const isWorktree = await git.isWorktree(worktreeRoot);
+
+    expect(isWorktree).toBe(true);
+    expect(runProcess).not.toHaveBeenCalled();
+  });
+
   test('isWorktree returns false when repo path does not contain .worktrees', async () => {
     vi.spyOn(process, 'runProcess').mockResolvedValue({
       command: 'git rev-parse --show-toplevel',
@@ -137,6 +158,58 @@ describe('git platform utilities', () => {
     const isWorktree = await git.isWorktree('/repo');
 
     expect(isWorktree).toBe(false);
+  });
+
+  test('listGitWorktreeDetails parses branch, detached, and prunable metadata', async () => {
+    vi.spyOn(process, 'runProcess').mockResolvedValue({
+      command: 'git worktree list --porcelain',
+      stdout: [
+        'worktree /repo',
+        'HEAD abc123',
+        'branch refs/heads/main',
+        '',
+        'worktree /outside/external-issue',
+        'HEAD def456',
+        'branch refs/heads/feat/external-issue',
+        '',
+        'worktree /outside/moved-issue',
+        'HEAD 789abc',
+        'detached',
+        'prunable gitdir file points to non-existent location',
+        '',
+      ].join('\n'),
+      stderr: '',
+      exitCode: 0,
+      ok: true,
+    });
+
+    await expect(git.listGitWorktreeDetails('/repo')).resolves.toEqual([
+      {path: path.normalize('/repo'), branch: 'main', detached: false, prunable: false},
+      {
+        path: path.normalize('/outside/external-issue'),
+        branch: 'feat/external-issue',
+        detached: false,
+        prunable: false,
+      },
+      {path: path.normalize('/outside/moved-issue'), branch: null, detached: true, prunable: true},
+    ]);
+  });
+
+  test('areSamePath compares existing symlinked paths by real path', () => {
+    const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-realpath-target-'));
+    const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-realpath-link-parent-'));
+    const link = path.join(parent, 'link');
+
+    try {
+      fs.symlinkSync(target, link, globalThis.process.platform === 'win32' ? 'junction' : 'dir');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') {
+        return;
+      }
+      throw error;
+    }
+
+    expect(git.areSamePath(target, link)).toBe(true);
   });
 
   test('getGitRemoteUrl returns remote URL', async () => {
