@@ -8,6 +8,11 @@ import {
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
+import {
+  isRegularPageRequest,
+  isSiteRootRequest,
+  privateLayoutForInventoryPageRequest,
+} from '../../src/features/liferay/inventory/liferay-inventory-page-url.js';
 import {validateLiferayInventoryPageResultV2} from '../../src/features/liferay/inventory/liferay-inventory-page-schema.js';
 import {createStaticTokenClient, createTestFetchImpl, createTokenClient} from '../../src/testing/cli-test-helpers.js';
 
@@ -89,32 +94,97 @@ afterEach(() => {
 describe('liferay inventory page', () => {
   test('resolves requests from full URLs and explicit site/friendly-url', () => {
     expect(resolveInventoryPageRequest({url: '/web/guest/home'})).toMatchObject({
-      siteSlug: 'guest',
+      kind: 'publicRegularPage',
+      site: 'guest',
       friendlyUrl: '/home',
-      privateLayout: false,
-      route: 'regularPage',
     });
 
     expect(resolveInventoryPageRequest({url: 'https://example.test/group/guest/private-page'})).toMatchObject({
-      siteSlug: 'guest',
+      kind: 'privateRegularPage',
+      site: 'guest',
       friendlyUrl: '/private-page',
-      privateLayout: true,
-      route: 'regularPage',
     });
 
     expect(resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/w/news-article'})).toMatchObject({
-      siteSlug: 'guest',
+      kind: 'webContentDisplayPage',
+      site: 'guest',
       friendlyUrl: '/w/news-article',
-      route: 'displayPage',
-      displayPageUrlTitle: 'news-article',
+      urlTitle: 'news-article',
     });
 
     expect(resolveInventoryPageRequest({url: 'https://example.test/es/web/guest/aprende'})).toMatchObject({
-      siteSlug: 'guest',
+      kind: 'publicRegularPage',
+      site: 'guest',
       friendlyUrl: '/aprende',
-      privateLayout: false,
-      route: 'regularPage',
       localeHint: 'es_ES',
+    });
+
+    expect(resolveInventoryPageRequest({url: '/web/guest'})).toMatchObject({
+      kind: 'publicSiteRoot',
+      site: 'guest',
+      resolveHomeRedirect: true,
+    });
+
+    expect(resolveInventoryPageRequest({url: '/group/guest'})).toMatchObject({
+      kind: 'privateSiteRoot',
+      site: 'guest',
+      resolveHomeRedirect: true,
+    });
+
+    expect(resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/'})).toMatchObject({
+      kind: 'publicSiteRoot',
+      site: 'guest',
+      resolveHomeRedirect: false,
+    });
+  });
+
+  test('narrowing helpers correctly classify InventoryPageRequest kinds', () => {
+    const publicRoot = resolveInventoryPageRequest({url: '/web/guest'});
+    const privateRoot = resolveInventoryPageRequest({url: '/group/guest'});
+    const publicPage = resolveInventoryPageRequest({url: '/web/guest/home'});
+    const privatePage = resolveInventoryPageRequest({url: '/group/guest/home'});
+    const displayPage = resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/w/my-article'});
+    const portalHome = resolveInventoryPageRequest({url: '/'});
+
+    expect(isSiteRootRequest(publicRoot)).toBe(true);
+    expect(isSiteRootRequest(privateRoot)).toBe(true);
+    expect(isSiteRootRequest(publicPage)).toBe(false);
+    expect(isSiteRootRequest(displayPage)).toBe(false);
+    expect(isSiteRootRequest(portalHome)).toBe(false);
+
+    expect(isRegularPageRequest(publicPage)).toBe(true);
+    expect(isRegularPageRequest(privatePage)).toBe(true);
+    expect(isRegularPageRequest(publicRoot)).toBe(false);
+    expect(isRegularPageRequest(displayPage)).toBe(false);
+    expect(isRegularPageRequest(portalHome)).toBe(false);
+
+    // privateLayoutForInventoryPageRequest excludes portalHome and webContentDisplayPage at the type level;
+    // use inline objects to give TypeScript the narrowed type it needs.
+    expect(
+      privateLayoutForInventoryPageRequest({kind: 'publicSiteRoot', site: 'guest', resolveHomeRedirect: false}),
+    ).toBe(false);
+    expect(
+      privateLayoutForInventoryPageRequest({kind: 'privateSiteRoot', site: 'guest', resolveHomeRedirect: false}),
+    ).toBe(true);
+    expect(privateLayoutForInventoryPageRequest({kind: 'publicRegularPage', site: 'guest', friendlyUrl: '/home'})).toBe(
+      false,
+    );
+    expect(
+      privateLayoutForInventoryPageRequest({kind: 'privateRegularPage', site: 'guest', friendlyUrl: '/home'}),
+    ).toBe(true);
+  });
+
+  test('rejects display-page URL without a site segment', () => {
+    expect(() => resolveInventoryPageRequest({url: '/w/some-article'})).toThrow(
+      'Display pages (paths starting with /w/) require a site.',
+    );
+  });
+
+  test('treats bare /w/ path as a regular page (no urlTitle)', () => {
+    expect(resolveInventoryPageRequest({site: 'guest', friendlyUrl: '/w/'})).toMatchObject({
+      kind: 'publicRegularPage',
+      site: 'guest',
+      friendlyUrl: '/w/',
     });
   });
 

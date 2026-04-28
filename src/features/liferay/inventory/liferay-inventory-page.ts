@@ -5,7 +5,14 @@ import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createInventoryGateway} from './liferay-inventory-shared.js';
 import {resolveSite} from '../portal/site-resolution.js';
-import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
+import {
+  isRegularPageRequest,
+  isSiteRootRequest,
+  privateLayoutForInventoryPageRequest,
+  resolveInventoryPageRequest,
+  type InventoryPageOptions,
+  type InventoryPageRequest,
+} from './liferay-inventory-page-url.js';
 import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
 import {
   fetchDisplayPageInventory,
@@ -248,29 +255,31 @@ export type ResolvedRegularLayoutPage = {
 
 export async function runLiferayInventoryPage(
   config: AppConfig,
-  options: {url?: string; site?: string; friendlyUrl?: string; privateLayout?: boolean; verbose?: boolean},
+  requestOrOptions: InventoryPageRequest | InventoryPageOptions,
   dependencies?: InventoryPageDependencies,
 ): Promise<LiferayInventoryPageResult> {
   const finalizeResult = (result: LiferayInventoryPageResult): LiferayInventoryPageResult =>
     validateLiferayInventoryPageResultV2(result) as LiferayInventoryPageResult;
 
-  const request = resolveInventoryPageRequest(options);
+  const request = isInventoryPageRequest(requestOrOptions)
+    ? requestOrOptions
+    : resolveInventoryPageRequest(requestOrOptions);
   const effectiveConfig = config;
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createInventoryGateway(effectiveConfig, apiClient, dependencies);
   const siteDependencies = {...dependencies, gateway};
 
-  if (request.route === 'portalHome') {
+  if (request.kind === 'portalHome') {
     const homeRequest = await resolvePortalHomeRequest(effectiveConfig);
     if (homeRequest) {
-      const site = await resolveSite(effectiveConfig, homeRequest.siteSlug, siteDependencies);
+      const site = await resolveSite(effectiveConfig, homeRequest.site, siteDependencies);
       return fetchRegularPageInventory(
         effectiveConfig,
         gateway,
         apiClient,
         site,
         homeRequest.friendlyUrl,
-        homeRequest.privateLayout,
+        privateLayoutForInventoryPageRequest(homeRequest),
         homeRequest.localeHint,
       ).then(finalizeResult);
     }
@@ -278,9 +287,9 @@ export async function runLiferayInventoryPage(
     return finalizeResult(await fetchSiteRootInventory(gateway, site, false));
   }
 
-  const site = await resolveSite(effectiveConfig, request.siteSlug, siteDependencies);
-  if (request.route === 'siteRoot') {
-    if (options.url) {
+  const site = await resolveSite(effectiveConfig, request.site, siteDependencies);
+  if (isSiteRootRequest(request)) {
+    if (request.resolveHomeRedirect || (!isInventoryPageRequest(requestOrOptions) && requestOrOptions.url)) {
       const redirectedRequest = await resolveSiteHomeRequest(effectiveConfig, request);
       if (redirectedRequest) {
         return fetchRegularPageInventory(
@@ -289,18 +298,16 @@ export async function runLiferayInventoryPage(
           apiClient,
           site,
           redirectedRequest.friendlyUrl,
-          redirectedRequest.privateLayout,
+          privateLayoutForInventoryPageRequest(redirectedRequest),
           redirectedRequest.localeHint,
         ).then(finalizeResult);
       }
     }
-    return finalizeResult(await fetchSiteRootInventory(gateway, site, request.privateLayout));
+    return finalizeResult(await fetchSiteRootInventory(gateway, site, privateLayoutForInventoryPageRequest(request)));
   }
 
-  if (request.route === 'displayPage') {
-    return finalizeResult(
-      await fetchDisplayPageInventory(effectiveConfig, gateway, apiClient, site, request.displayPageUrlTitle ?? ''),
-    );
+  if (request.kind === 'webContentDisplayPage') {
+    return finalizeResult(await fetchDisplayPageInventory(effectiveConfig, gateway, apiClient, site, request.urlTitle));
   }
 
   return finalizeResult(
@@ -310,10 +317,14 @@ export async function runLiferayInventoryPage(
       apiClient,
       site,
       request.friendlyUrl,
-      request.privateLayout,
+      privateLayoutForInventoryPageRequest(request),
       request.localeHint,
     ),
   );
+}
+
+function isInventoryPageRequest(value: InventoryPageRequest | InventoryPageOptions): value is InventoryPageRequest {
+  return 'kind' in value;
 }
 
 export function projectLiferayInventoryPageJson(
@@ -655,20 +666,23 @@ async function resolvePortalHomeRequest(config: AppConfig) {
   }
 
   const resolved = resolveInventoryPageRequest({url: redirectedUrl});
-  return resolved.route === 'regularPage' ? resolved : null;
+  return isRegularPageRequest(resolved) ? resolved : null;
 }
 
-async function resolveSiteHomeRequest(config: AppConfig, request: ReturnType<typeof resolveInventoryPageRequest>) {
+async function resolveSiteHomeRequest(
+  config: AppConfig,
+  request: Extract<InventoryPageRequest, {kind: 'publicSiteRoot' | 'privateSiteRoot'}>,
+) {
   const redirectedUrl = await detectPathRedirect(
     config,
-    buildPageUrl(`/${request.siteSlug}`, '/', request.privateLayout),
+    buildPageUrl(`/${request.site}`, '/', privateLayoutForInventoryPageRequest(request)),
   );
   if (!redirectedUrl) {
     return null;
   }
 
   const resolved = resolveInventoryPageRequest({url: redirectedUrl});
-  return resolved.route === 'regularPage' && resolved.siteSlug === request.siteSlug ? resolved : null;
+  return isRegularPageRequest(resolved) && resolved.site === request.site ? resolved : null;
 }
 
 async function detectPathRedirect(config: AppConfig, path: string): Promise<string | null> {
@@ -737,13 +751,20 @@ export async function resolveRegularLayoutPage(
   dependencies?: InventoryPageDependencies,
 ): Promise<ResolvedRegularLayoutPage> {
   const request = resolveInventoryPageRequest(options);
-  if (request.route !== 'regularPage') {
+  if (!isRegularPageRequest(request)) {
     throw LiferayErrors.inventoryError('Only a regular page can be resolved for this flow.');
   }
 
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createInventoryGateway(config, apiClient, dependencies);
-  const site = await resolveSite(config, request.siteSlug, {...dependencies, gateway});
+  const site = await resolveSite(config, request.site, {...dependencies, gateway});
 
-  return resolveRegularLayoutPageData(config, gateway, apiClient, site, request.friendlyUrl, request.privateLayout);
+  return resolveRegularLayoutPageData(
+    config,
+    gateway,
+    apiClient,
+    site,
+    request.friendlyUrl,
+    privateLayoutForInventoryPageRequest(request),
+  );
 }
