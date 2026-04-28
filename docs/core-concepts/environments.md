@@ -74,6 +74,17 @@ cd .worktrees/incident-123
 ldev start
 ```
 
+If the git worktree already exists elsewhere, go to that checkout and run:
+
+```bash
+ldev worktree setup --with-env
+ldev start
+```
+
+From the main checkout, `ldev worktree setup --name incident-123` still prefers
+`.worktrees/incident-123` when present. Otherwise it can reuse a registered
+external linked worktree with the same checkout folder name.
+
 Worktrees inherit the files that exist in the branch or commit used as their base. Make sure runtime Compose overrides (e.g. `docker-compose.liferay.volume.yml`) are committed to that branch before creating the worktree.
 
 On Linux + BTRFS, `ldev` uses subvolume snapshots to accelerate worktree env creation; refresh the base with `ldev worktree btrfs-refresh-base` when the main env changes.

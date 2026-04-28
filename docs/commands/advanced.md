@@ -29,6 +29,8 @@ ldev worktree setup --name incident-123 --with-env
 ldev worktree setup --name feature-x --base origin/main --with-env
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone --restart-main-after-clone
+cd ..\labweb.worktrees\feature-x
+ldev worktree setup --with-env
 cd .worktrees/incident-123
 ldev start
 
@@ -40,7 +42,8 @@ ldev worktree gc --days 14
 ldev worktree gc --days 14 --apply
 ```
 
-- `setup` — create or reuse a worktree under `.worktrees/<name>`
+- `setup` — create or reuse a worktree; `--name` is optional when running inside the target worktree
+- `setup` prefers `.worktrees/<name>` for managed worktrees, but can also reuse a registered external linked worktree whose checkout folder matches `<name>`
 - `setup --stop-main-for-clone` — opt-in: stop main automatically when a non-Btrfs clone needs exclusive access
 - `setup --restart-main-after-clone` — opt-in: after an automatic stop, start main again without waiting for full portal readiness
 - `start` — prepare and start the worktree's local env

@@ -147,6 +147,84 @@ describe('worktree integration', () => {
     expect(await fs.readFile(path.join(result.dataRoot, 'liferay-data', 'home.marker'), 'utf8')).toBe('main-home\n');
   }, 15000);
 
+  test('worktree setup reuses an existing external git worktree and prepares its env in place', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    const externalParent = createTempDir('dev-cli-external-worktree-parent-');
+    const externalRoot = path.join(externalParent, 'external-issue');
+
+    expect(
+      (await runProcess('git', ['worktree', 'add', '-b', 'fix/external-issue', externalRoot, 'HEAD'], {cwd: repoRoot}))
+        .exitCode,
+    ).toBe(0);
+
+    const result = await runWorktreeSetup({
+      cwd: externalRoot,
+      name: 'external-issue',
+      withEnv: true,
+      printer: silentPrinter,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.reused).toBe(true);
+    expect(result.branch).toBe('fix/external-issue');
+    expect(path.normalize(result.worktreeDir)).toBe(path.normalize(externalRoot));
+    expect(await fs.pathExists(path.join(externalRoot, 'docker', '.env'))).toBe(true);
+    expect(await fs.pathExists(path.join(externalRoot, 'docker', 'data', 'envs', 'external-issue'))).toBe(true);
+  }, 15000);
+
+  test('worktree setup from the main checkout reuses an existing external git worktree by name', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    const externalParent = createTempDir('dev-cli-external-worktree-parent-');
+    const externalRoot = path.join(externalParent, 'testworktree');
+
+    expect(
+      (
+        await runProcess('git', ['worktree', 'add', '-b', 'feat/external-testworktree', externalRoot, 'HEAD'], {
+          cwd: repoRoot,
+        })
+      ).exitCode,
+    ).toBe(0);
+
+    const result = await runWorktreeSetup({
+      cwd: repoRoot,
+      name: 'testworktree',
+      withEnv: true,
+      printer: silentPrinter,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.reused).toBe(true);
+    expect(result.branch).toBe('feat/external-testworktree');
+    expect(path.normalize(result.worktreeDir)).toBe(path.normalize(externalRoot));
+    expect(await fs.pathExists(path.join(externalRoot, 'docker', '.env'))).toBe(true);
+    expect(await fs.pathExists(path.join(externalRoot, 'docker', 'data', 'envs', 'testworktree'))).toBe(true);
+  }, 15000);
+
+  test('worktree setup CLI reuses the current external worktree without --name', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    const externalParent = createTempDir('dev-cli-external-worktree-parent-');
+    const externalRoot = path.join(externalParent, 'current-external');
+
+    expect(
+      (
+        await runProcess('git', ['worktree', 'add', '-b', 'feat/current-external', externalRoot, 'HEAD'], {
+          cwd: repoRoot,
+        })
+      ).exitCode,
+    ).toBe(0);
+
+    const result = await runCli(['worktree', 'setup', '--format', 'json'], {cwd: externalRoot});
+
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      worktreeName: 'current-external',
+      branch: 'feat/current-external',
+      reused: true,
+    });
+    expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'current-external'))).toBe(false);
+  }, 15000);
+
   test('worktree env syncs ignored local dependency artifacts from the main checkout', async () => {
     const repoRoot = await createWorktreeRepoFixture();
 

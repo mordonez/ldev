@@ -1,7 +1,75 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import {CliError} from '../../core/errors.js';
 import {runProcess} from './process.js';
+
+export type LinkedGitWorktree = {
+  mainRepoRoot: string;
+  worktreeName: string;
+  worktreeRoot: string;
+  gitDir: string;
+};
+
+export type GitWorktreeInfo = {
+  path: string;
+  branch: string | null;
+  detached: boolean;
+  prunable: boolean;
+};
+
+export function resolveLinkedGitWorktree(repoRoot: string): LinkedGitWorktree | null {
+  const worktreeRoot = path.resolve(repoRoot);
+  const gitEntry = path.join(worktreeRoot, '.git');
+
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(gitEntry);
+  } catch {
+    return null;
+  }
+
+  if (!stat.isFile()) {
+    return null;
+  }
+
+  const content = fs.readFileSync(gitEntry, 'utf8').trim();
+  const match = /^gitdir:\s*(.+)$/i.exec(content);
+  if (!match) {
+    return null;
+  }
+
+  const gitDir = path.resolve(worktreeRoot, match[1].trim());
+  const parts = path.normalize(gitDir).split(path.sep);
+  const gitIndex = parts.lastIndexOf('.git');
+
+  if (gitIndex <= 0 || parts[gitIndex + 1] !== 'worktrees' || gitIndex + 2 >= parts.length) {
+    return null;
+  }
+
+  return {
+    mainRepoRoot: path.resolve(parts.slice(0, gitIndex).join(path.sep) || path.sep),
+    worktreeName: path.basename(worktreeRoot),
+    worktreeRoot,
+    gitDir,
+  };
+}
+
+export function areSamePath(left: string, right: string): boolean {
+  return normalizePathForComparison(left) === normalizePathForComparison(right);
+}
+
+export function normalizePathForComparison(value: string): string {
+  let resolved = path.resolve(value);
+  try {
+    resolved = fs.realpathSync.native(resolved);
+  } catch {
+    // Missing paths can still be compared lexically during worktree creation.
+  }
+
+  const normalized = path.normalize(resolved);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
 
 export async function getRepoRoot(cwd: string): Promise<string | null> {
   const result = await runProcess('git', ['rev-parse', '--show-toplevel'], {cwd});
@@ -19,6 +87,10 @@ export async function isGitRepository(cwd: string): Promise<boolean> {
 }
 
 export async function isWorktree(cwd: string): Promise<boolean> {
+  if (resolveLinkedGitWorktree(cwd)) {
+    return true;
+  }
+
   if (path.normalize(cwd).includes(`${path.sep}.worktrees${path.sep}`)) {
     return true;
   }
@@ -29,7 +101,7 @@ export async function isWorktree(cwd: string): Promise<boolean> {
   }
 
   const normalized = path.normalize(repoRoot);
-  return normalized.includes(`${path.sep}.worktrees${path.sep}`);
+  return resolveLinkedGitWorktree(repoRoot) !== null || normalized.includes(`${path.sep}.worktrees${path.sep}`);
 }
 
 export async function initializeGitRepository(cwd: string): Promise<void> {
@@ -118,15 +190,51 @@ export async function addGitWorktree(options: {
 }
 
 export async function listGitWorktrees(cwd: string): Promise<string[]> {
+  return (await listGitWorktreeDetails(cwd)).map((worktree) => worktree.path);
+}
+
+export async function listGitWorktreeDetails(cwd: string): Promise<GitWorktreeInfo[]> {
   const result = await runProcess('git', ['worktree', 'list', '--porcelain'], {cwd});
   if (!result.ok) {
     return [];
   }
 
-  return result.stdout
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith('worktree '))
-    .map((line) => path.normalize(line.slice('worktree '.length).trim()));
+  const worktrees: GitWorktreeInfo[] = [];
+  let current: GitWorktreeInfo | null = null;
+
+  for (const line of result.stdout.split(/\r?\n/)) {
+    if (line.startsWith('worktree ')) {
+      if (current) {
+        worktrees.push(current);
+      }
+      current = {
+        path: path.normalize(line.slice('worktree '.length).trim()),
+        branch: null,
+        detached: false,
+        prunable: false,
+      };
+      continue;
+    }
+
+    if (!current) {
+      continue;
+    }
+
+    if (line.startsWith('branch ')) {
+      const ref = line.slice('branch '.length).trim();
+      current.branch = ref.startsWith('refs/heads/') ? ref.slice('refs/heads/'.length) : ref;
+    } else if (line === 'detached') {
+      current.detached = true;
+    } else if (line.startsWith('prunable')) {
+      current.prunable = true;
+    }
+  }
+
+  if (current) {
+    worktrees.push(current);
+  }
+
+  return worktrees;
 }
 
 export async function removeGitWorktree(cwd: string, worktreePath: string): Promise<void> {

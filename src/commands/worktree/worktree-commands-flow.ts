@@ -13,7 +13,7 @@ import {formatWorktreeSetup, runWorktreeSetup} from '../../features/worktree/wor
 import {formatWorktreeStart, runWorktreeStart} from '../../features/worktree/worktree-start.js';
 
 type WorktreeSetupCommandOptions = {
-  name: string;
+  name?: string;
   base?: string;
   withEnv?: boolean;
   stopMainForClone?: boolean;
@@ -35,7 +35,7 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .command('setup')
       .helpGroup('Daily worktree flow:')
       .description('Create or reuse a git worktree and optionally prepare its local env')
-      .requiredOption('--name <name>', 'Worktree name')
+      .option('--name <name>', 'Worktree name; optional when running inside the worktree')
       .option('--base <ref>', 'Base ref for a new worktree branch')
       .option('--with-env', 'Prepare worktree local env after creation')
       .option(

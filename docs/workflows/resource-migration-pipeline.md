@@ -97,4 +97,8 @@ cd .worktrees/migration-test
 ldev start
 ```
 
+If `migration-test` is already a linked git worktree outside `.worktrees/`, run
+`ldev worktree setup --with-env` from inside that checkout instead of creating a
+second worktree.
+
 Then run the migration there first.

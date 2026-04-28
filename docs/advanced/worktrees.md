@@ -15,6 +15,20 @@ cd .worktrees/incident-123
 ldev start
 ```
 
+If you already created a linked git worktree manually outside `.worktrees/`, run
+`ldev worktree setup` from inside that checkout to wire its local environment in
+place:
+
+```bash
+git -C ..\labweb worktree add ..\labweb.worktrees\testworktree -b feat/testworktree HEAD
+cd ..\labweb.worktrees\testworktree
+ldev worktree setup --with-env
+```
+
+When you run `ldev worktree setup --name <name>` from the main checkout, `ldev`
+still prefers `.worktrees/<name>` when it exists. Otherwise it can reuse a
+registered external worktree whose checkout folder is also named `<name>`.
+
 If the main environment is still running and your platform cannot clone state
 hot, you can opt into a temporary handoff instead of doing the stop/start
 sequence manually:

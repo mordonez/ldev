@@ -1,13 +1,13 @@
 import fs from 'fs-extra';
 
 import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
-import {listGitWorktrees} from '../../core/platform/git.js';
+import {areSamePath, listGitWorktreeDetails} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {assertPrimaryCheckoutGuardrail} from './worktree-guardrails.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {prepareWorktreeFlow} from './worktree-flow.js';
-import {resolveWorktreeTarget} from './worktree-paths.js';
+import {resolveWorktreeTargetForContext} from './worktree-paths.js';
 
 export type WorktreeStartResult = {
   ok: true;
@@ -45,11 +45,8 @@ export async function runWorktreeStart(options: {
   const {context} = await prepareWorktreeFlow({cwd: options.cwd, commandName: 'start'});
   await assertPrimaryCheckoutGuardrail(context, 'start a worktree from the wrong checkout root');
 
-  const target = options.name
-    ? resolveWorktreeTarget(context.mainRepoRoot, options.name)
-    : context.isWorktree && context.currentWorktreeName
-      ? resolveWorktreeTarget(context.mainRepoRoot, context.currentWorktreeName)
-      : null;
+  const existing = await listGitWorktreeDetails(context.mainRepoRoot);
+  const target = resolveWorktreeTargetForContext(context, options.name, existing);
 
   if (!target) {
     throw WorktreeErrors.nameRequired('worktree start requires a NAME or execution inside the target worktree.');
@@ -61,8 +58,7 @@ export async function runWorktreeStart(options: {
     );
   }
 
-  const existing = await listGitWorktrees(context.mainRepoRoot);
-  if (!existing.includes(target.worktreeDir)) {
+  if (!existing.some((worktree) => areSamePath(worktree.path, target.worktreeDir))) {
     throw WorktreeErrors.notRegistered(`The path exists but is not a registered git worktree: ${target.worktreeDir}`);
   }
 
