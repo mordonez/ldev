@@ -1,22 +1,21 @@
 import {LiferayErrors} from '../errors/index.js';
 
-export type InventoryPageRoute = 'portalHome' | 'siteRoot' | 'displayPage' | 'regularPage';
-
-export type InventoryPageRequest = {
-  siteSlug: string;
-  friendlyUrl: string;
-  privateLayout: boolean;
-  route: InventoryPageRoute;
-  displayPageUrlTitle: string | null;
-  localeHint?: string;
-};
-
-export function resolveInventoryPageRequest(options: {
+export type InventoryPageOptions = {
   url?: string;
   site?: string;
   friendlyUrl?: string;
   privateLayout?: boolean;
-}): InventoryPageRequest {
+};
+
+export type InventoryPageRequest =
+  | {kind: 'portalHome'}
+  | {kind: 'publicSiteRoot'; site: string; resolveHomeRedirect: boolean}
+  | {kind: 'privateSiteRoot'; site: string; resolveHomeRedirect: boolean}
+  | {kind: 'webContentDisplayPage'; site: string; friendlyUrl: string; urlTitle: string}
+  | {kind: 'publicRegularPage'; site: string; friendlyUrl: string; localeHint?: string}
+  | {kind: 'privateRegularPage'; site: string; friendlyUrl: string; localeHint?: string};
+
+export function resolveInventoryPageRequest(options: InventoryPageOptions): InventoryPageRequest {
   const sanitizedUrl = sanitizeInventoryUrl(options.url);
 
   if (sanitizedUrl) {
@@ -27,10 +26,10 @@ export function resolveInventoryPageRequest(options: {
       const rest = localeMatch[2];
       const localeHint = normalizeLocale(localePrefix);
       if (rest.startsWith('/web/')) {
-        return {...buildUrlRequest(rest, '/web/', false), localeHint};
+        return addLocaleHint(buildUrlRequest(rest, '/web/', false), localeHint);
       }
       if (rest.startsWith('/group/')) {
-        return {...buildUrlRequest(rest, '/group/', true), localeHint};
+        return addLocaleHint(buildUrlRequest(rest, '/group/', true), localeHint);
       }
     }
 
@@ -42,7 +41,7 @@ export function resolveInventoryPageRequest(options: {
       return buildUrlRequest(sanitizedUrl, '/group/', true);
     }
 
-    return buildRequest('', ensureLeadingSlash(sanitizedUrl), false);
+    return buildRequest('', ensureLeadingSlash(sanitizedUrl), false, true);
   }
 
   if (options.site && options.friendlyUrl) {
@@ -50,40 +49,44 @@ export function resolveInventoryPageRequest(options: {
       options.site.startsWith('/') ? options.site.slice(1) : options.site,
       ensureLeadingSlash(sanitizeInventoryUrl(options.friendlyUrl) ?? options.friendlyUrl),
       options.privateLayout ?? false,
+      false,
     );
   }
 
   throw LiferayErrors.inventoryError('Provide --url or both --site and --friendly-url.');
 }
 
-function buildRequest(siteSlug: string, friendlyUrl: string, privateLayout: boolean): InventoryPageRequest {
+function buildRequest(
+  siteSlug: string,
+  friendlyUrl: string,
+  privateLayout: boolean,
+  resolveHomeRedirect: boolean,
+): InventoryPageRequest {
   if (friendlyUrl === '/') {
-    return {
-      siteSlug,
-      friendlyUrl,
-      privateLayout,
-      route: siteSlug === '' ? 'portalHome' : 'siteRoot',
-      displayPageUrlTitle: null,
-    };
+    return siteSlug === ''
+      ? {kind: 'portalHome'}
+      : {kind: privateLayout ? 'privateSiteRoot' : 'publicSiteRoot', site: siteSlug, resolveHomeRedirect};
   }
 
   const displayPageUrlTitle = extractDisplayPageUrlTitle(friendlyUrl);
   if (displayPageUrlTitle) {
+    if (!siteSlug) {
+      throw LiferayErrors.inventoryError(
+        'Display pages (paths starting with /w/) require a site. Use /web/{site}/w/{urlTitle} or --site with --friendly-url.',
+      );
+    }
     return {
-      siteSlug,
+      kind: 'webContentDisplayPage',
+      site: siteSlug,
       friendlyUrl,
-      privateLayout,
-      route: 'displayPage',
-      displayPageUrlTitle,
+      urlTitle: displayPageUrlTitle,
     };
   }
 
   return {
-    siteSlug,
+    kind: privateLayout ? 'privateRegularPage' : 'publicRegularPage',
+    site: siteSlug,
     friendlyUrl,
-    privateLayout,
-    route: 'regularPage',
-    displayPageUrlTitle: null,
   };
 }
 
@@ -91,7 +94,29 @@ function buildUrlRequest(url: string, prefix: '/web/' | '/group/', privateLayout
   const nextSlash = url.indexOf('/', prefix.length);
   const siteSlug = url.slice(prefix.length, nextSlash > 0 ? nextSlash : url.length);
   const friendlyUrl = nextSlash > 0 ? url.slice(nextSlash) : '/';
-  return buildRequest(siteSlug, ensureLeadingSlash(friendlyUrl), privateLayout);
+  return buildRequest(siteSlug, ensureLeadingSlash(friendlyUrl), privateLayout, true);
+}
+
+function addLocaleHint(request: InventoryPageRequest, localeHint: string): InventoryPageRequest {
+  return isRegularPageRequest(request) ? {...request, localeHint} : request;
+}
+
+export function isSiteRootRequest(
+  request: InventoryPageRequest,
+): request is Extract<InventoryPageRequest, {kind: 'publicSiteRoot' | 'privateSiteRoot'}> {
+  return request.kind === 'publicSiteRoot' || request.kind === 'privateSiteRoot';
+}
+
+export function isRegularPageRequest(
+  request: InventoryPageRequest,
+): request is Extract<InventoryPageRequest, {kind: 'publicRegularPage' | 'privateRegularPage'}> {
+  return request.kind === 'publicRegularPage' || request.kind === 'privateRegularPage';
+}
+
+export function privateLayoutForInventoryPageRequest(
+  request: Exclude<InventoryPageRequest, {kind: 'portalHome' | 'webContentDisplayPage'}>,
+): boolean {
+  return request.kind === 'privateSiteRoot' || request.kind === 'privateRegularPage';
 }
 
 function sanitizeInventoryUrl(rawUrl?: string): string | null {
@@ -152,7 +177,7 @@ function normalizeLocale(locale: string): string {
 
 function extractDisplayPageUrlTitle(friendlyUrl: string): string | null {
   const candidate = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
-  if (!candidate.startsWith('w/')) {
+  if (!candidate.startsWith('w/') || candidate.length <= 2) {
     return null;
   }
   return candidate.slice(2);

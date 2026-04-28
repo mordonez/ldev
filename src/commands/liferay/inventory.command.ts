@@ -11,6 +11,7 @@ import {
 import {
   formatLiferayInventoryPage,
   projectLiferayInventoryPageJson,
+  resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../features/liferay/inventory/liferay-inventory-page.js';
 import {
@@ -247,13 +248,15 @@ Notes:
   ).action(
     createFormattedAction(
       async (context, options: InventoryPageCommandOptions) =>
-        runLiferayInventoryPage(context.config, {
-          url: options.url,
-          site: options.site,
-          friendlyUrl: options.friendlyUrl,
-          privateLayout: Boolean(options.privateLayout),
-          verbose: Boolean(options.verbose),
-        }),
+        runLiferayInventoryPage(
+          context.config,
+          resolveInventoryPageRequest({
+            url: options.url,
+            site: options.site,
+            friendlyUrl: options.friendlyUrl,
+            privateLayout: Boolean(options.privateLayout),
+          }),
+        ),
       (options: InventoryPageCommandOptions) => ({
         text: (result) => formatLiferayInventoryPage(result, Boolean(options.verbose)),
         json: (result) => projectLiferayInventoryPageJson(result, {full: Boolean(options.full)}),
