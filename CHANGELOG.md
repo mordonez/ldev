@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.4](https://github.com/mordonez/ldev/compare/ldev-v0.5.3...ldev-v0.5.4) (2026-04-28)
+
+
+### Bug Fixes
+
+* **ai:** refactor skills with reference architecture and fill command gaps ([#125](https://github.com/mordonez/ldev/issues/125)) ([51218e3](https://github.com/mordonez/ldev/commit/51218e326d0e03c53b1e9839f07d98ca281734a1))
+* **inventory:** multi-site structure and template discovery ([#127](https://github.com/mordonez/ldev/issues/127)) ([ca441e8](https://github.com/mordonez/ldev/commit/ca441e8ce3077afd29766acbce6b645d0576cb6a))
+* **worktree:** support external linked git worktrees ([#128](https://github.com/mordonez/ldev/issues/128)) ([f45fdf6](https://github.com/mordonez/ldev/commit/f45fdf6de6c3c53e6c55edc831302b0aecee56af))
+
 ## [0.5.3](https://github.com/mordonez/ldev/compare/ldev-v0.5.2...ldev-v0.5.3) (2026-04-27)
 
 
