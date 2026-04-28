@@ -136,6 +136,8 @@ ldev portal inventory structures --all-sites --with-templates --json
 
 Prefer `--with-templates` as the first discovery step for structure/template incidents: it returns structures enriched with their associated templates in one call.
 
+In text mode, `--with-templates` renders a detailed site -> structure -> template view. In `--all-sites` text mode, sites with no structures are omitted to keep discovery output focused.
+
 ## `ldev portal inventory templates`
 
 List web content templates for a site.

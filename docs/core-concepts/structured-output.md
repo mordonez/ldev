@@ -11,7 +11,7 @@ Every `ldev` command that returns data supports a structured output mode.
 
 - `--format text` (default for most) — human-readable output
 - `--json` / `--format json` — pretty-printed JSON, one object per command run
-- `--ndjson` / `--format ndjson` — one JSON value per line, suitable for streaming commands
+- `--ndjson` / `--format ndjson` — newline-delimited JSON output; most commands still emit one final JSON value, while streaming-style commands may emit multiple lines
 - `--strict` — return a non-zero exit code when the result indicates something is wrong (even if the command itself succeeded)
 
 Some commands default to JSON because their output is primarily structured:

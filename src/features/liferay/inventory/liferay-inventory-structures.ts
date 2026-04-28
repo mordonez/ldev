@@ -1,6 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
+import {isCliError} from '../../../core/errors.js';
 import {fetchPagedItems} from './liferay-inventory-shared.js';
 import {normalizeLocalizedName, resolveSite} from '../portal/site-resolution.js';
 import {runLiferayInventoryTemplates} from './liferay-inventory-templates.js';
@@ -75,19 +76,31 @@ export async function runLiferayInventoryStructuresAllSites(
     dependencies,
   );
 
-  const rows = await Promise.all(
-    sites.map(async (site) => ({
-      siteGroupId: site.groupId,
-      siteFriendlyUrl: site.siteFriendlyUrl,
-      siteName: site.name,
-      structures: await runLiferayInventoryStructuresForSiteId(
-        config,
-        site.groupId,
-        {site: site.siteFriendlyUrl, pageSize: options?.pageSize, withTemplates: options?.withTemplates},
-        dependencies,
-      ),
-    })),
-  );
+  const rows = (
+    await Promise.all(
+      sites.map(async (site) => {
+        try {
+          return {
+            siteGroupId: site.groupId,
+            siteFriendlyUrl: site.siteFriendlyUrl,
+            siteName: site.name,
+            structures: await runLiferayInventoryStructuresForSiteId(
+              config,
+              site.groupId,
+              {site: site.siteFriendlyUrl, pageSize: options?.pageSize, withTemplates: options?.withTemplates},
+              dependencies,
+            ),
+          };
+        } catch (error) {
+          if (isSkippableStructureInventoryError(error)) {
+            return null;
+          }
+
+          throw error;
+        }
+      }),
+    )
+  ).filter((row): row is LiferayInventoryStructuresSite => row !== null);
 
   return {
     sites: rows,
@@ -96,6 +109,14 @@ export async function runLiferayInventoryStructuresAllSites(
       totalStructures: rows.reduce((acc, row) => acc + row.structures.length, 0),
     },
   };
+}
+
+function isSkippableStructureInventoryError(error: unknown): boolean {
+  if (!isCliError(error) || error.code !== 'LIFERAY_INVENTORY_ERROR') {
+    return false;
+  }
+
+  return error.message.includes('status=400') && error.message.includes('/data-definitions/by-content-type/journal');
 }
 
 async function runLiferayInventoryStructuresForSiteId(
@@ -150,6 +171,18 @@ export function formatLiferayInventoryStructures(result: LiferayInventoryStructu
     return 'No structure data';
   }
 
+  if (hasTemplateDetails(result)) {
+    return formatLiferayInventoryStructuresTree(result);
+  }
+
+  return formatLiferayInventoryStructuresCompact(result);
+}
+
+function hasTemplateDetails(result: LiferayInventoryStructuresResult): boolean {
+  return result.sites.some((site) => site.structures.some((structure) => structure.templates !== undefined));
+}
+
+function formatLiferayInventoryStructuresCompact(result: LiferayInventoryStructuresResult): string {
   const lines: string[] = [];
 
   for (const site of result.sites) {
@@ -166,6 +199,41 @@ export function formatLiferayInventoryStructures(result: LiferayInventoryStructu
         );
       }
     }
+  }
+
+  lines.push(`totalSites=${result.summary.totalSites}`);
+  lines.push(`totalStructures=${result.summary.totalStructures}`);
+  return lines.join('\n');
+}
+
+function formatLiferayInventoryStructuresTree(result: LiferayInventoryStructuresResult): string {
+  const lines: string[] = [];
+  const sites = result.sites.length > 1 ? result.sites.filter((site) => site.structures.length > 0) : result.sites;
+
+  if (sites.length === 0) {
+    return 'No structure data';
+  }
+
+  for (const site of sites) {
+    lines.push(`site=${site.siteFriendlyUrl} name=${site.siteName} groupId=${site.siteGroupId}`);
+
+    for (const structure of site.structures) {
+      lines.push(`  structure=${structure.key} name=${structure.name} id=${structure.id}`);
+
+      if (!structure.templates || structure.templates.length === 0) {
+        lines.push('    template=(none)');
+      } else {
+        for (const template of structure.templates) {
+          lines.push(`    template=${template.name} erc=${template.externalReferenceCode} id=${template.id}`);
+        }
+      }
+    }
+
+    lines.push('');
+  }
+
+  if (lines.at(-1) === '') {
+    lines.pop();
   }
 
   lines.push(`totalSites=${result.summary.totalSites}`);
