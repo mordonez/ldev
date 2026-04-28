@@ -45,6 +45,11 @@ Review the issue in the tracker and capture only project-specific process data:
 - project evidence requirements
 - project closure expectations
 
+If the issue, review request, or repro notes mention one or more portal URLs,
+resolve every one of them through `ldev portal inventory page --url` at intake
+before code search or browser reproduction. Treat this as the default first
+technical context step, not an optional follow-up.
+
 If technical discovery is required, switch immediately to the correct vendor
 skill instead of documenting the flow here.
 

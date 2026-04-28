@@ -48,9 +48,11 @@ Prefer atomic commands. Do not use plural resource commands or a broad deploy
 unless a human explicitly asks for a bulk operation and the risk is written down
 first.
 
-When an issue starts from a URL, do not reproduce or validate against the
-production host. Resolve the page through `ldev portal inventory page --url`,
-switch to the local runtime URL, and inspect that page before searching code.
+When an issue starts from one or more URLs, do not reproduce or validate against
+the production host. Resolve every mentioned page through
+`ldev portal inventory page --url`, switch to the local runtime URL, and inspect
+those pages before searching code. Treat that inspection as the default first
+context-gathering step whenever a relevant URL is available.
 Use page inspection to identify the concrete ADT, template, fragment, module,
 or theme surface first; broad grep comes after that.
 

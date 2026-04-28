@@ -81,7 +81,10 @@ ldev osgi thread-dump
 
 ### Portal discovery issues
 
-If a page, site, structure or template is involved, resolve it from the portal:
+If a page, site, structure or template is involved, resolve it from the portal
+immediately. When the report mentions one or more URLs, inspect every mentioned
+URL with `ldev portal inventory page --url` before code search, browser
+reproduction, or speculative diagnosis:
 
 ```bash
 ldev portal inventory page --url <fullUrl> --json
@@ -91,6 +94,9 @@ ldev portal inventory templates --site /<site> --json
 
 For structure/template incidents, treat `--with-templates` as the default
 discovery path to avoid separate lookup rounds.
+
+Do not assume two reported URLs point to the same page state, site, or owning
+resource until both have been inspected.
 
 When the default output is not enough (e.g. you need content fields, all template
 candidates, or the raw page definition), add `--full`:
