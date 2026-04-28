@@ -11,7 +11,7 @@ import {
   createJsonwsFallbackStep,
   type ResolvedSite,
   type SiteLookupPayload,
-} from '../../src/features/liferay/inventory/liferay-site-resolver.js';
+} from '../../src/features/liferay/portal/site-resolver.js';
 
 type MockGetJson = ReturnType<typeof vi.fn<(path: string, label: string) => Promise<unknown>>>;
 type MockGateway = LiferayGateway & {getJson: MockGetJson};

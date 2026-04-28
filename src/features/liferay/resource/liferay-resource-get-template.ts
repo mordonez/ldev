@@ -3,9 +3,10 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
-import {buildResourceSiteChain, resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
+import {buildSiteChain} from '../portal/site-resolution.js';
+import type {DdmTemplatePayload} from '../portal/template-queries.js';
+import {resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
-import type {DdmTemplatePayload} from './liferay-resource-payloads.js';
 
 type ResourceDependencies = {
   apiClient?: HttpApiClient;
@@ -31,7 +32,7 @@ export async function runLiferayResourceGetTemplate(
   options: {site?: string; id: string},
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceTemplateResult> {
-  const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
+  const siteChain = await buildSiteChain(config, options.site ?? '/global', dependencies);
   let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
   let match: DdmTemplatePayload | undefined;
 

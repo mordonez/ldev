@@ -2,7 +2,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResolvedSite} from './liferay-inventory-shared.js';
+import type {ResolvedSite} from '../portal/site-resolution.js';
 import {
   buildLayoutDetails,
   buildPageUrl,

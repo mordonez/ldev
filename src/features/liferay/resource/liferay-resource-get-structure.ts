@@ -3,8 +3,9 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
-import {normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
-import {buildResourceSiteChain, resolveResourceSite} from './liferay-resource-shared.js';
+import {normalizeLocalizedName} from '../portal/site-resolution.js';
+import {buildSiteChain} from '../portal/site-resolution.js';
+import {resolveResourceSite} from './liferay-resource-shared.js';
 import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
 
 type ResourceDependencies = {
@@ -49,7 +50,7 @@ export async function runLiferayResourceGetStructure(
 
   if (!payload && options.key) {
     const encodedKey = encodeURIComponent(options.key);
-    const siteChain = await buildResourceSiteChain(config, options.site ?? '/global', dependencies);
+    const siteChain = await buildSiteChain(config, options.site ?? '/global', dependencies);
 
     for (const candidate of siteChain) {
       const response = await gateway.getRaw<DataDefinitionPayload>(

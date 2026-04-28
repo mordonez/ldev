@@ -8,7 +8,7 @@ import fs from 'fs-extra';
 import type {AppConfig} from '../../../../core/config/load-config.js';
 import {CliError} from '../../../../core/errors.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
-import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../portal/site-resolution.js';
 import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetTemplate} from '../liferay-resource-get-template.js';

@@ -11,10 +11,11 @@ import {
   runLiferayInventoryTemplates,
 } from '../../src/features/liferay/inventory/liferay-inventory-templates.js';
 import {
+  buildSiteChain,
   normalizeLocalizedName,
   resolveSite,
   resolvedSiteCache,
-} from '../../src/features/liferay/inventory/liferay-inventory-shared.js';
+} from '../../src/features/liferay/portal/site-resolution.js';
 import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 
 beforeEach(() => {
@@ -214,6 +215,32 @@ describe('liferay inventory shared', () => {
     expect(first.id).toBe(30_001);
     expect(second.id).toBe(30_002);
     expect(lookupCalls).toBe(2);
+  });
+
+  test('buildSiteChain propagates unexpected /global lookup failures', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/guest')) {
+          return new Response('{"id":101,"friendlyUrlPath":"/guest","name":"Guest"}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=101')) {
+          return new Response('{"friendlyURL":"/guest","nameCurrentValue":"Guest","parentGroupId":0}', {
+            status: 200,
+          });
+        }
+
+        if (url.includes('/o/headless-admin-site/v1.0/sites/by-friendly-url-path/global')) {
+          return new Response('boom', {status: 500});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    await expect(buildSiteChain(CONFIG, '/guest', {apiClient, tokenClient: TOKEN_CLIENT})).rejects.toThrow(
+      'status=500',
+    );
   });
 });
 

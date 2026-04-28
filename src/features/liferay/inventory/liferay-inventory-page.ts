@@ -3,7 +3,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
-import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
+import {createInventoryGateway} from './liferay-inventory-shared.js';
+import {resolveSite} from '../portal/site-resolution.js';
 import {resolveInventoryPageRequest} from './liferay-inventory-page-url.js';
 import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
 import {

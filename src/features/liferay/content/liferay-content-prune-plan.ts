@@ -1,7 +1,7 @@
 import {runConcurrent} from '../../../core/concurrency.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
-import {normalizeLocalizedName} from '../inventory/liferay-inventory-shared.js';
+import {normalizeLocalizedName} from '../portal/site-resolution.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {fetchJournalArticleRowsInFolder} from './liferay-content-journal-shared.js';
 import {computeRemovableFolderIds, type FolderTree} from './liferay-content-prune-folders.js';

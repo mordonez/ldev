@@ -3,7 +3,8 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
-import {createInventoryGateway, resolveSite} from './liferay-inventory-shared.js';
+import {createInventoryGateway} from './liferay-inventory-shared.js';
+import {resolveSite} from '../portal/site-resolution.js';
 import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from '../page-layout/liferay-layout-shared.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 

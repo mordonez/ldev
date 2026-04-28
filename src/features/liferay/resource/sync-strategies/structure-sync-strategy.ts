@@ -12,7 +12,7 @@ import {createLiferayApiClient} from '../../../../core/http/client.js';
 import {isRecord, type JsonRecord} from '../../../../core/utils/json.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
-import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../portal/site-resolution.js';
 import {resolveStructureFile} from '../liferay-resource-paths.js';
 import {
   buildTransitionPayload,

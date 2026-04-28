@@ -3,36 +3,16 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type HttpApiClient} from '../../../core/http/client.js';
 import {expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
-import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
 import {LiferayErrors} from '../errors/index.js';
-import {
-  SiteResolutionPipeline,
-  createByIdStep,
-  createByFriendlyUrlHeadlessSiteStep,
-  createByFriendlyUrlHeadlessUserStep,
-  createPaginatedSearchStep,
-  createJsonwsFallbackStep,
-  type ResolvedSite,
-  type SiteLookupPayload,
-  type HeadlessPage,
-} from './liferay-site-resolver.js';
+import {type HeadlessPage} from '../portal/site-resolver.js';
+import {type SiteResolutionDependencies} from '../portal/site-resolution.js';
 
-// Re-export for backward compatibility
-export type {ResolvedSite};
-
-type InventoryDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-  gateway?: LiferayGateway;
-  accessToken?: string;
-  forceRefresh?: boolean;
-};
+type InventoryDependencies = SiteResolutionDependencies;
 
 // Tokens are valid for ~1 h; cache matches that lifetime to avoid redundant OAuth requests.
 const accessTokenCache = new LookupCache<string>({ttlMs: 3_600_000});
-// Site resolution is expensive (multi-step pipeline); 5-min TTL avoids repeated lookups.
-export const resolvedSiteCache = new LookupCache<ResolvedSite>();
 
 export async function fetchAccessToken(config: AppConfig, dependencies?: InventoryDependencies): Promise<string> {
   if (dependencies?.accessToken) {
@@ -54,39 +34,6 @@ export async function fetchAccessToken(config: AppConfig, dependencies?: Invento
   const token = await tokenClient.fetchClientCredentialsToken(config.liferay);
   accessTokenCache.set(cacheKey, token.accessToken);
   return token.accessToken;
-}
-
-export async function resolveSite(
-  config: AppConfig,
-  site: string,
-  dependencies?: InventoryDependencies,
-): Promise<ResolvedSite> {
-  const cacheKey = [config.liferay.url, config.liferay.oauth2ClientId, config.liferay.scopeAliases, site].join('|');
-  const cached = resolvedSiteCache.get(cacheKey, dependencies?.forceRefresh);
-  if (cached) return cached;
-
-  const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const gateway = createInventoryGateway(config, apiClient, dependencies);
-
-  // Build and execute resolution pipeline
-  const pipeline = new SiteResolutionPipeline();
-
-  pipeline
-    .addStep('by-id', createByIdStep(gateway, normalizeResolvedSite))
-    .addStep('by-friendly-url-headless-site', createByFriendlyUrlHeadlessSiteStep(gateway, normalizeResolvedSite))
-    .addStep('by-friendly-url-headless-user', createByFriendlyUrlHeadlessUserStep(gateway, normalizeResolvedSite))
-    .addStep(
-      'paginated-search',
-      createPaginatedSearchStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
-    )
-    .addStep(
-      'jsonws-fallback',
-      createJsonwsFallbackStep(gateway, normalizeResolvedSite, normalizeFriendlyUrl, normalizeLocalizedName),
-    );
-
-  const result = await pipeline.execute(site);
-  resolvedSiteCache.set(cacheKey, result);
-  return result;
 }
 
 export async function fetchPagedItems<T>(
@@ -137,40 +84,6 @@ export async function fetchPagedItems<T>(
 
 export function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): HttpResponse<T> {
   return expectJsonSuccessShared(response, label, 'LIFERAY_INVENTORY_ERROR');
-}
-
-export function normalizeLocalizedName(value: string | Record<string, string> | undefined): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  if (!value || typeof value !== 'object') {
-    return '';
-  }
-
-  const first = Object.values(value).find((item) => item.trim() !== '');
-  return first ?? '';
-}
-
-export function normalizeFriendlyUrl(value: string): string {
-  if (value.trim() === '') {
-    return '';
-  }
-
-  return value.startsWith('/') ? value : `/${value}`;
-}
-
-function normalizeResolvedSite(payload: SiteLookupPayload | null, site: string): ResolvedSite {
-  const id = payload?.id ?? -1;
-  if (id <= 0) {
-    throw LiferayErrors.siteNotFound(site);
-  }
-
-  return {
-    id,
-    friendlyUrlPath: normalizeFriendlyUrl(payload?.friendlyUrlPath ?? ''),
-    name: normalizeLocalizedName(payload?.name),
-  };
 }
 
 export function createInventoryGateway(

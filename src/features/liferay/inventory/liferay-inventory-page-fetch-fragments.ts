@@ -4,8 +4,9 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {type FragmentEntryLink, type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
-import {buildResourceSiteChain} from '../resource/liferay-resource-shared.js';
-import {resolveSiteToken, tryResolveFragmentsBaseDir} from '../resource/liferay-resource-paths.js';
+import {buildSiteChain} from '../portal/site-resolution.js';
+import {resolveSiteToken} from '../portal/site-token.js';
+import {tryResolveFragmentsBaseDir} from '../portal/artifact-paths.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 
 export async function tryFetchFragmentEntryLinks(
@@ -97,7 +98,7 @@ async function safeBuildFragmentSiteChain(
   dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ): Promise<Array<{siteFriendlyUrl: string}>> {
   try {
-    return await buildResourceSiteChain(config, startSite, dependencies);
+    return await buildSiteChain(config, startSite, dependencies);
   } catch {
     return startSite === '/global'
       ? [{siteFriendlyUrl: '/global'}]

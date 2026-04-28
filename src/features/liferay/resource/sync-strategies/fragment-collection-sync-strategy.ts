@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../../core/config/load-config.js';
-import type {ResolvedSite} from '../../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../portal/site-resolution.js';
 import type {FragmentCollectionPayload} from '../liferay-resource-payloads.js';
 import {
   createFragmentCollection,

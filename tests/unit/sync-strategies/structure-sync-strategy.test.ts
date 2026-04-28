@@ -4,7 +4,7 @@ import {describe, expect, test, vi, afterEach, beforeEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
 import {structureSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/structure-sync-strategy.js';
-import type {ResolvedSite} from '../../../src/features/liferay/inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../../../src/features/liferay/portal/site-resolution.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
 import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
 

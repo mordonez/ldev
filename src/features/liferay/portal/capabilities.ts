@@ -1,5 +1,5 @@
 /**
- * R4: Declarative operation policies — which transport surfaces to try, in order.
+ * Declarative operation policies — which transport surfaces to try, in order.
  *
  * Each operation declares the surfaces (API endpoints/protocols) it can use,
  * in order of preference. The operation implementation reads the policy and

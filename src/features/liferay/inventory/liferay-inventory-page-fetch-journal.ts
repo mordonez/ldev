@@ -19,16 +19,13 @@ import {
   type RenderedContentPayload,
   type StructuredContent,
 } from './liferay-inventory-page-assemble.js';
-import type {ResolvedSite} from './liferay-inventory-shared.js';
+import type {ResolvedSite} from '../portal/site-resolution.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
-import {
-  buildResourceSiteChain,
-  fetchGroupInfo,
-  listDdmTemplates,
-  resolveResourceSite,
-} from '../resource/liferay-resource-shared.js';
+import {buildSiteChain, fetchGroupInfo} from '../portal/site-resolution.js';
+import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
-import {resolveSiteToken, tryResolveArtifactSiteDir} from '../resource/liferay-resource-paths.js';
+import {resolveSiteToken} from '../portal/site-token.js';
+import {tryResolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {
   type ArticleRef,
   fetchContentStructureById,
@@ -297,7 +294,7 @@ async function resolveStructureSiteByKey(
   startSite: string,
   structureKey: string,
 ): Promise<{siteFriendlyUrl: string} | null> {
-  const siteChain = await buildResourceSiteChain(config, startSite, {apiClient, gateway});
+  const siteChain = await buildSiteChain(config, startSite, {apiClient, gateway});
   for (const site of siteChain) {
     const response = await safeGatewayGet<Record<string, unknown>>(
       gateway,
@@ -312,12 +309,12 @@ async function resolveStructureSiteByKey(
 }
 
 async function safeFetchGroupInfo(
-  config: AppConfig,
+  _config: AppConfig,
   groupId: number,
   dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ) {
   try {
-    return await fetchGroupInfo(config, groupId, dependencies);
+    return await fetchGroupInfo(dependencies.gateway, groupId);
   } catch {
     return null;
   }
@@ -329,7 +326,7 @@ async function resolveTemplateSiteByKey(
   templateKey: string,
   dependencies: {apiClient: HttpApiClient; gateway: LiferayGateway},
 ): Promise<string | null> {
-  const siteChain = await buildResourceSiteChain(config, startSite, dependencies);
+  const siteChain = await buildSiteChain(config, startSite, dependencies);
   for (const candidate of siteChain) {
     const site = await resolveResourceSite(config, candidate.siteFriendlyUrl, dependencies);
     const templates = await listDdmTemplates(config, site, dependencies, {

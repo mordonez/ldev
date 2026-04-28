@@ -4,7 +4,7 @@ import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/
 import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {LiferayErrors} from '../errors/index.js';
-import {resolveSite} from '../inventory/liferay-inventory-shared.js';
+import {resolveSite} from '../portal/site-resolution.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import type {ContentPruneOptions} from './liferay-content-prune.js';
 

@@ -1,5 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
+import {LiferayErrorCode} from '../../src/features/liferay/errors/liferay-error-codes.js';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
   formatLiferayResourceAdts,
@@ -165,5 +166,9 @@ describe('liferay resource list', () => {
     await expect(
       runLiferayResourceListFragments(CONFIG, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('fragment collections failed with status=500');
+
+    await expect(
+      runLiferayResourceListFragments(CONFIG, {site: '/global'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+    ).rejects.toMatchObject({code: LiferayErrorCode.RESOURCE_ERROR});
   });
 });

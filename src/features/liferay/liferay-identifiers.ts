@@ -12,7 +12,7 @@
  */
 
 import {LiferayErrors} from './errors/index.js';
-import type {DdmTemplatePayload} from '../liferay/resource/liferay-resource-payloads.js';
+import type {DdmTemplatePayload} from './portal/template-queries.js';
 
 // ---------------------------------------------------------------------------
 // DDM Template matching

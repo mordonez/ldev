@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResolvedSite} from '../inventory/liferay-site-resolver.js';
+import type {ResolvedSite} from '../portal/site-resolution.js';
 import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
 import {createFragmentSyncRuntimeState} from './liferay-resource-sync-fragments-api.js';
 import {toErrorMessage} from './liferay-resource-sync-fragments-local.js';
