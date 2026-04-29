@@ -271,7 +271,7 @@ function collectArticleRefFromPreferences(
 
   const groupId = Number(firstString(prefsMap.groupId) ?? defaultGroupId) || defaultGroupId;
   const ddmTemplateKey = firstString(prefsMap.ddmTemplateKey);
-  refs.set(articleId, {
+  refs.set(buildArticleRefKey(articleId, groupId), {
     articleId,
     groupId,
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
@@ -315,13 +315,19 @@ function collectArticleRefFromItemReference(
   const groupId =
     Number(firstString(itemReference.groupId) ?? firstString(itemReference.siteId) ?? defaultGroupId) || defaultGroupId;
   const ddmTemplateKey = extractDdmTemplateKey(fieldKey ?? firstString(itemReference.fieldKey));
-  const key = articleId || `structuredContent:${groupId}:${structuredContentId}`;
+  const key = articleId
+    ? buildArticleRefKey(articleId, groupId)
+    : `structuredContent:${groupId}:${structuredContentId}`;
   refs.set(key, {
     articleId: articleId ?? '',
     groupId,
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
     ...(Number.isFinite(structuredContentId) && structuredContentId > 0 ? {structuredContentId} : {}),
   });
+}
+
+function buildArticleRefKey(articleId: string, groupId: number): string {
+  return `${groupId}:${articleId}`;
 }
 
 function extractDdmTemplateKey(fieldKey: string | undefined): string | undefined {
