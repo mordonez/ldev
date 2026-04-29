@@ -104,6 +104,21 @@ as the first discovery step. It returns the structure list enriched with
 associated templates in one call, so agents can route directly to the correct
 export/import commands.
 
+## MCP as an acceleration layer
+
+`ldev` MCP tools are optional structured shortcuts over selected `ldev`
+workflows. They make agents faster and less error-prone when available, but the
+CLI remains the canonical fallback.
+
+Use this decision route:
+
+- skills decide the workflow and guardrails
+- MCP tools execute structured discovery and diagnosis when visible
+- CLI commands with `--json` remain the fallback for every workflow
+
+See [MCP Decision Route](./mcp-decision-route.md) for the maintained mapping of
+MCP tools to CLI fallbacks.
+
 ## Keeping rules and skills up to date
 
 After pulling a new version of `ldev`, refresh skills and rules in the project:

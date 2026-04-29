@@ -143,6 +143,8 @@ ldev osgi status <bundle-symbolic-name> --json
 ldev osgi diag <bundle-symbolic-name> --json
 ```
 
+MCP equivalents when visible: `liferay_osgi_status`, `liferay_osgi_diag`.
+
 Use logs after any deploy or import:
 
 ```bash
@@ -155,6 +157,8 @@ Prefer the task-shaped diagnosis summary when checking for fresh regressions:
 ldev logs diagnose --since 5m --json
 ```
 
+MCP equivalent when visible: `ldev_logs_diagnose`.
+
 Use portal reachability checks when the fix affects page rendering, portal
 availability, or resource-backed behavior:
 
@@ -162,6 +166,8 @@ availability, or resource-backed behavior:
 ldev portal check --json
 ldev portal inventory page --url <fullUrl> --json
 ```
+
+MCP equivalents when visible: `liferay_check`, `liferay_inventory_page`.
 
 Then use `playwright-cli` for the affected page or flow so the runtime result
 is validated in a browser, not only through CLI output.
@@ -178,6 +184,8 @@ Minimum done criteria:
 ## Guardrails
 
 - Do not use a wider deploy than necessary.
+- Use local `ldev` MCP tools only for read-only verification and diagnosis.
+  Deploys, resource imports, and migrations remain CLI-first workflows.
 - Do not use `ldev deploy theme` unless the theme changed.
 - Do not use `ldev deploy module` unless a module or deployable Gradle unit changed.
 - Do not use plural resource commands or a broad deploy unless a human

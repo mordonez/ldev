@@ -52,12 +52,18 @@ ldev start
 
 ## Core diagnosis flow
 
+Use local `ldev` MCP tools for these structured diagnosis steps when visible.
+If they are not visible, use the CLI fallback commands shown below and keep
+going.
+
 ### Runtime health and logs
 
 ```bash
 ldev status --json
 ldev logs diagnose --since 10m --json
 ```
+
+MCP equivalents: `ldev_status`, `ldev_logs_diagnose`.
 
 Use raw logs only after the diagnosis report points to something that needs
 deeper inspection:
@@ -73,11 +79,16 @@ ldev osgi status <bundle-symbolic-name> --json
 ldev osgi diag <bundle-symbolic-name> --json
 ```
 
+MCP equivalents: `liferay_osgi_status`, `liferay_osgi_diag`.
+
 For a hanging or slow portal, collect a thread dump:
 
 ```bash
 ldev osgi thread-dump
 ```
+
+MCP equivalent: `liferay_osgi_thread_dump`. This writes dump artifacts under
+the configured dump directory, just like the CLI command.
 
 ### Portal discovery issues
 
@@ -91,6 +102,9 @@ ldev portal inventory page --url <fullUrl> --json
 ldev portal inventory structures --site /<site> --with-templates --json
 ldev portal inventory templates --site /<site> --json
 ```
+
+MCP equivalents: `liferay_inventory_page`, `liferay_inventory_structures`,
+`liferay_inventory_templates`.
 
 For structure/template incidents, treat `--with-templates` as the default
 discovery path to avoid separate lookup rounds.
@@ -172,6 +186,8 @@ ldev worktree env --json
 
 - Do not jump straight to rebuild or clean unless logs and status suggest local state corruption.
 - Do not assume a portal API problem when the env is simply down; `ldev status --json` is the first check.
+- If local `ldev` MCP tools are not available, use CLI fallbacks; MCP absence is
+  not a blocker for troubleshooting.
 - Do not parse human text if a stable JSON variant exists.
 - Prefer `ldev logs diagnose --json` as the first diagnosis surface; use raw logs as a follow-up tool.
 - If the issue depends on production data, reproduce that state locally before proposing fixes.
