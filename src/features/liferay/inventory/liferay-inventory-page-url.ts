@@ -180,5 +180,11 @@ function extractDisplayPageUrlTitle(friendlyUrl: string): string | null {
   if (!candidate.startsWith('w/') || candidate.length <= 2) {
     return null;
   }
-  return candidate.slice(2);
+  const urlTitle = candidate.slice(2);
+
+  try {
+    return decodeURIComponent(urlTitle);
+  } catch {
+    return urlTitle;
+  }
 }

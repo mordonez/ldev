@@ -56,6 +56,26 @@ const contentStructureSummarySchema = z.object({
   exportPath: z.string().optional(),
 });
 
+const pageEvidenceSchema = z.object({
+  resourceType: z.enum(['fragment', 'widget', 'portlet', 'structure', 'template', 'adt', 'journalArticle']),
+  key: z.string(),
+  kind: z.enum([
+    'fragmentEntry',
+    'widgetEntry',
+    'widgetAdt',
+    'portlet',
+    'journalArticle',
+    'journalArticleStructure',
+    'journalArticleTemplate',
+    'fragmentMappedStructure',
+    'fragmentMappedTemplate',
+    'contentStructure',
+    'displayPageArticle',
+  ]),
+  detail: z.string(),
+  source: z.enum(['fragmentEntryLink', 'portletLayout', 'journalArticle', 'contentStructure', 'displayPageArticle']),
+});
+
 const pageFragmentEntrySchema = z.object({
   type: z.enum(['fragment', 'widget']),
   fragmentKey: z.string().optional(),
@@ -65,6 +85,8 @@ const pageFragmentEntrySchema = z.object({
   portletId: z.string().optional(),
   configuration: z.record(z.string(), z.string()).optional(),
   editableFields: z.array(z.object({id: z.string(), value: z.string()})).optional(),
+  mappedTemplateKeys: z.array(z.string()).optional(),
+  mappedStructureKeys: z.array(z.string()).optional(),
   contentSummary: z.string().optional(),
   title: z.string().optional(),
   heroText: z.string().optional(),
@@ -113,6 +135,7 @@ const displayPageResultSchema = z.object({
       translate: z.string(),
     })
     .optional(),
+  evidence: z.array(pageEvidenceSchema).optional(),
   journalArticles: z.array(journalArticleSummarySchema).optional(),
   contentStructures: z.array(contentStructureSummarySchema).optional(),
 });
@@ -176,6 +199,7 @@ const regularPageResultSchema = z.object({
     })
     .optional(),
   componentInspectionSupported: z.boolean().optional(),
+  evidence: z.array(pageEvidenceSchema).optional(),
   portlets: z
     .array(
       z.object({

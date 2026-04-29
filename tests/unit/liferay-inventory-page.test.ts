@@ -28,10 +28,6 @@ function pageDefinitionResp(pageElements: unknown[] = []) {
   return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements}}}), {status: 200});
 }
 
-function fragmentEntryLinksResp(items: unknown[] = []) {
-  return new Response(JSON.stringify(items), {status: 200});
-}
-
 function classNameIdResp(classNameId = 20006) {
   return new Response(JSON.stringify({classNameId}), {status: 200});
 }
@@ -188,6 +184,15 @@ describe('liferay inventory page', () => {
     });
   });
 
+  test('decodes percent-encoded display page url titles', () => {
+    expect(resolveInventoryPageRequest({url: '/web/ub/w/%C3%88xit-de-les-seleccions'})).toMatchObject({
+      kind: 'webContentDisplayPage',
+      site: 'ub',
+      friendlyUrl: '/w/%C3%88xit-de-les-seleccions',
+      urlTitle: 'Èxit-de-les-seleccions',
+    });
+  });
+
   test('ignores absolute URL origin and keeps configured portal URL', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network disabled for test'));
 
@@ -255,10 +260,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/inici?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -338,58 +339,6 @@ describe('liferay inventory page', () => {
           );
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp([
-            {
-              portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
-              editableValues: JSON.stringify({
-                journal_content: {
-                  portletPreferencesMap: {
-                    articleId: ['ART-001'],
-                    groupId: ['20121'],
-                    ddmTemplateKey: ['TPL-1'],
-                  },
-                },
-              }),
-            },
-          ]);
-        }
-
-        if (url.includes('/journal.journalarticle/get-latest-article')) {
-          return new Response(
-            JSON.stringify({
-              id: 41001,
-              articleId: 'ART-001',
-              titleCurrentValue: 'Home article',
-              ddmStructureKey: 'BASIC',
-            }),
-            {status: 200},
-          );
-        }
-
-        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response(
-            JSON.stringify({
-              id: 41001,
-              contentStructureId: 301,
-              priority: 0,
-              contentFields: [
-                {
-                  label: 'Headline',
-                  name: 'headline',
-                  dataType: 'string',
-                  contentFieldValue: {data: 'Hello'},
-                },
-              ],
-            }),
-            {status: 200},
-          );
-        }
-
-        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
-          return new Response(JSON.stringify({id: 301, name: 'Basic Web Content'}), {status: 200});
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -447,37 +396,55 @@ describe('liferay inventory page', () => {
       {
         type: 'widget',
         widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
-        portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
       },
     ]);
-    expect(result.journalArticles).toEqual([
-      {
-        groupId: 20121,
-        articleId: 'ART-001',
-        title: 'Home article',
-        ddmStructureKey: 'BASIC',
-        ddmTemplateKey: 'TPL-1',
-        contentStructureId: 301,
-        contentFields: [
-          {
-            path: 'Headline',
-            label: 'Headline',
-            name: 'headline',
-            type: 'string',
-            value: 'Hello',
-          },
-        ],
-      },
-    ]);
-    expect(result.contentStructures).toEqual([
-      {
-        contentStructureId: 301,
-        key: 'BASIC',
-        name: 'Basic Web Content',
-      },
-    ]);
+    expect(result.journalArticles).toEqual([]);
+    expect(result.contentStructures).toEqual([]);
     expect(formatLiferayInventoryPage(result)).toContain('REGULAR PAGE');
-    expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=Hello');
+  });
+
+  test('accepts widget ADT evidence in validated page results', () => {
+    const result = {
+      pageType: 'regularPage',
+      pageSubtype: 'content',
+      pageUiType: 'Content Page',
+      siteName: 'UB',
+      siteFriendlyUrl: '/ub',
+      groupId: 20121,
+      url: '/web/ub/rss',
+      friendlyUrl: '/rss',
+      pageName: 'RSS',
+      privateLayout: false,
+      layout: {
+        layoutId: 11,
+        plid: 1011,
+        friendlyUrl: '/rss',
+        type: 'content',
+        hidden: false,
+      },
+      layoutDetails: {},
+      adminUrls: {
+        view: '',
+        edit: '',
+        configureGeneral: '',
+        configureDesign: '',
+        configureSeo: '',
+        configureOpenGraph: '',
+        configureCustomMetaTags: '',
+        translate: '',
+      },
+      evidence: [
+        {
+          resourceType: 'adt',
+          key: 'ddmTemplate_40801',
+          kind: 'widgetAdt',
+          detail: 'widgetName=asset-publisher index=0 displayStyle=ddmTemplate_40801',
+          source: 'fragmentEntryLink',
+        },
+      ],
+    };
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
   });
 
   test('skips local fragment export path enrichment outside a repo', async () => {
@@ -516,10 +483,6 @@ describe('liferay inventory page', () => {
             }),
             {status: 200},
           );
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -654,10 +617,6 @@ describe('liferay inventory page', () => {
           return pageDefinitionResp();
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -714,10 +673,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/apren?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -785,10 +740,6 @@ describe('liferay inventory page', () => {
           return pageDefinitionResp();
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -844,10 +795,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -916,6 +863,19 @@ describe('liferay inventory page', () => {
                               },
                             },
                           },
+                          {
+                            id: 'mapped-title',
+                            value: {
+                              html: {
+                                mapping: {
+                                  fieldKey: 'ddmTemplate_NEWS_TEMPLATE_DETAIL',
+                                  itemReference: {
+                                    contextSource: 'DisplayPageItem',
+                                  },
+                                },
+                              },
+                            },
+                          },
                         ],
                       },
                     },
@@ -925,10 +885,6 @@ describe('liferay inventory page', () => {
             }),
             {status: 200},
           );
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -954,6 +910,7 @@ describe('liferay inventory page', () => {
           {id: 'image', value: 'Demo image'},
           {id: 'intro-paragraph', value: 'Intro'},
         ],
+        mappedTemplateKeys: ['NEWS_TEMPLATE_DETAIL'],
       },
     ]);
     expect(formatLiferayInventoryPage(result)).toContain('[image] Demo image');

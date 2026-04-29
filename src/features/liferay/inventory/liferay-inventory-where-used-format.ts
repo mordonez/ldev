@@ -27,11 +27,12 @@ export function formatLiferayInventoryWhereUsed(result: WhereUsedResult): string
       `site=${site.siteFriendlyUrl} name=${site.siteName} groupId=${site.groupId} scanned=${site.scannedPages} matched=${site.matchedPages.length}`,
     );
     for (const page of site.matchedPages) {
+      const pageUrl = page.viewUrl ?? page.fullUrl;
       lines.push(
-        `  - [${page.pageType}] ${page.pageName} ${page.fullUrl}${page.privateLayout ? ' (private)' : ''}${page.hidden ? ' (hidden)' : ''}`,
+        `  - [${page.pageType}] ${page.pageName} ${pageUrl}${page.privateLayout ? ' (private)' : ''}${page.hidden ? ' (hidden)' : ''}`,
       );
       for (const match of page.matches) {
-        lines.push(`      * ${match.matchKind}: ${match.detail}`);
+        lines.push(`      * ${match.label}: ${match.detail}`);
       }
       if (page.editUrl) {
         lines.push(`      editUrl=${page.editUrl}`);

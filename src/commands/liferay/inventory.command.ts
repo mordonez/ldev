@@ -86,6 +86,8 @@ type InventoryWhereUsedCommandOptions = {
   type: string;
   key: string[];
   site?: string;
+  widgetType?: string;
+  className?: string;
   includePrivate?: boolean;
   maxDepth: string;
   concurrency: string;
@@ -108,7 +110,7 @@ Commands:
   page         Inspect one page
   structures   List journal structures
   templates    List web content templates
-  where-used   Reverse lookup: pages that contain a fragment/widget/structure/template/ADT
+  where-used   Reverse lookup: pages that contain a fragment/widget/structure/template/adt
 `,
     );
 
@@ -341,6 +343,8 @@ Notes:
         [] as string[],
       )
       .option('--site <site>', 'Limit lookup to a single site (defaults to scanning all accessible sites)')
+      .option('--widget-type <widgetType>', 'ADT widget type filter used only when --type adt')
+      .option('--class-name <className>', 'ADT class name filter used only when --type adt')
       .option('--include-private', 'Also scan private layouts')
       .option('--max-depth <maxDepth>', 'Maximum page tree recursion depth', '12')
       .option('--concurrency <n>', 'Parallel page fetches per site', '4')
@@ -352,12 +356,14 @@ Examples:
   ldev portal inventory where-used --type fragment --key card-hero
   ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet
   ldev portal inventory where-used --type structure --key BASIC --site /facultat-farmacia-alimentacio
-  ldev portal inventory where-used --type adt --key DEFAULT --include-private --json
+  ldev portal inventory where-used --type adt --key UB_ADT_STUDIES_SEARCH --site /global
+  ldev portal inventory where-used --type template --key NEWS_TEMPLATE --include-private --json
 
 Notes:
   - The lookup walks the same data exposed by 'inventory page' so any reference visible there can be matched.
   - --key may be repeated to OR-match several keys in a single pass.
   - For widget/portlet lookups both the widgetName and the full portletId are matched.
+  - For ADT lookups the key is resolved through the ADT catalog first, then matched by widget displayStyle on pages.
   - Pages that fail to load (e.g. permission errors) are reported under failedPages without aborting the run.
 `,
       ),
@@ -368,6 +374,8 @@ Notes:
           type: options.type as WhereUsedResourceType,
           keys: options.key,
           site: options.site,
+          widgetType: options.widgetType,
+          className: options.className,
           includePrivate: Boolean(options.includePrivate),
           maxDepth: Number.parseInt(options.maxDepth, 10) || 12,
           concurrency: Number.parseInt(options.concurrency, 10) || 4,

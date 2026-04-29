@@ -1,3 +1,4 @@
+import {extractPageEvidence, type PageEvidence, type PageEvidenceKind} from './liferay-inventory-page-evidence.js';
 import type {LiferayInventoryPageResult} from './liferay-inventory-page.js';
 
 export type WhereUsedResourceType = 'fragment' | 'widget' | 'portlet' | 'structure' | 'template' | 'adt';
@@ -7,231 +8,93 @@ export type WhereUsedQuery = {
   keys: string[];
 };
 
-export type WhereUsedMatchKind =
-  | 'fragmentEntry'
-  | 'widgetEntry'
-  | 'portlet'
-  | 'journalArticleStructure'
-  | 'journalArticleTemplate'
-  | 'journalArticleAdt'
-  | 'contentStructure'
-  | 'displayPageArticle';
+export type WhereUsedMatchKind = Exclude<PageEvidenceKind, 'journalArticle'>;
 
 export type WhereUsedMatch = {
   resourceType: WhereUsedResourceType;
   matchedKey: string;
   matchKind: WhereUsedMatchKind;
+  label: string;
   detail: string;
+  source: PageEvidence['source'];
 };
 
-export function matchPageAgainstResource(page: LiferayInventoryPageResult, query: WhereUsedQuery): WhereUsedMatch[] {
-  if (page.pageType === 'siteRoot') {
-    return [];
-  }
-
-  const matches: WhereUsedMatch[] = [];
+export function matchEvidenceAgainstResource(evidence: PageEvidence[], query: WhereUsedQuery): WhereUsedMatch[] {
   const keys = new Set(query.keys);
+  const seen = new Set<string>();
+  const matchedEvidence = evidence
+    .filter((item) => isEvidenceForResourceType(item, query.type))
+    .filter((item) => item.kind !== 'journalArticle')
+    .filter((item) => keys.has(item.key));
 
-  if (page.pageType === 'regularPage') {
-    matchRegularPage(page, query.type, keys, matches);
-  } else {
-    matchDisplayPage(page, query.type, keys, matches);
-  }
-
-  return matches;
+  return matchedEvidence
+    .filter((item) => !isRedundantStructureEvidence(item, matchedEvidence, query.type))
+    .flatMap((item) => {
+      const match: WhereUsedMatch = {
+        resourceType: query.type,
+        matchedKey: item.key,
+        matchKind: item.kind as WhereUsedMatchKind,
+        label: labelForMatchKind(item.kind as WhereUsedMatchKind),
+        detail: item.detail,
+        source: item.source,
+      };
+      const identity = `${match.resourceType}\u0000${match.matchedKey}\u0000${match.matchKind}\u0000${match.detail}\u0000${match.source}`;
+      if (seen.has(identity)) {
+        return [];
+      }
+      seen.add(identity);
+      return [match];
+    });
 }
 
-function matchRegularPage(
-  page: Extract<LiferayInventoryPageResult, {pageType: 'regularPage'}>,
-  type: WhereUsedResourceType,
-  keys: Set<string>,
-  matches: WhereUsedMatch[],
-): void {
-  if (type === 'fragment') {
-    const entries = page.fragmentEntryLinks ?? [];
-    entries.forEach((entry, index) => {
-      if (entry.type !== 'fragment' || !entry.fragmentKey) return;
-      if (!keys.has(entry.fragmentKey)) return;
-      matches.push({
-        resourceType: 'fragment',
-        matchedKey: entry.fragmentKey,
-        matchKind: 'fragmentEntry',
-        detail: buildFragmentDetail(entry.fragmentKey, entry.elementName, index),
-      });
-    });
-    return;
-  }
+export function matchPageAgainstResource(page: LiferayInventoryPageResult, query: WhereUsedQuery): WhereUsedMatch[] {
+  return matchEvidenceAgainstResource(extractPageEvidence(page), query);
+}
 
+function isEvidenceForResourceType(evidence: PageEvidence, type: WhereUsedResourceType): boolean {
   if (type === 'widget' || type === 'portlet') {
-    const entries = page.fragmentEntryLinks ?? [];
-    entries.forEach((entry, index) => {
-      if (entry.type !== 'widget') return;
-      const candidates = [entry.widgetName, entry.portletId].filter(
-        (value): value is string => typeof value === 'string' && value.length > 0,
-      );
-      const matched = candidates.find((value) => keys.has(value));
-      if (!matched) return;
-      matches.push({
-        resourceType: type,
-        matchedKey: matched,
-        matchKind: 'widgetEntry',
-        detail: buildWidgetDetail(entry.widgetName, entry.portletId, entry.elementName, index),
-      });
-    });
-
-    const portlets = page.portlets ?? [];
-    portlets.forEach((portlet) => {
-      const candidates = [portlet.portletId, portlet.portletName].filter(
-        (value): value is string => typeof value === 'string' && value.length > 0,
-      );
-      const matched = candidates.find((value) => keys.has(value));
-      if (!matched) return;
-      matches.push({
-        resourceType: type,
-        matchedKey: matched,
-        matchKind: 'portlet',
-        detail: `column=${portlet.columnId} position=${portlet.position} portletId=${portlet.portletId}`,
-      });
-    });
-    return;
+    return evidence.resourceType === 'widget' || evidence.resourceType === 'portlet';
   }
-
-  matchJournalArticles(page.journalArticles ?? [], type, keys, matches);
-  matchContentStructures(page.contentStructures ?? [], type, keys, matches);
+  return evidence.resourceType === type;
 }
 
-function matchDisplayPage(
-  page: Extract<LiferayInventoryPageResult, {pageType: 'displayPage'}>,
-  type: WhereUsedResourceType,
-  keys: Set<string>,
-  matches: WhereUsedMatch[],
-): void {
-  matchJournalArticles(page.journalArticles ?? [], type, keys, matches);
-  matchContentStructures(page.contentStructures ?? [], type, keys, matches);
-
-  if (type === 'structure') {
-    const articleStructureKey = String(page.article.contentStructureId);
-    if (articleStructureKey && keys.has(articleStructureKey)) {
-      matches.push({
-        resourceType: 'structure',
-        matchedKey: articleStructureKey,
-        matchKind: 'displayPageArticle',
-        detail: `displayPage articleKey=${page.article.key} contentStructureId=${page.article.contentStructureId}`,
-      });
-    }
-  }
-}
-
-function matchJournalArticles(
-  articles: NonNullable<Extract<LiferayInventoryPageResult, {pageType: 'regularPage'}>['journalArticles']>,
-  type: WhereUsedResourceType,
-  keys: Set<string>,
-  matches: WhereUsedMatch[],
-): void {
-  if (type !== 'structure' && type !== 'template' && type !== 'adt') {
-    return;
+function isRedundantStructureEvidence(
+  evidence: PageEvidence,
+  matchedEvidence: PageEvidence[],
+  queryType: WhereUsedResourceType,
+): boolean {
+  if (queryType !== 'structure' || evidence.kind !== 'contentStructure') {
+    return false;
   }
 
-  for (const article of articles) {
-    const where = `articleId=${article.articleId} title=${article.title}`;
+  return matchedEvidence.some(
+    (candidate) =>
+      candidate.kind === 'journalArticleStructure' &&
+      (candidate.key === evidence.key || candidate.detail.includes(`contentStructureId=${evidence.key}`)),
+  );
+}
 
-    if (type === 'structure' && article.ddmStructureKey && keys.has(article.ddmStructureKey)) {
-      matches.push({
-        resourceType: 'structure',
-        matchedKey: article.ddmStructureKey,
-        matchKind: 'journalArticleStructure',
-        detail: where,
-      });
-      continue;
-    }
-
-    if (type === 'template') {
-      const templateCandidates = [
-        article.ddmTemplateKey,
-        article.widgetDefaultTemplate,
-        article.widgetHeadlessDefaultTemplate,
-      ].filter((value): value is string => typeof value === 'string' && value.length > 0);
-      const matched = templateCandidates.find((value) => keys.has(value));
-      if (matched) {
-        matches.push({
-          resourceType: 'template',
-          matchedKey: matched,
-          matchKind: 'journalArticleTemplate',
-          detail: where,
-        });
-        continue;
-      }
-
-      const widgetCandidate = article.widgetTemplateCandidates?.find((candidate) => keys.has(candidate));
-      if (widgetCandidate) {
-        matches.push({
-          resourceType: 'template',
-          matchedKey: widgetCandidate,
-          matchKind: 'journalArticleTemplate',
-          detail: `${where} (widget candidate)`,
-        });
-      }
-      continue;
-    }
-
-    const adtCandidates = [
-      article.displayPageDefaultTemplate,
-      ...(article.displayPageDdmTemplates ?? []),
-      ...(article.displayPageTemplateCandidates ?? []),
-    ].filter((value): value is string => typeof value === 'string' && value.length > 0);
-
-    const matchedAdt = adtCandidates.find((value) => keys.has(value));
-    if (matchedAdt) {
-      matches.push({
-        resourceType: 'adt',
-        matchedKey: matchedAdt,
-        matchKind: 'journalArticleAdt',
-        detail: where,
-      });
-    }
+function labelForMatchKind(kind: WhereUsedMatchKind): string {
+  switch (kind) {
+    case 'fragmentEntry':
+      return 'Fragment on page';
+    case 'widgetEntry':
+      return 'Widget on page';
+    case 'widgetAdt':
+      return 'Widget ADT';
+    case 'portlet':
+      return 'Portlet on layout';
+    case 'journalArticleStructure':
+      return 'Journal article structure';
+    case 'journalArticleTemplate':
+      return 'Journal article template';
+    case 'fragmentMappedStructure':
+      return 'Fragment mapped structure';
+    case 'fragmentMappedTemplate':
+      return 'Fragment mapped template';
+    case 'contentStructure':
+      return 'Content structure';
+    case 'displayPageArticle':
+      return 'Display page article';
   }
-}
-
-function matchContentStructures(
-  structures: NonNullable<Extract<LiferayInventoryPageResult, {pageType: 'regularPage'}>['contentStructures']>,
-  type: WhereUsedResourceType,
-  keys: Set<string>,
-  matches: WhereUsedMatch[],
-): void {
-  if (type !== 'structure') return;
-  for (const structure of structures) {
-    const candidates = [structure.key, String(structure.contentStructureId)].filter(
-      (value): value is string => typeof value === 'string' && value.length > 0,
-    );
-    const matched = candidates.find((value) => keys.has(value));
-    if (!matched) continue;
-    matches.push({
-      resourceType: 'structure',
-      matchedKey: matched,
-      matchKind: 'contentStructure',
-      detail: `contentStructureId=${structure.contentStructureId} name=${structure.name}`,
-    });
-  }
-}
-
-function buildFragmentDetail(fragmentKey: string, elementName: string | undefined, index: number): string {
-  return [`fragmentKey=${fragmentKey}`, elementName ? `elementName=${elementName}` : null, `index=${index}`]
-    .filter((value): value is string => value !== null)
-    .join(' ');
-}
-
-function buildWidgetDetail(
-  widgetName: string | undefined,
-  portletId: string | undefined,
-  elementName: string | undefined,
-  index: number,
-): string {
-  return [
-    widgetName ? `widgetName=${widgetName}` : null,
-    portletId ? `portletId=${portletId}` : null,
-    elementName ? `elementName=${elementName}` : null,
-    `index=${index}`,
-  ]
-    .filter((value): value is string => value !== null)
-    .join(' ');
 }

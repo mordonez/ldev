@@ -1,5 +1,6 @@
 import type {LiferayInventoryPageResult} from './liferay-inventory-page.js';
 import type {LiferayInventoryPagesNode} from './liferay-inventory-pages.js';
+import {buildPortalAbsoluteUrl} from './liferay-inventory-url.js';
 import type {WhereUsedMatch} from './liferay-inventory-where-used-match.js';
 
 export type FlatPage = {
@@ -17,6 +18,7 @@ export type WhereUsedPageMatch = {
   pageName: string;
   friendlyUrl: string;
   fullUrl: string;
+  viewUrl?: string;
   layoutId?: number;
   plid?: number;
   privateLayout: boolean;
@@ -49,13 +51,17 @@ export function buildPageMatch(
   page: LiferayInventoryPageResult,
   entry: FlatPage,
   matches: WhereUsedMatch[],
+  portalBaseUrl?: string,
 ): WhereUsedPageMatch {
   if (page.pageType === 'displayPage') {
+    const hasRenderableView = hasDisplayPageRendering(page);
+
     return {
       pageType: 'displayPage',
       pageName: page.article.title,
       friendlyUrl: page.friendlyUrl,
       fullUrl: page.url,
+      ...(hasRenderableView ? {viewUrl: buildPortalAbsoluteUrl(portalBaseUrl, page.url)} : {}),
       privateLayout: entry.privateLayout,
       ...(page.adminUrls ? {editUrl: page.adminUrls.edit} : {}),
       matches,
@@ -68,6 +74,7 @@ export function buildPageMatch(
       pageName: page.pageName,
       friendlyUrl: page.friendlyUrl,
       fullUrl: page.url,
+      viewUrl: buildPortalAbsoluteUrl(portalBaseUrl, page.url),
       layoutId: page.layout.layoutId,
       plid: page.layout.plid,
       hidden: page.layout.hidden,
@@ -82,10 +89,34 @@ export function buildPageMatch(
     pageName: entry.name,
     friendlyUrl: entry.friendlyUrl,
     fullUrl: entry.fullUrl,
+    viewUrl: buildPortalAbsoluteUrl(portalBaseUrl, entry.fullUrl),
     layoutId: entry.layoutId,
     plid: entry.plid,
     hidden: entry.hidden,
     privateLayout: entry.privateLayout,
     matches,
   };
+}
+
+function hasDisplayPageRendering(page: Extract<LiferayInventoryPageResult, {pageType: 'displayPage'}>): boolean {
+  return (
+    page.journalArticles?.some((article) => {
+      const renderedDisplayTemplate = article.renderedContents
+        ?.map((item) => item as Record<string, unknown>)
+        .some(
+          (candidate) =>
+            candidate.markedAsDefault === true &&
+            typeof candidate.contentTemplateName === 'string' &&
+            typeof candidate.renderedContentURL === 'string' &&
+            candidate.renderedContentURL.includes('/rendered-content-by-display-page/'),
+        );
+
+      return Boolean(
+        article.displayPageDefaultTemplate ||
+        article.displayPageTemplateCandidates?.length ||
+        article.displayPageDdmTemplates?.length ||
+        renderedDisplayTemplate,
+      );
+    }) ?? false
+  );
 }

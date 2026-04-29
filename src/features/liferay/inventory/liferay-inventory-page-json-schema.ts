@@ -71,6 +71,8 @@ const regularPageJsonSchema = z.object({
             fragmentExportPath: z.string().optional(),
             configuration: z.record(z.string(), z.string()).optional(),
             contentSummary: z.string().optional(),
+            mappedTemplateKeys: z.array(z.string()).optional(),
+            mappedStructureKeys: z.array(z.string()).optional(),
           }),
         )
         .optional(),
@@ -118,6 +120,7 @@ const regularPageJsonSchema = z.object({
       }),
     )
     .optional(),
+  evidence: z.array(z.record(z.string(), z.unknown())).optional(),
   capabilities: z.object({componentInspectionSupported: z.boolean()}).optional(),
   full: z
     .object({
@@ -202,6 +205,7 @@ const displayPageJsonSchema = z.object({
       neverExpire: z.boolean().optional(),
     })
     .optional(),
+  evidence: z.array(z.record(z.string(), z.unknown())).optional(),
   full: z
     .object({
       articleDetails: z

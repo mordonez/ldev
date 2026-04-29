@@ -3,6 +3,7 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
+import type {LiferayGateway} from '../liferay-gateway.js';
 import {createInventoryGateway} from './liferay-inventory-shared.js';
 import {resolveSite} from '../portal/site-resolution.js';
 import {
@@ -30,6 +31,7 @@ import type {
   JournalArticleSummary,
   PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
+import type {PageEvidence} from './liferay-inventory-page-evidence.js';
 import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
 
 export {resolveInventoryPageRequest};
@@ -39,6 +41,7 @@ export type {LiferayInventoryPageJsonResult} from './liferay-inventory-page-json
 type InventoryPageDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
+  gateway?: LiferayGateway;
 };
 
 export type InventoryPageConfigurationGeneral = {
@@ -163,6 +166,7 @@ export type LiferayInventoryPageResult =
         edit: string;
         translate: string;
       };
+      evidence?: PageEvidence[];
       journalArticles?: JournalArticleSummary[];
       contentStructures?: ContentStructureSummary[];
     }
@@ -209,6 +213,7 @@ export type LiferayInventoryPageResult =
       configurationTabs?: InventoryPageConfigurationTabs;
       configurationRaw?: InventoryPageConfigurationRaw;
       componentInspectionSupported?: boolean;
+      evidence?: PageEvidence[];
       portlets?: PagePortletSummary[];
       fragmentEntryLinks?: PageFragmentEntry[];
       widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>;
@@ -356,6 +361,12 @@ export function projectLiferayInventoryPageJson(
       ...(entry.fragmentExportPath ? {fragmentExportPath: entry.fragmentExportPath} : {}),
       ...(entry.configuration ? {configuration: entry.configuration} : {}),
       ...(entry.contentSummary ? {contentSummary: entry.contentSummary} : {}),
+      ...(entry.mappedTemplateKeys && entry.mappedTemplateKeys.length > 0
+        ? {mappedTemplateKeys: entry.mappedTemplateKeys}
+        : {}),
+      ...(entry.mappedStructureKeys && entry.mappedStructureKeys.length > 0
+        ? {mappedStructureKeys: entry.mappedStructureKeys}
+        : {}),
     }));
 
   const widgets = (result.fragmentEntryLinks ?? [])
@@ -397,6 +408,7 @@ export function projectLiferayInventoryPageJson(
     ...(result.journalArticles && result.journalArticles.length > 0
       ? {contentRefs: result.journalArticles.map(projectJournalArticleRef)}
       : {}),
+    ...(result.evidence && result.evidence.length > 0 ? {evidence: result.evidence} : {}),
     ...(fragments.length > 0 || widgets.length > 0 || portlets.length > 0
       ? {
           components: {
@@ -494,6 +506,7 @@ function projectDisplayPageJson(
     ...(rendering ? {rendering} : {}),
     ...(taxonomy ? {taxonomy} : {}),
     ...(lifecycle ? {lifecycle} : {}),
+    ...(result.evidence && result.evidence.length > 0 ? {evidence: result.evidence} : {}),
   };
 
   if (!options?.full) {

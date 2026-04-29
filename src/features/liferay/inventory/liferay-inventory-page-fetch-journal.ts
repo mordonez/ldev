@@ -34,6 +34,7 @@ import {
   fetchStructuredContentByUuid,
 } from './liferay-inventory-page-fetch-article.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
+import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
 type TemplateInfo = {
   widgetTemplateCandidates: string[];
@@ -47,9 +48,9 @@ export async function collectLayoutJournalArticles(
   config: AppConfig,
   apiClient: HttpApiClient,
   defaultGroupId: number,
-  fragmentEntryLinks: FragmentEntryLink[],
+  pageElement?: HeadlessPageElementPayload | null,
 ): Promise<JournalArticleSummary[]> {
-  const refs = extractArticleRefs(fragmentEntryLinks, defaultGroupId);
+  const refs = extractArticleRefs(defaultGroupId, pageElement);
   const result: JournalArticleSummary[] = [];
 
   for (const ref of refs.values()) {
@@ -73,7 +74,15 @@ export async function buildJournalArticleSummary(
     includeHeadlessInventoryFields?: boolean;
   },
 ): Promise<JournalArticleSummary> {
-  const article = options?.article ?? (await fetchLatestJournalArticle(gateway, ref.groupId, ref.articleId));
+  let structuredContent = options?.structuredContent ?? null;
+  if (!structuredContent && ref.structuredContentId && ref.structuredContentId > 0) {
+    structuredContent = await fetchStructuredContentById(gateway, ref.structuredContentId);
+  }
+
+  const resolvedArticleId = ref.articleId || structuredContent?.key || '';
+  const article =
+    options?.article ??
+    (resolvedArticleId ? await fetchLatestJournalArticle(gateway, ref.groupId, resolvedArticleId) : null);
   const articleSite =
     (await safeFetchGroupInfo(config, ref.groupId, {apiClient, gateway})) ??
     (options?.fallbackSite
@@ -88,7 +97,7 @@ export async function buildJournalArticleSummary(
     groupId: ref.groupId,
     ...(articleSite?.friendlyUrl ? {siteFriendlyUrl: articleSite.friendlyUrl} : {}),
     ...(articleSite?.name ? {siteName: articleSite.name} : {}),
-    articleId: ref.articleId,
+    articleId: resolvedArticleId,
     title:
       firstString(article?.titleCurrentValue) ?? firstString(article?.title) ?? options?.fallbackTitle ?? ref.articleId,
     ddmStructureKey: firstString(article?.ddmStructureKey) ?? '',
@@ -96,7 +105,6 @@ export async function buildJournalArticleSummary(
     ...(options?.fallbackContentStructureId ? {contentStructureId: Number(options.fallbackContentStructureId)} : {}),
   };
 
-  let structuredContent = options?.structuredContent ?? null;
   const uuid = firstString(article?.uuid);
   if (!structuredContent && uuid) {
     structuredContent = await fetchStructuredContentByUuid(gateway, ref.groupId, uuid);
@@ -227,20 +235,12 @@ export async function collectLayoutContentStructures(
   return result;
 }
 
-function extractArticleRefs(fragmentEntryLinks: FragmentEntryLink[], defaultGroupId: number): Map<string, ArticleRef> {
+function extractArticleRefs(
+  defaultGroupId: number,
+  pageElement?: HeadlessPageElementPayload | null,
+): Map<string, ArticleRef> {
   const refs = new Map<string, ArticleRef>();
-
-  for (const link of fragmentEntryLinks) {
-    const editableValues = firstString(link.editableValues) ?? '';
-    if (!editableValues || editableValues === '{}') {
-      continue;
-    }
-    try {
-      collectArticleRefsFromValue(JSON.parse(editableValues), refs, defaultGroupId);
-    } catch {
-      // Ignore invalid fragment editable values.
-    }
-  }
+  collectArticleRefsFromValue(pageElement, refs, defaultGroupId);
 
   return refs;
 }
@@ -262,6 +262,19 @@ function collectArticleRefsFromValue(value: unknown, refs: Map<string, ArticleRe
   const nestedPrefsMap = asRecord(asRecord(record.configuration).portletPreferencesMap);
   collectArticleRefFromPreferences(directPrefsMap, refs, defaultGroupId);
   collectArticleRefFromPreferences(nestedPrefsMap, refs, defaultGroupId);
+  const mapping = asRecord(record.mapping);
+  collectArticleRefFromItemReference(
+    asRecord(record.itemReference),
+    refs,
+    defaultGroupId,
+    firstString(record.fieldKey),
+  );
+  collectArticleRefFromItemReference(
+    asRecord(mapping.itemReference),
+    refs,
+    defaultGroupId,
+    firstString(mapping.fieldKey),
+  );
 
   for (const item of Object.values(record)) {
     collectArticleRefsFromValue(item, refs, defaultGroupId);
@@ -285,6 +298,60 @@ function collectArticleRefFromPreferences(
     groupId,
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
   });
+}
+
+function collectArticleRefFromItemReference(
+  itemReference: FragmentEntryLink,
+  refs: Map<string, ArticleRef>,
+  defaultGroupId: number,
+  fieldKey?: string,
+): void {
+  if (Object.keys(itemReference).length === 0) {
+    return;
+  }
+
+  const contextSource = firstString(itemReference.contextSource);
+  if (contextSource === 'DisplayPageItem') {
+    return;
+  }
+
+  const className = firstString(itemReference.className) ?? firstString(itemReference.itemClassName) ?? '';
+  if (className && !className.includes('JournalArticle') && !className.includes('StructuredContent')) {
+    return;
+  }
+
+  const articleId =
+    firstString(itemReference.articleId) ?? firstString(itemReference.key) ?? firstString(itemReference.itemKey);
+  const structuredContentId = Number(
+    firstString(itemReference.classPK) ??
+      firstString(itemReference.classPk) ??
+      firstString(itemReference.id) ??
+      firstString(itemReference.itemId) ??
+      Number.NaN,
+  );
+
+  if (!articleId && (!Number.isFinite(structuredContentId) || structuredContentId <= 0)) {
+    return;
+  }
+
+  const groupId =
+    Number(firstString(itemReference.groupId) ?? firstString(itemReference.siteId) ?? defaultGroupId) || defaultGroupId;
+  const ddmTemplateKey = extractDdmTemplateKey(fieldKey ?? firstString(itemReference.fieldKey));
+  const key = articleId || `structuredContent:${groupId}:${structuredContentId}`;
+  refs.set(key, {
+    articleId: articleId ?? '',
+    groupId,
+    ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
+    ...(Number.isFinite(structuredContentId) && structuredContentId > 0 ? {structuredContentId} : {}),
+  });
+}
+
+function extractDdmTemplateKey(fieldKey: string | undefined): string | undefined {
+  const trimmed = fieldKey?.trim();
+  if (!trimmed?.startsWith('ddmTemplate_')) {
+    return undefined;
+  }
+  return trimmed.slice('ddmTemplate_'.length).trim() || undefined;
 }
 
 async function resolveStructureSiteByKey(

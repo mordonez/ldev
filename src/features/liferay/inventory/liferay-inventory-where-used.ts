@@ -3,19 +3,24 @@ import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {mapConcurrent} from '../../../core/concurrency.js';
-import {CliError, isCliError} from '../../../core/errors.js';
+import {CliError} from '../../../core/errors.js';
+import {runLiferayResourceGetAdt} from '../resource/liferay-resource-get-adt.js';
+import {extractPageEvidence} from './liferay-inventory-page-evidence.js';
 import {resolveInventoryPageRequest, runLiferayInventoryPage} from './liferay-inventory-page.js';
-import {runLiferayInventoryPages, type LiferayInventoryPagesNode} from './liferay-inventory-pages.js';
+import {createInventoryGateway} from './liferay-inventory-shared.js';
 import {runLiferayInventorySitesIncludingGlobal, type LiferayInventorySite} from './liferay-inventory-sites.js';
 import {
-  matchPageAgainstResource,
+  matchEvidenceAgainstResource,
   type WhereUsedQuery,
   type WhereUsedResourceType,
 } from './liferay-inventory-where-used-match.js';
-import {buildPageMatch, flattenPages, type WhereUsedPageMatch} from './liferay-inventory-where-used-pages.js';
+import {validateWhereUsedResult} from './liferay-inventory-where-used-schema.js';
+import {buildPageMatch, type WhereUsedPageMatch} from './liferay-inventory-where-used-pages.js';
+import {collectWhereUsedPageCandidates} from './liferay-inventory-where-used-page-candidates.js';
 
-export {matchPageAgainstResource} from './liferay-inventory-where-used-match.js';
+export {matchEvidenceAgainstResource, matchPageAgainstResource} from './liferay-inventory-where-used-match.js';
 export {formatLiferayInventoryWhereUsed} from './liferay-inventory-where-used-format.js';
+export {validateWhereUsedResult} from './liferay-inventory-where-used-schema.js';
 export type {
   WhereUsedMatch,
   WhereUsedMatchKind,
@@ -28,6 +33,8 @@ export type WhereUsedOptions = {
   type: WhereUsedResourceType;
   keys: string[];
   site?: string;
+  widgetType?: string;
+  className?: string;
   includePrivate?: boolean;
   maxDepth?: number;
   concurrency?: number;
@@ -37,6 +44,11 @@ export type WhereUsedOptions = {
 export type WhereUsedDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
+};
+
+export type WhereUsedCandidateLike = {
+  fullUrl: string;
+  origin?: 'layout' | 'headlessStructuredContent' | 'jsonwsJournal';
 };
 
 export type WhereUsedSiteResult = {
@@ -93,9 +105,14 @@ export async function runLiferayInventoryWhereUsed(
   options: WhereUsedOptions,
   dependencies?: WhereUsedDependencies,
 ): Promise<WhereUsedResult> {
-  const query = validateWhereUsedQuery(options);
+  const baseQuery = validateWhereUsedQuery(options);
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
-  const sharedDependencies = {apiClient, tokenClient: dependencies?.tokenClient};
+  const gateway = createInventoryGateway(config, apiClient, {
+    apiClient,
+    tokenClient: dependencies?.tokenClient,
+  });
+  const sharedDependencies = {apiClient, tokenClient: dependencies?.tokenClient, gateway};
+  const query = await resolveWhereUsedQuery(config, baseQuery, options, sharedDependencies);
   const concurrency = Math.max(1, options.concurrency ?? 4);
   const maxDepth = Math.max(0, options.maxDepth ?? 12);
   const includePrivate = Boolean(options.includePrivate);
@@ -105,10 +122,18 @@ export async function runLiferayInventoryWhereUsed(
 
   const siteResults: WhereUsedSiteResult[] = [];
   for (const site of targetSites) {
-    siteResults.push(await scanSite(config, site, query, {layoutScopes, concurrency, maxDepth, sharedDependencies}));
+    siteResults.push(
+      await scanSite(config, site, query, {
+        layoutScopes,
+        concurrency,
+        maxDepth,
+        pageSize: options.pageSize ?? 200,
+        sharedDependencies,
+      }),
+    );
   }
 
-  return {
+  return validateWhereUsedResult({
     inventoryType: 'whereUsed',
     query,
     scope: {
@@ -119,6 +144,38 @@ export async function runLiferayInventoryWhereUsed(
     },
     summary: summarize(siteResults),
     sites: siteResults,
+  }) as WhereUsedResult;
+}
+
+async function resolveWhereUsedQuery(
+  config: AppConfig,
+  query: WhereUsedQuery,
+  options: WhereUsedOptions,
+  dependencies: WhereUsedDependencies,
+): Promise<WhereUsedQuery> {
+  if (query.type !== 'adt') {
+    return query;
+  }
+
+  const resolvedKeys: string[] = [];
+
+  for (const key of query.keys) {
+    const adt = await runLiferayResourceGetAdt(
+      config,
+      {
+        site: options.site,
+        key,
+        widgetType: options.widgetType,
+        className: options.className,
+      },
+      dependencies,
+    );
+    resolvedKeys.push(adt.displayStyle);
+  }
+
+  return {
+    type: query.type,
+    keys: Array.from(new Set(resolvedKeys)),
   };
 }
 
@@ -126,6 +183,7 @@ type ScanContext = {
   layoutScopes: boolean[];
   concurrency: number;
   maxDepth: number;
+  pageSize: number;
   sharedDependencies: WhereUsedDependencies;
 };
 
@@ -138,54 +196,47 @@ async function scanSite(
   const result: WhereUsedSiteResult = {
     siteFriendlyUrl: site.siteFriendlyUrl,
     siteName: site.name,
-    groupId: site.groupId,
+    groupId: Number(site.groupId),
     scannedPages: 0,
     failedPages: 0,
     matchedPages: [],
   };
   const errors: Array<{fullUrl: string; reason: string}> = [];
+  const candidates = await collectWhereUsedPageCandidates(config, site, query, {
+    layoutScopes: context.layoutScopes,
+    concurrency: context.concurrency,
+    maxDepth: context.maxDepth,
+    pageSize: context.pageSize,
+    dependencies: context.sharedDependencies,
+  });
+  result.scannedPages = candidates.length;
 
-  for (const privateLayout of context.layoutScopes) {
-    let pages: LiferayInventoryPagesNode[];
+  const pageResults = await mapConcurrent(candidates, context.concurrency, async (candidate) => {
     try {
-      const pagesResult = await runLiferayInventoryPages(
+      const page = await runLiferayInventoryPage(
         config,
-        {site: site.siteFriendlyUrl, privateLayout, maxDepth: context.maxDepth},
+        resolveInventoryPageRequest({url: candidate.fullUrl}),
         context.sharedDependencies,
       );
-      pages = pagesResult.pages;
+      const matches = matchEvidenceAgainstResource(extractPageEvidence(page), query);
+      if (matches.length === 0) return null;
+      return buildPageMatch(page, candidate, matches, config.liferay.url);
     } catch (error) {
-      if (isSkippableSiteScanError(error)) continue;
-      throw error;
-    }
-
-    const flatPages = flattenPages(pages, privateLayout);
-    result.scannedPages += flatPages.length;
-
-    const pageResults = await mapConcurrent(flatPages, context.concurrency, async (entry) => {
-      try {
-        const page = await runLiferayInventoryPage(
-          config,
-          resolveInventoryPageRequest({url: entry.fullUrl}),
-          context.sharedDependencies,
-        );
-        const matches = matchPageAgainstResource(page, query);
-        if (matches.length === 0) return null;
-        return buildPageMatch(page, entry, matches);
-      } catch (error) {
-        errors.push({fullUrl: entry.fullUrl, reason: extractErrorMessage(error)});
-        return 'failed' as const;
+      if (isSkippableWhereUsedCandidateError(candidate, error)) {
+        return null;
       }
-    });
-
-    for (const item of pageResults) {
-      if (item === null) continue;
-      if (item === 'failed') {
-        result.failedPages += 1;
-        continue;
-      }
-      result.matchedPages.push(item);
+      errors.push({fullUrl: candidate.fullUrl, reason: extractErrorMessage(error)});
+      return 'failed' as const;
     }
+  });
+
+  for (const item of pageResults) {
+    if (item === null) continue;
+    if (item === 'failed') {
+      result.failedPages += 1;
+      continue;
+    }
+    result.matchedPages.push(item);
   }
 
   if (errors.length > 0) {
@@ -236,16 +287,17 @@ async function resolveTargetSites(
   return runLiferayInventorySitesIncludingGlobal(config, {pageSize: pageSize ?? 200}, dependencies);
 }
 
-function isSkippableSiteScanError(error: unknown): boolean {
-  if (!isCliError(error)) return false;
-  if (error.code !== 'LIFERAY_INVENTORY_ERROR' && error.code !== 'LIFERAY_GATEWAY_ERROR') {
-    return false;
-  }
-  return error.message.includes('status=403') || error.message.includes('status=404');
-}
-
 function extractErrorMessage(error: unknown): string {
   if (error instanceof CliError) return error.message;
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+export function isSkippableWhereUsedCandidateError(candidate: WhereUsedCandidateLike, error: unknown): boolean {
+  if (candidate.origin !== 'jsonwsJournal') {
+    return false;
+  }
+
+  const message = extractErrorMessage(error);
+  return message.includes('No structured content found with friendlyUrlPath=');
 }
