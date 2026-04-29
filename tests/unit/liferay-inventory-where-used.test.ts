@@ -638,7 +638,7 @@ describe('where-used display page sources', () => {
       {
         origin: 'headlessStructuredContent',
         collect: () =>
-          Promise.reject(new CliError('structured contents failed with status=403', {code: 'LIFERAY_GATEWAY_ERROR'})),
+          Promise.reject(new CliError('structured contents failed with status=404', {code: 'LIFERAY_GATEWAY_ERROR'})),
       },
       {
         origin: 'jsonwsJournal',
@@ -682,6 +682,25 @@ describe('where-used display page sources', () => {
 
     expect(collectHeadless).toHaveBeenCalledTimes(1);
     expect(collectJsonws).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not hide headless permission errors as unsupported sources', async () => {
+    const sources: DisplayPageSource[] = [
+      {
+        origin: 'headlessStructuredContent',
+        collect: () =>
+          Promise.reject(new CliError('structured contents failed with status=403', {code: 'LIFERAY_GATEWAY_ERROR'})),
+      },
+    ];
+
+    await expect(
+      collectDisplayPageCandidatesFromSources(
+        {liferay: {url: 'http://localhost:8080'}} as never,
+        {groupId: 2710030, siteFriendlyUrl: '/actualitat', name: 'Actualitat', pagesCommand: ''},
+        {concurrency: 4, pageSize: 200, dependencies: {}},
+        sources,
+      ),
+    ).rejects.toThrow(/status=403/);
   });
 });
 

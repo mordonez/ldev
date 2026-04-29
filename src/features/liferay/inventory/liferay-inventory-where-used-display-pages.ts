@@ -96,7 +96,7 @@ async function collectDisplayPageCandidatesFromSource(
       candidates: await source.collect(config, site, options),
     };
   } catch (error) {
-    if (isSkippableDisplayPageScanError(error)) {
+    if (isUnsupportedDisplayPageScanError(source.origin, error)) {
       return {kind: 'unsupported'};
     }
     throw error;
@@ -204,10 +204,13 @@ export function resetDisplayPageSourceSupportCache(): void {
   unsupportedDisplayPageSourceCache.clear();
 }
 
-function isSkippableDisplayPageScanError(error: unknown): boolean {
+function isUnsupportedDisplayPageScanError(origin: DisplayPageCandidate['origin'], error: unknown): boolean {
   if (!isCliError(error)) return false;
   if (error.code !== 'LIFERAY_INVENTORY_ERROR' && error.code !== 'LIFERAY_GATEWAY_ERROR') {
     return false;
   }
-  return error.message.includes('status=403') || error.message.includes('status=404');
+
+  // A 404 from headless structured contents means the API surface is not available.
+  // Permission failures should still surface so the caller can diagnose them.
+  return origin === 'headlessStructuredContent' && error.message.includes('status=404');
 }
