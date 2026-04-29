@@ -64,4 +64,48 @@ describe('collectLayoutJournalArticles', () => {
     expect(result.map((item) => item.groupId)).toEqual([101, 202]);
     expect(result.map((item) => item.articleId)).toEqual(['ART-101', 'ART-202']);
   });
+
+  test('merges complementary article ref fields for the same article and group', async () => {
+    fetchGroupInfoMock.mockRejectedValueOnce(new Error('skip site enrichment'));
+
+    const pageElement = {
+      pageElements: [
+        {
+          portletPreferencesMap: {
+            articleId: ['SHARED-ARTICLE'],
+            groupId: ['101'],
+            ddmTemplateKey: ['NEWS_TEMPLATE'],
+          },
+        },
+        {
+          itemReference: {
+            className: 'com.liferay.journal.model.JournalArticle',
+            articleId: 'SHARED-ARTICLE',
+            groupId: '101',
+            classPK: '555',
+          },
+        },
+      ],
+    };
+
+    await collectLayoutJournalArticles(
+      {} as never,
+      {liferay: {url: 'http://localhost:8080'}} as never,
+      {} as never,
+      999,
+      pageElement as never,
+    );
+
+    expect(resolveJournalArticleReferenceMock).toHaveBeenCalledTimes(1);
+    expect(resolveJournalArticleReferenceMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        articleId: 'SHARED-ARTICLE',
+        groupId: 101,
+        ddmTemplateKey: 'NEWS_TEMPLATE',
+        structuredContentId: 555,
+      }),
+      {article: undefined, structuredContent: undefined},
+    );
+  });
 });

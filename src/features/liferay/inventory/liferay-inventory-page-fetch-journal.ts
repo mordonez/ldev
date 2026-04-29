@@ -271,7 +271,7 @@ function collectArticleRefFromPreferences(
 
   const groupId = Number(firstString(prefsMap.groupId) ?? defaultGroupId) || defaultGroupId;
   const ddmTemplateKey = firstString(prefsMap.ddmTemplateKey);
-  refs.set(buildArticleRefKey(articleId, groupId), {
+  upsertArticleRef(refs, buildArticleRefKey(articleId, groupId), {
     articleId,
     groupId,
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
@@ -318,7 +318,7 @@ function collectArticleRefFromItemReference(
   const key = articleId
     ? buildArticleRefKey(articleId, groupId)
     : `structuredContent:${groupId}:${structuredContentId}`;
-  refs.set(key, {
+  upsertArticleRef(refs, key, {
     articleId: articleId ?? '',
     groupId,
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
@@ -328,6 +328,25 @@ function collectArticleRefFromItemReference(
 
 function buildArticleRefKey(articleId: string, groupId: number): string {
   return `${groupId}:${articleId}`;
+}
+
+function upsertArticleRef(refs: Map<string, ArticleRef>, key: string, nextRef: ArticleRef): void {
+  const previousRef = refs.get(key);
+  if (!previousRef) {
+    refs.set(key, nextRef);
+    return;
+  }
+
+  refs.set(key, {
+    articleId: nextRef.articleId || previousRef.articleId,
+    groupId: nextRef.groupId,
+    ...(previousRef.ddmTemplateKey || nextRef.ddmTemplateKey
+      ? {ddmTemplateKey: previousRef.ddmTemplateKey ?? nextRef.ddmTemplateKey}
+      : {}),
+    ...(previousRef.structuredContentId || nextRef.structuredContentId
+      ? {structuredContentId: previousRef.structuredContentId ?? nextRef.structuredContentId}
+      : {}),
+  });
 }
 
 function extractDdmTemplateKey(fieldKey: string | undefined): string | undefined {
