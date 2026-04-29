@@ -34,20 +34,22 @@ silently picking one.
 
 ## Keep Liferay terms exact
 
-Vendor skills always reference these Liferay terms with their canonical name.
-Do not substitute them with project synonyms even if the glossary names them
-differently — name both when you write a brief or report.
+When the project's glossary names a Liferay surface with a project-specific
+synonym, write **both** in any brief, report, or PR title — the canonical
+Liferay term first, the project term in parentheses. Vendor skills must always
+recognise the canonical names below; do not silently substitute one for the
+other.
 
-| Canonical | Avoid as a stand-in for the canonical concept |
+| Canonical Liferay term | Frequently confused with |
 | --- | --- |
-| Site | "portal", "tenant", "instance" |
-| Page | "screen", "view" |
-| Web Content Article | "post", "entry", "content" |
-| Journal Structure | "schema", "model" |
-| Journal Template | "renderer", "view" |
+| Site | Group, "portal", tenant, instance |
+| Page | Layout, "screen", "view" |
+| Web Content Article | Journal Article, "post", "entry", "content" |
+| Journal Structure | DDM Structure, "schema", "model" |
+| Journal Template | DDM Template, "renderer", "view" |
 | Application Display Template (ADT) | "widget renderer", "list template" |
 | Fragment | "block", "section" |
-| Object | "entity", "table" |
+| Object | "custom entity", "table" (Objects are not raw DB tables) |
 | Module / Bundle | "service", "plugin", "app" |
 | Vocabulary / Category | "tag", "label" (Tags are a different concept) |
 
@@ -73,7 +75,18 @@ This costs little and prevents wasted edits.
 ## Producer rule
 
 If during the task a domain term gets resolved (the user clarifies what
-"campaign" means in this project, or a vague label gets sharpened), update
-`docs/ai/project-context.md`'s Glossary inline at that moment. Do not batch the
-update for later. For format and rules, see the Glossary section in
-[../../../project/docs/ai/project-context.md.sample](../../../project/docs/ai/project-context.md.sample).
+"campaign" means in this project, or a vague label gets sharpened), update the
+**Glossary** section of `docs/ai/project-context.md` inline at that moment. Do
+not batch the update for later. Use this format:
+
+```md
+**[Project Term]**:
+[One-sentence definition.]
+_Avoid_: [synonyms agents must not drift to]
+_Liferay mapping_: [Site / Page / Structure key / Template id / Module / Object]
+```
+
+If `docs/ai/project-context.md` does not exist, create it and seed the Glossary
+section with the term you just resolved. Keep definitions tight (one sentence)
+and always include the `_Liferay mapping_` line so the term anchors to a
+concrete portal surface.

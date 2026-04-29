@@ -17,7 +17,8 @@ short. Put long-lived project knowledge in [docs/ai/project-context.md](docs/ai/
 ## Task Routing
 
 **Any task that changes code, resources, or runtime state (GitHub issue, chat request, or ad-hoc request):**
-If `.agents/skills/project-issue-engineering/SKILL.md` exists, read it first for non-trivial work (bug fixes, features, migrations, anything with reproduction risk). For clearly trivial ad-hoc requests where the developer has explicitly scoped the exact change they want, confirm with them whether to follow the full issue engineering workflow or proceed directly — then act per their answer.
+If the request is ambiguous about which Site, Page, resource, module, or surface it targets, route to `.agents/skills/clarifying-liferay-tasks/SKILL.md` first to lock the surface before any other workflow.
+If `.agents/skills/project-issue-engineering/SKILL.md` exists, read it next for non-trivial work (bug fixes, features, migrations, anything with reproduction risk). For clearly trivial ad-hoc requests where the developer has explicitly scoped the exact change they want, confirm with them whether to follow the full issue engineering workflow or proceed directly — then act per their answer.
 
 If the repository has `ldev-native` capabilities available, worktree isolation is the recommended default for significant changes. For trivial changes, ask the developer before creating a worktree — they may prefer to work directly in the current checkout.
 Use `.agents/skills/isolating-worktrees/SKILL.md` for the canonical setup and edit-root lock flow when worktree isolation is used.

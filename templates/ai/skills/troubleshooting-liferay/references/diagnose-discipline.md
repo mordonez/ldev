@@ -149,8 +149,10 @@ a single grep. Untagged logs survive accidentally; tagged logs die together.
 **Performance branch.** For slow page renders, slow Headless responses, or
 slow imports, logs are usually wrong. Instead:
 
-1. Establish a baseline measurement (Playwright `page.metrics()`, timed
-   `curl`, `ldev portal check --json` timing, query plan via DB inspection).
+1. Establish a baseline measurement: timed `curl` (`-w '%{time_total}\n'`)
+   against the failing endpoint, `playwright-cli tracing-start` /
+   `tracing-stop` around the failing browser flow, `ldev portal check --json`
+   timing, or a query plan from DB inspection.
 2. Bisect: change one variable (cache enabled / disabled, single bundle
    redeploy, smaller dataset).
 3. Measure first, fix second.
@@ -170,9 +172,10 @@ codebase architecture is preventing the bug from being locked down. Flag it.
 
 If a correct seam exists:
 
-1. Turn the minimised repro into a failing test at that seam (JUnit / Spock
-   for Java, Playwright for browser-visible behaviour, integration test
-   against `ldev portal inventory ...` for resource state).
+1. Turn the minimised repro into a failing test at that seam (JUnit + Mockito
+   for Java unit tests, Liferay Arquillian or `@TestEngine` for in-portal
+   integration tests, Playwright for browser-visible behaviour, an inventory
+   assertion against `ldev portal inventory ... --json` for resource state).
 2. Watch it fail.
 3. Apply the fix.
 4. Watch it pass.

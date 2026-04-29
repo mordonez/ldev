@@ -37,8 +37,13 @@ If the request mentions a URL, resolve it before any question:
 ldev portal inventory page --url <fullUrl> --json
 ```
 
-If `bootstrap.context.commands.*` lacks a command this skill expects, stop and
-report that the installed `ldev` AI assets are out of sync with the CLI.
+## Bootstrap fields
+
+- Required fields: `context.commands.*` (used to confirm `portal inventory`
+  is supported) and `context.liferay.portalUrl` (used to normalise URLs in
+  questions).
+- If either is missing, stop and report that the installed `ldev` AI assets
+  are out of sync with the CLI.
 
 ## Process
 

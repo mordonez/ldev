@@ -78,9 +78,10 @@ and empty states. Use glossary terms.
 - <adjacent surface that may seem related but is separate>
 - <broader refactor that may be tempting but is not part of this issue>
 
-**Production handoff (if applicable):**
+**Production handoff (runtime-backed resources only — Templates, ADTs, Fragments, Structures):**
 - Preferred: `ldev resource import-<type> --site /<site> --... --check-only` then without `--check-only`
 - Manual UI fallback: <Liferay UI path, e.g. Site Menu → Design → Templates>
+- For modules and themes, replace this section with a **Deploy contract** that names the build artifact and CI/CD path; no UI fallback exists for compiled artifacts.
 ```
 
 ## Examples

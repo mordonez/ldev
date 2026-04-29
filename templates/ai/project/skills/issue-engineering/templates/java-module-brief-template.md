@@ -53,11 +53,14 @@ boundaries, and any new configuration defaults.
 - Bumping unrelated dependencies in `bnd.bnd`
 - Public service signature changes that ripple into other modules (escalate)
 
-**Production handoff:**
-- Build artifact: `<module-name>.jar` deployed via project pipeline
-- Configuration: `.config` files under `<configs/[env]/osgi/configs/>` (blade
-  workspace) or `liferay/configs/` (ldev-native)
+**Deploy contract:**
+- Build artifact: `<module-name>.jar` deployed via the project's CI/CD pipeline
+  (no UI fallback exists for OSGi modules)
+- Configuration: `.config` files committed under
+  `<configs/[env]/osgi/configs/>` (blade workspace) or `liferay/configs/`
+  (ldev-native); never only applied to the live runtime
 - Database changes (Service Builder): expected DDL / DML migration footprint
+  and rollback plan
 ```
 
 ## Notes

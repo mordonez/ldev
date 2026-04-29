@@ -54,16 +54,19 @@ edits) or `automating-browser-tests` (for verification only).
 ## 4. Migration risk (Structure or Object schema)
 
 1. Does **existing content** use the field you are about to change?
-   *(recommended: assume yes unless `ldev portal inventory structures --site
-   /<site> --with-templates --json` confirms zero usage)*
+   *(recommended: assume yes by default. Real impact is only knowable from
+   `ldev resource migration-pipeline --migration-file <file> --check-only
+   --migration-dry-run` once a descriptor exists; do not declare the change
+   safe until then.)*
 2. Are there **dependent Structures** or **embedded Fragments** that read this
    field? *(recommended: search exports; if any, list them in the descriptor's
    `dependentStructures`)*
 3. Is **search reindex** required after the migration? *(recommended: yes if
    the field is searchable; verify with `ldev portal reindex status --json`)*
-4. Will the migration **drop or rename** an existing field? *(recommended: use
-   `cleanupSource: true` only with explicit confirmation, after a successful
-   `--check-only` and `--migration-dry-run`)*
+4. Will the migration **drop or rename** an existing field? *(recommended: no
+   by default; if yes, plan `cleanupSource: true` explicitly in the descriptor
+   and only execute it in a real run after `--check-only` and
+   `--migration-dry-run` have been reviewed.)*
 
 Stop when steps 1–4 are answered. Route to `migrating-journal-structures`,
 inside an isolated worktree.
