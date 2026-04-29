@@ -109,10 +109,23 @@ export type PageFragmentEntry = {
 
 export function collectPageElements(
   pageElement: HeadlessPageElementPayload | null,
+  fragmentEntryLinks: FragmentEntryLink[] = [],
   locale: string | null = null,
 ): PageFragmentEntry[] {
   const result: PageFragmentEntry[] = [];
   collectPageElementsRecursive(pageElement, result, locale);
+
+  for (const entry of result) {
+    if (entry.type !== 'widget' || !entry.widgetName) {
+      continue;
+    }
+
+    const widgetName = entry.widgetName;
+    const match = fragmentEntryLinks.find((item) => (firstStringUtil(item.portletId) ?? '').includes(widgetName));
+    if (match) {
+      entry.portletId = firstStringUtil(match.portletId) ?? '';
+    }
+  }
 
   return result;
 }

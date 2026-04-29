@@ -5,17 +5,21 @@ import {
   type HeadlessPageElementPayload,
   type HeadlessSitePagePayload,
 } from '../page-layout/liferay-site-page-shared.js';
+import {tryFetchFragmentEntryLinks} from './liferay-inventory-page-fetch-fragments.js';
 
 export async function fetchComponentPageData(
   gateway: LiferayGateway,
   siteId: number,
   canonicalFriendlyUrl: string,
+  plid: number,
 ): Promise<{
   pageElement: HeadlessPageElementPayload | null;
   pageMetadata: HeadlessSitePagePayload | null;
+  rawFragmentLinks: Array<Record<string, unknown>>;
 }> {
   const pageElement = await fetchHeadlessSitePageElement(gateway, siteId, canonicalFriendlyUrl);
   const pageMetadata = await fetchHeadlessSitePageMetadata(gateway, siteId, canonicalFriendlyUrl);
+  const rawFragmentLinks = await tryFetchFragmentEntryLinks(gateway, siteId, plid);
 
-  return {pageElement, pageMetadata};
+  return {pageElement, pageMetadata, rawFragmentLinks};
 }

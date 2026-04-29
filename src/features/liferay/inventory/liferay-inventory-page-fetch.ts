@@ -169,14 +169,14 @@ export async function fetchRegularPageInventory(
   let contentStructures: ContentStructureSummary[] = [];
 
   if (componentInspectionSupported) {
-    const {pageElement, pageMetadata: fetchedMetadata} = await fetchComponentPageData(
-      gateway,
-      site.id,
-      canonicalFriendlyUrl,
-    );
+    const {
+      pageElement,
+      pageMetadata: fetchedMetadata,
+      rawFragmentLinks,
+    } = await fetchComponentPageData(gateway, site.id, canonicalFriendlyUrl, layout.plid ?? -1);
     pageMetadata = fetchedMetadata;
     configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
-    fragmentEntryLinks = collectPageElements(pageElement, matchedLocale);
+    fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
     enrichRegularPageFragmentSummaries(fragmentEntryLinks);
     await enrichFragmentEntryExportPaths(config, gateway, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
     widgets = fragmentEntryLinks
@@ -186,7 +186,14 @@ export async function fetchRegularPageInventory(
         ...(entry.portletId ? {portletId: entry.portletId} : {}),
         ...(entry.configuration ? {configuration: entry.configuration} : {}),
       }));
-    journalArticles = await collectLayoutJournalArticles(gateway, config, apiClient, site.id, pageElement);
+    journalArticles = await collectLayoutJournalArticles(
+      gateway,
+      config,
+      apiClient,
+      site.id,
+      pageElement,
+      rawFragmentLinks,
+    );
     contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
   }
 

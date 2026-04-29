@@ -44,8 +44,9 @@ export async function collectLayoutJournalArticles(
   apiClient: HttpApiClient,
   defaultGroupId: number,
   pageElement?: HeadlessPageElementPayload | null,
+  fragmentEntryLinks: FragmentEntryLink[] = [],
 ): Promise<JournalArticleSummary[]> {
-  const refs = extractArticleRefs(defaultGroupId, pageElement);
+  const refs = extractArticleRefs(defaultGroupId, pageElement, fragmentEntryLinks);
   const result: JournalArticleSummary[] = [];
 
   for (const ref of refs.values()) {
@@ -216,8 +217,22 @@ export async function collectLayoutContentStructures(
 function extractArticleRefs(
   defaultGroupId: number,
   pageElement?: HeadlessPageElementPayload | null,
+  fragmentEntryLinks: FragmentEntryLink[] = [],
 ): Map<string, ArticleRef> {
   const refs = new Map<string, ArticleRef>();
+  for (const link of fragmentEntryLinks) {
+    const editableValues = firstString(link.editableValues) ?? '';
+    if (!editableValues || editableValues === '{}') {
+      continue;
+    }
+
+    try {
+      collectArticleRefsFromValue(JSON.parse(editableValues), refs, defaultGroupId);
+    } catch {
+      // Ignore invalid fragment editable values.
+    }
+  }
+
   collectArticleRefsFromValue(pageElement, refs, defaultGroupId);
 
   return refs;
