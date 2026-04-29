@@ -33,6 +33,11 @@ import {
   formatLiferayInventoryTemplates,
   runLiferayInventoryTemplates,
 } from '../../features/liferay/inventory/liferay-inventory-templates.js';
+import {
+  formatLiferayInventoryWhereUsed,
+  runLiferayInventoryWhereUsed,
+  type WhereUsedResourceType,
+} from '../../features/liferay/inventory/liferay-inventory-where-used.js';
 import {formatLiferayPreflight, runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
 
 function collect(value: string, previous: string[]): string[] {
@@ -77,6 +82,16 @@ type InventoryPreflightCommandOptions = {
   forceRefresh?: boolean;
 };
 
+type InventoryWhereUsedCommandOptions = {
+  type: string;
+  key: string[];
+  site?: string;
+  includePrivate?: boolean;
+  maxDepth: string;
+  concurrency: string;
+  pageSize: string;
+};
+
 export function createInventoryCommands(parent: Command): void {
   const inventory = new Command('inventory')
     .helpGroup('Discovery:')
@@ -88,11 +103,12 @@ export function createInventoryCommands(parent: Command): void {
 Use these commands to discover IDs, URLs and keys before running export or import workflows.
 
 Commands:
-  sites       List accessible sites
-  pages       List site pages
-  page        Inspect one page
-  structures  List journal structures
-  templates   List web content templates
+  sites        List accessible sites
+  pages        List site pages
+  page         Inspect one page
+  structures   List journal structures
+  templates    List web content templates
+  where-used   Reverse lookup: pages that contain a fragment/widget/structure/template/ADT
 `,
     );
 
@@ -310,6 +326,54 @@ Notes:
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
         }),
       {text: formatLiferayInventoryTemplates},
+    ),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('where-used')
+      .description('Reverse-lookup: list every page that contains a given fragment, widget, structure, template or ADT')
+      .requiredOption('--type <type>', 'Resource type: fragment | widget | portlet | structure | template | adt')
+      .option(
+        '--key <key>',
+        'Resource key to look up (repeat for OR-search across multiple keys)',
+        collect,
+        [] as string[],
+      )
+      .option('--site <site>', 'Limit lookup to a single site (defaults to scanning all accessible sites)')
+      .option('--include-private', 'Also scan private layouts')
+      .option('--max-depth <maxDepth>', 'Maximum page tree recursion depth', '12')
+      .option('--concurrency <n>', 'Parallel page fetches per site', '4')
+      .option('--page-size <pageSize>', 'Headless page size for site listings', '200')
+      .addHelpText(
+        'after',
+        `
+Examples:
+  ldev portal inventory where-used --type fragment --key card-hero
+  ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet
+  ldev portal inventory where-used --type structure --key BASIC --site /facultat-farmacia-alimentacio
+  ldev portal inventory where-used --type adt --key DEFAULT --include-private --json
+
+Notes:
+  - The lookup walks the same data exposed by 'inventory page' so any reference visible there can be matched.
+  - --key may be repeated to OR-match several keys in a single pass.
+  - For widget/portlet lookups both the widgetName and the full portletId are matched.
+  - Pages that fail to load (e.g. permission errors) are reported under failedPages without aborting the run.
+`,
+      ),
+  ).action(
+    createFormattedAction(
+      async (context, options: InventoryWhereUsedCommandOptions) =>
+        runLiferayInventoryWhereUsed(context.config, {
+          type: options.type as WhereUsedResourceType,
+          keys: options.key,
+          site: options.site,
+          includePrivate: Boolean(options.includePrivate),
+          maxDepth: Number.parseInt(options.maxDepth, 10) || 12,
+          concurrency: Number.parseInt(options.concurrency, 10) || 4,
+          pageSize: Number.parseInt(options.pageSize, 10) || 200,
+        }),
+      {text: formatLiferayInventoryWhereUsed},
     ),
   );
 
