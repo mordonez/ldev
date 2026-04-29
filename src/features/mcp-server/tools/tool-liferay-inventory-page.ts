@@ -1,6 +1,9 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runLiferayInventoryPage} from '../../liferay/inventory/liferay-inventory-page.js';
+import {
+  projectLiferayInventoryPageJson,
+  runLiferayInventoryPage,
+} from '../../liferay/inventory/liferay-inventory-page.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_page';
@@ -10,23 +13,23 @@ export const inputSchema = {
   site: z.string().optional().describe('Site friendly URL path (e.g. /guest)'),
   friendlyUrl: z.string().optional().describe('Page friendly URL relative to site (e.g. /home)'),
   privateLayout: z.boolean().optional().describe('True if the page is a private layout'),
-  verbose: z.boolean().optional().describe('Include fragment and widget details'),
+  full: z.boolean().optional().describe('Include expanded inspection details'),
 };
 
 export const description =
   'Inspect a specific Liferay page: returns portlets, fragments, configuration tabs, and SEO settings.';
 
 export async function handleTool(
-  input: {url?: string; site?: string; friendlyUrl?: string; privateLayout?: boolean; verbose?: boolean},
+  input: {url?: string; site?: string; friendlyUrl?: string; privateLayout?: boolean; full?: boolean},
   config: AppConfig,
 ) {
-  return runJsonTool(() =>
-    runLiferayInventoryPage(config, {
+  return runJsonTool(async () => {
+    const result = await runLiferayInventoryPage(config, {
       url: input.url,
       site: input.site,
       friendlyUrl: input.friendlyUrl,
       privateLayout: input.privateLayout,
-      verbose: input.verbose,
-    }),
-  );
+    });
+    return projectLiferayInventoryPageJson(result, {full: Boolean(input.full)});
+  });
 }
