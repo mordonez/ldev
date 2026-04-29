@@ -17,8 +17,9 @@ Before changing code or runtime state:
 1. Run `ldev ai bootstrap --intent=develop --cache=60 --json`.
 2. Run `ldev doctor --json` only when the task needs extra runtime health,
    installed tooling, browser automation, deploy verification, or diagnosis.
-3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
-   `ldev` command covers the required portal surface.
+3. Use local `ldev` MCP tools for structured discovery/diagnosis when they are
+   visible in the active assistant. If they are not visible, continue with the
+   CLI fallback commands in this file; do not block the task.
 4. Read `CLAUDE.md`.
 5. Read the task-specific skill under `.agents/skills/` if one applies.
 6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
@@ -87,7 +88,9 @@ Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
   boundary for the whole task.
 - Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
   explicitly requires fresh runtime or portal state.
-- Prefer the task-shaped public contract first:
+- Prefer the task-shaped public contract first. If the equivalent local `ldev`
+  MCP tool is visible, use it for structured discovery/diagnosis; otherwise use
+  the CLI fallback:
   - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
@@ -118,25 +121,50 @@ Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
 
 ## MCP Usage
 
-- Treat MCP as optional. Do not assume it is enabled in every runtime.
-- Run `ldev mcp check --json` before planning around MCP, not as universal bootstrap.
-- For agents and reusable skills, prefer OAuth2 via `ldev oauth install --write-env` instead of MCP Basic auth with a human username/password.
-- Treat MCP username/password auth as a quick manual test path, not as the default agent bootstrap.
-- If MCP is available and the task is generic OpenAPI discovery or generic endpoint execution, MCP can be the shortest path.
-- If the task is local-runtime diagnosis or opinionated portal discovery, prefer `ldev` commands first.
+There are two different MCP surfaces:
 
-Use MCP for:
+- **Local ldev MCP server:** optional acceleration layer for agent-facing
+  `ldev` workflows.
+- **Liferay portal MCP server:** optional portal feature checked by
+  `ldev mcp check --json`.
 
-- discovering available OpenAPIs
-- retrieving one OpenAPI spec
-- calling a generic portal endpoint when no higher-level `ldev` command exists
+Treat local `ldev` MCP as optional. Do not assume it is enabled in every editor
+or assistant. If the tool is visible, prefer it for structured discovery and
+diagnosis; if not, use the CLI fallback and continue. `liferay_osgi_thread_dump`
+writes dump artifacts, so use it only when runtime artifacts are part of the
+diagnosis.
 
-Prefer `ldev` for:
+MCP-to-CLI fallbacks:
 
-- runtime diagnosis
-- OAuth/bootstrap
-- site and page discovery
-- page inspection and other task-shaped workflows
+- `ldev_context` -> `ldev context --json`
+- `liferay_check` -> `ldev portal check --json`
+- `ldev_status` -> `ldev status --json`
+- `ldev_logs_diagnose` -> `ldev logs diagnose --since 10m --json`
+- `liferay_inventory_sites` -> `ldev portal inventory sites --json`
+- `liferay_inventory_pages` -> `ldev portal inventory pages --site /<site> --json`
+- `liferay_inventory_page` -> `ldev portal inventory page --url <url> --json`
+- `liferay_inventory_structures` -> `ldev portal inventory structures --site /<site> --json`
+- `liferay_inventory_templates` -> `ldev portal inventory templates --site /<site> --json`
+- `liferay_deploy_status` -> `ldev deploy status --json`
+- `liferay_osgi_status` -> `ldev osgi status <bundle> --json`
+- `liferay_osgi_diag` -> `ldev osgi diag <bundle> --json`
+- `liferay_osgi_thread_dump` -> `ldev osgi thread-dump --json`
+- `liferay_doctor` -> `ldev doctor --json`
+
+When the user reports that MCP tools are missing or stale, run:
+
+```bash
+ldev mcp doctor --target . --tool all
+```
+
+Keep mutating workflows CLI-first unless a skill explicitly documents a bounded
+MCP mutation path. Skills decide the workflow and guardrails; MCP only executes
+the structured operation when available.
+
+Use the Liferay portal MCP server for generic OpenAPI discovery or endpoint
+execution only when no higher-level `ldev` command covers the portal surface.
+For agents and reusable skills, prefer OAuth2 via `ldev oauth install --write-env`
+instead of MCP Basic auth with a human username/password.
 
 ## Project-Specific Knowledge
 

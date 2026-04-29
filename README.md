@@ -34,6 +34,7 @@ ldev doctor
 - **Reproduce Production Locally** — Docker, database, and worktree workflows help bring real issues into a controlled local setup.
 - **Apply Fixes Safely** — `ldev deploy`, `ldev osgi`, and related tooling support controlled runtime changes and verification.
 - **Work with Structured Output** — JSON output makes the same workflows usable for humans, scripts, and coding agents.
+- **Expose Local MCP Tools** — run selected `ldev` workflows directly from MCP-capable editors while keeping the CLI as the fallback.
 
 ## 🧭 Typical Incident Flow
 
@@ -60,6 +61,38 @@ ldev ai bootstrap --intent=develop --json
 ldev portal inventory sites --json
 ldev logs diagnose --json
 ```
+
+## Local MCP Server
+
+`ldev` includes a local stdio MCP server for editors and coding agents that
+support MCP. It exposes structured shortcuts over the operational CLI, including
+project context, runtime status, portal checks, log diagnosis, inventory, deploy
+status, OSGi diagnosis, and thread dumps.
+
+Configure supported clients from the project root:
+
+```bash
+ldev ai mcp-setup --target . --tool all
+```
+
+Use an explicit launch strategy when you need reproducible worktrees or global
+speed:
+
+```bash
+ldev ai mcp-setup --target . --tool vscode --strategy local
+ldev ai mcp-setup --target . --tool claude-code --strategy global
+ldev ai mcp-setup --target . --tool cursor --strategy npx
+```
+
+If an editor does not show the tools, validate the config and run a real
+handshake:
+
+```bash
+ldev mcp doctor --target . --tool all
+```
+
+The MCP layer is optional. Skills and agents should use MCP when available, and
+fall back to the same `ldev ... --json` commands when it is not.
 
 ## 📚 Documentation
 
