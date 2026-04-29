@@ -234,6 +234,34 @@ describe('matchPageAgainstResource - structures and templates', () => {
     ]);
   });
 
+  test('suppresses redundant contentStructure matches when query includes key and contentStructureId', () => {
+    const page: LiferayInventoryPageResult = {
+      ...REGULAR_PAGE_BASE,
+      journalArticles: [
+        {
+          articleId: 'ART-1',
+          title: 'Home',
+          ddmStructureKey: 'BASIC',
+          contentStructureId: 301,
+        },
+      ],
+      contentStructures: [{contentStructureId: 301, key: 'BASIC', name: 'Basic'}],
+    };
+
+    const matches = matchPageAgainstResource(page, {type: 'structure', keys: ['BASIC', '301']});
+
+    expect(matches).toEqual([
+      {
+        resourceType: 'structure',
+        matchedKey: 'BASIC',
+        matchKind: 'journalArticleStructure',
+        label: 'Journal article structure',
+        detail: 'articleId=ART-1 title=Home contentStructureId=301 contentStructureName=Basic',
+        source: 'journalArticle',
+      },
+    ]);
+  });
+
   test('matches template via ddmTemplateKey and widgetDefaultTemplate', () => {
     const page: LiferayInventoryPageResult = {
       ...REGULAR_PAGE_BASE,

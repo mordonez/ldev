@@ -27,12 +27,34 @@ export type PageEvidenceKind =
   | 'contentStructure'
   | 'displayPageArticle';
 
+export type PageEvidenceContext = {
+  articleId?: string;
+  articleTitle?: string;
+  contentStructureId?: number;
+  contentStructureName?: string;
+};
+
 export type PageEvidence = {
   resourceType: PageEvidenceResourceType;
   key: string;
   kind: PageEvidenceKind;
   detail: string;
   source: 'fragmentEntryLink' | 'portletLayout' | 'journalArticle' | 'contentStructure' | 'displayPageArticle';
+  context?: PageEvidenceContext;
+};
+
+type JournalArticleEvidenceDescriptor = {
+  where: string;
+  context: PageEvidenceContext;
+};
+
+type PageEvidenceInput = {
+  resourceType: PageEvidenceResourceType;
+  key: string;
+  kind: PageEvidenceKind;
+  detail: string;
+  source: PageEvidence['source'];
+  context?: PageEvidenceContext;
 };
 
 export function extractPageEvidence(page: LiferayInventoryPageResult): PageEvidence[] {
@@ -82,13 +104,14 @@ export function buildDisplayPageEvidence(input: {
   return [
     ...buildJournalArticleEvidence(input.journalArticles ?? [], input.contentStructures ?? []),
     ...buildContentStructureEvidence(input.contentStructures ?? []),
-    {
+    createPageEvidence({
       resourceType: 'structure',
       key: String(input.article.contentStructureId),
       kind: 'displayPageArticle',
       detail: `displayPage articleKey=${input.article.key} contentStructureId=${input.article.contentStructureId}`,
       source: 'displayPageArticle',
-    },
+      context: {articleId: input.article.key, contentStructureId: input.article.contentStructureId},
+    }),
   ];
 }
 
@@ -97,54 +120,60 @@ function buildFragmentEvidence(entries: PageFragmentEntry[]): PageEvidence[] {
 
   entries.forEach((entry, index) => {
     if (entry.type === 'fragment' && entry.fragmentKey) {
-      evidence.push({
-        resourceType: 'fragment',
-        key: entry.fragmentKey,
-        kind: 'fragmentEntry',
-        detail: buildFragmentDetail(entry.fragmentKey, entry.elementName, index),
-        source: 'fragmentEntryLink',
-      });
+      const detail = buildFragmentDetail(entry.fragmentKey, entry.elementName, index);
+
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'fragment',
+          key: entry.fragmentKey,
+          kind: 'fragmentEntry',
+          detail,
+          source: 'fragmentEntryLink',
+        }),
+      );
 
       for (const templateKey of entry.mappedTemplateKeys ?? []) {
-        evidence.push({
-          resourceType: 'template',
-          key: templateKey,
-          kind: 'fragmentMappedTemplate',
-          detail: buildFragmentDetail(entry.fragmentKey, entry.elementName, index),
-          source: 'fragmentEntryLink',
-        });
+        evidence.push(
+          createPageEvidence({
+            resourceType: 'template',
+            key: templateKey,
+            kind: 'fragmentMappedTemplate',
+            detail,
+            source: 'fragmentEntryLink',
+          }),
+        );
       }
 
       for (const structureKey of entry.mappedStructureKeys ?? []) {
-        evidence.push({
-          resourceType: 'structure',
-          key: structureKey,
-          kind: 'fragmentMappedStructure',
-          detail: buildFragmentDetail(entry.fragmentKey, entry.elementName, index),
-          source: 'fragmentEntryLink',
-        });
+        evidence.push(
+          createPageEvidence({
+            resourceType: 'structure',
+            key: structureKey,
+            kind: 'fragmentMappedStructure',
+            detail,
+            source: 'fragmentEntryLink',
+          }),
+        );
       }
       return;
     }
 
     if (entry.type === 'widget') {
+      const detail = buildWidgetDetail(entry.widgetName, entry.portletId, entry.elementName, index);
       const candidates = [entry.widgetName, entry.portletId].filter(isNonEmptyString);
       for (const candidate of candidates) {
-        evidence.push({
-          resourceType: 'widget',
-          key: candidate,
-          kind: 'widgetEntry',
-          detail: buildWidgetDetail(entry.widgetName, entry.portletId, entry.elementName, index),
-          source: 'fragmentEntryLink',
-        });
+        evidence.push(
+          createPageEvidence({
+            resourceType: 'widget',
+            key: candidate,
+            kind: 'widgetEntry',
+            detail,
+            source: 'fragmentEntryLink',
+          }),
+        );
       }
 
-      appendAdtEvidenceFromConfiguration(
-        evidence,
-        entry.configuration,
-        buildWidgetDetail(entry.widgetName, entry.portletId, entry.elementName, index),
-        'fragmentEntryLink',
-      );
+      appendAdtEvidenceFromConfiguration(evidence, entry.configuration, detail, 'fragmentEntryLink');
     }
   });
 
@@ -155,23 +184,21 @@ function buildPortletEvidence(portlets: PagePortletSummary[]): PageEvidence[] {
   const evidence: PageEvidence[] = [];
 
   for (const portlet of portlets) {
+    const detail = buildPortletDetail(portlet);
     const candidates = [portlet.portletId, portlet.portletName].filter(isNonEmptyString);
     for (const candidate of candidates) {
-      evidence.push({
-        resourceType: 'portlet',
-        key: candidate,
-        kind: 'portlet',
-        detail: `column=${portlet.columnId} position=${portlet.position} portletId=${portlet.portletId}`,
-        source: 'portletLayout',
-      });
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'portlet',
+          key: candidate,
+          kind: 'portlet',
+          detail,
+          source: 'portletLayout',
+        }),
+      );
     }
 
-    appendAdtEvidenceFromConfiguration(
-      evidence,
-      portlet.configuration,
-      `column=${portlet.columnId} position=${portlet.position} portletId=${portlet.portletId}`,
-      'portletLayout',
-    );
+    appendAdtEvidenceFromConfiguration(evidence, portlet.configuration, detail, 'portletLayout');
   }
 
   return evidence;
@@ -184,25 +211,32 @@ function buildJournalArticleEvidence(
   const evidence: PageEvidence[] = [];
 
   for (const article of articles) {
-    const where = `articleId=${article.articleId} title=${article.title}`;
+    const descriptor = describeJournalArticleEvidence(article, structures);
+
     if (article.articleId) {
-      evidence.push({
-        resourceType: 'journalArticle',
-        key: article.articleId,
-        kind: 'journalArticle',
-        detail: where,
-        source: 'journalArticle',
-      });
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'journalArticle',
+          key: article.articleId,
+          kind: 'journalArticle',
+          detail: descriptor.where,
+          source: 'journalArticle',
+          context: descriptor.context,
+        }),
+      );
     }
 
     if (article.ddmStructureKey) {
-      evidence.push({
-        resourceType: 'structure',
-        key: article.ddmStructureKey,
-        kind: 'journalArticleStructure',
-        detail: buildJournalArticleStructureDetail(article, where, structures),
-        source: 'journalArticle',
-      });
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'structure',
+          key: article.ddmStructureKey,
+          kind: 'journalArticleStructure',
+          detail: buildJournalArticleStructureDetail(descriptor),
+          source: 'journalArticle',
+          context: descriptor.context,
+        }),
+      );
     }
 
     const templateCandidates = [
@@ -212,24 +246,26 @@ function buildJournalArticleEvidence(
       ...(article.displayPageDdmTemplates ?? []),
     ].filter(isNonEmptyString);
     for (const templateKey of templateCandidates) {
-      evidence.push({
-        resourceType: 'template',
-        key: templateKey,
-        kind: 'journalArticleTemplate',
-        detail: where,
-        source: 'journalArticle',
-      });
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'template',
+          key: templateKey,
+          kind: 'journalArticleTemplate',
+          detail: descriptor.where,
+          source: 'journalArticle',
+          context: descriptor.context,
+        }),
+      );
     }
   }
 
   return evidence;
 }
 
-function buildJournalArticleStructureDetail(
+function describeJournalArticleEvidence(
   article: JournalArticleSummary,
-  where: string,
   structures: ContentStructureSummary[],
-): string {
+): JournalArticleEvidenceDescriptor {
   const structure = structures.find(
     (candidate) =>
       (article.contentStructureId && candidate.contentStructureId === article.contentStructureId) ||
@@ -237,10 +273,26 @@ function buildJournalArticleStructureDetail(
       (article.ddmStructureKey && candidate.name === article.ddmStructureKey),
   );
 
+  return {
+    where: buildJournalArticleWhere(article),
+    context: {
+      ...(article.articleId ? {articleId: article.articleId} : {}),
+      ...(article.title ? {articleTitle: article.title} : {}),
+      ...(article.contentStructureId ? {contentStructureId: article.contentStructureId} : {}),
+      ...(structure?.name ? {contentStructureName: structure.name} : {}),
+    },
+  };
+}
+
+function buildJournalArticleWhere(article: JournalArticleSummary): string {
+  return `articleId=${article.articleId} title=${article.title}`;
+}
+
+function buildJournalArticleStructureDetail(descriptor: JournalArticleEvidenceDescriptor): string {
   return [
-    where,
-    article.contentStructureId ? `contentStructureId=${article.contentStructureId}` : null,
-    structure?.name ? `contentStructureName=${structure.name}` : null,
+    descriptor.where,
+    descriptor.context.contentStructureId ? `contentStructureId=${descriptor.context.contentStructureId}` : null,
+    descriptor.context.contentStructureName ? `contentStructureName=${descriptor.context.contentStructureName}` : null,
   ]
     .filter((value): value is string => value !== null)
     .join(' ');
@@ -252,13 +304,19 @@ function buildContentStructureEvidence(structures: ContentStructureSummary[]): P
   for (const structure of structures) {
     const candidates = [structure.key, String(structure.contentStructureId)].filter(isNonEmptyString);
     for (const key of candidates) {
-      evidence.push({
-        resourceType: 'structure',
-        key,
-        kind: 'contentStructure',
-        detail: `contentStructureId=${structure.contentStructureId} name=${structure.name}`,
-        source: 'contentStructure',
-      });
+      evidence.push(
+        createPageEvidence({
+          resourceType: 'structure',
+          key,
+          kind: 'contentStructure',
+          detail: `contentStructureId=${structure.contentStructureId} name=${structure.name}`,
+          source: 'contentStructure',
+          context: {
+            contentStructureId: structure.contentStructureId,
+            contentStructureName: structure.name,
+          },
+        }),
+      );
     }
   }
 
@@ -287,24 +345,35 @@ function buildWidgetDetail(
     .join(' ');
 }
 
+function buildPortletDetail(portlet: PagePortletSummary): string {
+  return `column=${portlet.columnId} position=${portlet.position} portletId=${portlet.portletId}`;
+}
+
 function appendAdtEvidenceFromConfiguration(
   evidence: PageEvidence[],
   configuration: Record<string, string> | undefined,
   detail: string,
   source: PageEvidence['source'],
 ): void {
-  const displayStyle = configuration?.displayStyle.trim();
+  const rawDisplayStyle = configuration?.displayStyle;
+  const displayStyle = typeof rawDisplayStyle === 'string' ? rawDisplayStyle.trim() : undefined;
   if (!displayStyle || !displayStyle.startsWith('ddmTemplate_')) {
     return;
   }
 
-  evidence.push({
-    resourceType: 'adt',
-    key: displayStyle,
-    kind: 'widgetAdt',
-    detail: `${detail} displayStyle=${displayStyle}`,
-    source,
-  });
+  evidence.push(
+    createPageEvidence({
+      resourceType: 'adt',
+      key: displayStyle,
+      kind: 'widgetAdt',
+      detail: `${detail} displayStyle=${displayStyle}`,
+      source,
+    }),
+  );
+}
+
+function createPageEvidence(input: PageEvidenceInput): PageEvidence {
+  return input.context ? {...input} : {...input, context: undefined};
 }
 
 function isNonEmptyString(value: unknown): value is string {

@@ -67,11 +67,19 @@ function isRedundantStructureEvidence(
     return false;
   }
 
+  const evidenceStructureId = evidence.context?.contentStructureId ?? parseNumericKey(evidence.key);
+
   return matchedEvidence.some(
     (candidate) =>
       candidate.kind === 'journalArticleStructure' &&
-      (candidate.key === evidence.key || candidate.detail.includes(`contentStructureId=${evidence.key}`)),
+      (candidate.key === evidence.key ||
+        (evidenceStructureId !== undefined && candidate.context?.contentStructureId === evidenceStructureId)),
   );
+}
+
+function parseNumericKey(key: string): number | undefined {
+  const value = Number(key);
+  return Number.isFinite(value) ? value : undefined;
 }
 
 function labelForMatchKind(kind: WhereUsedMatchKind): string {

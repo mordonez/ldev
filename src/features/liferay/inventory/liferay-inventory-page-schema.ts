@@ -74,6 +74,14 @@ const pageEvidenceSchema = z.object({
   ]),
   detail: z.string(),
   source: z.enum(['fragmentEntryLink', 'portletLayout', 'journalArticle', 'contentStructure', 'displayPageArticle']),
+  context: z
+    .object({
+      articleId: z.string().optional(),
+      articleTitle: z.string().optional(),
+      contentStructureId: z.number().optional(),
+      contentStructureName: z.string().optional(),
+    })
+    .optional(),
 });
 
 const pageFragmentEntrySchema = z.object({
