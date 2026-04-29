@@ -21,12 +21,17 @@ function registerTool(server: McpServer, tool: McpToolModule, config: AppConfig,
 }
 /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
 
-function readPackageVersion(): string {
+export function readMcpPackageVersion(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (let i = 0; i < 5; i++) {
     try {
       const pkg = parseJsonUnknown(readFileSync(path.join(dir, 'package.json'), 'utf8'));
-      if (pkg && typeof pkg === 'object' && 'version' in pkg && typeof (pkg as {version: unknown}).version === 'string') {
+      if (
+        pkg &&
+        typeof pkg === 'object' &&
+        'version' in pkg &&
+        typeof (pkg as {version: unknown}).version === 'string'
+      ) {
         return (pkg as {version: string}).version;
       }
     } catch {
@@ -39,7 +44,7 @@ function readPackageVersion(): string {
 
 export async function startMcpServer(): Promise<void> {
   const {config, cwd} = resolveProjectContext();
-  const server = new McpServer({name: 'ldev', version: readPackageVersion()});
+  const server = new McpServer({name: 'ldev', version: readMcpPackageVersion()});
 
   for (const tool of ALL_TOOLS) {
     registerTool(server, tool, config, cwd);

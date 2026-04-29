@@ -1,7 +1,7 @@
-import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
 import {runLiferayInventoryPage} from '../../liferay/inventory/liferay-inventory-page.js';
+import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_page';
 
@@ -19,17 +19,14 @@ export const description =
 export async function handleTool(
   input: {url?: string; site?: string; friendlyUrl?: string; privateLayout?: boolean; verbose?: boolean},
   config: AppConfig,
-): Promise<CallToolResult> {
-  try {
-    const result = await runLiferayInventoryPage(config, {
+) {
+  return runJsonTool(() =>
+    runLiferayInventoryPage(config, {
       url: input.url,
       site: input.site,
       friendlyUrl: input.friendlyUrl,
       privateLayout: input.privateLayout,
       verbose: input.verbose,
-    });
-    return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
-  } catch (err) {
-    return {isError: true, content: [{type: 'text', text: err instanceof Error ? err.message : String(err)}]};
-  }
+    }),
+  );
 }

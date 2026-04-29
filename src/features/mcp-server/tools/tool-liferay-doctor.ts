@@ -1,7 +1,8 @@
-import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {z} from 'zod';
+import type {AppConfig} from '../../../core/config/schema.js';
 import {runDoctor} from '../../doctor/doctor.service.js';
 import type {DoctorCheckScope} from '../../doctor/doctor-types.js';
+import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_doctor';
 
@@ -15,15 +16,6 @@ export const inputSchema = {
 export const description =
   'Run ldev diagnostics: checks environment, Docker runtime, portal reachability, and OSGi bundle health.';
 
-export async function handleTool(
-  input: {scopes?: DoctorCheckScope[]},
-  _config: unknown,
-  cwd: string,
-): Promise<CallToolResult> {
-  try {
-    const result = await runDoctor(cwd, {scopes: input.scopes});
-    return {content: [{type: 'text', text: JSON.stringify(result, null, 2)}]};
-  } catch (err) {
-    return {isError: true, content: [{type: 'text', text: err instanceof Error ? err.message : String(err)}]};
-  }
+export async function handleTool(input: {scopes?: DoctorCheckScope[]}, config: AppConfig, cwd: string) {
+  return runJsonTool(() => runDoctor(cwd, {config, env: process.env, scopes: input.scopes}));
 }
