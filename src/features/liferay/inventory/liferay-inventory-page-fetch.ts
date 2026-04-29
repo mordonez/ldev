@@ -26,6 +26,7 @@ import type {
 } from './liferay-inventory-page.js';
 import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
 import {classNameIdLookupCache} from '../lookup-cache.js';
+import {buildDisplayPageFriendlyUrl, buildDisplayPageUrl} from './liferay-inventory-display-page-url.js';
 import {resolveDisplayPageArticle, resolveStructuredContentData} from './liferay-inventory-page-fetch-article.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 import {fetchComponentPageData} from './liferay-inventory-page-fetch-components.js';
@@ -115,8 +116,10 @@ export async function fetchDisplayPageInventory(
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
     groupId: site.id,
-    url: buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
-    friendlyUrl: `/w/${urlTitle}`,
+    url:
+      buildDisplayPageUrl(site.friendlyUrlPath, urlTitle) ??
+      buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
+    friendlyUrl: buildDisplayPageFriendlyUrl(urlTitle) ?? `/w/${urlTitle}`,
     article: {
       id: article.id ?? -1,
       key: article.key ?? '',

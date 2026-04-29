@@ -1,5 +1,6 @@
 import {extractPageEvidence, type PageEvidence, type PageEvidenceKind} from './liferay-inventory-page-evidence.js';
 import type {LiferayInventoryPageResult} from './liferay-inventory-page.js';
+import {normalizeWhereUsedEvidence} from './liferay-inventory-where-used-normalize.js';
 
 export type WhereUsedResourceType = 'fragment' | 'widget' | 'portlet' | 'structure' | 'template' | 'adt';
 
@@ -22,29 +23,30 @@ export type WhereUsedMatch = {
 export function matchEvidenceAgainstResource(evidence: PageEvidence[], query: WhereUsedQuery): WhereUsedMatch[] {
   const keys = new Set(query.keys);
   const seen = new Set<string>();
-  const matchedEvidence = evidence
-    .filter((item) => isEvidenceForResourceType(item, query.type))
-    .filter((item) => item.kind !== 'journalArticle')
-    .filter((item) => keys.has(item.key));
+  const matchedEvidence = normalizeWhereUsedEvidence(
+    evidence
+      .filter((item) => isEvidenceForResourceType(item, query.type))
+      .filter((item) => item.kind !== 'journalArticle')
+      .filter((item) => keys.has(item.key)),
+    query.type,
+  );
 
-  return matchedEvidence
-    .filter((item) => !isRedundantStructureEvidence(item, matchedEvidence, query.type))
-    .flatMap((item) => {
-      const match: WhereUsedMatch = {
-        resourceType: query.type,
-        matchedKey: item.key,
-        matchKind: item.kind as WhereUsedMatchKind,
-        label: labelForMatchKind(item.kind as WhereUsedMatchKind),
-        detail: item.detail,
-        source: item.source,
-      };
-      const identity = `${match.resourceType}\u0000${match.matchedKey}\u0000${match.matchKind}\u0000${match.detail}\u0000${match.source}`;
-      if (seen.has(identity)) {
-        return [];
-      }
-      seen.add(identity);
-      return [match];
-    });
+  return matchedEvidence.flatMap((item) => {
+    const match: WhereUsedMatch = {
+      resourceType: query.type,
+      matchedKey: item.key,
+      matchKind: item.kind as WhereUsedMatchKind,
+      label: labelForMatchKind(item.kind as WhereUsedMatchKind),
+      detail: item.detail,
+      source: item.source,
+    };
+    const identity = `${match.resourceType}\u0000${match.matchedKey}\u0000${match.matchKind}\u0000${match.detail}\u0000${match.source}`;
+    if (seen.has(identity)) {
+      return [];
+    }
+    seen.add(identity);
+    return [match];
+  });
 }
 
 export function matchPageAgainstResource(page: LiferayInventoryPageResult, query: WhereUsedQuery): WhereUsedMatch[] {
@@ -56,30 +58,6 @@ function isEvidenceForResourceType(evidence: PageEvidence, type: WhereUsedResour
     return evidence.resourceType === 'widget' || evidence.resourceType === 'portlet';
   }
   return evidence.resourceType === type;
-}
-
-function isRedundantStructureEvidence(
-  evidence: PageEvidence,
-  matchedEvidence: PageEvidence[],
-  queryType: WhereUsedResourceType,
-): boolean {
-  if (queryType !== 'structure' || evidence.kind !== 'contentStructure') {
-    return false;
-  }
-
-  const evidenceStructureId = evidence.context?.contentStructureId ?? parseNumericKey(evidence.key);
-
-  return matchedEvidence.some(
-    (candidate) =>
-      candidate.kind === 'journalArticleStructure' &&
-      (candidate.key === evidence.key ||
-        (evidenceStructureId !== undefined && candidate.context?.contentStructureId === evidenceStructureId)),
-  );
-}
-
-function parseNumericKey(key: string): number | undefined {
-  const value = Number(key);
-  return Number.isFinite(value) ? value : undefined;
 }
 
 function labelForMatchKind(kind: WhereUsedMatchKind): string {

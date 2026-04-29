@@ -26,13 +26,8 @@ import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
 import {resolveSiteToken} from '../portal/site-token.js';
 import {tryResolveArtifactSiteDir} from '../portal/artifact-paths.js';
-import {
-  type ArticleRef,
-  fetchContentStructureById,
-  fetchLatestJournalArticle,
-  fetchStructuredContentById,
-  fetchStructuredContentByUuid,
-} from './liferay-inventory-page-fetch-article.js';
+import {type ArticleRef, fetchContentStructureById} from './liferay-inventory-page-fetch-article.js';
+import {resolveJournalArticleReference} from './liferay-inventory-journal-article-resolver.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
@@ -74,15 +69,10 @@ export async function buildJournalArticleSummary(
     includeHeadlessInventoryFields?: boolean;
   },
 ): Promise<JournalArticleSummary> {
-  let structuredContent = options?.structuredContent ?? null;
-  if (!structuredContent && ref.structuredContentId && ref.structuredContentId > 0) {
-    structuredContent = await fetchStructuredContentById(gateway, ref.structuredContentId);
-  }
-
-  const resolvedArticleId = ref.articleId || structuredContent?.key || '';
-  const article =
-    options?.article ??
-    (resolvedArticleId ? await fetchLatestJournalArticle(gateway, ref.groupId, resolvedArticleId) : null);
+  const {article, structuredContent, resolvedArticleId} = await resolveJournalArticleReference(gateway, ref, {
+    article: options?.article,
+    structuredContent: options?.structuredContent,
+  });
   const articleSite =
     (await safeFetchGroupInfo(config, ref.groupId, {apiClient, gateway})) ??
     (options?.fallbackSite
@@ -104,18 +94,6 @@ export async function buildJournalArticleSummary(
     ...(ddmTemplateKey ? {ddmTemplateKey} : {}),
     ...(options?.fallbackContentStructureId ? {contentStructureId: Number(options.fallbackContentStructureId)} : {}),
   };
-
-  const uuid = firstString(article?.uuid);
-  if (!structuredContent && uuid) {
-    structuredContent = await fetchStructuredContentByUuid(gateway, ref.groupId, uuid);
-  }
-
-  if (!structuredContent) {
-    const structuredContentId = Number(article?.id ?? article?.resourcePrimKey ?? -1);
-    if (structuredContentId > 0) {
-      structuredContent = await fetchStructuredContentById(gateway, structuredContentId);
-    }
-  }
 
   if (structuredContent) {
     if (options?.includeHeadlessInventoryFields) {

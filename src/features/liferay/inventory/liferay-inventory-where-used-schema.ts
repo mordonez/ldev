@@ -1,25 +1,18 @@
 import {z} from 'zod';
 
-const whereUsedResourceTypeSchema = z.enum(['fragment', 'widget', 'portlet', 'structure', 'template', 'adt']);
+import {
+  pageEvidenceSourceSchema,
+  whereUsedMatchKindSchema,
+  whereUsedResourceTypeSchema,
+} from './liferay-inventory-evidence-contract.js';
 
 const whereUsedMatchSchema = z.object({
   resourceType: whereUsedResourceTypeSchema,
   matchedKey: z.string(),
-  matchKind: z.enum([
-    'fragmentEntry',
-    'widgetEntry',
-    'widgetAdt',
-    'portlet',
-    'journalArticleStructure',
-    'journalArticleTemplate',
-    'fragmentMappedStructure',
-    'fragmentMappedTemplate',
-    'contentStructure',
-    'displayPageArticle',
-  ]),
+  matchKind: whereUsedMatchKindSchema,
   label: z.string(),
   detail: z.string(),
-  source: z.enum(['fragmentEntryLink', 'portletLayout', 'journalArticle', 'contentStructure', 'displayPageArticle']),
+  source: pageEvidenceSourceSchema,
 });
 
 const whereUsedPageMatchSchema = z.object({

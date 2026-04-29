@@ -5,6 +5,7 @@ import {createLiferayApiClient} from '../../../core/http/client.js';
 import {mapConcurrent} from '../../../core/concurrency.js';
 import {CliError} from '../../../core/errors.js';
 import {runLiferayResourceGetAdt} from '../resource/liferay-resource-get-adt.js';
+import {whereUsedResourceTypes} from './liferay-inventory-evidence-contract.js';
 import {extractPageEvidence} from './liferay-inventory-page-evidence.js';
 import {resolveInventoryPageRequest, runLiferayInventoryPage} from './liferay-inventory-page.js';
 import {createInventoryGateway} from './liferay-inventory-shared.js';
@@ -80,7 +81,7 @@ export type WhereUsedResult = {
   sites: WhereUsedSiteResult[];
 };
 
-const VALID_RESOURCE_TYPES: WhereUsedResourceType[] = ['fragment', 'widget', 'portlet', 'structure', 'template', 'adt'];
+const VALID_RESOURCE_TYPES: WhereUsedResourceType[] = [...whereUsedResourceTypes];
 
 export function validateWhereUsedQuery(options: Pick<WhereUsedOptions, 'type' | 'keys'>): WhereUsedQuery {
   if (!VALID_RESOURCE_TYPES.includes(options.type)) {

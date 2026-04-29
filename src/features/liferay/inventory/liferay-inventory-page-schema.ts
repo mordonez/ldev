@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {pageEvidenceSchema} from './liferay-inventory-evidence-contract.js';
+
 const contentFieldSummarySchema = z.object({
   path: z.string(),
   label: z.string(),
@@ -54,34 +56,6 @@ const contentStructureSummarySchema = z.object({
   name: z.string(),
   siteFriendlyUrl: z.string().optional(),
   exportPath: z.string().optional(),
-});
-
-const pageEvidenceSchema = z.object({
-  resourceType: z.enum(['fragment', 'widget', 'portlet', 'structure', 'template', 'adt', 'journalArticle']),
-  key: z.string(),
-  kind: z.enum([
-    'fragmentEntry',
-    'widgetEntry',
-    'widgetAdt',
-    'portlet',
-    'journalArticle',
-    'journalArticleStructure',
-    'journalArticleTemplate',
-    'fragmentMappedStructure',
-    'fragmentMappedTemplate',
-    'contentStructure',
-    'displayPageArticle',
-  ]),
-  detail: z.string(),
-  source: z.enum(['fragmentEntryLink', 'portletLayout', 'journalArticle', 'contentStructure', 'displayPageArticle']),
-  context: z
-    .object({
-      articleId: z.string().optional(),
-      articleTitle: z.string().optional(),
-      contentStructureId: z.number().optional(),
-      contentStructureName: z.string().optional(),
-    })
-    .optional(),
 });
 
 const pageFragmentEntrySchema = z.object({

@@ -1,4 +1,4 @@
-import {buildPageUrl} from '../page-layout/liferay-layout-shared.js';
+import {buildDisplayPageUrl as buildDisplayPageUrlInternal} from './liferay-inventory-display-page-url.js';
 
 export function buildPortalAbsoluteUrl(baseUrl: string | undefined, pathOrUrl: string): string | undefined {
   if (!baseUrl) {
@@ -12,11 +12,5 @@ export function buildPortalAbsoluteUrl(baseUrl: string | undefined, pathOrUrl: s
 }
 
 export function buildDisplayPageUrl(siteFriendlyUrl: string, friendlyUrlPath: string | undefined): string | null {
-  const urlTitle = String(friendlyUrlPath ?? '')
-    .trim()
-    .replace(/^\/+/, '');
-  if (!urlTitle) {
-    return null;
-  }
-  return buildPageUrl(siteFriendlyUrl, `/w/${urlTitle}`, false);
+  return buildDisplayPageUrlInternal(siteFriendlyUrl, friendlyUrlPath);
 }

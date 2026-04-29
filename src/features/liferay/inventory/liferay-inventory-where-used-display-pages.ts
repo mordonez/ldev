@@ -42,6 +42,10 @@ export type WhereUsedDisplayPageScanOptions = {
   };
 };
 
+type DisplayPageSourceCollectionResult =
+  | {kind: 'collected'; candidates: DisplayPageCandidate[]}
+  | {kind: 'unsupported'};
+
 const DISPLAY_PAGE_SOURCES: DisplayPageSource[] = [
   {origin: 'headlessStructuredContent', collect: collectHeadlessStructuredContentDisplayPages},
   {origin: 'jsonwsJournal', collect: collectJsonwsJournalDisplayPages},
@@ -65,21 +69,38 @@ export async function collectDisplayPageCandidatesFromSources(
 ): Promise<DisplayPageCandidate[]> {
   const candidates: DisplayPageCandidate[] = [];
   for (const source of sources) {
-    if (unsupportedDisplayPageSourceCache.get(buildDisplayPageSourceCacheKey(config, site, source.origin))) {
+    if (isUnsupportedDisplayPageSourceCached(config, site, source.origin)) {
       continue;
     }
 
-    try {
-      candidates.push(...(await source.collect(config, site, options)));
-    } catch (error) {
-      if (isSkippableDisplayPageScanError(error)) {
-        unsupportedDisplayPageSourceCache.set(buildDisplayPageSourceCacheKey(config, site, source.origin), true);
-        continue;
-      }
-      throw error;
+    const result = await collectDisplayPageCandidatesFromSource(config, site, options, source);
+    if (result.kind === 'unsupported') {
+      cacheUnsupportedDisplayPageSource(config, site, source.origin);
+      continue;
     }
+
+    candidates.push(...result.candidates);
   }
   return dedupeDisplayPageCandidates(candidates);
+}
+
+async function collectDisplayPageCandidatesFromSource(
+  config: AppConfig,
+  site: LiferayInventorySite,
+  options: WhereUsedDisplayPageScanOptions,
+  source: DisplayPageSource,
+): Promise<DisplayPageSourceCollectionResult> {
+  try {
+    return {
+      kind: 'collected',
+      candidates: await source.collect(config, site, options),
+    };
+  } catch (error) {
+    if (isSkippableDisplayPageScanError(error)) {
+      return {kind: 'unsupported'};
+    }
+    throw error;
+  }
 }
 
 async function collectHeadlessStructuredContentDisplayPages(
@@ -161,6 +182,22 @@ function buildDisplayPageSourceCacheKey(
   origin: DisplayPageCandidate['origin'],
 ): string {
   return `${config.liferay.url}|${site.groupId}|${origin}`;
+}
+
+function isUnsupportedDisplayPageSourceCached(
+  config: AppConfig,
+  site: LiferayInventorySite,
+  origin: DisplayPageCandidate['origin'],
+): boolean {
+  return unsupportedDisplayPageSourceCache.get(buildDisplayPageSourceCacheKey(config, site, origin)) ?? false;
+}
+
+function cacheUnsupportedDisplayPageSource(
+  config: AppConfig,
+  site: LiferayInventorySite,
+  origin: DisplayPageCandidate['origin'],
+): void {
+  unsupportedDisplayPageSourceCache.set(buildDisplayPageSourceCacheKey(config, site, origin), true);
 }
 
 export function resetDisplayPageSourceSupportCache(): void {

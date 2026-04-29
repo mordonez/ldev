@@ -1,51 +1,34 @@
 import type {
+  PageEvidenceContext as PageEvidenceContextContract,
+  PageEvidenceKindValue,
+  PageEvidenceResourceTypeValue,
+  PageEvidenceSourceValue,
+} from './liferay-inventory-evidence-contract.js';
+import type {
   ContentStructureSummary,
   JournalArticleSummary,
   PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
 import type {LiferayInventoryPageResult, PagePortletSummary} from './liferay-inventory-page.js';
+import {
+  buildFragmentDetail,
+  buildJournalArticleStructureDetail,
+  buildPortletDetail,
+  buildWidgetDetail,
+  describeJournalArticleEvidence,
+} from './liferay-inventory-page-evidence-detail.js';
 
-export type PageEvidenceResourceType =
-  | 'fragment'
-  | 'widget'
-  | 'portlet'
-  | 'structure'
-  | 'template'
-  | 'adt'
-  | 'journalArticle';
-
-export type PageEvidenceKind =
-  | 'fragmentEntry'
-  | 'widgetEntry'
-  | 'widgetAdt'
-  | 'portlet'
-  | 'journalArticle'
-  | 'journalArticleStructure'
-  | 'journalArticleTemplate'
-  | 'fragmentMappedStructure'
-  | 'fragmentMappedTemplate'
-  | 'contentStructure'
-  | 'displayPageArticle';
-
-export type PageEvidenceContext = {
-  articleId?: string;
-  articleTitle?: string;
-  contentStructureId?: number;
-  contentStructureName?: string;
-};
+export type PageEvidenceResourceType = PageEvidenceResourceTypeValue;
+export type PageEvidenceKind = PageEvidenceKindValue;
+export type PageEvidenceContext = PageEvidenceContextContract;
 
 export type PageEvidence = {
   resourceType: PageEvidenceResourceType;
   key: string;
   kind: PageEvidenceKind;
   detail: string;
-  source: 'fragmentEntryLink' | 'portletLayout' | 'journalArticle' | 'contentStructure' | 'displayPageArticle';
+  source: PageEvidenceSourceValue;
   context?: PageEvidenceContext;
-};
-
-type JournalArticleEvidenceDescriptor = {
-  where: string;
-  context: PageEvidenceContext;
 };
 
 type PageEvidenceInput = {
@@ -262,42 +245,6 @@ function buildJournalArticleEvidence(
   return evidence;
 }
 
-function describeJournalArticleEvidence(
-  article: JournalArticleSummary,
-  structures: ContentStructureSummary[],
-): JournalArticleEvidenceDescriptor {
-  const structure = structures.find(
-    (candidate) =>
-      (article.contentStructureId && candidate.contentStructureId === article.contentStructureId) ||
-      (article.ddmStructureKey && candidate.key === article.ddmStructureKey) ||
-      (article.ddmStructureKey && candidate.name === article.ddmStructureKey),
-  );
-
-  return {
-    where: buildJournalArticleWhere(article),
-    context: {
-      ...(article.articleId ? {articleId: article.articleId} : {}),
-      ...(article.title ? {articleTitle: article.title} : {}),
-      ...(article.contentStructureId ? {contentStructureId: article.contentStructureId} : {}),
-      ...(structure?.name ? {contentStructureName: structure.name} : {}),
-    },
-  };
-}
-
-function buildJournalArticleWhere(article: JournalArticleSummary): string {
-  return `articleId=${article.articleId} title=${article.title}`;
-}
-
-function buildJournalArticleStructureDetail(descriptor: JournalArticleEvidenceDescriptor): string {
-  return [
-    descriptor.where,
-    descriptor.context.contentStructureId ? `contentStructureId=${descriptor.context.contentStructureId}` : null,
-    descriptor.context.contentStructureName ? `contentStructureName=${descriptor.context.contentStructureName}` : null,
-  ]
-    .filter((value): value is string => value !== null)
-    .join(' ');
-}
-
 function buildContentStructureEvidence(structures: ContentStructureSummary[]): PageEvidence[] {
   const evidence: PageEvidence[] = [];
 
@@ -321,32 +268,6 @@ function buildContentStructureEvidence(structures: ContentStructureSummary[]): P
   }
 
   return evidence;
-}
-
-function buildFragmentDetail(fragmentKey: string, elementName: string | undefined, index: number): string {
-  return [`fragmentKey=${fragmentKey}`, elementName ? `elementName=${elementName}` : null, `index=${index}`]
-    .filter((value): value is string => value !== null)
-    .join(' ');
-}
-
-function buildWidgetDetail(
-  widgetName: string | undefined,
-  portletId: string | undefined,
-  elementName: string | undefined,
-  index: number,
-): string {
-  return [
-    widgetName ? `widgetName=${widgetName}` : null,
-    portletId ? `portletId=${portletId}` : null,
-    elementName ? `elementName=${elementName}` : null,
-    `index=${index}`,
-  ]
-    .filter((value): value is string => value !== null)
-    .join(' ');
-}
-
-function buildPortletDetail(portlet: PagePortletSummary): string {
-  return `column=${portlet.columnId} position=${portlet.position} portletId=${portlet.portletId}`;
 }
 
 function appendAdtEvidenceFromConfiguration(
