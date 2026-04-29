@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ldev": {
+      "command": "node",
+      "args": ["./node_modules/@mordonezdev/ldev/dist/mcp-server.js"]
+    }
+  }
+}

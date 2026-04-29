@@ -15,6 +15,7 @@ import {
 } from '../commands/env/env-public.commands.js';
 import {createPortalCommand} from '../commands/liferay/liferay.command.js';
 import {createMcpCommand} from '../commands/mcp/mcp.command.js';
+import {createServeCommand} from '../commands/serve/serve.command.js';
 import {createOsgiCommand} from '../commands/osgi/osgi.command.js';
 import {createOAuthCommand} from '../commands/oauth/oauth.command.js';
 import {createProjectCommand} from '../commands/project/project.command.js';
@@ -48,6 +49,7 @@ export const portalGroup: CommandGroup = {
   register(program) {
     program.addCommand(createPortalCommand().helpGroup(this.group!));
     program.addCommand(createMcpCommand().helpGroup(this.group!));
+    program.addCommand(createServeCommand().helpGroup(this.group!));
     program.addCommand(createOAuthCommand().helpGroup(this.group!));
   },
 };
