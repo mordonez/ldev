@@ -353,13 +353,14 @@ Notes:
         'after',
         `
 Examples:
-  ldev portal inventory where-used --type fragment --key card-hero
-  ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet
+  ldev portal inventory where-used --type fragment --key card-hero --site /guest
+  ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet --site /guest
   ldev portal inventory where-used --type structure --key BASIC --site /facultat-farmacia-alimentacio
   ldev portal inventory where-used --type adt --key UB_ADT_STUDIES_SEARCH --site /global
-  ldev portal inventory where-used --type template --key NEWS_TEMPLATE --include-private --json
+  ldev portal inventory where-used --type template --key NEWS_TEMPLATE --site /global --include-private --json
 
 Notes:
+  - Prefer --site when you already know the owning site; scanning all accessible sites can take much longer.
   - The lookup walks the same data exposed by 'inventory page' so any reference visible there can be matched.
   - --key may be repeated to OR-match several keys in a single pass.
   - For widget/portlet lookups both the widgetName and the full portletId are matched.

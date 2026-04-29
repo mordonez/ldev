@@ -13,6 +13,7 @@ Use it when:
 - you need a fast inventory of sites and pages
 - you want structured output for automation
 - an agent needs context before changing anything
+- you need to know which Pages use a shared portal resource before changing it
 
 ## Start with sites
 
@@ -126,12 +127,33 @@ This workflow is different from manual UI exploration:
 - structured output that can be piped, diffed, or stored
 - usable by humans and agents in the same way
 
+## Reverse lookup from a resource
+
+Once you know the resource key, `where-used` gives you the part that the UI is
+usually bad at: impact analysis across Pages.
+
+```bash
+ldev portal inventory where-used --type fragment --key card-hero --site /guest --json
+ldev portal inventory where-used --type structure --key BASIC --site /guest --json
+ldev portal inventory where-used --type adt --key UB_ADT_STUDIES_SEARCH --site /global --json
+```
+
+Prefer the scoped form with `--site` unless you really need a cross-site scan.
+
+Use it for questions like:
+
+- which Pages contain this Fragment
+- which Pages render Journal content through this widget
+- which Pages depend on this Structure or Template
+- which Pages are tied to this ADT before I edit it
+
 ## Typical discovery flow
 
 ```bash
 ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
+ldev portal inventory where-used --type structure --key BASIC --site /global --json
 ```
 
 End with the exact page, site, and route context you need before you diagnose or change anything else.
