@@ -370,18 +370,23 @@ Notes:
       ),
   ).action(
     createFormattedAction(
-      async (context, options: InventoryWhereUsedCommandOptions) =>
-        runLiferayInventoryWhereUsed(context.config, {
+      async (context, options: InventoryWhereUsedCommandOptions) => {
+        const parsedMaxDepth = Number.parseInt(options.maxDepth, 10);
+        const parsedConcurrency = Number.parseInt(options.concurrency, 10);
+        const parsedPageSize = Number.parseInt(options.pageSize, 10);
+
+        return runLiferayInventoryWhereUsed(context.config, {
           type: options.type as WhereUsedResourceType,
           keys: options.key,
           site: options.site,
           widgetType: options.widgetType,
           className: options.className,
           includePrivate: Boolean(options.includePrivate),
-          maxDepth: Number.parseInt(options.maxDepth, 10) || 12,
-          concurrency: Number.parseInt(options.concurrency, 10) || 4,
-          pageSize: Number.parseInt(options.pageSize, 10) || 200,
-        }),
+          maxDepth: Number.isFinite(parsedMaxDepth) ? parsedMaxDepth : 12,
+          concurrency: Number.isFinite(parsedConcurrency) ? parsedConcurrency : 4,
+          pageSize: Number.isFinite(parsedPageSize) ? parsedPageSize : 200,
+        });
+      },
       {text: formatLiferayInventoryWhereUsed},
     ),
   );

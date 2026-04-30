@@ -230,11 +230,7 @@ function expectGatewayJsonSuccess<T>(response: HttpResponse<T>, label: string, p
     return expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
   } catch (error) {
     if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && !error.message.includes(' path=')) {
-      throw new CliError(`${error.message} path=${path}`, {
-        code: error.code,
-        exitCode: error.exitCode,
-        details: error.details,
-      });
+      error.message = `${error.message} path=${path}`;
     }
     throw error;
   }
