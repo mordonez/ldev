@@ -1,6 +1,7 @@
 import {isRecord, type JsonRecord} from '../../../core/utils/json.js';
 import {firstNonBlank, firstString as firstStringUtil, normalizeScalarString} from '../../../core/utils/text.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
+import {extractFragmentFieldResources, type FragmentEditableField} from './liferay-inventory-page-fragment-fields.js';
 
 export type StructuredContent = {
   id?: number;
@@ -67,11 +68,6 @@ export type ContentStructureSummary = {
   exportPath?: string;
 };
 
-export type FragmentEditableField = {
-  id: string;
-  value: string;
-};
-
 type ContentField = JsonRecord & {
   name?: unknown;
   label?: unknown;
@@ -98,6 +94,8 @@ export type PageFragmentEntry = {
   portletId?: string;
   configuration?: Record<string, string>;
   editableFields?: FragmentEditableField[];
+  mappedTemplateKeys?: string[];
+  mappedStructureKeys?: string[];
   contentSummary?: string;
   title?: string;
   heroText?: string;
@@ -111,7 +109,7 @@ export type PageFragmentEntry = {
 
 export function collectPageElements(
   pageElement: HeadlessPageElementPayload | null,
-  fragmentEntryLinks: FragmentEntryLink[],
+  fragmentEntryLinks: FragmentEntryLink[] = [],
   locale: string | null = null,
 ): PageFragmentEntry[] {
   const result: PageFragmentEntry[] = [];
@@ -121,6 +119,7 @@ export function collectPageElements(
     if (entry.type !== 'widget' || !entry.widgetName) {
       continue;
     }
+
     const widgetName = entry.widgetName;
     const match = fragmentEntryLinks.find((item) => (firstStringUtil(item.portletId) ?? '').includes(widgetName));
     if (match) {
@@ -150,12 +149,18 @@ function collectPageElementsRecursive(
     const definition = asRecord(element.definition);
     const key = firstStringUtil(asRecord(definition.fragment).key) ?? '';
     if (key) {
-      const editableFields = extractFragmentEditableFields(definition.fragmentFields, locale);
+      const fragmentFields = extractFragmentFieldResources(definition.fragmentFields, locale);
       result.push({
         type: 'fragment',
         fragmentKey: key,
         configuration: recordToStringMap(asRecord(definition.fragmentConfig)),
-        ...(editableFields.length > 0 ? {editableFields} : {}),
+        ...(fragmentFields.editableFields.length > 0 ? {editableFields: fragmentFields.editableFields} : {}),
+        ...(fragmentFields.mappedTemplateKeys.length > 0
+          ? {mappedTemplateKeys: fragmentFields.mappedTemplateKeys}
+          : {}),
+        ...(fragmentFields.mappedStructureKeys.length > 0
+          ? {mappedStructureKeys: fragmentFields.mappedStructureKeys}
+          : {}),
         ...(elementName ? {elementName} : {}),
         ...(cssClasses && cssClasses.length > 0 ? {cssClasses} : {}),
         ...(customCSS ? {customCSS} : {}),
@@ -251,72 +256,6 @@ function shouldIncludeContentFieldLabelInPath(label: string, name: string): bool
     return false;
   }
   return !name.trim().toLowerCase().endsWith('fieldset');
-}
-
-function extractFragmentEditableFields(fragmentFields: unknown, locale: string | null = null): FragmentEditableField[] {
-  if (!Array.isArray(fragmentFields)) {
-    return [];
-  }
-  const result: FragmentEditableField[] = [];
-  for (const field of fragmentFields) {
-    const f = asRecord(field);
-    const id = firstStringUtil(f.id) ?? '';
-    if (!id) {
-      continue;
-    }
-    const value = asRecord(f.value);
-    const text = asRecord(value.text);
-    const i18n = asRecord(text.value_i18n);
-    // Prefer the matched locale, then ca_ES, then es_ES, then any available
-    // TODO: consider improving locale matching logic if needed in the future
-    // Not hardcoded locales
-    const textValue = firstNonBlank(
-      firstStringUtil(locale ? i18n[locale] : undefined),
-      firstStringUtil(i18n['ca_ES']),
-      firstStringUtil(i18n['es_ES']),
-      firstStringUtil(Object.values(i18n)),
-      firstStringUtil(text.value),
-    );
-    if (textValue) {
-      result.push({id, value: textValue.replace(/\s+/g, ' ')});
-      continue;
-    }
-    // Image or document fields
-    const image = asRecord(value.image);
-    const fragmentImage = asRecord(value.fragmentImage);
-    const fragmentImageTitle = asRecord(fragmentImage.title);
-    const fragmentImageDescription = asRecord(fragmentImage.description);
-    const fragmentImageUrl = asRecord(fragmentImage.url);
-    const fragmentImageUrlI18n = asRecord(fragmentImageUrl.value_i18n);
-    const imageValue = firstNonBlank(
-      firstStringUtil(image.title),
-      firstStringUtil(image.description),
-      firstStringUtil(image.url),
-      firstStringUtil(image.contentURL),
-      firstStringUtil(image.src),
-      firstStringUtil(image.fileEntryId),
-      firstStringUtil(image.classPK),
-      firstStringUtil(fragmentImageTitle.value),
-      firstStringUtil(fragmentImageDescription.value),
-      firstNonBlank(
-        firstStringUtil(locale ? fragmentImageUrlI18n[locale] : undefined),
-        firstStringUtil(fragmentImageUrlI18n['ca_ES']),
-        firstStringUtil(fragmentImageUrlI18n['es_ES']),
-        firstStringUtil(Object.values(fragmentImageUrlI18n)),
-        firstStringUtil(fragmentImageUrl.value),
-      ),
-    );
-    if (imageValue) {
-      result.push({id, value: imageValue});
-      continue;
-    }
-    const document = asRecord(value.document);
-    const documentValue = firstNonBlank(firstStringUtil(document.title), firstStringUtil(document.url));
-    if (documentValue) {
-      result.push({id, value: documentValue});
-    }
-  }
-  return result;
 }
 
 export function asRecord(value: unknown): JsonRecord {

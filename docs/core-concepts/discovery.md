@@ -15,6 +15,7 @@ ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ldev portal inventory structures --site /global --with-templates --json
 ldev portal inventory templates --site /global --json
+ldev portal inventory where-used --type structure --key BASIC --site /global --json
 ```
 
 These commands tell you:
@@ -23,8 +24,16 @@ These commands tell you:
 - how pages are arranged
 - what route maps to a specific page
 - which structures and templates exist (and how they are paired)
+- where a shared portal resource is actually used
 
 For structure/template incidents, prefer `inventory structures --with-templates` as the first step: it returns both in one call, so you can route directly to the matching `resource export-*` or `resource import-*` command.
+
+For impact analysis, prefer `inventory where-used` once you already know the
+resource key. It is the fast answer to “before I change this Structure,
+Template, fragment, widget, or ADT, which Pages will I touch?”
+
+When possible, add `--site` so the scan stays scoped to one Site instead of all
+accessible Sites.
 
 ## Preflight
 

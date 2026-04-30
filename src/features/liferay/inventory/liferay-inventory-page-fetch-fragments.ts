@@ -17,11 +17,13 @@ export async function tryFetchFragmentEntryLinks(
   if (plid <= 0) {
     return [];
   }
+
   const response = await safeGatewayGet<FragmentEntryLink[]>(
     gateway,
     `/api/jsonws/fragment.fragmententrylink/get-fragment-entry-links?groupId=${groupId}&plid=${plid}`,
     'fetch-fragment-entry-links',
   );
+
   return response.ok && Array.isArray(response.data) ? response.data : [];
 }
 

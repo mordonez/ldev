@@ -18,6 +18,7 @@ import {
   type PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
 import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
+import {buildDisplayPageEvidence, buildRegularPageEvidence} from './liferay-inventory-page-evidence.js';
 import type {
   LiferayInventoryPageResult,
   PagePortletSummary,
@@ -25,6 +26,7 @@ import type {
 } from './liferay-inventory-page.js';
 import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
 import {classNameIdLookupCache} from '../lookup-cache.js';
+import {buildDisplayPageFriendlyUrl, buildDisplayPageUrl} from './liferay-inventory-display-page-url.js';
 import {resolveDisplayPageArticle, resolveStructuredContentData} from './liferay-inventory-page-fetch-article.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 import {fetchComponentPageData} from './liferay-inventory-page-fetch-components.js';
@@ -114,8 +116,10 @@ export async function fetchDisplayPageInventory(
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
     groupId: site.id,
-    url: buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
-    friendlyUrl: `/w/${urlTitle}`,
+    url:
+      buildDisplayPageUrl(site.friendlyUrlPath, urlTitle) ??
+      buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
+    friendlyUrl: buildDisplayPageFriendlyUrl(urlTitle) ?? `/w/${urlTitle}`,
     article: {
       id: article.id ?? -1,
       key: article.key ?? '',
@@ -124,6 +128,11 @@ export async function fetchDisplayPageInventory(
       contentStructureId: Number(article.contentStructureId ?? -1),
     },
     ...(articleAdminUrls ? {adminUrls: articleAdminUrls} : {}),
+    evidence: buildDisplayPageEvidence({
+      article: {key: article.key ?? '', contentStructureId: Number(article.contentStructureId ?? -1)},
+      journalArticles: [journalArticle],
+      contentStructures,
+    }),
     journalArticles: [journalArticle],
     contentStructures,
   };
@@ -177,7 +186,14 @@ export async function fetchRegularPageInventory(
         ...(entry.portletId ? {portletId: entry.portletId} : {}),
         ...(entry.configuration ? {configuration: entry.configuration} : {}),
       }));
-    journalArticles = await collectLayoutJournalArticles(gateway, config, apiClient, site.id, rawFragmentLinks);
+    journalArticles = await collectLayoutJournalArticles(
+      gateway,
+      config,
+      apiClient,
+      site.id,
+      pageElement,
+      rawFragmentLinks,
+    );
     contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
   }
 
@@ -323,6 +339,7 @@ export async function fetchRegularPageInventory(
     layoutDetails,
     configurationTabs,
     componentInspectionSupported,
+    evidence: buildRegularPageEvidence({fragmentEntryLinks, portlets, journalArticles, contentStructures}),
     portlets,
     fragmentEntryLinks,
     widgets,

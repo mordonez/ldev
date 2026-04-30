@@ -51,6 +51,7 @@ If the task involves a portal URL or resource, resolve that context first:
 ldev portal inventory page --url <fullUrl> --json
 ldev portal inventory structures --site /<site> --json
 ldev portal inventory templates --site /<site> --json
+ldev portal inventory where-used --type <fragment|widget|structure|template|adt> --key <KEY> --site /<site> --json
 ```
 
 For cross-site structure/template discovery, prefer:
@@ -65,6 +66,13 @@ requires content fields, all template candidates, or the raw page definition:
 ```bash
 ldev portal inventory page --url <fullUrl> --json --full
 ```
+
+If the task starts from a Structure, Template, ADT, widget, or Fragment key and
+the question is about impact, prefer `ldev portal inventory where-used` over
+manual portal browsing or ad hoc API assembly.
+
+Prefer the scoped form with `--site` unless the task explicitly requires a
+cross-site answer.
 
 MCP equivalents when visible:
 

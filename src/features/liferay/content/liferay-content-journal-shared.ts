@@ -10,6 +10,9 @@ import {normalizeLocalizedName} from '../portal/site-resolution.js';
 export type JsonwsJournalArticleRow = {
   resourcePrimKey?: string;
   articleId?: string;
+  urlTitle?: string;
+  urlTitleCurrentValue?: string;
+  friendlyURL?: string;
   folderId?: string;
   groupId?: string;
   DDMStructureId?: string;

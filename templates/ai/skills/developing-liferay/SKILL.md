@@ -63,6 +63,7 @@ tools when visible; otherwise use the CLI fallbacks:
 ldev portal inventory sites --json
 ldev portal inventory pages --site /<site> --json
 ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory where-used --type <fragment|widget|structure|template|adt> --key <KEY> --site /<site> --json
 ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
 ```
 
@@ -71,6 +72,14 @@ For cross-site structure/template incidents, use:
 ```bash
 ldev portal inventory structures --with-templates --all-sites --json
 ```
+
+If you already know the resource key and need impact analysis before editing it,
+use `ldev portal inventory where-used`. It is the preferred discovery step for
+“what Pages will I affect if I change this Structure, Template, Fragment,
+widget, or ADT?”
+
+Prefer `--site` by default so discovery stays fast and scoped to the Site you
+are already working on.
 
 MCP equivalents for the inventory commands:
 
