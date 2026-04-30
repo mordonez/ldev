@@ -56,7 +56,8 @@ ldev ai bootstrap --intent=deploy --json
 ## Discovery first
 
 If the task mentions a site, page, structure, template, ADT or fragment, start
-with portal discovery before editing code:
+with portal discovery before editing code. Prefer local `ldev` MCP discovery
+tools when visible; otherwise use the CLI fallbacks:
 
 ```bash
 ldev portal inventory sites --json
@@ -79,6 +80,17 @@ widget, or ADT?”
 
 Prefer `--site` by default so discovery stays fast and scoped to the Site you
 are already working on.
+
+MCP equivalents for the inventory commands:
+
+- `liferay_inventory_sites`
+- `liferay_inventory_pages`
+- `liferay_inventory_page`
+- `liferay_inventory_structures`
+- `liferay_inventory_templates`
+
+There is no MCP replacement for every resource read/export/import workflow.
+Use the CLI for resource commands and all mutations.
 
 If you are inside a worktree and the main runtime is still the source of truth
 for discovery, keep your shell in the worktree and call the global form:
@@ -220,6 +232,8 @@ has been read back or otherwise verified.
 ## Guardrails
 
 - Use `ldev` as the entrypoint.
+- Use local `ldev` MCP tools only as an optional read-only discovery and
+  diagnosis layer. Fall back to CLI with `--json` without blocking the task.
 - Prefer the smallest deploy or import that proves the change.
 - Use `ldev deploy theme` only for theme changes.
 - Use `ldev deploy module <module-name>` only for modules or deployable Gradle units.

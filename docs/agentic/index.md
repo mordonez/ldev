@@ -111,6 +111,21 @@ Structure, Template, or ADT?” before a mutation is proposed.
 
 Prefer the scoped form with `--site` whenever the Site is already known.
 
+## MCP as an acceleration layer
+
+`ldev` MCP tools are optional structured shortcuts over selected `ldev`
+workflows. They make agents faster and less error-prone when available, but the
+CLI remains the canonical fallback.
+
+Use this decision route:
+
+- skills decide the workflow and guardrails
+- MCP tools execute structured discovery and diagnosis when visible
+- CLI commands with `--json` remain the fallback for every workflow
+
+See [MCP Decision Route](./mcp-decision-route.md) for the maintained mapping of
+MCP tools to CLI fallbacks.
+
 ## Keeping rules and skills up to date
 
 After pulling a new version of `ldev`, refresh skills and rules in the project:

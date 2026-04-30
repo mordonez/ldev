@@ -4,7 +4,8 @@
   "description": "Advanced developer workflows for Liferay local environments",
   "type": "module",
   "bin": {
-    "ldev": "./dist/index.js"
+    "ldev": "./dist/index.js",
+    "ldev-mcp-server": "./dist/mcp-server.js"
   },
   "files": [
     "dist",
@@ -96,6 +97,7 @@
     "developer-experience"
   ],
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^14.0.0",
     "execa": "^9.6.0",
     "fs-extra": "^11.3.0",

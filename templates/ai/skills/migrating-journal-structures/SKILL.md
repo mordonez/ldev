@@ -68,6 +68,11 @@ ldev resource structure --site /<site> --structure <STRUCTURE_KEY> --json
 ldev resource template --site /<site> --template <TEMPLATE_ID> --json
 ```
 
+Use local `ldev` MCP tools for the inventory commands when visible:
+`liferay_inventory_structures` and `liferay_inventory_templates`. Resource
+reads, descriptor creation, validation, and migration execution remain CLI-first
+because they are file-backed or mutating workflows.
+
 ### 2. Scaffold a migration descriptor
 
 Use `migration-init` to generate a base descriptor from the current portal state
@@ -165,6 +170,9 @@ ldev portal reindex tasks --json
 - **Never run migrations against the main environment.** Always use the vendor
   skill `isolating-worktrees` first so the portal state can be restored or
   discarded if the migration fails or produces unexpected results.
+- Use MCP only for read-only inventory/diagnosis during migration work. Do not
+  use MCP as a shortcut around worktree isolation, `--check-only`, or explicit
+  migration approval.
 - Never treat a live content migration as a plain import.
 - Always keep a descriptor file under version control.
 - Always use `migration-init` to scaffold the descriptor; do not write it from scratch.

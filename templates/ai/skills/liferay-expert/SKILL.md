@@ -12,7 +12,8 @@ specialist skill quickly.
 
 ## Start here
 
-Run this bootstrap first:
+Run this bootstrap first. If the local `ldev_context` MCP tool is visible, it
+can provide the fast context snapshot; otherwise use the CLI command below.
 
 ```bash
 ldev ai bootstrap --intent=discover --cache=60 --json
@@ -42,6 +43,8 @@ If the site is not known, discover it:
 ldev portal inventory sites --json
 ```
 
+MCP equivalent when visible: `liferay_inventory_sites`.
+
 If the task involves a portal URL or resource, resolve that context first:
 
 ```bash
@@ -70,6 +73,12 @@ manual portal browsing or ad hoc API assembly.
 
 Prefer the scoped form with `--site` unless the task explicitly requires a
 cross-site answer.
+
+MCP equivalents when visible:
+
+- `liferay_inventory_page`
+- `liferay_inventory_structures`
+- `liferay_inventory_templates`
 
 ## Routing rules
 
@@ -149,8 +158,13 @@ ldev oauth admin-unblock
 - Use `ldev` as the official interface.
 - Use `ldev context --json` for offline routing; use `ldev status --json` only
   to confirm runtime state. They are not interchangeable.
+- Prefer local `ldev` MCP tools for read-only discovery/diagnosis when visible.
+  Fall back to CLI with `--json` without blocking the task.
+- Prefer `ldev context --json`, `ldev doctor --json` and `ldev status --json`
+  for automation and agents when MCP is not available.
 - Prefer the smallest deploy or import that proves the change.
 - Do not invent portal mutations if an `ldev resource ...` workflow already exists.
-- For site-level objects without dedicated `ldev` commands, verify MCP with
-  `ldev mcp check --json` before assembling low-level API calls manually.
+- For site-level objects without dedicated `ldev` commands, verify the Liferay
+  portal MCP server with `ldev mcp check --json` before assembling low-level API
+  calls manually.
 - Keep deep guidance in the specialist skill references; do not duplicate it here.

@@ -5,6 +5,12 @@ import {formatAiResult, runAiInstall} from '../../features/ai/ai-install.js';
 import {formatAiStatus, runAiStatus} from '../../features/ai/ai-status.js';
 import {runAiUpdate} from '../../features/ai/ai-update.js';
 import {parseBootstrapCacheTtl, runAiBootstrap} from '../../features/agent/agent-bootstrap.js';
+import {
+  formatMcpSetup,
+  runMcpSetup,
+  type McpStrategy,
+  type McpTool,
+} from '../../features/mcp-server/mcp-server-setup.js';
 
 function collectSkillOption(value: string, previous: string[]): string[] {
   const skill = value.trim();
@@ -36,6 +42,12 @@ type AiStatusCommandOptions = {
 type AiBootstrapCommandOptions = {
   intent: string;
   cache?: string;
+};
+
+type AiMcpSetupCommandOptions = {
+  target: string;
+  tool: McpTool;
+  strategy?: McpStrategy;
 };
 
 export function createAiCommand(): Command {
@@ -88,6 +100,20 @@ export function createAiCommand(): Command {
       .requiredOption('--target <target>', 'Project root'),
     'json',
   );
+  const mcpSetupCommand = addOutputFormatOption(
+    command
+      .command('mcp-setup')
+      .description('Write the ldev MCP server config for your AI assistant')
+      .requiredOption('--target <target>', 'Project root to write the config into')
+      .requiredOption(
+        '--tool <tool>',
+        'AI assistant to configure: all, claude-code (.claude/mcp.json), cursor (.cursor/mcp.json), or vscode (.vscode/mcp.json)',
+      ),
+  ).option(
+    '--strategy <strategy>',
+    'Server launch strategy: global (ldev-mcp-server), local (node ./node_modules/...), or npx',
+  );
+
   const bootstrapCommand = addOutputFormatOption(
     command
       .command('bootstrap')
@@ -175,6 +201,15 @@ Potentially mutating:
         cacheTtlSeconds: parseBootstrapCacheTtl(options.cache),
       });
     }),
+  );
+
+  mcpSetupCommand.action(
+    createFormattedAction(
+      async (_context, options: AiMcpSetupCommandOptions) => {
+        return runMcpSetup({targetDir: options.target, tool: options.tool, strategy: options.strategy});
+      },
+      {text: formatMcpSetup},
+    ),
   );
 
   return command;
