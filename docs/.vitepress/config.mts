@@ -19,16 +19,18 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     nav: [
+      {text: 'What is ldev', link: '/getting-started/what-is-ldev'},
       {text: 'Quickstart', link: '/getting-started/quickstart'},
-      {text: 'First Incident', link: '/getting-started/first-incident'},
-      {text: 'Workflows', link: '/workflows/diagnose-issue'},
       {text: 'Resources', link: '/workflows/export-import-resources'},
+      {text: 'Migration', link: '/workflows/resource-migration-pipeline'},
+      {text: 'Agents', link: '/agentic/'},
       {text: 'Commands', link: '/commands/'},
     ],
     sidebar: [
       {
         text: 'Getting Started',
         items: [
+          {text: 'What is ldev', link: '/getting-started/what-is-ldev'},
           {text: 'Introduction', link: '/getting-started/introduction'},
           {text: 'Quickstart', link: '/getting-started/quickstart'},
           {text: 'First Incident', link: '/getting-started/first-incident'},
@@ -37,24 +39,25 @@ export default defineConfig({
       {
         text: 'Workflows',
         items: [
-          {text: 'Diagnose an Issue', link: '/workflows/diagnose-issue'},
-          {text: 'Fix an OSGi Bundle', link: '/workflows/fix-osgi-bundle'},
+          {text: 'Export and Import Resources', link: '/workflows/export-import-resources'},
+          {text: 'Resource Migration Pipeline', link: '/workflows/resource-migration-pipeline'},
+          {text: 'Explore a Portal', link: '/workflows/explore-portal'},
           {text: 'Reproduce a Production Issue', link: '/workflows/reproduce-production-issue'},
           {text: 'PaaS to Local Migration', link: '/workflows/paas-to-local-migration'},
           {text: 'Shrink Local Content', link: '/workflows/shrink-local-content'},
-          {text: 'Explore a Portal', link: '/workflows/explore-portal'},
-          {text: 'Export and Import Resources', link: '/workflows/export-import-resources'},
-          {text: 'Resource Migration Pipeline', link: '/workflows/resource-migration-pipeline'},
+          {text: 'Diagnose an Issue', link: '/workflows/diagnose-issue'},
+          {text: 'Fix an OSGi Bundle', link: '/workflows/fix-osgi-bundle'},
         ],
       },
       {
         text: 'Core Concepts',
         items: [
-          {text: 'Environments', link: '/core-concepts/environments'},
-          {text: 'OAuth', link: '/core-concepts/oauth'},
-          {text: 'Discovery', link: '/core-concepts/discovery'},
+          {text: 'Why ldev Exists', link: '/core-concepts/why-ldev-exists'},
           {text: 'Operations Model', link: '/core-concepts/operations'},
+          {text: 'Environments', link: '/core-concepts/environments'},
+          {text: 'Discovery', link: '/core-concepts/discovery'},
           {text: 'Structured Output', link: '/core-concepts/structured-output'},
+          {text: 'OAuth', link: '/core-concepts/oauth'},
         ],
       },
       {

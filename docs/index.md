@@ -1,34 +1,34 @@
 ---
 layout: home
 
-title: ldev — Liferay Operations CLI
-description: Diagnose, reproduce, and fix Liferay incidents from the terminal.
+title: ldev — Liferay, scriptable
+description: A CLI for the Liferay operations that today only live in the admin UI — resource ops, structure migration, environment bootstrap, agent integration.
 
 hero:
   name: ldev
-  text: Liferay, from the terminal.
-  tagline: Diagnose incidents, reproduce production locally, fix safely, and verify before touching prod.
+  text: Liferay, scriptable.
+  tagline: A CLI for the Liferay operations that today only live in the admin UI — import/export, structure migration, environment bootstrap, isolated worktrees, and an MCP server for AI agents.
   image:
     src: /logo.svg
     alt: ldev logo
   actions:
     - theme: brand
-      text: Get Started
-      link: /getting-started/quickstart
+      text: What is ldev
+      link: /getting-started/what-is-ldev
     - theme: alt
-      text: Command Reference
-      link: /commands/
+      text: Quickstart
+      link: /getting-started/quickstart
 
 features:
-  - icon: "🔍"
-    title: Inspect without the UI
-    details: Browse sites, pages, fragments, and runtime state directly from the CLI.
-  - icon: "🐳"
-    title: Reproduce production locally
-    details: Pull real databases and Document Libraries into Docker. Isolate work in worktrees.
-  - icon: "🚀"
-    title: Fix and verify safely
-    details: Deploy modules, inspect OSGi, run migrations, and confirm the outcome with structured output.
+  - icon: "📁"
+    title: Resource ops as files
+    details: Export and import structures, templates, ADTs and fragments. Liferay only lets you do this through the UI — ldev makes it scriptable.
+  - icon: "🔀"
+    title: Structure migration
+    details: Migrate journal articles when a structure changes. A workflow Liferay does not provide.
+  - icon: "🤖"
+    title: Made for agents
+    details: An MCP server with 15 tools, structured JSON everywhere, project bootstrap. So an AI agent can actually operate Liferay.
 ---
 
 <div class="home-shell">
@@ -45,67 +45,66 @@ npm i -g @mordonezdev/ldev
   <div class="feature-block">
     <div class="feature-header">
       <span class="feature-step">01</span>
-      <h3 class="feature-title">Inspect</h3>
+      <h3 class="feature-title">Inspect in one pass</h3>
     </div>
     <div class="feature-content">
 
 ```bash
-ldev portal inventory sites
-ldev portal inventory pages --site /global
+ldev portal inventory sites --json
+ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ```
 
   </div>
-  <p class="feature-desc">Browse sites, pages, and portal structure from the CLI. Structured output for humans, scripts, and agents.</p>
+  <p class="feature-desc">Consolidated portal context — sites, pages, structures and templates — in single structured calls. For humans, scripts and agents.</p>
   </div>
 
   <div class="feature-block">
     <div class="feature-header">
       <span class="feature-step">02</span>
-      <h3 class="feature-title">Diagnose & Fix</h3>
+      <h3 class="feature-title">Resources as files</h3>
     </div>
     <div class="feature-content">
 
 ```bash
-ldev logs diagnose --json
-ldev osgi status com.acme.foo.web
-ldev deploy module foo-web
-ldev context --json
+ldev resource export-structures --all-sites
+ldev resource import-structures --check-only
+ldev resource import-structures --apply
 ```
 
   </div>
-  <p class="feature-desc">From symptom to verified fix — isolate failures, inspect runtime state, deploy, and confirm.</p>
+  <p class="feature-desc">Structures, templates, ADTs and fragments out of the UI and into Git. Preview with <code>--check-only</code>, then apply.</p>
   </div>
 
   <div class="feature-block">
     <div class="feature-header">
       <span class="feature-step">03</span>
-      <h3 class="feature-title">Migrate Resources</h3>
+      <h3 class="feature-title">Migrate structures</h3>
     </div>
     <div class="feature-content">
 
 ```bash
-ldev resource export-structures --all-sites 
-ldev resource migration-init --structure STR_ARTICLE 
+ldev resource migration-init --site /global --structure STR_ARTICLE
+ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json --check-only --migration-dry-run
 ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 ```
 
   </div>
-  <p class="feature-desc">Export and import structures, templates, ADTs, and fragments. Keep changes reviewable and safe to replay.</p>
+  <p class="feature-desc">Plan, validate and run a structure migration with article-level mapping. The workflow Liferay does not give you.</p>
   </div>
 </div>
 
 <div class="agent-strip">
-  <span class="agent-label">Agent-ready</span>
-  <p>JSON outputs, context snapshots, and machine-readable portal data — so agents work from the same operational state as the developer. Bootstrap with <code>ldev ai install --target .</code></p>
+  <span class="agent-label">Built for agents</span>
+  <p>JSON outputs, project bootstrap and an MCP server with 15 tools — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
   <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
 </div>
 
 <div class="final-cta">
-  <strong>ldev turns Liferay into a scriptable, inspectable, and operable system.</strong>
+  <strong>ldev fills the automation gaps that Liferay does not.</strong>
   <div class="cta-actions">
-    <a href="/ldev/getting-started/quickstart" class="cta-btn primary">Get Started</a>
-    <a href="/ldev/getting-started/first-incident" class="cta-btn alt">First Incident →</a>
+    <a href="/ldev/getting-started/what-is-ldev" class="cta-btn primary">What is ldev</a>
+    <a href="/ldev/getting-started/quickstart" class="cta-btn alt">Quickstart →</a>
   </div>
 </div>
 
@@ -149,7 +148,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 }
 
 .VPHome .VPHero .tagline {
-  max-width: 560px;
+  max-width: 620px;
   font-size: 1rem !important;
   line-height: 1.5;
   color: var(--ldev-ink-soft) !important;

@@ -1,11 +1,15 @@
 ---
 title: Fix an OSGi Bundle
-description: Diagnose and repair an unresolved or failing OSGi bundle in a local Liferay environment.
+description: Triage and repair an unresolved or failing OSGi bundle in a local Liferay environment, using ldev wrappers around Gogo Shell.
 ---
 
 # Fix an OSGi Bundle
 
 Use this workflow when a deployment completed but the feature still fails.
+
+`ldev osgi status` and `ldev osgi diag` are convenience wrappers around
+Gogo Shell. They do not replace OSGi diagnostics; they make them faster to
+run from a normal terminal and give you structured output you can pipe.
 
 ## Problem
 
@@ -19,7 +23,9 @@ Start from the recent error:
 ldev logs diagnose --since 10m --json
 ```
 
-Capture the bundle symbolic name from the stack trace or component error. Example: `com.acme.foo.web`.
+`logs diagnose` groups exceptions and gives you a shortlist. Capture the
+bundle symbolic name from the stack trace or component error. Example:
+`com.acme.foo.web`.
 
 ## 2. Inspect bundle state
 
@@ -31,8 +37,11 @@ ldev osgi diag com.acme.foo.web
 What to look for:
 
 - unresolved package imports
-- unsatisfied declarative services references
+- unsatisfied declarative-services references
 - a bundle stuck after deployment
+
+These are pass-throughs of Gogo `lb -s <filter>` and `diag <bundleId>` with
+formatting on top.
 
 ## 3. Rebuild and redeploy only the affected module
 
@@ -40,7 +49,7 @@ What to look for:
 ldev deploy module foo-web
 ```
 
-If the issue is in a theme instead:
+If the issue is in a theme:
 
 ```bash
 ldev deploy theme
@@ -52,7 +61,8 @@ ldev deploy theme
 ldev env restart
 ```
 
-Use a restart when the deployment succeeded but the runtime has not recovered cleanly.
+Use a restart when the deployment succeeded but the runtime has not
+recovered cleanly.
 
 ## 5. Verify the fix
 
@@ -64,6 +74,6 @@ ldev logs diagnose --since 5m --json
 
 End state:
 
-- the bundle is active
-- the portal responds
+- the bundle is `Active`
+- `portal check` succeeds
 - the original exception no longer repeats
