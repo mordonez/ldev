@@ -6,6 +6,8 @@ import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {listGitWorktreeDetails} from '../../core/platform/git.js';
 import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 import {collectEnvStatus} from '../../core/runtime/env-health.js';
+import {runEnvStart} from '../env/env-start.js';
+import {runWorktreeClean} from '../worktree/worktree-clean.js';
 import {collectDashboardStatus} from './dashboard-data.js';
 import {dashboardHtml} from './dashboard-html.js';
 
@@ -37,12 +39,37 @@ async function resolveWorktreePath(cwd: string, worktreeName: string): Promise<s
   return target?.path ?? null;
 }
 
-async function handleWorktreeAction(
-  cwd: string,
-  worktreeName: string,
-  action: 'start' | 'stop',
-  res: http.ServerResponse,
-): Promise<void> {
+async function handleWorktreeStart(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
+  try {
+    const worktreePath = await resolveWorktreePath(cwd, worktreeName);
+    if (!worktreePath) {
+      res.writeHead(404, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: `Worktree '${worktreeName}' not found`}));
+      return;
+    }
+
+    const config = loadConfig({cwd: worktreePath});
+    if (!config.repoRoot || !config.dockerDir || !config.liferayDir) {
+      res.writeHead(400, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: 'No docker environment configured for this worktree'}));
+      return;
+    }
+
+    // Respond immediately — runEnvStart runs setup + docker up in the background
+    res.writeHead(202, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({ok: true, action: 'start', worktree: worktreeName}));
+
+    // wait: false skips health polling but still runs runWorktreeEnv() + deploy cache restore
+    runEnvStart(config, {wait: false}).catch(() => undefined);
+  } catch (err) {
+    if (!res.headersSent) {
+      res.writeHead(500, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: String(err)}));
+    }
+  }
+}
+
+async function handleWorktreeStop(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
   try {
     const worktreePath = await resolveWorktreePath(cwd, worktreeName);
     if (!worktreePath) {
@@ -62,15 +89,11 @@ async function handleWorktreeAction(
     const composeEnv = buildComposeEnv(context);
 
     res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, action, worktree: worktreeName}));
+    res.end(JSON.stringify({ok: true, action: 'stop', worktree: worktreeName}));
 
-    if (action === 'start') {
-      runDockerCompose(context.dockerDir, ['up', '-d'], {env: composeEnv, reject: false}).catch(() => undefined);
-    } else {
-      runDockerCompose(context.dockerDir, ['stop'], {env: composeEnv, reject: false})
-        .then(() => runDockerCompose(context.dockerDir, ['down'], {env: composeEnv, reject: false}))
-        .catch(() => undefined);
-    }
+    runDockerCompose(context.dockerDir, ['stop'], {env: composeEnv, reject: false})
+      .then(() => runDockerCompose(context.dockerDir, ['down'], {env: composeEnv, reject: false}))
+      .catch(() => undefined);
   } catch (err) {
     if (!res.headersSent) {
       res.writeHead(500, {'Content-Type': 'application/json'});
@@ -79,11 +102,34 @@ async function handleWorktreeAction(
   }
 }
 
-async function handleWorktreeLogs(
-  cwd: string,
-  worktreeName: string,
-  res: http.ServerResponse,
-): Promise<void> {
+async function handleWorktreeDelete(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
+  try {
+    const mainRepoRoot = path.resolve(cwd);
+    const worktreePath = await resolveWorktreePath(cwd, worktreeName);
+    if (!worktreePath) {
+      res.writeHead(404, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: `Worktree '${worktreeName}' not found`}));
+      return;
+    }
+
+    if (path.normalize(worktreePath) === path.normalize(mainRepoRoot)) {
+      res.writeHead(400, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: 'Cannot delete the main worktree'}));
+      return;
+    }
+
+    await runWorktreeClean({cwd, name: worktreeName, force: true});
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({ok: true, deleted: worktreeName}));
+  } catch (err) {
+    if (!res.headersSent) {
+      res.writeHead(500, {'Content-Type': 'application/json'});
+      res.end(JSON.stringify({error: String(err)}));
+    }
+  }
+}
+
+async function handleWorktreeLogs(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
   try {
     const worktreePath = await resolveWorktreePath(cwd, worktreeName);
     if (!worktreePath) {
@@ -115,7 +161,6 @@ async function handleWorktreeLogs(
       reject: false,
     });
 
-    // docker logs writes to stderr by design
     const raw = result.stderr || result.stdout;
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({logs: raw, containerId, service: 'liferay', running: status.liferay?.state === 'running'}));
@@ -153,13 +198,19 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
 
     const startMatch = /^\/api\/worktrees\/([^/]+)\/start$/.exec(url);
     if (method === 'POST' && startMatch) {
-      void handleWorktreeAction(cwd, decodeURIComponent(startMatch[1]), 'start', res);
+      void handleWorktreeStart(cwd, decodeURIComponent(startMatch[1]), res);
       return;
     }
 
     const stopMatch = /^\/api\/worktrees\/([^/]+)\/stop$/.exec(url);
     if (method === 'POST' && stopMatch) {
-      void handleWorktreeAction(cwd, decodeURIComponent(stopMatch[1]), 'stop', res);
+      void handleWorktreeStop(cwd, decodeURIComponent(stopMatch[1]), res);
+      return;
+    }
+
+    const deleteMatch = /^\/api\/worktrees\/([^/]+)$/.exec(url);
+    if (method === 'DELETE' && deleteMatch) {
+      void handleWorktreeDelete(cwd, decodeURIComponent(deleteMatch[1]), res);
       return;
     }
 

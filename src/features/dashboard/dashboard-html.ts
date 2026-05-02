@@ -30,10 +30,14 @@ main{padding:20px}
 .badge-yellow{background:rgba(210,153,34,.15);color:var(--yellow)}
 .badge-red{background:rgba(248,81,73,.15);color:var(--red)}
 .badge-gray{background:rgba(139,148,158,.12);color:var(--text2)}
-.badge-blue{background:rgba(88,166,255,.12);color:var(--blue)}
 .ahead-behind{font-size:11px;color:var(--text2);display:flex;gap:5px;align-items:center}
 .ahead{color:var(--green)}
 .behind{color:var(--yellow)}
+.path-row{display:flex;align-items:center;gap:6px;min-width:0}
+.path-text{font-size:11px;color:var(--text2);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.btn-copy{background:none;border:1px solid var(--border);color:var(--text2);padding:2px 7px;border-radius:5px;cursor:pointer;font-size:11px;flex-shrink:0;transition:all .15s}
+.btn-copy:hover{color:var(--text);border-color:var(--text2)}
+.btn-copy.copied{color:var(--green);border-color:rgba(63,185,80,.4)}
 .services{display:flex;flex-wrap:wrap;gap:5px}
 .svc{font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:4px;background:var(--bg3)}
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -45,7 +49,8 @@ main{padding:20px}
 .portal-row a{color:var(--blue);text-decoration:none}
 .portal-row a:hover{text-decoration:underline}
 .reach-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.actions{display:flex;gap:7px;flex-wrap:wrap}
+.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.actions-spacer{flex:1}
 button.action{padding:4px 12px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s}
 button.action:hover{opacity:.82}
 button.action:disabled{opacity:.45;cursor:not-allowed}
@@ -53,6 +58,8 @@ button.action:disabled{opacity:.45;cursor:not-allowed}
 .btn-stop{background:rgba(248,81,73,.12);color:var(--red);border-color:rgba(248,81,73,.3)}
 .btn-logs{background:rgba(139,148,158,.1);color:var(--text2);border-color:var(--border)}
 .btn-logs:hover{color:var(--text);opacity:1}
+.btn-delete{background:none;border:1px solid transparent;color:var(--text2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .15s}
+.btn-delete:hover{color:var(--red);border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.08)}
 .no-env{font-size:11px;color:var(--text2)}
 .commits{border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:4px}
 .commits-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
@@ -64,6 +71,10 @@ button.action:disabled{opacity:.45;cursor:not-allowed}
 .cdate{font-size:10px;color:var(--text2);flex-shrink:0}
 .center{text-align:center;padding:40px;color:var(--text2)}
 .error-msg{color:var(--red);text-align:center;padding:40px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 18px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Logs modal */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:20px}
@@ -95,6 +106,8 @@ button.action:disabled{opacity:.45;cursor:not-allowed}
 </header>
 <main id="app"><div class="center">Loading dashboard…</div></main>
 
+<div class="toast" id="toast"></div>
+
 <div class="modal-overlay hidden" id="modal-overlay">
   <div class="modal" id="modal">
     <div class="modal-header">
@@ -117,9 +130,18 @@ var lastData = null;
 var countdown = 0;
 var pollTimer = null;
 var currentLogsWorktree = null;
+var toastTimer = null;
 
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove('visible'); }, 2000);
 }
 
 function svcDotClass(state, health) {
@@ -151,6 +173,8 @@ function renderAheadBehind(ab) {
 
 function renderCard(wt) {
   var badge = envBadge(wt.env);
+  var safeName = esc(wt.name);
+  var safePath = esc(wt.path);
 
   var services = '';
   if (wt.env && wt.env.services.length > 0) {
@@ -170,18 +194,29 @@ function renderCard(wt) {
   var lf = wt.env && wt.env.liferay;
   var isRunning = lf && lf.state === 'running';
   var isStopped = !lf || !lf.state || lf.state === 'exited';
-  var safeName = esc(wt.name);
   var hasContainer = lf && lf.containerId;
 
-  var actions = '';
+  // Path row with copy button
+  var pathRow = '<div class="path-row">' +
+    '<span class="path-text" title="' + safePath + '">' + safePath + '</span>' +
+    '<button class="btn-copy" data-path="' + safePath + '" title="Copy path for cd">⎘ copy</button>' +
+    '</div>';
+
+  var envActions = '';
   if (wt.env) {
     var startBtn = isStopped ? '<button class="action btn-start" data-name="' + safeName + '" data-action="start">▶ Start</button>' : '';
     var stopBtn = isRunning ? '<button class="action btn-stop" data-name="' + safeName + '" data-action="stop">■ Stop</button>' : '';
     var logsBtn = hasContainer ? '<button class="action btn-logs" data-name="' + safeName + '" data-action="logs">≡ Logs</button>' : '';
-    actions = '<div class="actions">' + startBtn + stopBtn + logsBtn + '</div>';
+    envActions = startBtn + stopBtn + logsBtn;
   } else {
-    actions = '<div class="no-env">No docker env configured</div>';
+    envActions = '<span class="no-env">No docker env configured</span>';
   }
+
+  var deleteBtn = !wt.isMain
+    ? '<div class="actions-spacer"></div><button class="btn-delete" data-name="' + safeName + '" data-action="delete" title="Delete worktree">🗑</button>'
+    : '';
+
+  var actions = '<div class="actions">' + envActions + deleteBtn + '</div>';
 
   var commits = '';
   if (wt.commits && wt.commits.length > 0) {
@@ -207,7 +242,7 @@ function renderCard(wt) {
         (abHtml ? '<div>' + abHtml + '</div>' : '') +
       '</div>' +
     '</div>' +
-    services + portal + actions + commits +
+    pathRow + services + portal + actions + commits +
     '</div>';
 }
 
@@ -223,15 +258,36 @@ function render(data) {
   }
   app.innerHTML = '<div class="grid">' + data.worktrees.map(renderCard).join('') + '</div>';
 
+  // Worktree action buttons
   document.querySelectorAll('button[data-action]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var action = btn.getAttribute('data-action');
       var name = btn.getAttribute('data-name');
       if (action === 'logs') {
         openLogs(name);
+      } else if (action === 'delete') {
+        doDelete(name, btn);
       } else {
         doAction(name, action, btn);
       }
+    });
+  });
+
+  // Copy path buttons
+  document.querySelectorAll('button[data-path]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var p = btn.getAttribute('data-path');
+      navigator.clipboard.writeText(p).then(function() {
+        btn.textContent = '✓ copied';
+        btn.classList.add('copied');
+        showToast('Copied: cd ' + p);
+        setTimeout(function() {
+          btn.textContent = '⎘ copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(function() {
+        showToast('Copy failed — check browser permissions');
+      });
     });
   });
 }
@@ -243,6 +299,24 @@ async function doAction(name, action, btn) {
   } catch(e) { /* ignore */ }
   clearPoll();
   setTimeout(function() { fetchStatus().then(startPoll); }, 1500);
+}
+
+async function doDelete(name, btn) {
+  if (!confirm('Delete worktree "' + name + '"?\\n\\nThis will remove the git worktree and its docker environment data. This cannot be undone.')) return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    var res = await fetch('/api/worktrees/' + encodeURIComponent(name), {method: 'DELETE'});
+    var data = await res.json();
+    if (!res.ok) {
+      showToast('Error: ' + (data.error || res.status));
+    } else {
+      showToast('Deleted: ' + name);
+    }
+  } catch(e) {
+    showToast('Error: ' + String(e.message));
+  }
+  clearPoll();
+  setTimeout(function() { fetchStatus().then(startPoll); }, 500);
 }
 
 async function fetchStatus() {
@@ -264,10 +338,8 @@ async function fetchStatus() {
 function openLogs(worktreeName) {
   currentLogsWorktree = worktreeName;
   var overlay = document.getElementById('modal-overlay');
-  var title = document.getElementById('modal-title');
-  var subtitle = document.getElementById('modal-subtitle');
-  title.textContent = worktreeName + ' — liferay logs';
-  subtitle.textContent = '';
+  document.getElementById('modal-title').textContent = worktreeName + ' — liferay logs';
+  document.getElementById('modal-subtitle').textContent = '';
   overlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   loadLogs(worktreeName);
@@ -284,7 +356,6 @@ function formatLogs(raw) {
   var lines = raw.split('\\n');
   var html = lines.map(function(line) {
     if (!line.trim()) return '';
-    // Separate timestamp prefix (docker --timestamps gives: "2024-01-02T03:04:05.000Z text")
     var tsMatch = /^(\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z)\\s/.exec(line);
     if (tsMatch) {
       var ts = tsMatch[1].replace('T', ' ').replace('Z', '').slice(0, 19);
@@ -299,7 +370,6 @@ function formatLogs(raw) {
 async function loadLogs(worktreeName) {
   var body = document.getElementById('modal-body');
   var info = document.getElementById('modal-info');
-  var subtitle = document.getElementById('modal-subtitle');
   body.innerHTML = '<div class="log-loading">Fetching logs…</div>';
   if (info) info.textContent = '';
   try {
@@ -308,9 +378,8 @@ async function loadLogs(worktreeName) {
     var data = await res.json();
     if (data.error) throw new Error(data.error);
     body.innerHTML = formatLogs(data.logs);
-    // scroll to bottom
     body.scrollTop = body.scrollHeight;
-    if (subtitle) subtitle.textContent = data.containerId ? data.containerId.slice(0, 12) : '';
+    document.getElementById('modal-subtitle').textContent = data.containerId ? data.containerId.slice(0, 12) : '';
     if (info) {
       var lineCount = data.logs ? data.logs.split('\\n').filter(Boolean).length : 0;
       info.textContent = lineCount + ' lines · last 200 · ' + new Date().toLocaleTimeString();
@@ -320,7 +389,6 @@ async function loadLogs(worktreeName) {
   }
 }
 
-// Modal event listeners
 document.getElementById('modal-close').addEventListener('click', closeLogs);
 document.getElementById('modal-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeLogs();
