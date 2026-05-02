@@ -16,7 +16,26 @@ const requiredCleanUrls = [
 ];
 
 function getNpmCommand() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  if (process.platform === 'win32') {
+    return process.env.ComSpec ?? 'cmd.exe';
+  }
+
+  return 'npm';
+}
+
+function getNpmSpawnOptions() {
+  return process.platform === 'win32' ? {windowsHide: true} : {};
+}
+
+/**
+ * @param {string[]} args
+ */
+function getNpmArgs(args) {
+  if (process.platform !== 'win32') {
+    return args;
+  }
+
+  return ['/d', '/s', '/c', 'npm', ...args];
 }
 
 /**
@@ -24,10 +43,11 @@ function getNpmCommand() {
  * @param {import('node:child_process').SpawnOptions} [options]
  */
 function spawnNpm(args, options = {}) {
-  return spawn(getNpmCommand(), args, {
+  return spawn(getNpmCommand(), getNpmArgs(args), {
     cwd: process.cwd(),
     env: process.env,
     stdio: 'inherit',
+    ...getNpmSpawnOptions(),
     ...options,
   });
 }

@@ -104,6 +104,12 @@ npm install -g @mordonezdev/ldev
 ldev --help
 ```
 
+To try it without installing globally:
+
+```bash
+npx @mordonezdev/ldev --help
+```
+
 Requirements: Node.js 22+ (24 recommended), Docker + `docker compose`, Git. For
 LCP-backed flows, [LCP CLI](https://learn.liferay.com/w/dxp/cloud/reference/command-line-tool).
 
