@@ -14,6 +14,12 @@ export type DashboardGitCommit = {
   date: string;
 };
 
+export type DashboardAheadBehind = {
+  ahead: number;
+  behind: number;
+  base: string;
+};
+
 export type DashboardEnv = {
   dockerDir: string;
   portalUrl: string;
@@ -31,6 +37,7 @@ export type DashboardWorktree = {
   env: DashboardEnv | null;
   commits: DashboardGitCommit[];
   changedFiles: number;
+  aheadBehind: DashboardAheadBehind | null;
 };
 
 export type DashboardStatus = {
@@ -94,6 +101,28 @@ async function collectWorktreeGit(worktreePath: string): Promise<{
   return {commits, changedFiles};
 }
 
+async function collectAheadBehind(worktreePath: string): Promise<DashboardAheadBehind | null> {
+  for (const base of ['origin/main', 'main', 'origin/master', 'master']) {
+    const check = await runProcess('git', ['rev-parse', '--verify', base], {cwd: worktreePath, reject: false});
+    if (!check.ok) continue;
+
+    const [aResult, bResult] = await Promise.all([
+      runProcess('git', ['rev-list', '--count', `${base}..HEAD`], {cwd: worktreePath, reject: false}),
+      runProcess('git', ['rev-list', '--count', `HEAD..${base}`], {cwd: worktreePath, reject: false}),
+    ]);
+
+    if (!aResult.ok || !bResult.ok) continue;
+
+    const ahead = parseInt(aResult.stdout.trim(), 10);
+    const behind = parseInt(bResult.stdout.trim(), 10);
+    if (!isNaN(ahead) && !isNaN(behind)) {
+      return {ahead, behind, base};
+    }
+  }
+
+  return null;
+}
+
 export async function collectDashboardStatus(cwd: string): Promise<DashboardStatus> {
   const mainRepoRoot = path.resolve(cwd);
   const worktreeInfos = await listGitWorktreeDetails(cwd);
@@ -105,9 +134,10 @@ export async function collectDashboardStatus(cwd: string): Promise<DashboardStat
         const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
         const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
 
-        const [env, {commits, changedFiles}] = await Promise.all([
+        const [env, {commits, changedFiles}, aheadBehind] = await Promise.all([
           collectWorktreeEnv(info.path),
           collectWorktreeGit(info.path),
+          isMain ? Promise.resolve(null) : collectAheadBehind(info.path),
         ]);
 
         return {
@@ -119,6 +149,7 @@ export async function collectDashboardStatus(cwd: string): Promise<DashboardStat
           env,
           commits,
           changedFiles,
+          aheadBehind,
         } satisfies DashboardWorktree;
       }),
   );
