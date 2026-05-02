@@ -1,17 +1,23 @@
 ---
 title: Explore a Portal
-description: Discover sites, pages, and page structure without depending on the Liferay UI.
+description: Get the consolidated portal context in one structured call — sites, pages, fragments, articles — without navigating the UI.
 ---
 
 # Explore a Portal
 
-Portal discovery is a core `ldev` workflow.
+`ldev portal inventory` is the context-aggregation surface of the CLI.
+
+A single call to `inventory page` returns the resolved layout, fragments,
+widgets and articles for a URL — information that, against the Headless API
+directly, would take several calls and glue code. The inventory commands
+exist because that consolidated context is what a developer or an agent
+actually needs in the first ten seconds of looking at a portal.
 
 Use it when:
 
 - the UI is unavailable
-- you need a fast inventory of sites and pages
-- you want structured output for automation
+- you want a fast inventory of sites and pages
+- you need structured output for automation
 - an agent needs context before changing anything
 
 ## Start with sites
@@ -21,9 +27,10 @@ ldev portal inventory sites
 ldev portal inventory sites --json
 ```
 
-This gives you a quick list of accessible sites and the identifiers you need for deeper inspection.
+This returns the accessible sites and the identifiers needed for deeper
+inspection.
 
-Real example:
+Real output:
 
 ```json
 [
@@ -42,20 +49,17 @@ Real example:
 ]
 ```
 
-## Move into page hierarchy
+## Move into the page hierarchy
 
 ```bash
 ldev portal inventory pages --site /global
 ldev portal inventory pages --site /global --json
 ```
 
-Use this to understand navigation, page depth, and available routes without opening the site in a browser.
+Use this to understand navigation, depth and available routes without
+opening the site in a browser.
 
-Real example for the default Guest site:
-
-```bash
-ldev portal inventory pages --site /guest --json
-```
+Real output:
 
 ```json
 {
@@ -78,23 +82,19 @@ ldev portal inventory pages --site /guest --json
 }
 ```
 
-## Inspect one page directly
+## Inspect one page in full context
 
 ```bash
 ldev portal inventory page --url /home --json
 ```
 
-If you know the site and friendly URL separately:
+If you know site and friendly URL separately:
 
 ```bash
 ldev portal inventory page --site /global --friendly-url /home --json
 ```
 
-Real example:
-
-```bash
-ldev portal inventory page --url /web/guest/home --json
-```
+Real output:
 
 ```json
 {
@@ -103,28 +103,28 @@ ldev portal inventory page --url /web/guest/home --json
   "pageName": "Home",
   "componentInspectionSupported": true,
   "fragmentEntryLinks": [
-    {
-      "type": "fragment",
-      "fragmentKey": "BASIC_COMPONENT-paragraph"
-    },
-    {
-      "type": "fragment",
-      "fragmentKey": "BASIC_COMPONENT-image"
-    }
+    { "type": "fragment", "fragmentKey": "BASIC_COMPONENT-paragraph" },
+    { "type": "fragment", "fragmentKey": "BASIC_COMPONENT-image" }
   ],
   "widgets": [],
   "journalArticles": []
 }
 ```
 
-## Why this matters
+This is the consolidated view — fragments, widgets and articles in one
+response.
 
-This workflow is different from manual UI exploration:
+## Why this workflow matters
 
-- no UI dependency
-- instant understanding of site and page structure
-- structured output that can be piped, diffed, or stored
-- usable by humans and agents in the same way
+`ldev portal inventory` is honest convenience. It does not give you a portal
+API that Liferay does not have; it composes the existing Headless API into
+the shape you actually want to read.
+
+The benefit is twofold:
+
+- a developer or support engineer skips the UI entirely
+- an AI agent gets in one tool call what would otherwise need several, with
+  matching JSON shape across MCP and CLI
 
 ## Typical discovery flow
 
@@ -134,4 +134,5 @@ ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ```
 
-End with the exact page, site, and route context you need before you diagnose or change anything else.
+End with the exact page, site and route context you need before you change
+anything.

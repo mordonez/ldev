@@ -7,6 +7,11 @@ description: Use isolated git worktrees when you need separate branches and sepa
 
 Use worktrees when one branch is reproducing an incident and another is active development.
 
+Branch isolation with its own runtime state is the natural unit for a
+"one issue, one PR" loop — a sandbox per task, for a developer or for an
+agent. See [Why ldev Exists](/core-concepts/why-ldev-exists) for the
+broader argument.
+
 ## Create an isolated environment
 
 ```bash

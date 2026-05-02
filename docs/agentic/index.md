@@ -1,34 +1,44 @@
 ---
-title: Agent Workflows
-description: Use ldev as the execution layer for agents and scripts without treating AI as the product.
+title: Agents and MCP
+description: Why ldev is the missing execution layer for AI agents on Liferay, and how the bootstrap, skills and MCP server fit together.
 ---
 
-# Agent Workflows
+# Agents and MCP
 
-`ldev` helps agents because it exposes operational steps that are already useful for humans.
+`ldev` is what gives an AI agent an execution layer on Liferay.
 
-The tool is the execution layer. The value is still in Liferay maintenance work:
+That sounds like a marketing line, but it is a technical statement. Most
+critical Liferay operations — importing structures, exporting templates,
+migrating articles, bootstrapping environments — only exist in the admin UI
+or in uneven APIs. An agent cannot click. Liferay's own MCP surface is still
+limited. So without a CLI like this, an agent connected to a Liferay system
+can mostly observe, not operate.
 
-- inspect the environment
-- diagnose the failure
-- apply a fix locally
-- verify the result
+`ldev` is the same CLI a developer uses, plus the wiring (bootstrap files,
+managed skills, MCP tools) that lets an agent call the same workflows from
+inside an editor.
 
-## Context snapshots
+## What `ldev` provides for agents
 
-Use bootstrap first so an agent has the same project facts and readiness picture a developer would use.
+| Layer | What it does | Required? |
+| --- | --- | --- |
+| CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Yes — the source of truth |
+| `ldev ai install` | Installs `AGENTS.md`, vendor skills, and tool-specific rule directories (`.claude/rules`, `.cursor/rules`, `.gemini`, `.github/instructions`, `.windsurf/rules`, `.workspace-rules`). | Yes |
+| `ldev-mcp-server` (15 tools) | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
+| `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
 
-```bash
-ldev ai bootstrap --intent=develop --json
-```
-
-## Bootstrap the repo first
-
-Install the managed AI assets into the project:
+## Bootstrap the repo
 
 ```bash
 ldev ai install --target .
 ```
+
+What this prepares:
+
+- `AGENTS.md`
+- vendor-managed skills under `.agents/skills/`
+- tool-specific rule directories
+- optional project-owned skills, agents and context scaffolding
 
 Optional overlays:
 
@@ -43,54 +53,69 @@ Useful follow-up:
 ldev ai status --target . --json
 ```
 
-What this prepares:
+In Blade workspaces, `ldev` coexists with the official AI folders and the
+`.workspace-rules` model rather than replacing them.
 
-- `AGENTS.md`
-- vendor-managed skills under `.agents/skills`
-- optional project context scaffolding
-- optional project menu-map scaffolding under `docs/ai/menu/`
-- optional project-owned skills and agents
-
-Real example:
+## Set up the local MCP server
 
 ```bash
-ldev ai install --target . --project --project-context
+ldev ai mcp-setup --target . --tool all
 ```
 
-```text
-Project type: ldev-native
-Installed skills: 6
-AGENTS.md: installed
-CLAUDE.md: installed
-docs/ai/project-context.md: installed
-Updated tool targets: .claude/rules, .cursor/rules, .gemini, .github/instructions, .windsurf/rules, .workspace-rules
-Installed project skills: 2
-Installed project agents: 4
+This writes the MCP config for VSCode, Claude Code and Cursor in one run.
+
+Use an explicit launch strategy when reproducibility matters:
+
+```bash
+ldev ai mcp-setup --target . --tool vscode --strategy local
+ldev ai mcp-setup --target . --tool claude-code --strategy global
+ldev ai mcp-setup --target . --tool cursor --strategy npx
 ```
 
-In Blade workspaces, `ldev` can coexist with the official AI folders and `.workspace-rules` model instead of replacing it.
+If the editor does not show the tools:
+
+```bash
+ldev mcp doctor --target . --tool all
+```
+
+## Context snapshots
+
+Use `ai bootstrap` so an agent has the same project facts and readiness
+picture a developer would use.
+
+```bash
+ldev ai bootstrap --intent=discover --json
+ldev ai bootstrap --intent=develop --json
+ldev ai bootstrap --intent=deploy --json
+ldev ai bootstrap --intent=troubleshoot --json
+ldev ai bootstrap --intent=migrate-resources --json
+ldev ai bootstrap --intent=osgi-debug --json
+```
+
+Use `--cache <seconds>` to reuse the result for the same intent and working
+tree.
 
 ## Where knowledge lives
 
-The AI layer is easier to maintain if each kind of knowledge has one clear home:
+The AI layer is easier to maintain if each kind of knowledge has one home:
 
-- `.agents/skills/*` without the `project-` prefix are vendor skills installed by `ldev`
-- `.agents/skills/project-*` are project-owned workflows such as issue handling or PR process
-- `docs/ai/project-context.md` is the long-form project context document
-- `.workspace-rules/ldev-*` are runtime/tooling rules for `ldev`, not the main home of project process
+- `.agents/skills/*` (without the `project-` prefix) — vendor skills
+  installed by `ldev`
+- `.agents/skills/project-*` — project-owned workflows (issue handling,
+  PR process)
+- `docs/ai/project-context.md` — long-form project context
+- `.workspace-rules/ldev-*` — runtime/tooling rules for `ldev`, not the
+  main home of project process
 
-In short:
+Short version: skills for workflows, `project-context.md` for project
+context, `ldev-*` workspace rules for tooling guidance. Same model in
+`ldev-native` and `blade-workspace`.
 
-- use skills for workflows
-- use `project-context.md` for project context
-- use `ldev-*` workspace rules for runtime and tooling guidance
+## Structured portal context for agents
 
-This keeps the same model working in both `ldev-native` and `blade-workspace`
-without duplicating project process across multiple folders.
-
-## Structured portal discovery
-
-Agents can inspect the portal without screen scraping or UI navigation:
+Agents consume the same inventory commands developers do — every call
+returns consolidated context that would otherwise need several Headless API
+calls:
 
 ```bash
 ldev portal inventory sites --json
@@ -99,57 +124,52 @@ ldev portal inventory page --url /home --json
 ldev portal inventory structures --site /global --with-templates --json
 ```
 
-For structure/template incidents, prefer `inventory structures --with-templates`
-as the first discovery step. It returns the structure list enriched with
-associated templates in one call, so agents can route directly to the correct
-export/import commands.
+For structure/template work, `inventory structures --with-templates` is the
+right first call.
 
-## MCP as an acceleration layer
+## Decision route
 
-`ldev` MCP tools are optional structured shortcuts over selected `ldev`
-workflows. They make agents faster and less error-prone when available, but the
-CLI remains the canonical fallback.
+The agent layer follows this rule:
 
-Use this decision route:
+```
+Skills decide what should happen.
+MCP tools execute structured discovery and diagnosis when available.
+CLI remains the source of truth and fallback for every workflow.
+```
 
-- skills decide the workflow and guardrails
-- MCP tools execute structured discovery and diagnosis when visible
-- CLI commands with `--json` remain the fallback for every workflow
+See [MCP Decision Route](./mcp-decision-route.md) for the maintained
+mapping of MCP tools to CLI fallbacks, and
+[MCP Server Inventory](./mcp-server-inventory.md) for the current and
+candidate tool list.
 
-See [MCP Decision Route](./mcp-decision-route.md) for the maintained mapping of
-MCP tools to CLI fallbacks.
+## Keep skills and rules up to date
 
-## Keeping rules and skills up to date
-
-After pulling a new version of `ldev`, refresh skills and rules in the project:
+After pulling a new version of `ldev`, refresh skills and rules:
 
 ```bash
 ldev ai install --skills-only --target .
 ```
 
-This updates `.agents/skills/` and all tool-specific rule directories
-(`.claude/rules/`, `.cursor/rules/`, `.gemini/`, etc.).
+This updates `.agents/skills/` and all tool-specific rule directories.
 
 > **Windows:** rule directories are created as copies instead of symlinks
-> (symlinks require Developer Mode). Re-running the command above refreshes
-> those copies. If you later enable Developer Mode, the next run replaces the
-> copies with proper symlinks automatically.
+> (symlinks require Developer Mode). Re-running the command refreshes those
+> copies. If you later enable Developer Mode, the next run replaces them
+> with proper symlinks.
 
-## Runtime Contract
+## The agent runtime contract
 
-The full execution contract lives in `AGENTS.md` (installed by `ldev ai install`). The
-canonical Safety Invariants section of that file applies to every task regardless of skill.
+A well-behaved agent follows six phases. Full text in `AGENTS.md` after
+install.
 
-Summary of the six phases a well-behaved agent follows:
-
-| Phase                | When                         | Commands                                                                                                                                                                                                          |
-| -------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pre-flight           | Always, before any task      | `ldev ai bootstrap --intent=discover --json` or `ldev ai bootstrap --intent=develop --json`                                                                                                                       |
-| Health check         | Task touches runtime         | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json`                                                                                                                            |
-| Discovery            | Task mentions portal surface | `ldev portal inventory ...`                                                                                                                                                                                       |
-| Pre-mutation check   | Before any resource change   | `ldev resource import-* --check-only`                                                                                                                                                                             |
-| Mutation             | After check-only passes      | `ldev resource import-*`, `ldev deploy ...`                                                                                                                                                                       |
-| Post-mutation verify | After any mutation           | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`; runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json` |
+| Phase | When | Commands |
+| --- | --- | --- |
+| Pre-flight | Always | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
+| Health check | Task touches runtime | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json` |
+| Discovery | Task mentions a portal surface | `ldev portal inventory ...` |
+| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
+| Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
+| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`. Runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json`. |
 
 Key invariants (full list in `AGENTS.md → Safety Invariants`):
 
@@ -157,15 +177,23 @@ Key invariants (full list in `AGENTS.md → Safety Invariants`):
 - Always consume `--json`. Never parse human-readable output.
 - Always run `--check-only` before resource mutations.
 - Never use plural resource commands without explicit human approval.
-- Do not treat `ldev logs diagnose` as universal verification for resource imports; prefer read-after-write evidence from `ldev resource` / `ldev portal inventory`.
+- Do not treat `ldev logs diagnose` as universal verification for resource
+  imports; prefer read-after-write evidence from `ldev resource` /
+  `ldev portal inventory`.
 - Diagnose before retrying a failed command.
 
-## Execution, not hype
+## Why this matters
 
-Use agents for planning or analysis if you want, but keep the system boundary clear:
+Without this layer, an agent connected to Liferay can read state but
+cannot operate it. With it, an agent can stand up an environment, import a
+structure, run a migration check, deploy a module and verify the result —
+end to end, with the same evidence a developer would gather.
 
-- `ldev` discovers state
-- `ldev` executes local operational steps
-- `ldev` returns structured output for verification
+That is what makes `ldev` useful for AI workflows. Not the buzzword. The
+fact that the operations actually exist as commands.
 
-That is enough to support reliable agent workflows without inventing a separate platform story.
+Put differently: we did not build AI features. We fixed the systems problem
+in Liferay — operations as data, reproducible environments, isolated
+runtimes, guardrails before mutation, structured output. All of that was
+already worth doing for humans. The AI integration came along for the ride.
+See [Why ldev Exists](/core-concepts/why-ldev-exists) for the long form.

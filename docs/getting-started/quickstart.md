@@ -1,16 +1,20 @@
 ---
 title: Quickstart
-description: Install ldev, create a local environment, start it, and run the first checks.
+description: Install ldev and either bootstrap a local Liferay environment or attach ldev to an existing one.
 ---
 
 # Quickstart
 
-This is the shortest path to a usable local Liferay environment.
+The shortest path from zero to a working `ldev` setup.
 
-Choose the path that matches your project:
+There are two starting points:
 
-- `ldev-native`: Liferay workspace managed by ldev in Docker (no Blade CLI needed)
-- `Liferay Workspace`: Liferay workspace managed by Blade, enhanced with ldev
+- **A. Bootstrap a fresh local environment** — `ldev-native`, fully managed by
+  ldev in Docker.
+- **B. Attach to an existing Liferay Workspace** — keep your Blade workspace,
+  add `ldev` on top.
+
+Pick the one that matches your situation.
 
 ## 1. Install
 
@@ -21,115 +25,117 @@ ldev --help
 
 Requirements:
 
-- Node.js 22+ (Node 24 recommended)
+- Node.js 22+ (24 recommended)
 - Docker and `docker compose`
 - Git
-- [LCP](https://learn.liferay.com/w/dxp/cloud/reference/command-line-tool)  (Cloud Liferay)
-- [playwright-cli](https://github.com/microsoft/playwright-cli) (Test UI using coding agents)
+- [LCP CLI](https://learn.liferay.com/w/dxp/cloud/reference/command-line-tool)
+  — only if you plan to pull data from Liferay Cloud
+- [playwright-cli](https://github.com/microsoft/playwright-cli) — only if
+  agents in your project run UI verification
 
-## 2. Initialize a project
+## 2A. Bootstrap a fresh local environment (`ldev-native`)
 
-### Option A: ldev-native
-
-Create a fresh `ldev` project:
+Create the project scaffold:
 
 ```bash
 ldev project init --name my-project --dir ~/projects/my-project
 cd ~/projects/my-project
 ```
 
-If you are already inside a repo that uses the `ldev` runtime layout, initialize the local environment files:
+If you are already inside a repo that uses the `ldev` runtime layout, skip
+`project init` and run `ldev env init` to write the local environment files.
 
-```bash
-ldev env init
-```
-
-### Option B: existing Liferay Workspace
-
-If your team uses the standard Blade workspace model, you can keep it and still use `ldev`:
+## 2B. Attach to an existing Liferay Workspace
 
 ```bash
 npm install -g @mordonezdev/ldev
-blade init ai-workspace
-cd ai-workspace
+blade init my-workspace
+cd my-workspace
 ldev doctor
 ```
 
-For an existing workspace, run `ldev` from the workspace root. `ldev` detects Blade workspaces and can still provide doctor, portal, resource, and AI bootstrap workflows on top of them.
+`ldev` detects the Blade workspace and provides doctor, portal, resource and
+agent workflows on top of it. Your existing Liferay layout is not modified.
 
-## 3. Prepare local config
+## 3. Prepare and start
 
 ```bash
 ldev setup
 ldev doctor
-```
-
-Run `doctor` before the first start so you catch missing Docker, port conflicts, bad paths, or activation-key problems early.
-
-## 4. Start the environment
-
-```bash
 ldev start --activation-key-file /path/to/activation-key.xml
 ```
 
-If the activation key is already exported in your shell, this is enough:
+`doctor` catches missing Docker, port conflicts, bad paths and activation-key
+problems before the first start. If your activation key is already exported in
+your shell, `ldev start` is enough.
 
-```bash
-ldev start
-```
-
-## 5. Check health
+## 4. Check health
 
 ```bash
 ldev status
 ldev doctor
 ```
 
-If the portal is up and you want API-based discovery, install OAuth once:
+## 5. Install OAuth (once)
+
+Most `ldev` commands talk to Liferay over OAuth2. Install it once:
 
 ```bash
 ldev oauth install --write-env
 ldev portal check
 ```
 
-`ldev` uses OAuth2 for portal discovery, resource operations, and other API-backed commands. `--write-env` writes the local credentials into `.liferay-cli.local.yml`.
+`--write-env` writes the local credentials to `.liferay-cli.local.yml`.
 
-See [OAuth](/core-concepts/oauth) for the model and [Configuration](/reference/configuration) for precedence.
+See [OAuth](/core-concepts/oauth) for the full model and remote setup options.
 
-## 6. Prepare the repo for agents
+## 6. Get the consolidated portal context
 
-If you want coding agents to work through `ldev`, bootstrap the managed AI assets:
+```bash
+ldev portal inventory sites --json
+ldev portal inventory pages --site /global --json
+ldev portal inventory page --url /home --json
+```
+
+`portal inventory` is `ldev`'s context-aggregation surface: each call returns
+a structured snapshot that would otherwise take several Headless API calls.
+Use it as the first thing you run after a fresh start.
+
+## 7. Optional: prepare the repo for AI agents
+
+If your team uses MCP-capable editors:
 
 ```bash
 ldev ai install --target .
+ldev ai mcp-setup --target . --tool all
 ```
+
+This installs the standard agent assets (`AGENTS.md`, vendor skills, rule
+directories for Claude/Cursor/VSCode/etc.) and registers the `ldev` MCP server
+in the editors' MCP config.
 
 Optional overlays:
 
 ```bash
-ldev ai install --target . --project-context
 ldev ai install --target . --project --project-context
 ```
 
-## 7. Start discovering the portal
+## 8. Working from a worktree
 
-```bash
-ldev portal inventory sites
-ldev portal inventory pages --site /global
-ldev portal inventory page --url /home --json
-```
-
-If you later work from a git worktree and need read-only discovery against the
-main runtime, keep your shell where it is and target the main checkout
-explicitly:
+When you need to run a read-only command against the main checkout while your
+shell is inside a worktree, target it explicitly:
 
 ```bash
 ldev --repo-root ../.. portal inventory sites --json
 ldev --repo-root ../.. ai bootstrap --intent=develop --json
 ```
 
-Next:
+## Where to go next
 
-- [First Incident](/getting-started/first-incident)
-- [Explore a Portal](/workflows/explore-portal)
-- [Liferay Workspace](/advanced/liferay-workspace)
+- [Export and Import Resources](/workflows/export-import-resources) — the
+  workflow that makes ldev different.
+- [Resource Migration Pipeline](/workflows/resource-migration-pipeline) — for
+  structure changes against existing content.
+- [Worktrees](/advanced/worktrees) — branch-isolated runtimes.
+- [Agents and MCP](/agentic/) — once you have `ai install` and `mcp-setup`
+  done.
