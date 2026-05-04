@@ -10,8 +10,10 @@ Use this file only for project-specific issue conventions.
 - Derive the worktree name from the issue identifier provided in this session.
 - If the user did not provide an issue identifier, derive a short descriptive
   name from the task. Do not invent a numeric identifier.
-- Do not navigate into a visible worktree from bootstrap, status, or `git worktree list`
-  output unless the user explicitly asked to reuse it.
+- If the current session is already inside a worktree, ask whether this issue
+  should continue there before creating another worktree.
+- Do not switch from the active worktree to a different visible worktree unless
+  the user explicitly asked for that switch.
 - After `ldev start`, reproduce the bug again in the worktree runtime before the
   first code change or resource import.
 

@@ -295,6 +295,53 @@ describe('db integration', () => {
     );
   }, 45000);
 
+  test('db files-mount fails when the existing doclib volume cannot be removed', async () => {
+    const repoRoot = await createDbRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const oldDoclib = path.join(repoRoot, 'tmp', 'document_library_old');
+    const newDoclib = path.join(repoRoot, 'tmp', 'document_library_new');
+    await fs.ensureDir(oldDoclib);
+    await fs.ensureDir(newDoclib);
+
+    const env = {
+      ...process.env,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_VOLUME_RM_REQUIRES_COMPOSE_RM: '1',
+    };
+
+    const createVolume = await runProcess(
+      'docker',
+      [
+        'volume',
+        'create',
+        '--driver',
+        'local',
+        '--opt',
+        'type=none',
+        '--opt',
+        `device=${oldDoclib}`,
+        '--opt',
+        'o=bind',
+        'demo-doclib',
+      ],
+      {cwd: repoRoot, env},
+    );
+    expect(createVolume.exitCode).toBe(0);
+
+    const result = await runCli(['db', 'files-mount', '--path', newDoclib, '--format', 'json'], {cwd: repoRoot, env});
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('volume is in use');
+
+    const inspectVolume = await runProcess(
+      'docker',
+      ['volume', 'inspect', 'demo-doclib', '--format', '{{index .Options "device"}}'],
+      {cwd: repoRoot, env},
+    );
+    expect(inspectVolume.exitCode).toBe(0);
+    expect(inspectVolume.stdout.trim()).toBe(oldDoclib);
+  }, 45000);
+
   test('db files-download supports doclib-only downloads', async () => {
     const repoRoot = await createDbRepoFixture();
     const fakeLcpDir = await createFakeLcpBin();

@@ -272,14 +272,20 @@ if (args[0] === 'volume' && args[1] === 'create') {
   if (process.env.FAKE_DOCKER_VOLUME_CREATE_FAIL === '1') {
     fail('simulated volume create failure');
   }
+  const deviceFile = path.join(volumeDir, volume + '.device');
+  const typeFile = path.join(volumeDir, volume + '.type');
+  if (fs.existsSync(deviceFile) || fs.existsSync(typeFile)) {
+    println(volume);
+    process.exit(0);
+  }
   let device = '';
   let type = 'none';
   for (const arg of args) {
     if (arg.startsWith('device=')) device = arg.slice('device='.length);
     if (arg.startsWith('type=')) type = arg.slice('type='.length);
   }
-  fs.writeFileSync(path.join(volumeDir, volume + '.device'), device + '\\n');
-  fs.writeFileSync(path.join(volumeDir, volume + '.type'), type + '\\n');
+  fs.writeFileSync(deviceFile, device + '\n');
+  fs.writeFileSync(typeFile, type + '\n');
   println(volume);
   process.exit(0);
 }

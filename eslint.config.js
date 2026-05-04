@@ -68,6 +68,8 @@ const LARGE_FILE_EXCEPTIONS = [
   'src/features/ai/ai-install-project.ts',
   'src/features/ai/ai-install.ts',
   'src/features/db/db-files-download.ts',
+  'src/features/dashboard/dashboard-html.ts',
+  'src/features/dashboard/dashboard-server.ts',
   'src/features/doctor/doctor-collectors.ts',
   'src/features/liferay/content/liferay-content-stats.ts',
   'src/features/liferay/inventory/liferay-inventory-page-assemble.ts',

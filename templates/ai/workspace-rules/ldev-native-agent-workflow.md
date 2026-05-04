@@ -19,6 +19,8 @@ alwaysApply: true
   import/deploy verification → `Red → Green` visual validation.
   For clearly trivial changes, assess the scope and ask the developer whether they
   want the full workflow or prefer to work directly in the current checkout.
+- If the session is already inside a worktree, ask whether to keep using that
+  active worktree before creating a new one for the task.
 - When isolation needs a runtime-backed worktree, ask the user whether the main environment needs to run in parallel. Default is `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped to conserve resources). Add `--restart-main-after-clone` only if the user confirms they need main running alongside the worktree.
 
 Preferred task-shaped entry points after bootstrap:

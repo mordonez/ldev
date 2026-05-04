@@ -4,9 +4,10 @@ import fs from 'fs-extra';
 
 import {loadConfig} from '../../core/config/load-config.js';
 import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
-import {collectEnvStatus, type EnvServiceStatus} from '../../core/runtime/env-health.js';
+import {collectEnvRuntimeSummary, collectEnvStatus, type EnvServiceStatus} from '../../core/runtime/env-health.js';
 import {listGitWorktreeDetails} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
+import {MCP_SETUP_TOOLS, type McpSetupTool, resolveMcpConfigPath} from '../mcp-server/mcp-server-setup.js';
 
 export type DashboardGitCommit = {
   hash: string;
@@ -23,7 +24,7 @@ export type DashboardAheadBehind = {
 export type DashboardEnv = {
   dockerDir: string;
   portalUrl: string;
-  portalReachable: boolean;
+  portalReachable: boolean | null;
   services: EnvServiceStatus[];
   liferay: EnvServiceStatus | null;
 };
@@ -37,27 +38,80 @@ export type DashboardWorktree = {
   env: DashboardEnv | null;
   commits: DashboardGitCommit[];
   changedFiles: number;
+  changedPaths: string[];
   aheadBehind: DashboardAheadBehind | null;
+};
+
+export type DashboardMcpClientStatus = {
+  tool: McpSetupTool;
+  configPath: string;
+  configExists: boolean;
+};
+
+export type DashboardMcpStatus = {
+  targetDir: string;
+  clients: DashboardMcpClientStatus[];
 };
 
 export type DashboardStatus = {
   cwd: string;
   refreshedAt: string;
+  mcp: DashboardMcpStatus;
   worktrees: DashboardWorktree[];
 };
 
-async function collectWorktreeEnv(worktreePath: string): Promise<DashboardEnv | null> {
+export type CollectDashboardStatusOptions = {
+  includeGit?: boolean;
+  includeRuntimeDetails?: boolean;
+};
+
+async function collectMcpStatus(cwd: string): Promise<DashboardMcpStatus> {
+  const clients = await Promise.all(
+    MCP_SETUP_TOOLS.map(async (tool) => {
+      const configPath = resolveMcpConfigPath(cwd, tool);
+
+      return {
+        tool,
+        configPath,
+        configExists: await fs.pathExists(configPath),
+      } satisfies DashboardMcpClientStatus;
+    }),
+  );
+
+  return {
+    targetDir: cwd,
+    clients,
+  };
+}
+
+async function collectWorktreeEnv(
+  worktreePath: string,
+  options?: {includeRuntimeDetails?: boolean},
+): Promise<DashboardEnv | null> {
   if (!(await fs.pathExists(path.join(worktreePath, 'docker')))) {
     return null;
   }
 
   try {
     const config = loadConfig({cwd: worktreePath});
-    if (!config.repoRoot || !config.dockerDir || !config.liferayDir) {
+    if (!config.repoRoot || !config.dockerDir || !config.liferayDir || !config.files.dockerEnv) {
       return null;
     }
     const context = resolveEnvContext(config);
     const composeEnv = buildComposeEnv(context);
+
+    if (options?.includeRuntimeDetails !== true) {
+      const runtime = await collectEnvRuntimeSummary(context, {processEnv: composeEnv});
+
+      return {
+        dockerDir: context.dockerDir,
+        portalUrl: runtime.portalUrl,
+        portalReachable: null,
+        services: [],
+        liferay: runtime.liferay,
+      };
+    }
+
     const status = await collectEnvStatus(context, {processEnv: composeEnv});
 
     return {
@@ -75,6 +129,7 @@ async function collectWorktreeEnv(worktreePath: string): Promise<DashboardEnv | 
 async function collectWorktreeGit(worktreePath: string): Promise<{
   commits: DashboardGitCommit[];
   changedFiles: number;
+  changedPaths: string[];
 }> {
   const [logResult, statusResult] = await Promise.all([
     runProcess('git', ['log', '--format=%H\t%s\t%ci', '-8', 'HEAD'], {cwd: worktreePath, reject: false}),
@@ -96,9 +151,16 @@ async function collectWorktreeGit(worktreePath: string): Promise<{
     }
   }
 
-  const changedFiles = statusResult.ok ? statusResult.stdout.split('\n').filter(Boolean).length : 0;
+  const changedPaths = statusResult.ok
+    ? statusResult.stdout
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => line.slice(3).trim())
+        .filter(Boolean)
+    : [];
+  const changedFiles = changedPaths.length;
 
-  return {commits, changedFiles};
+  return {commits, changedFiles, changedPaths};
 }
 
 async function collectAheadBehind(worktreePath: string): Promise<DashboardAheadBehind | null> {
@@ -123,40 +185,52 @@ async function collectAheadBehind(worktreePath: string): Promise<DashboardAheadB
   return null;
 }
 
-export async function collectDashboardStatus(cwd: string): Promise<DashboardStatus> {
+export async function collectDashboardStatus(
+  cwd: string,
+  options?: CollectDashboardStatusOptions,
+): Promise<DashboardStatus> {
   const mainRepoRoot = path.resolve(cwd);
   const worktreeInfos = await listGitWorktreeDetails(cwd);
+  const includeGit = options?.includeGit === true;
+  const includeRuntimeDetails = options?.includeRuntimeDetails === true;
 
-  const worktrees = await Promise.all(
-    worktreeInfos
-      .filter((info) => !info.prunable)
-      .map(async (info) => {
-        const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
-        const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
+  const [mcp, worktrees] = await Promise.all([
+    collectMcpStatus(mainRepoRoot),
+    Promise.all(
+      worktreeInfos
+        .filter((info) => !info.prunable)
+        .map(async (info) => {
+          const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
+          const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
 
-        const [env, {commits, changedFiles}, aheadBehind] = await Promise.all([
-          collectWorktreeEnv(info.path),
-          collectWorktreeGit(info.path),
-          isMain ? Promise.resolve(null) : collectAheadBehind(info.path),
-        ]);
+          const [env, {commits, changedFiles, changedPaths}, aheadBehind] = await Promise.all([
+            collectWorktreeEnv(info.path, {includeRuntimeDetails}),
+            includeGit
+              ? collectWorktreeGit(info.path)
+              : Promise.resolve({commits: [], changedFiles: 0, changedPaths: []}),
+            includeGit && !isMain ? collectAheadBehind(info.path) : Promise.resolve(null),
+          ]);
 
-        return {
-          name,
-          path: info.path,
-          branch: info.branch,
-          isMain,
-          detached: info.detached,
-          env,
-          commits,
-          changedFiles,
-          aheadBehind,
-        } satisfies DashboardWorktree;
-      }),
-  );
+          return {
+            name,
+            path: info.path,
+            branch: info.branch,
+            isMain,
+            detached: info.detached,
+            env,
+            commits,
+            changedFiles,
+            changedPaths,
+            aheadBehind,
+          } satisfies DashboardWorktree;
+        }),
+    ),
+  ]);
 
   return {
     cwd: mainRepoRoot,
     refreshedAt: new Date().toISOString(),
+    mcp,
     worktrees,
   };
 }

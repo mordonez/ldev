@@ -9,7 +9,10 @@ inspection, recovery, and cleanup.
 - If the user did not provide an issue identifier, derive a short descriptive
   name from the task.
 - Do not invent a numeric identifier.
-- Do not reuse a visible worktree unless the user explicitly asked to reuse it.
+- If the current shell or editor is already inside a worktree, ask the user
+  whether to continue there before creating a new one.
+- Do not silently switch from the current worktree to a different visible
+  worktree.
 
 ## Create and start
 
@@ -60,6 +63,9 @@ worktrees with no isolated runtime.
 `--restart-main-after-clone` is optional. Only add it when the user explicitly
 confirms they need the main environment running in parallel. Leaving main stopped
 is the default because it conserves resources for the worktree runtime.
+
+If the user chose to reuse the current worktree, skip Phase 1. Stay in that
+worktree, confirm the root, and continue there instead of creating another one.
 
 If the primary checkout is not on `main`, do not rely on the implicit base
 branch. Pass the intended `--base <ref>` explicitly or stop and confirm the
