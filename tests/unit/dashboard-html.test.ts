@@ -5,7 +5,7 @@ import {describe, expect, test} from 'vitest';
 import {dashboardHtml} from '../../src/features/dashboard/dashboard-html.js';
 
 function extractScript(html: string): string {
-  const match = html.match(/<script>([\s\S]*)<\/script>/);
+  const match = html.match(/<script>([\s\S]*)<\/script>/i);
   if (!match) {
     throw new Error('Dashboard script block not found');
   }

@@ -353,12 +353,22 @@ async function handleMaintenancePreview(
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('worktree gc must be run inside a valid git repository')) {
       res.writeHead(200, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({ok: true, apply: false, candidates: [], cleaned: [], unavailable: true, message}));
+      res.end(
+        JSON.stringify({
+          ok: true,
+          apply: false,
+          candidates: [],
+          cleaned: [],
+          unavailable: true,
+          message: 'Maintenance preview is unavailable outside a git repository',
+        }),
+      );
       return;
     }
 
-    res.writeHead(500, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      internalMessage: 'Could not load worktree maintenance preview',
+    });
   }
 }
 

@@ -930,6 +930,7 @@ describe('createDashboardServer', () => {
       candidates: [],
       cleaned: [],
       unavailable: true,
+      message: 'Maintenance preview is unavailable outside a git repository',
     });
   });
 
