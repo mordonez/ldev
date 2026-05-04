@@ -347,6 +347,23 @@ describe('createDashboardServer', () => {
     });
   });
 
+  test('sanitizes internal dashboard status errors', async () => {
+    collectDashboardStatusMock.mockRejectedValueOnce(new Error('secret stack details'));
+
+    server = createDashboardServer({cwd: '/repo', port: 0});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({error: 'Could not load dashboard status'});
+  });
+
   test('rejects worktree creation when the name is missing', async () => {
     server = createDashboardServer({cwd: '/repo', port: 0});
     await new Promise<void>((resolve) =>

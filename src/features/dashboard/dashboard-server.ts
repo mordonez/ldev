@@ -89,14 +89,34 @@ type DashboardResourceExportPayload = {
   resources?: string[];
 };
 
+function isMissingResourceError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes('not found');
+}
+
+function writeDashboardError(
+  res: http.ServerResponse,
+  err: unknown,
+  options?: {badRequestMessage?: string; internalMessage?: string; notFoundMessage?: string},
+): void {
+  const status = err instanceof SyntaxError ? 400 : isMissingResourceError(err) ? 404 : 500;
+  const errorMessage =
+    status === 400
+      ? (options?.badRequestMessage ?? 'Invalid request payload')
+      : status === 404
+        ? (options?.notFoundMessage ?? 'Requested resource was not found')
+        : (options?.internalMessage ?? 'Internal dashboard error');
+
+  res.writeHead(status, {'Content-Type': 'application/json'});
+  res.end(JSON.stringify({error: errorMessage}));
+}
+
 async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void> {
   try {
     const data = await collectDashboardStatus(cwd, {includeGit: true, includeRuntimeDetails: true});
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify(data));
   } catch (err) {
-    res.writeHead(500, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: String(err)}));
+    writeDashboardError(res, err, {internalMessage: 'Could not load dashboard status'});
   }
 }
 
@@ -362,10 +382,10 @@ async function handleMaintenanceApply(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, action: 'worktree-gc'}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid maintenance request payload',
+      internalMessage: 'Could not apply worktree maintenance',
+    });
   }
 }
 
@@ -425,10 +445,11 @@ async function handleWorktreeDbAction(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, worktree: worktreeName, action: `db-${action}`}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : message.includes('not found') ? 404 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid database request payload',
+      internalMessage: 'Could not queue the database task',
+      notFoundMessage: 'Worktree was not found',
+    });
   }
 }
 
@@ -474,10 +495,10 @@ async function handleWorktreeCreate(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, worktree: name, action: 'create'}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid worktree creation request',
+      internalMessage: 'Could not create the worktree task',
+    });
   }
 }
 
@@ -514,10 +535,10 @@ async function handleMcpDoctor(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-doctor', tool}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid MCP doctor request payload',
+      internalMessage: 'Could not queue the MCP doctor task',
+    });
   }
 }
 
@@ -545,10 +566,10 @@ async function handleMcpSetup(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-setup', tool, strategy: strategy ?? null}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid MCP setup request payload',
+      internalMessage: 'Could not queue the MCP setup task',
+    });
   }
 }
 
@@ -587,10 +608,11 @@ async function handleWorktreeMcpSetup(
     res.writeHead(202, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-setup', worktree: worktreeName, tool}));
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const status = err instanceof SyntaxError ? 400 : 500;
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({error: message}));
+    writeDashboardError(res, err, {
+      badRequestMessage: 'Invalid worktree MCP setup request payload',
+      internalMessage: 'Could not queue the worktree MCP setup task',
+      notFoundMessage: 'Worktree was not found',
+    });
   }
 }
 
@@ -614,10 +636,10 @@ async function handleWorktreeLogs(cwd: string, worktreeName: string, res: http.S
     res.end(JSON.stringify({logs: raw, containerId, service: 'liferay', running}));
   } catch (err) {
     if (!res.headersSent) {
-      res.writeHead(err instanceof Error && err.message.includes('not found') ? 404 : 500, {
-        'Content-Type': 'application/json',
+      writeDashboardError(res, err, {
+        internalMessage: 'Could not load worktree logs',
+        notFoundMessage: 'Worktree was not found',
       });
-      res.end(JSON.stringify({error: err instanceof Error ? err.message : String(err)}));
     }
   }
 }
@@ -739,10 +761,10 @@ async function handleWorktreeLogStream(
     res.on('close', stopStream);
   } catch (err) {
     if (!res.headersSent) {
-      res.writeHead(err instanceof Error && err.message.includes('not found') ? 404 : 500, {
-        'Content-Type': 'application/json',
+      writeDashboardError(res, err, {
+        internalMessage: 'Could not open the worktree log stream',
+        notFoundMessage: 'Worktree was not found',
       });
-      res.end(JSON.stringify({error: err instanceof Error ? err.message : String(err)}));
     }
   }
 }
@@ -794,8 +816,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           writeJson(res, 200, report);
         })
         .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          writeJson(res, 500, {error: message});
+          writeDashboardError(res, err, {internalMessage: 'Could not load doctor preview'});
         });
       return;
     }
@@ -941,8 +962,10 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           });
         })
         .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          writeJson(res, err instanceof SyntaxError ? 400 : 500, {error: message});
+          writeDashboardError(res, err, {
+            badRequestMessage: 'Invalid resource export request payload',
+            internalMessage: 'Could not queue the resource export task',
+          });
         });
       return;
     }
@@ -955,8 +978,10 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           writeJson(res, 200, report);
         })
         .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          writeJson(res, message.includes('not found') ? 404 : 500, {error: message});
+          writeDashboardError(res, err, {
+            internalMessage: 'Could not load worktree doctor preview',
+            notFoundMessage: 'Worktree was not found',
+          });
         });
       return;
     }
@@ -999,8 +1024,10 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           writeJson(res, 200, result);
         })
         .catch((err) => {
-          const message = err instanceof Error ? err.message : String(err);
-          writeJson(res, message.includes('not found') ? 404 : 500, {error: message});
+          writeDashboardError(res, err, {
+            internalMessage: 'Could not load deploy status preview',
+            notFoundMessage: 'Worktree was not found',
+          });
         });
       return;
     }
