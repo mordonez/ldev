@@ -284,8 +284,8 @@ if (args[0] === 'volume' && args[1] === 'create') {
     if (arg.startsWith('device=')) device = arg.slice('device='.length);
     if (arg.startsWith('type=')) type = arg.slice('type='.length);
   }
-  fs.writeFileSync(deviceFile, device + '\n');
-  fs.writeFileSync(typeFile, type + '\n');
+  fs.writeFileSync(deviceFile, device + '\\n');
+  fs.writeFileSync(typeFile, type + '\\n');
   println(volume);
   process.exit(0);
 }

@@ -278,7 +278,28 @@ describe('db integration', () => {
     const fakeBinDir = await createFakeDockerBin();
     const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
     const localDoclib = path.join(repoRoot, 'tmp', 'document_library');
+    const oldDoclib = path.join(repoRoot, 'tmp', 'document_library_old');
     await fs.ensureDir(localDoclib);
+    await fs.ensureDir(oldDoclib);
+
+    const createVolume = await runProcess(
+      'docker',
+      [
+        'volume',
+        'create',
+        '--driver',
+        'local',
+        '--opt',
+        'type=none',
+        '--opt',
+        `device=${oldDoclib}`,
+        '--opt',
+        'o=bind',
+        'demo-doclib',
+      ],
+      {cwd: repoRoot, env},
+    );
+    expect(createVolume.exitCode).toBe(0);
 
     const result = await runCli(['db', 'files-mount', '--path', localDoclib, '--format', 'json'], {cwd: repoRoot, env});
 
