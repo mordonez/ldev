@@ -51,6 +51,20 @@ ldev worktree gc --days 14 --apply
 - `clean` — destructive; requires `--force`; optionally deletes `fix/<name>` branch
 - `gc` — preview (default) or `--apply` removal of stale worktrees older than `--days`
 
+## Dashboard
+
+Open a local browser dashboard for worktree and environment operations.
+
+```bash
+ldev dashboard
+ldev dashboard --port 4242 --no-open
+```
+
+- shows worktree inventory, recent commits, changed files, ahead/behind state, and env status
+- queues long-running actions into a live activity rail instead of blocking the terminal
+- exposes guided flows for diagnose, deploy status, DB tools, maintenance preview, and resource export
+- is best used as a local operational console; the CLI remains the canonical automation surface
+
 ### BTRFS snapshots (Linux)
 
 On Linux with BTRFS filesystems, `ldev` uses subvolume snapshots to accelerate worktree environment creation.

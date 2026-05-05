@@ -186,7 +186,18 @@ async function createNasVolume(
 }
 
 async function recreateDockerVolume(volume: string): Promise<void> {
-  await runDocker(['volume', 'rm', volume], {reject: false});
+  const inspectResult = await runDocker(['volume', 'inspect', volume], {reject: false});
+  if (!inspectResult.ok) {
+    return;
+  }
+
+  const removeResult = await runDocker(['volume', 'rm', volume], {reject: false});
+  if (!removeResult.ok) {
+    throw new CliError(
+      formatProcessError(removeResult, `Could not remove volume ${volume}. Ensure no container is still using it.`),
+      {code: 'DB_DOCLIB_VOLUME_ERROR'},
+    );
+  }
 }
 
 async function updateEnvFile(envFile: string, values: Record<string, string>): Promise<void> {

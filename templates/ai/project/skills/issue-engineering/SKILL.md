@@ -75,6 +75,11 @@ For the full `Red-1` / worktree / `Red-2` sequence, read
 Worktree isolation is the strongly recommended default for `ldev-native`
 non-trivial tasks.
 
+Before creating a new worktree, resolve whether the current session is already
+inside one. If it is, ask the developer whether this issue should continue in
+that active worktree or whether a separate worktree is still required. Do not
+create a second worktree by default when the session is already isolated.
+
 ```bash
 ldev worktree setup --name <issue-id> --with-env --stop-main-for-clone --restart-main-after-clone
 cd .worktrees/<issue-id>

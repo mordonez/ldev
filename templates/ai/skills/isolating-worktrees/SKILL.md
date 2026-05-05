@@ -29,13 +29,14 @@ Do not use this skill when:
 ## Quick flow
 
 1. Decide whether the task needs a runtime-backed worktree or a git-only worktree.
-2. Choose a traceable worktree name and do not reuse existing worktrees unless the user explicitly asked for that reuse.
+2. Resolve the current root first. If you are already inside a worktree, ask the user whether to keep working in that same worktree or create a new one. Do not silently switch away from the active worktree.
 3. Check the current branch with `git branch --show-current`. If the primary checkout is not on `main`, stop and ask the user which base branch the worktree should use before running setup. Pass it as `--base <ref>` to `ldev worktree setup`.
-4. For git-only worktrees, use `ldev worktree setup --name <worktree-name>`. For runtime-backed worktrees, ask the user: **"Do you need the main environment running in parallel with the worktree?"** If yes, use `--stop-main-for-clone --restart-main-after-clone`. If no (default), use only `--stop-main-for-clone` to conserve resources.
-5. Immediately after setup, `cd .worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel`. Do not run any further commands until the root is confirmed. If you cannot confirm that the current directory is inside `.worktrees/<worktree-name>`, stop and ask the user to confirm the working directory before continuing.
-6. For runtime-backed worktrees, run `ldev start` **from inside the worktree directory**, then `ldev status --json`, and wait for startup logs before portal-facing actions. If `ldev start` would run from the main checkout, stop and ask the user which runtime to start instead of proceeding autonomously.
-7. Keep the confirmed root as an active edit boundary for the whole task.
-8. Clean up only after explicit human approval.
+4. If the user chose to reuse the current worktree, confirm that root with `git rev-parse --show-toplevel` and keep it locked for the rest of the task. Only derive a new worktree name when the user confirmed a new worktree is needed.
+5. For git-only new worktrees, use `ldev worktree setup --name <worktree-name>`. For runtime-backed new worktrees, ask the user: **"Do you need the main environment running in parallel with the worktree?"** If yes, use `--stop-main-for-clone --restart-main-after-clone`. If no (default), use only `--stop-main-for-clone` to conserve resources.
+6. Immediately after creating a new worktree, `cd .worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel`. Do not run any further commands until the root is confirmed. If you cannot confirm that the current directory is inside `.worktrees/<worktree-name>`, stop and ask the user to confirm the working directory before continuing.
+7. For runtime-backed worktrees, run `ldev start` **from inside the active worktree directory**, then `ldev status --json`, and wait for startup logs before portal-facing actions. If `ldev start` would run from the main checkout, stop and ask the user which runtime to start instead of proceeding autonomously.
+8. Keep the confirmed root as an active edit boundary for the whole task.
+9. Clean up only after explicit human approval.
 
 ## Reference
 

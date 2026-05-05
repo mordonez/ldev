@@ -81,6 +81,9 @@ Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
 - If an `ldev-native` task needs isolated runtime state or a confirmed edit
   boundary, use `isolating-worktrees` for the canonical setup, recovery, and
   cleanup flow. For runtime-backed worktrees, ask the user whether main needs to run in parallel with the worktree. Default: `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped). Add `--restart-main-after-clone` only if the user confirms they need main running alongside.
+- If the current session is already inside a worktree, ask whether the user wants
+  to keep working in that same worktree before creating another one. Do not
+  silently switch away from the active worktree.
 - Never use `git worktree add` directly. `git worktree add` alone is incomplete
   and unsafe for this workflow.
 - After creating an isolated worktree, confirm the editing root with

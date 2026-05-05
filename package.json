@@ -40,7 +40,8 @@
     "smoke:solo": "bash scripts/smoke-test-solo-dxp.sh",
     "smoke:workspace": "bash scripts/smoke-test-workspace.sh",
     "build:oauth-bundle": "bash scripts/build-oauth-bundle.sh",
-    "build": "tsdown",
+    "build": "tsdown && npm run build:dashboard",
+    "build:dashboard": "vite build --config vite.dashboard.config.ts",
     "build:watch": "tsdown --watch",
     "dev": "tsx src/index.ts",
     "docs:dev": "vitepress dev docs",
@@ -115,11 +116,13 @@
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^10.1.0",
     "linkinator": "^7.6.1",
+    "preact": "^10.29.1",
     "prettier": "^3.8.1",
     "tsdown": "^0.21.7",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.57.2",
+    "vite": "^5.4.21",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   }
