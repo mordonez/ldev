@@ -6,6 +6,10 @@ const dashboardClientRoot = resolve(import.meta.dirname, 'src/features/dashboard
 
 export default defineConfig({
   root: dashboardClientRoot,
+  esbuild: {
+    jsxFactory: 'h',
+    jsxFragment: 'Fragment',
+  },
   build: {
     outDir: resolve(import.meta.dirname, 'dist/dashboard-client'),
     emptyOutDir: true,

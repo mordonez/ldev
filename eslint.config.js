@@ -150,5 +150,5 @@ export default tseslint.config(
       'max-lines': 'off',
     },
   },
-  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/features/dashboard/client/**/*.js']},
+  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/features/dashboard/client/**/*.{js,jsx}']},
 );

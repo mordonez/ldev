@@ -59,7 +59,7 @@ function getContentType(filePath: string): string {
   if (ext === '.css') {
     return 'text/css; charset=utf-8';
   }
-  if (ext === '.js') {
+  if (ext === '.js' || ext === '.jsx') {
     return 'text/javascript; charset=utf-8';
   }
   if (ext === '.html') {
@@ -90,7 +90,7 @@ function resolveDashboardAsset(urlPath: string): string | null {
     }
   }
 
-  const sourceAssetNames = new Set(['/styles.css', '/legacy-dashboard.js']);
+  const sourceAssetNames = new Set(['/styles.css', '/app.jsx']);
   if (!sourceAssetNames.has(urlPath)) {
     return null;
   }
