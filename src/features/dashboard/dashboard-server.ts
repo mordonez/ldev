@@ -1,5 +1,7 @@
 import http from 'node:http';
+import fs from 'node:fs';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 import {loadConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
@@ -44,6 +46,58 @@ import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
 import {collectDashboardStatus} from './dashboard-data.js';
 import {dashboardHtml} from './dashboard-html.js';
 import {createDashboardTaskManager} from './dashboard-tasks.js';
+
+const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DASHBOARD_CLIENT_DIST_DIRS = [
+  path.resolve(DASHBOARD_SERVER_DIR, 'dashboard-client'),
+  path.resolve(DASHBOARD_SERVER_DIR, '../../dashboard-client'),
+];
+const DASHBOARD_CLIENT_SOURCE_DIR = path.resolve(DASHBOARD_SERVER_DIR, 'client');
+
+function getContentType(filePath: string): string {
+  const ext = path.extname(filePath);
+  if (ext === '.css') {
+    return 'text/css; charset=utf-8';
+  }
+  if (ext === '.js') {
+    return 'text/javascript; charset=utf-8';
+  }
+  if (ext === '.html') {
+    return 'text/html; charset=utf-8';
+  }
+  if (ext === '.map' || ext === '.json') {
+    return 'application/json; charset=utf-8';
+  }
+  return 'application/octet-stream';
+}
+
+function readDashboardIndex(): string {
+  for (const distDir of DASHBOARD_CLIENT_DIST_DIRS) {
+    const distIndexPath = path.join(distDir, 'index.html');
+    if (fs.existsSync(distIndexPath)) {
+      return fs.readFileSync(distIndexPath, 'utf8');
+    }
+  }
+
+  return dashboardHtml;
+}
+
+function resolveDashboardAsset(urlPath: string): string | null {
+  for (const distDir of DASHBOARD_CLIENT_DIST_DIRS) {
+    const distAssetPath = path.resolve(distDir, urlPath.replace(/^\/+/, ''));
+    if (distAssetPath.startsWith(distDir + path.sep) && fs.existsSync(distAssetPath)) {
+      return distAssetPath;
+    }
+  }
+
+  const sourceAssetNames = new Set(['/styles.css', '/legacy-dashboard.js']);
+  if (!sourceAssetNames.has(urlPath)) {
+    return null;
+  }
+
+  const sourceAssetPath = path.join(DASHBOARD_CLIENT_SOURCE_DIR, urlPath.slice(1));
+  return fs.existsSync(sourceAssetPath) ? sourceAssetPath : null;
+}
 
 export type DashboardServerOptions = {
   cwd: string;
@@ -806,8 +860,18 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
 
     if (method === 'GET' && (url === '/' || url === '/index.html')) {
       res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end(dashboardHtml);
+      res.end(readDashboardIndex());
       return;
+    }
+
+    if (method === 'GET') {
+      const requestUrl = new URL(url, 'http://127.0.0.1');
+      const assetPath = resolveDashboardAsset(requestUrl.pathname);
+      if (assetPath) {
+        res.writeHead(200, {'Content-Type': getContentType(assetPath)});
+        fs.createReadStream(assetPath).pipe(res);
+        return;
+      }
     }
 
     if (method === 'GET' && url === '/api/status') {

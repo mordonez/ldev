@@ -1,55 +1,55 @@
 import vm from 'node:vm';
+import fs from 'node:fs';
 
 import {describe, expect, test} from 'vitest';
 
 import {dashboardHtml} from '../../src/features/dashboard/dashboard-html.js';
 
-function extractScript(html: string): string {
-  const match = html.match(/<script>([\s\S]*)<\/script>/i);
-  if (!match) {
-    throw new Error('Dashboard script block not found');
-  }
-
-  return match[1];
-}
+const dashboardClientScript = fs.readFileSync('src/features/dashboard/client/legacy-dashboard.js', 'utf8');
+const dashboardClientStyles = fs.readFileSync('src/features/dashboard/client/styles.css', 'utf8');
 
 describe('dashboardHtml', () => {
-  test('contains a parseable embedded dashboard script', () => {
-    expect(() => new vm.Script(extractScript(dashboardHtml))).not.toThrow();
+  test('serves the dashboard shell through a dedicated client module', () => {
+    expect(dashboardHtml).toContain('<link rel="stylesheet" href="./styles.css">');
+    expect(dashboardHtml).toContain('<script type="module" src="./legacy-dashboard.js"></script>');
+  });
+
+  test('contains a parseable dashboard client controller', () => {
+    expect(() => new vm.Script(dashboardClientScript)).not.toThrow();
   });
 
   test('uses card section chips and keeps commits visible when worktrees are dirty', () => {
-    expect(dashboardHtml).toContain('cardSections: cardSectionByName');
-    expect(dashboardHtml).toContain('function prioritizeCardSections(sections)');
-    expect(dashboardHtml).toContain('function summarizeServiceHealth(services)');
-    expect(dashboardHtml).toContain('function renderCardSections(name, sections, activeKey)');
-    expect(dashboardHtml).toContain('function buildChangesSection(changedPaths, changedFiles)');
-    expect(dashboardHtml).toContain('data-card-section="');
-    expect(dashboardHtml).toContain('card-chip-red');
-    expect(dashboardHtml).toContain("String(changedFiles) + ' pending'");
-    expect(dashboardHtml).toContain("label: 'Changes'");
-    expect(dashboardHtml).toContain(
+    expect(dashboardClientScript).toContain('cardSections: cardSectionByName');
+    expect(dashboardClientScript).toContain('function prioritizeCardSections(sections)');
+    expect(dashboardClientScript).toContain('function summarizeServiceHealth(services)');
+    expect(dashboardClientScript).toContain('function renderCardSections(name, sections, activeKey)');
+    expect(dashboardClientScript).toContain('function buildChangesSection(changedPaths, changedFiles)');
+    expect(dashboardClientScript).toContain('data-card-section="');
+    expect(dashboardClientStyles).toContain('card-chip-red');
+    expect(dashboardClientScript).toContain("String(changedFiles) + ' pending'");
+    expect(dashboardClientScript).toContain("label: 'Changes'");
+    expect(dashboardClientScript).toContain(
       'var changedPaths = Array.isArray(wt.changedPaths) ? wt.changedPaths.filter(Boolean) : [];',
     );
-    expect(dashboardHtml).toContain("String(serviceSummary.failed) + ' down'");
-    expect(dashboardHtml).toContain("String(serviceSummary.warned) + ' warn'");
-    expect(dashboardHtml).toContain('Workspace details');
-    expect(dashboardHtml).toContain('Latest commit');
-    expect(dashboardHtml).toContain('wt.changedFiles > 0 && commits');
+    expect(dashboardClientScript).toContain("String(serviceSummary.failed) + ' down'");
+    expect(dashboardClientScript).toContain("String(serviceSummary.warned) + ' warn'");
+    expect(dashboardClientScript).toContain('Workspace details');
+    expect(dashboardClientScript).toContain('Latest commit');
+    expect(dashboardClientScript).toContain('wt.changedFiles > 0 && commits');
   });
 
   test('includes a worktree resource export modal with all resource types selected by default', () => {
     expect(dashboardHtml).toContain('Resource export');
-    expect(dashboardHtml).toContain('Bulk export for this environment');
+    expect(dashboardClientScript).toContain('Bulk export for this environment');
     expect(dashboardHtml).toContain('data-resource-kind checked');
-    expect(dashboardHtml).toContain('/resource/export');
+    expect(dashboardClientScript).toContain('/resource/export');
   });
 
   test('does not show duplicate primary actions in running worktree cards', () => {
-    expect(dashboardHtml).toContain(
+    expect(dashboardClientScript).toContain(
       "var startBtn = isRunning || isActionBusy(wt.name, 'start') || primaryAction.key === 'start' ? ''",
     );
-    expect(dashboardHtml).toContain('if (!isRunning) {');
-    expect(dashboardHtml).toContain('if (!isStopped) {');
+    expect(dashboardClientScript).toContain('if (!isRunning) {');
+    expect(dashboardClientScript).toContain('if (!isStopped) {');
   });
 });

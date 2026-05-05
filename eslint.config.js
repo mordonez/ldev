@@ -68,7 +68,6 @@ const LARGE_FILE_EXCEPTIONS = [
   'src/features/ai/ai-install-project.ts',
   'src/features/ai/ai-install.ts',
   'src/features/db/db-files-download.ts',
-  'src/features/dashboard/dashboard-html.ts',
   'src/features/dashboard/dashboard-server.ts',
   'src/features/doctor/doctor-collectors.ts',
   'src/features/liferay/content/liferay-content-stats.ts',
@@ -151,5 +150,5 @@ export default tseslint.config(
       'max-lines': 'off',
     },
   },
-  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/']},
+  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/features/dashboard/client/**/*.js']},
 );

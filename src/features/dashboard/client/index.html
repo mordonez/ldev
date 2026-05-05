@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ldev Dashboard</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header>
+  <div class="logo"><span>l</span>dev</div>
+  <div class="cwd" id="cwd-info"></div>
+  <div class="spacer"></div>
+  <button class="header-btn" id="diagnose-btn" title="Diagnose the current repository">Diagnose repo</button>
+  <button class="header-btn" id="new-worktree-btn" title="Create a new worktree">+ New worktree</button>
+  <span class="refresh-pill" id="refresh-info">—</span>
+  <button class="refresh-btn" id="refresh-btn" title="Refresh now">⟳</button>
+</header>
+<main>
+  <div class="layout">
+    <section id="app"><div class="center">Loading dashboard…</div></section>
+    <aside class="activity is-collapsed" id="activity-panel">
+      <div class="activity-header">
+        <div>
+          <div class="activity-title">Activity</div>
+          <div class="activity-meta" id="task-summary">No active tasks</div>
+        </div>
+        <button class="activity-toggle" id="activity-toggle" type="button" aria-expanded="false">Show</button>
+      </div>
+      <div class="activity-body" id="task-list">
+        <div class="task-empty">Long-running actions will stream here.</div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay hidden" id="create-overlay">
+  <div class="modal" id="create-modal" style="max-width:560px;max-height:none;align-self:center">
+    <div class="modal-header">
+      <span class="modal-title">New worktree</span>
+      <button class="modal-close" id="create-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="modal-body">
+      <form class="create-form" id="create-form">
+        <div class="field">
+          <label for="create-name">Worktree name</label>
+          <input id="create-name" name="name" type="text" placeholder="feature-short-name" required>
+          <div class="field-hint">This becomes <code>.worktrees/&lt;name&gt;</code> and the default branch <code>fix/&lt;name&gt;</code>.</div>
+        </div>
+        <div class="field">
+          <label for="create-base">Base ref</label>
+          <input id="create-base" name="baseRef" type="text" placeholder="HEAD (optional)">
+          <div class="field-hint">Defaults to the branch checked out in the main worktree. Change it here when the new worktree should start from another ref.</div>
+        </div>
+        <label class="checkbox-row">
+          <input id="create-with-env" name="withEnv" type="checkbox" checked>
+          <span>Prepare an isolated local environment for this worktree</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="create-stop-main" name="stopMainForClone" type="checkbox" checked>
+          <span>Stop the main environment during non-Btrfs state cloning when needed</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="create-restart-main" name="restartMainAfterClone" type="checkbox">
+          <span>Restart the main environment after cloning so both runtimes can keep running</span>
+        </label>
+        <div class="create-error" id="create-error"></div>
+        <div class="create-actions">
+          <button type="button" class="btn-secondary" id="create-cancel">Cancel</button>
+          <button type="submit" class="btn-primary" id="create-submit">Create worktree</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Logs</span>
+      <span class="modal-subtitle" id="modal-subtitle"></span>
+      <button class="modal-close" id="modal-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="log-loading">Loading…</div>
+    </div>
+    <div class="modal-footer">
+      <span class="log-info" id="modal-info"></span>
+      <button class="btn-refresh-logs" id="modal-refresh">⟳ Refresh</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="db-overlay">
+  <div class="modal" id="db-modal" style="max-width:620px;max-height:none;align-self:center">
+    <div class="modal-header">
+      <span class="modal-title" id="db-title">DB tools</span>
+      <span class="modal-subtitle" id="db-subtitle"></span>
+      <button class="modal-close" id="db-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="modal-body">
+      <form class="create-form" id="db-form">
+        <div class="segmented" id="db-action-picker">
+          <button type="button" class="segmented-btn active" data-db-action="download">Download</button>
+          <button type="button" class="segmented-btn" data-db-action="sync">Sync</button>
+          <button type="button" class="segmented-btn" data-db-action="import">Import</button>
+          <button type="button" class="segmented-btn" data-db-action="query">Query</button>
+        </div>
+        <div class="field" id="db-environment-field">
+          <label for="db-environment">Environment (Liferay Cloud)</label>
+          <input id="db-environment" name="environment" type="text" placeholder="prd" />
+        </div>
+        <div class="field hidden" id="db-file-field">
+          <label for="db-file">File path</label>
+          <input id="db-file" name="file" type="text" placeholder="Optional path to .sql/.gz/.dump" />
+          <div class="field-hint" id="db-file-hint">Leave empty to autodetect the newest backup.</div>
+        </div>
+        <label class="checkbox-row hidden" id="db-force-row">
+          <input id="db-force" name="force" type="checkbox" checked>
+          <span id="db-force-label">Force overwrite of the local database</span>
+        </label>
+        <div class="field hidden" id="db-query-field">
+          <label for="db-query">SQL query</label>
+          <textarea id="db-query" name="query" placeholder="select current_database();"></textarea>
+          <div class="field-hint">Provide inline SQL or a file path below.</div>
+        </div>
+        <div class="create-error" id="db-error"></div>
+        <div class="create-actions">
+          <button type="button" class="btn-secondary" id="db-cancel">Cancel</button>
+          <button type="submit" class="btn-primary" id="db-submit">Run download</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="resource-overlay">
+  <div class="modal" id="resource-modal" style="max-width:560px;max-height:none;align-self:center">
+    <div class="modal-header">
+      <span class="modal-title" id="resource-title">Resource export</span>
+      <span class="modal-subtitle" id="resource-subtitle"></span>
+      <button class="modal-close" id="resource-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="modal-body">
+      <form class="create-form" id="resource-form">
+        <div class="field-hint">Export the selected resources for all accessible sites in this environment.</div>
+        <label class="checkbox-row">
+          <input id="resource-templates" type="checkbox" value="templates" data-resource-kind checked>
+          <span>Templates</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="resource-structures" type="checkbox" value="structures" data-resource-kind checked>
+          <span>Structures</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="resource-adts" type="checkbox" value="adts" data-resource-kind checked>
+          <span>ADTs</span>
+        </label>
+        <label class="checkbox-row">
+          <input id="resource-fragments" type="checkbox" value="fragments" data-resource-kind checked>
+          <span>Fragments</span>
+        </label>
+        <div class="create-error" id="resource-error"></div>
+        <div class="create-actions">
+          <button type="button" class="btn-secondary" id="resource-cancel">Cancel</button>
+          <button type="submit" class="btn-primary" id="resource-submit">Export selected</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./legacy-dashboard.js"></script>
+</body>
+</html>

@@ -240,6 +240,30 @@ describe('createDashboardServer', () => {
     server = null;
   });
 
+  test('serves the dashboard client shell and source assets in development', async () => {
+    server = createDashboardServer({cwd: '/repo', port: 0});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const htmlResponse = await fetch(`http://127.0.0.1:${port}/`);
+    expect(htmlResponse.status).toBe(200);
+    await expect(htmlResponse.text()).resolves.toContain('./legacy-dashboard.js');
+
+    const cssResponse = await fetch(`http://127.0.0.1:${port}/styles.css`);
+    expect(cssResponse.status).toBe(200);
+    expect(cssResponse.headers.get('content-type')).toContain('text/css');
+    await expect(cssResponse.text()).resolves.toContain(':root');
+
+    const scriptResponse = await fetch(`http://127.0.0.1:${port}/legacy-dashboard.js`);
+    expect(scriptResponse.status).toBe(200);
+    expect(scriptResponse.headers.get('content-type')).toContain('text/javascript');
+    await expect(scriptResponse.text()).resolves.toContain('function render(data)');
+  });
+
   test('creates a new worktree from the dashboard API with issue-friendly defaults', async () => {
     let resolveTask!: (value: {
       ok: true;
