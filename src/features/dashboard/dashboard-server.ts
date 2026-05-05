@@ -44,7 +44,7 @@ import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
 import {runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
 import {collectDashboardStatus} from './dashboard-data.js';
-import {dashboardHtml} from './dashboard-html.js';
+import {matchQueuedDashboardOperation} from './dashboard-operation-dispatcher.js';
 import {createDashboardTaskManager} from './dashboard-tasks.js';
 
 const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -52,14 +52,13 @@ const DASHBOARD_CLIENT_DIST_DIRS = [
   path.resolve(DASHBOARD_SERVER_DIR, 'dashboard-client'),
   path.resolve(DASHBOARD_SERVER_DIR, '../../dashboard-client'),
 ];
-const DASHBOARD_CLIENT_SOURCE_DIR = path.resolve(DASHBOARD_SERVER_DIR, 'client');
 
 function getContentType(filePath: string): string {
   const ext = path.extname(filePath);
   if (ext === '.css') {
     return 'text/css; charset=utf-8';
   }
-  if (ext === '.js' || ext === '.jsx') {
+  if (ext === '.js') {
     return 'text/javascript; charset=utf-8';
   }
   if (ext === '.html') {
@@ -71,37 +70,32 @@ function getContentType(filePath: string): string {
   return 'application/octet-stream';
 }
 
-function readDashboardIndex(): string {
-  for (const distDir of DASHBOARD_CLIENT_DIST_DIRS) {
+function readDashboardIndex(clientDistDirs: string[]): string | null {
+  for (const distDir of clientDistDirs) {
     const distIndexPath = path.join(distDir, 'index.html');
     if (fs.existsSync(distIndexPath)) {
       return fs.readFileSync(distIndexPath, 'utf8');
     }
   }
 
-  return dashboardHtml;
+  return null;
 }
 
-function resolveDashboardAsset(urlPath: string): string | null {
-  for (const distDir of DASHBOARD_CLIENT_DIST_DIRS) {
+function resolveDashboardAsset(urlPath: string, clientDistDirs: string[]): string | null {
+  for (const distDir of clientDistDirs) {
     const distAssetPath = path.resolve(distDir, urlPath.replace(/^\/+/, ''));
     if (distAssetPath.startsWith(distDir + path.sep) && fs.existsSync(distAssetPath)) {
       return distAssetPath;
     }
   }
 
-  const sourceAssetNames = new Set(['/styles.css', '/app.jsx']);
-  if (!sourceAssetNames.has(urlPath)) {
-    return null;
-  }
-
-  const sourceAssetPath = path.join(DASHBOARD_CLIENT_SOURCE_DIR, urlPath.slice(1));
-  return fs.existsSync(sourceAssetPath) ? sourceAssetPath : null;
+  return null;
 }
 
 export type DashboardServerOptions = {
   cwd: string;
   port: number;
+  clientDistDirs?: string[];
   onReady?: (url: string) => void;
 };
 
@@ -835,6 +829,7 @@ async function handleWorktreeLogStream(
 
 export function createDashboardServer(options: DashboardServerOptions): http.Server {
   const {cwd, port} = options;
+  const clientDistDirs = options.clientDistDirs ?? DASHBOARD_CLIENT_DIST_DIRS;
   const taskManager = createDashboardTaskManager();
 
   const writeJson = (res: http.ServerResponse, status: number, payload: unknown) => {
@@ -859,14 +854,21 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     const method = req.method ?? 'GET';
 
     if (method === 'GET' && (url === '/' || url === '/index.html')) {
+      const dashboardIndex = readDashboardIndex(clientDistDirs);
+      if (!dashboardIndex) {
+        res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
+        res.end('Dashboard client bundle not found. Run npm run build:dashboard before starting the dashboard.');
+        return;
+      }
+
       res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end(readDashboardIndex());
+      res.end(dashboardIndex);
       return;
     }
 
     if (method === 'GET') {
       const requestUrl = new URL(url, 'http://127.0.0.1');
-      const assetPath = resolveDashboardAsset(requestUrl.pathname);
+      const assetPath = resolveDashboardAsset(requestUrl.pathname, clientDistDirs);
       if (assetPath) {
         res.writeHead(200, {'Content-Type': getContentType(assetPath)});
         fs.createReadStream(assetPath).pipe(res);
@@ -919,11 +921,50 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       return;
     }
 
-    if (method === 'POST' && url === '/api/doctor') {
-      const {task, duplicate} = startTaskOnce({kind: 'doctor', label: 'Running repo diagnosis'}, async (printer) => {
-        await handleDoctorRun(cwd, undefined, printer);
-      });
-      writeJson(res, 202, {ok: true, taskId: task.id, action: 'doctor', duplicate});
+    const queuedOperation = matchQueuedDashboardOperation(method, url);
+    if (queuedOperation) {
+      const {task, duplicate} = startTaskOnce(
+        {kind: queuedOperation.taskKind, label: queuedOperation.label, worktreeName: queuedOperation.worktreeName},
+        async (printer) => {
+          switch (queuedOperation.key) {
+            case 'repo-doctor':
+              await handleDoctorRun(cwd, undefined, printer);
+              break;
+            case 'worktree-start':
+              await handleWorktreeStart(cwd, queuedOperation.worktreeName!, printer);
+              break;
+            case 'worktree-env-init':
+              await handleWorktreeEnvInit(cwd, queuedOperation.worktreeName!, printer);
+              break;
+            case 'worktree-doctor':
+              await handleDoctorRun(cwd, queuedOperation.worktreeName, printer);
+              break;
+            case 'worktree-repair':
+              await handleWorktreeRepairAction(
+                cwd,
+                queuedOperation.worktreeName!,
+                queuedOperation.repairAction!,
+                printer,
+              );
+              break;
+            case 'worktree-deploy':
+              await handleWorktreeDeployAction(
+                cwd,
+                queuedOperation.worktreeName!,
+                queuedOperation.deployAction!,
+                printer,
+              );
+              break;
+            case 'worktree-stop':
+              await handleWorktreeStop(cwd, queuedOperation.worktreeName!, printer);
+              break;
+            case 'worktree-delete':
+              await handleWorktreeDelete(cwd, queuedOperation.worktreeName!, printer);
+              break;
+          }
+        },
+      );
+      writeJson(res, 202, {ok: true, taskId: task.id, ...queuedOperation.response, duplicate});
       return;
     }
 
@@ -964,35 +1005,9 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       return;
     }
 
-    const startMatch = /^\/api\/worktrees\/([^/]+)\/start$/.exec(url);
-    if (method === 'POST' && startMatch) {
-      const worktreeName = decodeURIComponent(startMatch[1]);
-      const {task, duplicate} = startTaskOnce(
-        {kind: 'worktree-start', label: `Starting environment for ${worktreeName}`, worktreeName},
-        async (printer) => {
-          await handleWorktreeStart(cwd, worktreeName, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action: 'start', duplicate});
-      return;
-    }
-
     const worktreeMcpSetupMatch = /^\/api\/worktrees\/([^/]+)\/mcp\/setup$/.exec(url);
     if (method === 'POST' && worktreeMcpSetupMatch) {
       void handleWorktreeMcpSetup(cwd, decodeURIComponent(worktreeMcpSetupMatch[1]), req, res, taskManager);
-      return;
-    }
-
-    const worktreeEnvInitMatch = /^\/api\/worktrees\/([^/]+)\/env\/init$/.exec(url);
-    if (method === 'POST' && worktreeEnvInitMatch) {
-      const worktreeName = decodeURIComponent(worktreeEnvInitMatch[1]);
-      const {task, duplicate} = startTaskOnce(
-        {kind: 'worktree-env-init', label: `Initializing environment for ${worktreeName}`, worktreeName},
-        async (printer) => {
-          await handleWorktreeEnvInit(cwd, worktreeName, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action: 'env-init', duplicate});
       return;
     }
 
@@ -1060,36 +1075,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       return;
     }
 
-    if (method === 'POST' && worktreeDoctorMatch) {
-      const worktreeName = decodeURIComponent(worktreeDoctorMatch[1]);
-      const {task, duplicate} = startTaskOnce(
-        {kind: 'doctor', label: `Running diagnosis for ${worktreeName}`, worktreeName},
-        async (printer) => {
-          await handleDoctorRun(cwd, worktreeName, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action: 'doctor', duplicate});
-      return;
-    }
-
-    const worktreeRepairMatch = /^\/api\/worktrees\/([^/]+)\/env\/(restart|recreate)$/.exec(url);
-    if (method === 'POST' && worktreeRepairMatch) {
-      const worktreeName = decodeURIComponent(worktreeRepairMatch[1]);
-      const action = worktreeRepairMatch[2] as 'restart' | 'recreate';
-      const {task, duplicate} = startTaskOnce(
-        {
-          kind: `env-${action}`,
-          label: `${action === 'restart' ? 'Restarting' : 'Recreating'} environment for ${worktreeName}`,
-          worktreeName,
-        },
-        async (printer) => {
-          await handleWorktreeRepairAction(cwd, worktreeName, action, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action, duplicate});
-      return;
-    }
-
     const worktreeDeployMatch = /^\/api\/worktrees\/([^/]+)\/deploy\/(status|cache-update)$/.exec(url);
     if (method === 'GET' && worktreeDeployMatch && worktreeDeployMatch[2] === 'status') {
       const worktreeName = decodeURIComponent(worktreeDeployMatch[1]);
@@ -1103,52 +1088,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
             notFoundMessage: 'Worktree was not found',
           });
         });
-      return;
-    }
-
-    if (method === 'POST' && worktreeDeployMatch) {
-      const worktreeName = decodeURIComponent(worktreeDeployMatch[1]);
-      const action = worktreeDeployMatch[2] as 'status' | 'cache-update';
-      const {task, duplicate} = startTaskOnce(
-        {
-          kind: `deploy-${action}`,
-          label:
-            action === 'status'
-              ? `Checking deploy status for ${worktreeName}`
-              : `Updating deploy cache for ${worktreeName}`,
-          worktreeName,
-        },
-        async (printer) => {
-          await handleWorktreeDeployAction(cwd, worktreeName, action, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action: `deploy-${action}`, duplicate});
-      return;
-    }
-
-    const stopMatch = /^\/api\/worktrees\/([^/]+)\/stop$/.exec(url);
-    if (method === 'POST' && stopMatch) {
-      const worktreeName = decodeURIComponent(stopMatch[1]);
-      const {task, duplicate} = startTaskOnce(
-        {kind: 'worktree-stop', label: `Stopping environment for ${worktreeName}`, worktreeName},
-        async (printer) => {
-          await handleWorktreeStop(cwd, worktreeName, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, worktree: worktreeName, action: 'stop', duplicate});
-      return;
-    }
-
-    const deleteMatch = /^\/api\/worktrees\/([^/]+)$/.exec(url);
-    if (method === 'DELETE' && deleteMatch) {
-      const worktreeName = decodeURIComponent(deleteMatch[1]);
-      const {task, duplicate} = startTaskOnce(
-        {kind: 'worktree-delete', label: `Deleting worktree ${worktreeName}`, worktreeName},
-        async (printer) => {
-          await handleWorktreeDelete(cwd, worktreeName, printer);
-        },
-      );
-      writeJson(res, 202, {ok: true, taskId: task.id, deleted: worktreeName, duplicate});
       return;
     }
 

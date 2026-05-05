@@ -2,9 +2,8 @@ import fs from 'node:fs';
 
 import {describe, expect, test} from 'vitest';
 
-import {dashboardHtml} from '../../src/features/dashboard/dashboard-html.js';
-
 const dashboardClientFiles = [
+  'src/features/dashboard/client/index.html',
   'src/features/dashboard/client/app.jsx',
   'src/features/dashboard/client/components/activity.jsx',
   'src/features/dashboard/client/components/create-modal.jsx',
@@ -15,17 +14,21 @@ const dashboardClientFiles = [
   'src/features/dashboard/client/components/toolbar.jsx',
   'src/features/dashboard/client/components/worktree-card.jsx',
   'src/features/dashboard/client/components/worktree-sections.jsx',
+  'src/features/dashboard/client/lib/actions.js',
+  'src/features/dashboard/client/lib/dashboard-session.js',
   'src/features/dashboard/client/lib/dashboard-state.js',
   'src/features/dashboard/client/lib/preferences.js',
   'src/features/dashboard/client/lib/tasks.js',
+  'src/features/dashboard/client/lib/worktree-presentation.js',
 ];
 const dashboardClientSource = dashboardClientFiles.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+const dashboardClientIndex = fs.readFileSync('src/features/dashboard/client/index.html', 'utf8');
 const dashboardClientStyles = fs.readFileSync('src/features/dashboard/client/styles.css', 'utf8');
 
-describe('dashboardHtml', () => {
-  test('serves the dashboard shell through the Preact client entrypoint', () => {
-    expect(dashboardHtml).toContain('<div id="dashboard-root"></div>');
-    expect(dashboardHtml).toContain('<script type="module" src="./app.jsx"></script>');
+describe('dashboard client source', () => {
+  test('declares the dashboard shell through the Preact client entrypoint', () => {
+    expect(dashboardClientIndex).toContain('<div id="dashboard-root"></div>');
+    expect(dashboardClientIndex).toContain('<script type="module" src="./app.jsx"></script>');
   });
 
   test('mounts a Preact dashboard app with the live dashboard APIs', () => {

@@ -1,37 +1,24 @@
 import {Fragment, h} from 'preact';
 
-import {classNames, isDirty, isRunning, needsAttention} from '../lib/dashboard-state.js';
-import {actionKind} from '../lib/tasks.js';
-import {buildSections} from './worktree-sections.jsx';
+import {classNames} from '../lib/dashboard-state.js';
+import {buildWorktreePresentation} from '../lib/worktree-presentation.js';
 
 export function WorktreeCard({activeSection, onAction, onCopy, onDelete, onDb, onLogs, onResource, onSection, tasks, wt}) {
-  const running = isRunning(wt);
-  const stopped = wt.env && !running;
-  const busy = (action) => tasks.some((task) => task.status === 'running' && task.kind === actionKind(action) && task.worktreeName === wt.name);
-  const sections = buildSections(wt);
-  const selected = sections.find((section) => section.key === activeSection) || sections[0];
-  const primary = resolvePrimaryAction(wt, running, stopped);
+  const presentation = buildWorktreePresentation(wt, tasks, activeSection);
 
   return (
     <div class="card">
-      <CardHeader running={running} wt={wt} />
+      <CardHeader badges={presentation.badges} wt={wt} />
       <PathRow onCopy={onCopy} path={wt.path} />
       <PortalRow env={wt.env} />
       <LatestCommit commit={wt.commits?.[0]} />
-      <CardActions busy={busy} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} primary={primary} running={running} stopped={stopped} wt={wt} />
-      <CardSections activeSection={activeSection} onSection={onSection} sections={sections} selected={selected} wt={wt} />
+      <CardActions busy={presentation.busy} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} primary={presentation.primary} running={presentation.running} stopped={presentation.stopped} wt={wt} />
+      <CardSections activeSection={activeSection} onSection={onSection} sections={presentation.sections} selected={presentation.selected} wt={wt} />
     </div>
   );
 }
 
-function resolvePrimaryAction(wt, running, stopped) {
-  if (!wt.env) return ['init-env', 'btn-start', 'Init env'];
-  if (running && wt.env.portalReachable === false) return ['restart', 'btn-start', 'Restart'];
-  if (stopped) return ['start', 'btn-start', 'Start'];
-  return ['doctor', 'btn-ghost', 'Diagnose'];
-}
-
-function CardHeader({running, wt}) {
+function CardHeader({badges, wt}) {
   return (
     <div class="card-header">
       <div class="card-meta">
@@ -43,10 +30,11 @@ function CardHeader({running, wt}) {
       </div>
       <div class="card-badges">
         <div class="card-badge-row">
-          {wt.isMain ? <span class="badge badge-blue">main</span> : null}
-          {isDirty(wt) ? <span class="badge badge-yellow">{wt.changedFiles} changed</span> : null}
-          {running ? <span class="badge badge-green">running</span> : wt.env ? <span class="badge badge-gray">stopped</span> : <span class="badge badge-gray">no env</span>}
-          {needsAttention(wt) ? <span class="badge badge-red">attention</span> : null}
+          {badges.map((badge) => (
+            <span class={classNames('badge', `badge-${badge.tone}`)} key={`${badge.tone}-${badge.label}`}>
+              {badge.label}
+            </span>
+          ))}
         </div>
         {wt.aheadBehind ? (
           <div class="ahead-behind">

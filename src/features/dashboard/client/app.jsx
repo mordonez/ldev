@@ -1,5 +1,5 @@
 import {Fragment, h, render} from 'preact';
-import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
+import {useMemo, useState} from 'preact/hooks';
 
 import {Activity} from './components/activity.jsx';
 import {CreateModal} from './components/create-modal.jsx';
@@ -9,111 +9,39 @@ import {Modal} from './components/modal.jsx';
 import {SimpleFormModal} from './components/simple-form-modal.jsx';
 import {Toolbar} from './components/toolbar.jsx';
 import {WorktreeCard} from './components/worktree-card.jsx';
+import {actionUrl} from './lib/actions.js';
 import {classNames, FILTERS, matchesFilter, matchesSearch, priority} from './lib/dashboard-state.js';
-import {readPrefs, writePrefs} from './lib/preferences.js';
-import {changedTaskState} from './lib/tasks.js';
+import {useDashboardSession} from './lib/dashboard-session.js';
 import './styles.css';
 
 function App() {
-  const prefs = useMemo(readPrefs, []);
-  const [activeFilter, setActiveFilter] = useState(prefs.activeFilter || 'all');
-  const [activityCollapsed, setActivityCollapsed] = useState(prefs.activityCollapsed ?? true);
-  const [cardSections, setCardSections] = useState(prefs.cardSections || {});
-  const [countdown, setCountdown] = useState(20);
-  const [data, setData] = useState(null);
   const [dbWorktree, setDbWorktree] = useState(null);
-  const [error, setError] = useState('');
   const [infoModal, setInfoModal] = useState(null);
   const [logModal, setLogModal] = useState(null);
   const [logText, setLogText] = useState('');
-  const [maintenance, setMaintenance] = useState({days: 7, candidates: [], loading: false, error: null});
   const [resourceWorktree, setResourceWorktree] = useState(null);
-  const [searchQuery, setSearchQuery] = useState(prefs.searchQuery || '');
   const [showCreate, setShowCreate] = useState(false);
-  const [tasks, setTasks] = useState([]);
-  const [toast, setToast] = useState('');
-  const previousTasks = useRef([]);
-
-  const savePrefs = (patch) => writePrefs({activeFilter, activityCollapsed, searchQuery, cardSections, ...patch});
-  const showToast = (message) => {
-    setToast(message);
-    setTimeout(() => setToast(''), 2200);
-  };
-
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch('/api/status', {cache: 'no-store'});
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setData(await res.json());
-      setError('');
-      setCountdown(20);
-    } catch (err) {
-      setError(String(err.message || err));
-    }
-  };
-
-  const fetchMaintenance = async (days = maintenance.days) => {
-    setMaintenance((current) => ({...current, days, loading: true, error: null}));
-    try {
-      const res = await fetch(`/api/maintenance/worktrees/gc?days=${encodeURIComponent(String(days))}`, {cache: 'no-store'});
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-      setMaintenance({days, candidates: body.candidates || [], loading: false, error: null});
-    } catch (err) {
-      setMaintenance({days, candidates: [], loading: false, error: String(err.message || err)});
-    }
-  };
-
-  const postJson = async (url, payload) => {
-    const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload ? JSON.stringify(payload) : undefined});
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-    return body;
-  };
-
-  useEffect(() => {
-    void fetchStatus();
-    void fetchMaintenance(7);
-    const source = new EventSource('/api/tasks/stream');
-    source.onmessage = (event) => {
-      const next = JSON.parse(event.data).tasks || [];
-      if (changedTaskState(previousTasks.current, next)) void fetchStatus();
-      previousTasks.current = next;
-      setTasks(next);
-    };
-    const timer = setInterval(() => {
-      setCountdown((current) => {
-        if (current <= 1) {
-          void fetchStatus();
-          return 20;
-        }
-        return current - 1;
-      });
-    }, 1000);
-    return () => {
-      source.close();
-      clearInterval(timer);
-    };
-  }, []);
-
-  const setFilter = (filter) => {
-    setActiveFilter(filter);
-    savePrefs({activeFilter: filter});
-  };
-  const setSearch = (query) => {
-    setSearchQuery(query);
-    savePrefs({searchQuery: query});
-  };
-  const setSection = (name, section) => {
-    const next = {...cardSections, [name]: section};
-    setCardSections(next);
-    savePrefs({cardSections: next});
-  };
-  const toggleActivity = () => {
-    const next = !activityCollapsed;
-    setActivityCollapsed(next);
-    savePrefs({activityCollapsed: next});
-  };
+  const {
+    activeFilter,
+    activityCollapsed,
+    cardSections,
+    countdown,
+    data,
+    error,
+    fetchMaintenance,
+    fetchStatus,
+    maintenance,
+    postJson,
+    searchQuery,
+    setFilter,
+    setMaintenance,
+    setSearch,
+    setSection,
+    showToast,
+    tasks,
+    toast,
+    toggleActivity,
+  } = useDashboardSession();
 
   const openDeployPreview = async (name) => {
     setInfoModal({title: `${name} - Deploy status`, body: <div class="maintenance-empty">Loading deploy status...</div>, footer: 'preview'});
@@ -138,7 +66,7 @@ function App() {
     if (action === 'deploy-status') return openDeployPreview(name);
     if (button) button.disabled = true;
     try {
-      await postJson(resolveActionUrl(name, action));
+      await postJson(actionUrl(name, action));
       showToast(`Queued: ${action} ${name}`);
       setTimeout(fetchStatus, 400);
     } catch (err) {
@@ -305,14 +233,6 @@ function DoctorCheck({checkInfo}) {
       <span class={classNames('status-pill', checkInfo.status === 'fail' ? 'status-fail' : 'status-warn')}>{checkInfo.status}</span>
     </div>
   );
-}
-
-function resolveActionUrl(name, action) {
-  if (action === 'init-env') return `/api/worktrees/${encodeURIComponent(name)}/env/init`;
-  if (action === 'mcp-setup') return `/api/worktrees/${encodeURIComponent(name)}/mcp/setup`;
-  if (action === 'deploy-cache-update') return `/api/worktrees/${encodeURIComponent(name)}/deploy/cache-update`;
-  if (action === 'restart' || action === 'recreate') return `/api/worktrees/${encodeURIComponent(name)}/env/${action}`;
-  return `/api/worktrees/${encodeURIComponent(name)}/${action}`;
 }
 
 render(<App />, document.getElementById('dashboard-root'));

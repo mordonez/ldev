@@ -1,13 +1,4 @@
-export function actionKind(action) {
-  if (action === 'init-env') return 'worktree-env-init';
-  if (action === 'restart') return 'env-restart';
-  if (action === 'recreate') return 'env-recreate';
-  if (action === 'deploy-status') return 'deploy-status';
-  if (action === 'deploy-cache-update') return 'deploy-cache-update';
-  if (action === 'mcp-setup') return 'mcp-setup';
-  if (action === 'doctor') return 'doctor';
-  return `worktree-${action}`;
-}
+export {actionKind} from './actions.js';
 
 export function taskTime(value) {
   const date = new Date(value);

@@ -1,5 +1,8 @@
 import {EventEmitter} from 'node:events';
+import fs from 'node:fs';
 import type {AddressInfo} from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
 
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 
@@ -240,8 +243,17 @@ describe('createDashboardServer', () => {
     server = null;
   });
 
-  test('serves the dashboard client shell and source assets in development', async () => {
-    server = createDashboardServer({cwd: '/repo', port: 0});
+  test('serves the built dashboard client shell and bundle assets', async () => {
+    const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));
+    fs.mkdirSync(path.join(distDir, 'assets'), {recursive: true});
+    fs.writeFileSync(
+      path.join(distDir, 'index.html'),
+      '<div id="dashboard-root"></div><script type="module" src="/assets/app.js"></script>',
+    );
+    fs.writeFileSync(path.join(distDir, 'assets', 'app.js'), "console.log('dashboard bundle');");
+    fs.writeFileSync(path.join(distDir, 'assets', 'style.css'), ':root { color-scheme: light; }');
+
+    server = createDashboardServer({cwd: '/repo', port: 0, clientDistDirs: [distDir]});
     await new Promise<void>((resolve) =>
       server?.once('listening', () => {
         resolve();
@@ -251,17 +263,20 @@ describe('createDashboardServer', () => {
 
     const htmlResponse = await fetch(`http://127.0.0.1:${port}/`);
     expect(htmlResponse.status).toBe(200);
-    await expect(htmlResponse.text()).resolves.toContain('./app.jsx');
+    await expect(htmlResponse.text()).resolves.toContain('/assets/app.js');
 
-    const cssResponse = await fetch(`http://127.0.0.1:${port}/styles.css`);
+    const cssResponse = await fetch(`http://127.0.0.1:${port}/assets/style.css`);
     expect(cssResponse.status).toBe(200);
     expect(cssResponse.headers.get('content-type')).toContain('text/css');
     await expect(cssResponse.text()).resolves.toContain(':root');
 
-    const scriptResponse = await fetch(`http://127.0.0.1:${port}/app.jsx`);
+    const scriptResponse = await fetch(`http://127.0.0.1:${port}/assets/app.js`);
     expect(scriptResponse.status).toBe(200);
     expect(scriptResponse.headers.get('content-type')).toContain('text/javascript');
-    await expect(scriptResponse.text()).resolves.toContain('render(<App />');
+    await expect(scriptResponse.text()).resolves.toContain('dashboard bundle');
+
+    const sourceScriptResponse = await fetch(`http://127.0.0.1:${port}/app.jsx`);
+    expect(sourceScriptResponse.status).toBe(404);
   });
 
   test('creates a new worktree from the dashboard API with issue-friendly defaults', async () => {

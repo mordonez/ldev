@@ -1,3 +1,4 @@
+/** @jsx h */
 import {h} from 'preact';
 
 import {classNames, serviceName, serviceStatusLabel, serviceTone} from '../lib/dashboard-state.js';
