@@ -245,6 +245,16 @@ describe('createDashboardServer', () => {
     server = null;
   });
 
+  async function startServer(options?: {clientDistDirs?: string[]}): Promise<number> {
+    server = createDashboardServer({cwd: '/repo', port: 0, clientDistDirs: options?.clientDistDirs});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    return (server.address() as AddressInfo).port;
+  }
+
   test('serves the built dashboard client shell and bundle assets', async () => {
     const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));
     fs.mkdirSync(path.join(distDir, 'assets'), {recursive: true});
@@ -255,13 +265,7 @@ describe('createDashboardServer', () => {
     fs.writeFileSync(path.join(distDir, 'assets', 'app.js'), "console.log('dashboard bundle');");
     fs.writeFileSync(path.join(distDir, 'assets', 'style.css'), ':root { color-scheme: light; }');
 
-    server = createDashboardServer({cwd: '/repo', port: 0, clientDistDirs: [distDir]});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer({clientDistDirs: [distDir]});
 
     const htmlResponse = await fetch(`http://127.0.0.1:${port}/`);
     expect(htmlResponse.status).toBe(200);
@@ -299,13 +303,7 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees`, {
       method: 'POST',
@@ -371,13 +369,7 @@ describe('createDashboardServer', () => {
       worktrees: [],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/status`);
 
@@ -391,13 +383,7 @@ describe('createDashboardServer', () => {
   test('sanitizes internal dashboard status errors', async () => {
     collectDashboardStatusMock.mockRejectedValueOnce(new Error('secret stack details'));
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/status`);
 
@@ -406,13 +392,7 @@ describe('createDashboardServer', () => {
   });
 
   test('rejects worktree creation when the name is missing', async () => {
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees`, {
       method: 'POST',
@@ -433,13 +413,7 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/mcp/doctor`, {
       method: 'POST',
@@ -478,13 +452,7 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/mcp/setup`, {
       method: 'POST',
@@ -536,13 +504,7 @@ describe('createDashboardServer', () => {
       btrfsEnabled: false,
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/env/init`, {
       method: 'POST',
@@ -578,13 +540,7 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const firstResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/testworktree/start`, {method: 'POST'});
     expect(firstResponse.status).toBe(202);
@@ -622,13 +578,7 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const [alphaResponse, betaResponse] = await Promise.all([
       fetch(`http://127.0.0.1:${port}/api/worktrees/alpha/stop`, {method: 'POST'}),
@@ -677,13 +627,7 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const stopResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demo/stop`, {method: 'POST'});
     expect(stopResponse.status).toBe(202);
@@ -721,13 +665,7 @@ describe('createDashboardServer', () => {
     });
     runDbSyncMock.mockImplementation(() => new Promise(() => {}));
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const syncResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demoub/db/sync`, {
       method: 'POST',
@@ -761,13 +699,7 @@ describe('createDashboardServer', () => {
     runDbImportMock.mockResolvedValue({ok: true});
     runDbQueryMock.mockResolvedValue({ok: true});
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/download`, {
       method: 'POST',
@@ -875,13 +807,7 @@ describe('createDashboardServer', () => {
       siteResults: [],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/resource/export`, {
       method: 'POST',
@@ -920,13 +846,7 @@ describe('createDashboardServer', () => {
     loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
     runDoctorMock.mockResolvedValue({ok: true});
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const globalResponse = await fetch(`http://127.0.0.1:${port}/api/doctor`, {method: 'POST'});
     expect(globalResponse.status).toBe(202);
@@ -964,13 +884,7 @@ describe('createDashboardServer', () => {
         osgi: null,
       });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const globalResponse = await fetch(`http://127.0.0.1:${port}/api/doctor`);
     expect(globalResponse.status).toBe(200);
@@ -996,13 +910,7 @@ describe('createDashboardServer', () => {
     runDeployStatusMock.mockResolvedValue({ok: true});
     runDeployCacheUpdateMock.mockResolvedValue({ok: true});
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     expect((await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/env/restart`, {method: 'POST'})).status).toBe(
       202,
@@ -1045,13 +953,7 @@ describe('createDashboardServer', () => {
       ],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/deploy/status`);
     expect(response.status).toBe(200);
@@ -1067,13 +969,7 @@ describe('createDashboardServer', () => {
       .mockResolvedValueOnce({ok: true, apply: false, candidates: ['stale-1', 'stale-2'], cleaned: []})
       .mockResolvedValueOnce({ok: true, apply: true, candidates: ['stale-1'], cleaned: ['stale-1']});
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const previewResponse = await fetch(`http://127.0.0.1:${port}/api/maintenance/worktrees/gc?days=14`);
     expect(previewResponse.status).toBe(200);
@@ -1104,13 +1000,7 @@ describe('createDashboardServer', () => {
   test('returns an empty maintenance preview when worktree gc is unavailable for the current checkout', async () => {
     runWorktreeGcMock.mockRejectedValueOnce(new Error('worktree gc must be run inside a valid git repository.'));
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/maintenance/worktrees/gc?days=7`);
 
@@ -1137,13 +1027,7 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/mcp/setup`, {
       method: 'POST',
@@ -1193,13 +1077,7 @@ describe('createDashboardServer', () => {
       exitCode: 0,
     });
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/logs`);
 
@@ -1233,13 +1111,7 @@ describe('createDashboardServer', () => {
     child.kill = vi.fn(() => true);
     spawnPipedProcessMock.mockReturnValue(child);
 
-    server = createDashboardServer({cwd: '/repo', port: 0});
-    await new Promise<void>((resolve) =>
-      server?.once('listening', () => {
-        resolve();
-      }),
-    );
-    const port = (server.address() as AddressInfo).port;
+    const port = await startServer();
 
     const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/logs/stream`);
 

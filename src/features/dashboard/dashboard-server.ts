@@ -2,44 +2,26 @@ import http from 'node:http';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import {loadConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
-import {runDocker} from '../../core/platform/docker.js';
-import {listGitWorktreeDetails} from '../../core/platform/git.js';
-import {normalizeProcessEnv, resolveSpawnCommand, spawnPipedProcess} from '../../core/platform/process.js';
-import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
-import {collectEnvStatus} from '../../core/runtime/env-health.js';
 import {runEnvStart} from '../env/env-start.js';
 import {runEnvStop} from '../env/env-stop.js';
 import {formatDeployCacheUpdate, runDeployCacheUpdate} from '../deploy/deploy-cache-update.js';
 import {formatDeployStatus, runDeployStatus} from '../deploy/deploy-status.js';
 import {runEnvRecreate, formatEnvRecreate} from '../env/env-recreate.js';
 import {runEnvRestart, formatEnvRestart} from '../env/env-restart.js';
-import {formatMcpDoctor, runMcpDoctor} from '../mcp-server/mcp-server-doctor.js';
-import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
-import {
-  formatLiferayResourceExportAdts,
-  runLiferayResourceExportAdts,
-} from '../liferay/resource/liferay-resource-export-adts.js';
-import {
-  formatLiferayResourceExportFragments,
-  runLiferayResourceExportFragments,
-} from '../liferay/resource/liferay-resource-export-fragments.js';
-import {
-  formatLiferayResourceExportStructures,
-  runLiferayResourceExportStructures,
-} from '../liferay/resource/liferay-resource-export-structures.js';
-import {
-  formatLiferayResourceExportTemplates,
-  runLiferayResourceExportTemplates,
-} from '../liferay/resource/liferay-resource-export-templates.js';
 import {runWorktreeClean} from '../worktree/worktree-clean.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
-import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
-import {runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
 import {collectDashboardStatus} from './dashboard-data.js';
 import {handleWorktreeDbAction, type DashboardDbAction} from './dashboard-db-routes.js';
+import {handleWorktreeLogs, handleWorktreeLogStream} from './dashboard-log-routes.js';
+import {handleMaintenanceApply, handleMaintenancePreview} from './dashboard-maintenance-routes.js';
+import {handleMcpDoctor, handleMcpSetup, handleWorktreeMcpSetup, runWorktreeMcpSetup} from './dashboard-mcp-routes.js';
+import {
+  normalizeDashboardResourceKinds,
+  runDashboardResourceExport,
+  type DashboardResourceExportKind,
+} from './dashboard-resource-export.js';
 import {
   readJsonBody,
   serveDashboardClientAsset,
@@ -55,11 +37,13 @@ import {
 } from './dashboard-operations.js';
 import {
   queueDashboardTaskOnce,
-  serializeDashboardTask,
   writeDashboardTaskAccepted,
   writeDashboardTaskBlocked,
 } from './dashboard-task-commands.js';
+import {handleTaskCancel, handleTaskList, handleTaskStream} from './dashboard-task-routes.js';
 import {createDashboardTaskManager} from './dashboard-tasks.js';
+import {createDashboardWorktreeResolver, type DashboardWorktreeResolver} from './dashboard-worktree-resolver.js';
+import {handleWorktreeCreate} from './dashboard-worktree-routes.js';
 
 const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DASHBOARD_CLIENT_DIST_DIRS = [
@@ -73,33 +57,6 @@ export type DashboardServerOptions = {
   clientDistDirs?: string[];
   onReady?: (url: string) => void;
 };
-
-type DashboardCreateWorktreePayload = {
-  name?: string;
-  baseRef?: string;
-  withEnv?: boolean;
-  stopMainForClone?: boolean;
-  restartMainAfterClone?: boolean;
-};
-
-type DashboardMcpDoctorPayload = {
-  tool?: 'all' | 'claude-code' | 'cursor' | 'vscode';
-  skipHandshake?: boolean;
-};
-
-type DashboardMcpSetupPayload = {
-  tool?: 'all' | 'claude-code' | 'cursor' | 'vscode';
-  strategy?: 'global' | 'local' | 'npx';
-};
-
-type DashboardMaintenancePayload = {
-  days?: number;
-  apply?: boolean;
-};
-
-const DASHBOARD_RESOURCE_EXPORT_KINDS = ['templates', 'structures', 'adts', 'fragments'] as const;
-
-type DashboardResourceExportKind = (typeof DASHBOARD_RESOURCE_EXPORT_KINDS)[number];
 
 type DashboardResourceExportPayload = {
   resources?: string[];
@@ -115,73 +72,34 @@ async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void
   }
 }
 
-async function resolveWorktreePath(cwd: string, worktreeName: string): Promise<string | null> {
-  const worktreeInfos = await listGitWorktreeDetails(cwd);
-  const mainRepoRoot = path.resolve(cwd);
-  const target = worktreeInfos.find((info) => {
-    const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
-    const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
-    return name === worktreeName;
-  });
-  return target?.path ?? null;
-}
-
-async function resolveWorktreeConfig(cwd: string, worktreeName: string) {
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  const config = loadConfig({cwd: worktreePath});
-  if (!config.repoRoot || !config.dockerDir || !config.liferayDir) {
-    throw new Error('No docker environment configured for this worktree');
-  }
-
-  return config;
-}
-
-async function resolveScopedConfig(cwd: string, worktreeName?: string) {
-  if (!worktreeName) {
-    return {
-      cwd,
-      config: loadConfig({cwd}),
-    };
-  }
-
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  return {
-    cwd: worktreePath,
-    config: loadConfig({cwd: worktreePath}),
-  };
-}
-
 async function handleWorktreeStart(
-  cwd: string,
+  resolver: DashboardWorktreeResolver,
   worktreeName: string,
   printer: Printer | undefined,
   signal: AbortSignal,
 ): Promise<void> {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
+  const config = await resolver.resolveConfig(worktreeName);
   await runEnvStart(config, {wait: false, printer, signal});
 }
 
 async function handleWorktreeStop(
-  cwd: string,
+  resolver: DashboardWorktreeResolver,
   worktreeName: string,
   printer: Printer | undefined,
   signal: AbortSignal,
 ): Promise<void> {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
+  const config = await resolver.resolveConfig(worktreeName);
   await runEnvStop(config, {processEnv: process.env, printer, signal});
 }
 
-async function handleWorktreeDelete(cwd: string, worktreeName: string, printer?: Printer): Promise<void> {
+async function handleWorktreeDelete(
+  cwd: string,
+  resolver: DashboardWorktreeResolver,
+  worktreeName: string,
+  printer?: Printer,
+): Promise<void> {
   const mainRepoRoot = path.resolve(cwd);
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
+  const worktreePath = await resolver.resolvePath(worktreeName);
   if (!worktreePath) {
     throw new Error(`Worktree '${worktreeName}' not found`);
   }
@@ -193,8 +111,12 @@ async function handleWorktreeDelete(cwd: string, worktreeName: string, printer?:
   await runWorktreeClean({cwd, name: worktreeName, force: true, printer});
 }
 
-async function handleWorktreeEnvInit(cwd: string, worktreeName: string, printer?: Printer): Promise<void> {
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
+async function handleWorktreeEnvInit(
+  resolver: DashboardWorktreeResolver,
+  worktreeName: string,
+  printer?: Printer,
+): Promise<void> {
+  const worktreePath = await resolver.resolvePath(worktreeName);
   if (!worktreePath) {
     throw new Error(`Worktree '${worktreeName}' not found`);
   }
@@ -210,8 +132,12 @@ function writeTaskLines(printer: Printer, output: string): void {
   }
 }
 
-async function handleDoctorRun(cwd: string, worktreeName: string | undefined, printer: Printer): Promise<void> {
-  const scoped = await resolveScopedConfig(cwd, worktreeName);
+async function handleDoctorRun(
+  resolver: DashboardWorktreeResolver,
+  worktreeName: string | undefined,
+  printer: Printer,
+): Promise<void> {
+  const scoped = await resolver.resolveScopedConfig(worktreeName);
   const report = await runDoctor(scoped.cwd, {
     config: scoped.config,
     env: process.env,
@@ -220,8 +146,8 @@ async function handleDoctorRun(cwd: string, worktreeName: string | undefined, pr
   writeTaskLines(printer, formatDoctor(report));
 }
 
-async function handleDoctorPreview(cwd: string, worktreeName?: string) {
-  const scoped = await resolveScopedConfig(cwd, worktreeName);
+async function handleDoctorPreview(resolver: DashboardWorktreeResolver, worktreeName?: string) {
+  const scoped = await resolver.resolveScopedConfig(worktreeName);
   return runDoctor(scoped.cwd, {
     config: scoped.config,
     env: process.env,
@@ -230,13 +156,13 @@ async function handleDoctorPreview(cwd: string, worktreeName?: string) {
 }
 
 async function handleWorktreeRepairAction(
-  cwd: string,
+  resolver: DashboardWorktreeResolver,
   worktreeName: string,
   action: 'restart' | 'recreate',
   printer: Printer,
   signal: AbortSignal,
 ): Promise<void> {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
+  const config = await resolver.resolveConfig(worktreeName);
   if (action === 'restart') {
     const result = await runEnvRestart(config, {printer, signal});
     writeTaskLines(printer, formatEnvRestart(result));
@@ -248,12 +174,12 @@ async function handleWorktreeRepairAction(
 }
 
 async function handleWorktreeDeployAction(
-  cwd: string,
+  resolver: DashboardWorktreeResolver,
   worktreeName: string,
   action: 'status' | 'cache-update',
   printer: Printer,
 ): Promise<void> {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
+  const config = await resolver.resolveConfig(worktreeName);
   if (action === 'status') {
     const result = await runDeployStatus(config, {processEnv: process.env});
     writeTaskLines(printer, formatDeployStatus(result));
@@ -264,473 +190,39 @@ async function handleWorktreeDeployAction(
   writeTaskLines(printer, formatDeployCacheUpdate(result));
 }
 
-async function handleWorktreeDeployPreview(cwd: string, worktreeName: string) {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
+async function handleWorktreeDeployPreview(resolver: DashboardWorktreeResolver, worktreeName: string) {
+  const config = await resolver.resolveConfig(worktreeName);
   return runDeployStatus(config, {processEnv: process.env});
 }
 
-function normalizeDashboardResourceKinds(resources: unknown): DashboardResourceExportKind[] {
-  if (!Array.isArray(resources)) {
-    return [];
-  }
-
-  const allowed = new Set<string>(DASHBOARD_RESOURCE_EXPORT_KINDS);
-  const unique = new Set<DashboardResourceExportKind>();
-
-  for (const resource of resources) {
-    if (typeof resource === 'string' && allowed.has(resource)) {
-      unique.add(resource as DashboardResourceExportKind);
-    }
-  }
-
-  return Array.from(unique);
-}
-
 async function handleWorktreeResourceExport(
-  cwd: string,
+  resolver: DashboardWorktreeResolver,
   worktreeName: string,
   resources: DashboardResourceExportKind[],
   printer: Printer,
 ): Promise<void> {
-  const config = await resolveWorktreeConfig(cwd, worktreeName);
-
-  for (const resource of resources) {
-    printer.info(`Running resource export-${resource} --all-sites`);
-
-    if (resource === 'templates') {
-      const result = await runLiferayResourceExportTemplates(config, {allSites: true});
-      writeTaskLines(printer, formatLiferayResourceExportTemplates(result));
-      continue;
-    }
-
-    if (resource === 'structures') {
-      const result = await runLiferayResourceExportStructures(config, {allSites: true});
-      writeTaskLines(printer, formatLiferayResourceExportStructures(result));
-      continue;
-    }
-
-    if (resource === 'adts') {
-      const result = await runLiferayResourceExportAdts(config, {allSites: true});
-      writeTaskLines(printer, formatLiferayResourceExportAdts(result));
-      continue;
-    }
-
-    const result = await runLiferayResourceExportFragments(config, {allSites: true});
-    writeTaskLines(printer, formatLiferayResourceExportFragments(result));
-  }
-}
-
-async function handleMaintenancePreview(
-  cwd: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-): Promise<void> {
-  try {
-    const requestUrl = new URL(req.url ?? '/api/maintenance/worktrees/gc', 'http://127.0.0.1');
-    const days = Number.parseInt(requestUrl.searchParams.get('days') ?? '7', 10) || 7;
-    const result = await runWorktreeGc({cwd, days, apply: false, processEnv: process.env});
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify(result));
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('worktree gc must be run inside a valid git repository')) {
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      res.end(
-        JSON.stringify({
-          ok: true,
-          apply: false,
-          candidates: [],
-          cleaned: [],
-          unavailable: true,
-          message: 'Maintenance preview is unavailable outside a git repository',
-        }),
-      );
-      return;
-    }
-
-    writeDashboardError(res, err, {
-      internalMessage: 'Could not load worktree maintenance preview',
-    });
-  }
-}
-
-async function handleMaintenanceApply(
-  cwd: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardMaintenancePayload;
-    const days = Number.parseInt(String(payload.days ?? 7), 10) || 7;
-    const task = taskManager.startTask(
-      {kind: 'worktree-gc', label: `Applying worktree maintenance (${days}d)`},
-      async (printer) => {
-        const result = await runWorktreeGc({cwd, days, apply: true, processEnv: process.env, printer});
-        writeTaskLines(printer, formatWorktreeGc(result));
-      },
-    );
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'worktree-gc'}));
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid maintenance request payload',
-      internalMessage: 'Could not apply worktree maintenance',
-    });
-  }
-}
-
-async function handleWorktreeCreate(
-  cwd: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardCreateWorktreePayload;
-    const name = payload.name?.trim();
-
-    if (!name) {
-      res.writeHead(400, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({error: 'Worktree name is required'}));
-      return;
-    }
-
-    const baseRef = payload.baseRef?.trim() || undefined;
-    const withEnv = payload.withEnv !== false;
-    const stopMainForClone = withEnv ? payload.stopMainForClone !== false : false;
-    const restartMainAfterClone = withEnv && Boolean(payload.restartMainAfterClone);
-
-    const task = taskManager.startTask(
-      {kind: 'worktree-create', label: `Creating worktree ${name}`, worktreeName: name},
-      async (printer) => {
-        const result = await runWorktreeSetup({
-          cwd,
-          name,
-          baseRef,
-          withEnv,
-          stopMainForClone,
-          restartMainAfterClone,
-          stopEnv: runEnvStop,
-          startEnv: runEnvStart,
-          printer,
-        });
-        printer.info(`Worktree ready: ${result.worktreeDir}`);
-      },
-    );
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, worktree: name, action: 'create'}));
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid worktree creation request',
-      internalMessage: 'Could not create the worktree task',
-    });
-  }
-}
-
-async function handleMcpDoctor(
-  cwd: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardMcpDoctorPayload;
-    const tool = payload.tool ?? 'all';
-    const handshake = payload.skipHandshake !== true;
-
-    const task = taskManager.startTask({kind: 'mcp-doctor', label: `Running MCP doctor (${tool})`}, async (printer) => {
-      const result = await runMcpDoctor({
-        targetDir: cwd,
-        tool,
-        handshake,
-        timeoutMs: handshake ? 10000 : 5000,
-      });
-
-      for (const line of formatMcpDoctor(result).split('\n')) {
-        if (line.trim()) {
-          printer.info(line);
-        }
-      }
-
-      if (!result.ok) {
-        throw new Error('MCP doctor found issues');
-      }
-    });
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-doctor', tool}));
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid MCP doctor request payload',
-      internalMessage: 'Could not queue the MCP doctor task',
-    });
-  }
-}
-
-async function handleMcpSetup(
-  cwd: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardMcpSetupPayload;
-    const tool = payload.tool ?? 'all';
-    const strategy = payload.strategy;
-
-    const task = taskManager.startTask({kind: 'mcp-setup', label: `Running MCP setup (${tool})`}, async (printer) => {
-      const result = await runMcpSetup({targetDir: cwd, tool, strategy});
-
-      for (const line of formatMcpSetup(result).split('\n')) {
-        if (line.trim()) {
-          printer.info(line);
-        }
-      }
-    });
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-setup', tool, strategy: strategy ?? null}));
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid MCP setup request payload',
-      internalMessage: 'Could not queue the MCP setup task',
-    });
-  }
-}
-
-async function handleWorktreeMcpSetup(
-  cwd: string,
-  worktreeName: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardMcpSetupPayload;
-    const tool = payload.tool ?? 'all';
-    const strategy = payload.strategy;
-    const worktreePath = await resolveWorktreePath(cwd, worktreeName);
-
-    if (!worktreePath) {
-      res.writeHead(404, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({error: `Worktree '${worktreeName}' not found`}));
-      return;
-    }
-
-    const queued = queueDashboardTaskOnce(
-      taskManager,
-      {kind: 'mcp-setup', label: `Running MCP setup for ${worktreeName}`, worktreeName},
-      async (printer) => {
-        const result = await runMcpSetup({targetDir: worktreePath, tool, strategy});
-
-        for (const line of formatMcpSetup(result).split('\n')) {
-          if (line.trim()) {
-            printer.info(line);
-          }
-        }
-      },
-    );
-
-    if (queued.blocked) {
-      writeDashboardTaskBlocked(res, queued, worktreeName);
-      return;
-    }
-
-    writeDashboardTaskAccepted(res, queued, {action: 'mcp-setup', worktree: worktreeName, tool});
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid worktree MCP setup request payload',
-      internalMessage: 'Could not queue the worktree MCP setup task',
-      notFoundMessage: 'Worktree was not found',
-    });
-  }
-}
-
-async function handleWorktreeMcpSetupRun(cwd: string, worktreeName: string, printer?: Printer): Promise<void> {
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
-
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  const result = await runMcpSetup({targetDir: worktreePath, tool: 'all'});
-  if (printer) {
-    writeTaskLines(printer, formatMcpSetup(result));
-  }
-}
-
-async function handleWorktreeLogs(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
-  try {
-    const {composeEnv, containerId, running} = await resolveWorktreeLogContext(cwd, worktreeName);
-
-    if (!containerId) {
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({logs: '', containerId: null, service: 'liferay', running: false}));
-      return;
-    }
-
-    const result = await runDocker(['logs', '--tail', '200', '--timestamps', containerId], {
-      env: composeEnv,
-      reject: false,
-    });
-
-    const raw = [result.stdout, result.stderr].filter(Boolean).join('');
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({logs: raw, containerId, service: 'liferay', running}));
-  } catch (err) {
-    if (!res.headersSent) {
-      writeDashboardError(res, err, {
-        internalMessage: 'Could not load worktree logs',
-        notFoundMessage: 'Worktree was not found',
-      });
-    }
-  }
-}
-
-async function resolveWorktreeLogContext(cwd: string, worktreeName: string) {
-  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  const config = loadConfig({cwd: worktreePath});
-  if (!config.repoRoot || !config.dockerDir || !config.liferayDir) {
-    throw new Error('No docker environment configured');
-  }
-
-  const context = resolveEnvContext(config);
-  const composeEnv = buildComposeEnv(context);
-  const status = await collectEnvStatus(context, {processEnv: composeEnv});
-
-  return {
-    composeEnv,
-    containerId: status.liferay?.containerId ?? null,
-    running: status.liferay?.state === 'running',
-  };
-}
-
-async function handleWorktreeLogStream(
-  cwd: string,
-  worktreeName: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-): Promise<void> {
-  try {
-    const {composeEnv, containerId, running} = await resolveWorktreeLogContext(cwd, worktreeName);
-
-    res.writeHead(200, {
-      'Content-Type': 'application/x-ndjson; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-    });
-
-    const writeEvent = (payload: Record<string, unknown>) => {
-      res.write(`${JSON.stringify(payload)}\n`);
-    };
-
-    writeEvent({type: 'meta', containerId, running, service: 'liferay'});
-
-    if (!containerId) {
-      writeEvent({type: 'end', exitCode: 0});
-      res.end();
-      return;
-    }
-
-    const keepAlive = setInterval(() => {
-      writeEvent({type: 'keepalive'});
-    }, 15_000);
-
-    const child = spawnPipedProcess(
-      resolveSpawnCommand('docker', composeEnv),
-      ['logs', '--tail', '200', '--timestamps', '-f', containerId],
-      {
-        env: normalizeProcessEnv(composeEnv),
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    );
-
-    let closed = false;
-    const cleanup = () => {
-      if (closed) {
-        return;
-      }
-
-      closed = true;
-      clearInterval(keepAlive);
-    };
-
-    const writeChunk = (stream: 'stdout' | 'stderr') => (chunk: Buffer | string) => {
-      if (closed) {
-        return;
-      }
-
-      writeEvent({type: 'chunk', stream, chunk: Buffer.isBuffer(chunk) ? chunk.toString('utf8') : chunk});
-    };
-
-    child.stdout.on('data', writeChunk('stdout'));
-    child.stderr.on('data', writeChunk('stderr'));
-
-    child.on('error', (error) => {
-      if (closed) {
-        return;
-      }
-
-      writeEvent({type: 'error', message: error instanceof Error ? error.message : String(error)});
-      writeEvent({type: 'end', exitCode: 1});
-      cleanup();
-      res.end();
-    });
-
-    child.on('close', (code, signal) => {
-      if (closed) {
-        return;
-      }
-
-      writeEvent({type: 'end', exitCode: code ?? 0, signal: signal ?? null});
-      cleanup();
-      res.end();
-    });
-
-    const stopStream = () => {
-      if (closed) {
-        return;
-      }
-
-      cleanup();
-      child.kill();
-    };
-
-    req.on('close', stopStream);
-    res.on('close', stopStream);
-  } catch (err) {
-    if (!res.headersSent) {
-      writeDashboardError(res, err, {
-        internalMessage: 'Could not open the worktree log stream',
-        notFoundMessage: 'Worktree was not found',
-      });
-    }
-  }
+  const config = await resolver.resolveConfig(worktreeName);
+  await runDashboardResourceExport(config, resources, printer, writeTaskLines);
 }
 
 export function createDashboardServer(options: DashboardServerOptions): http.Server {
   const {cwd, port} = options;
   const clientDistDirs = options.clientDistDirs ?? DASHBOARD_CLIENT_DIST_DIRS;
   const taskManager = createDashboardTaskManager();
+  const worktrees = createDashboardWorktreeResolver(cwd);
   const operationHandlers: DashboardOperationHandlers = {
-    deployAction: (worktreeName, action, printer) => handleWorktreeDeployAction(cwd, worktreeName, action, printer),
-    deployPreview: (worktreeName) => handleWorktreeDeployPreview(cwd, worktreeName),
-    doctorPreview: (worktreeName) => handleDoctorPreview(cwd, worktreeName),
-    doctorRun: (worktreeName, printer) => handleDoctorRun(cwd, worktreeName, printer),
+    deployAction: (worktreeName, action, printer) =>
+      handleWorktreeDeployAction(worktrees, worktreeName, action, printer),
+    deployPreview: (worktreeName) => handleWorktreeDeployPreview(worktrees, worktreeName),
+    doctorPreview: (worktreeName) => handleDoctorPreview(worktrees, worktreeName),
+    doctorRun: (worktreeName, printer) => handleDoctorRun(worktrees, worktreeName, printer),
     repairAction: (worktreeName, action, printer, signal) =>
-      handleWorktreeRepairAction(cwd, worktreeName, action, printer, signal),
-    worktreeDelete: (worktreeName, printer) => handleWorktreeDelete(cwd, worktreeName, printer),
-    worktreeEnvInit: (worktreeName, printer) => handleWorktreeEnvInit(cwd, worktreeName, printer),
-    worktreeMcpSetup: (worktreeName, printer) => handleWorktreeMcpSetupRun(cwd, worktreeName, printer),
-    worktreeStart: (worktreeName, printer, signal) => handleWorktreeStart(cwd, worktreeName, printer, signal),
-    worktreeStop: (worktreeName, printer, signal) => handleWorktreeStop(cwd, worktreeName, printer, signal),
+      handleWorktreeRepairAction(worktrees, worktreeName, action, printer, signal),
+    worktreeDelete: (worktreeName, printer) => handleWorktreeDelete(cwd, worktrees, worktreeName, printer),
+    worktreeEnvInit: (worktreeName, printer) => handleWorktreeEnvInit(worktrees, worktreeName, printer),
+    worktreeMcpSetup: (worktreeName, printer) => runWorktreeMcpSetup(worktrees, worktreeName, printer),
+    worktreeStart: (worktreeName, printer, signal) => handleWorktreeStart(worktrees, worktreeName, printer, signal),
+    worktreeStop: (worktreeName, printer, signal) => handleWorktreeStop(worktrees, worktreeName, printer, signal),
   };
 
   const server = http.createServer((req, res) => {
@@ -755,49 +247,24 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     }
 
     if (method === 'GET' && url === '/api/tasks') {
-      writeJson(res, 200, {tasks: taskManager.listTasks()});
+      handleTaskList(res, taskManager);
       return;
     }
 
     if (method === 'GET' && url === '/api/tasks/stream') {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream; charset=utf-8',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      });
-
-      const send = (tasks: ReturnType<typeof taskManager.listTasks>) => {
-        res.write(`data: ${JSON.stringify({tasks})}\n\n`);
-      };
-
-      send(taskManager.listTasks());
-      const unsubscribe = taskManager.subscribe(send);
-      const keepAlive = setInterval(() => {
-        res.write(': keep-alive\n\n');
-      }, 15_000);
-
-      req.on('close', () => {
-        clearInterval(keepAlive);
-        unsubscribe();
-      });
+      handleTaskStream(req, res, taskManager);
       return;
     }
 
     const cancelTaskMatch = /^\/api\/tasks\/([^/]+)\/cancel$/.exec(url);
     if (method === 'POST' && cancelTaskMatch) {
-      const task = taskManager.cancelTask(decodeURIComponent(cancelTaskMatch[1]));
-      if (!task) {
-        writeJson(res, 404, {error: 'Running task was not found'});
-        return;
-      }
-
-      writeJson(res, 202, {ok: true, task: serializeDashboardTask(task), taskId: task.id});
+      handleTaskCancel(decodeURIComponent(cancelTaskMatch[1]), res, taskManager);
       return;
     }
 
     const worktreeMcpSetupMatch = /^\/api\/worktrees\/([^/]+)\/mcp\/setup$/.exec(url);
     if (method === 'POST' && worktreeMcpSetupMatch) {
-      void handleWorktreeMcpSetup(cwd, decodeURIComponent(worktreeMcpSetupMatch[1]), req, res, taskManager);
+      void handleWorktreeMcpSetup(worktrees, decodeURIComponent(worktreeMcpSetupMatch[1]), req, res, taskManager);
       return;
     }
 
@@ -850,7 +317,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     }
 
     if (method === 'POST' && url === '/api/maintenance/worktrees/gc') {
-      void handleMaintenanceApply(cwd, req, res, taskManager);
+      void handleMaintenanceApply(cwd, req, res, taskManager, writeTaskLines);
       return;
     }
 
@@ -871,13 +338,13 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
 
     const logsMatch = /^\/api\/worktrees\/([^/]+)\/logs$/.exec(url);
     if (method === 'GET' && logsMatch) {
-      void handleWorktreeLogs(cwd, decodeURIComponent(logsMatch[1]), res);
+      void handleWorktreeLogs(worktrees, decodeURIComponent(logsMatch[1]), res);
       return;
     }
 
     const logStreamMatch = /^\/api\/worktrees\/([^/]+)\/logs\/stream$/.exec(url);
     if (method === 'GET' && logStreamMatch) {
-      void handleWorktreeLogStream(cwd, decodeURIComponent(logStreamMatch[1]), req, res);
+      void handleWorktreeLogStream(worktrees, decodeURIComponent(logStreamMatch[1]), req, res);
       return;
     }
 
@@ -886,7 +353,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       void handleWorktreeDbAction(
         {
           processEnv: process.env,
-          resolveWorktreeConfig: (worktreeName) => resolveWorktreeConfig(cwd, worktreeName),
+          resolveWorktreeConfig: (worktreeName) => worktrees.resolveConfig(worktreeName),
           taskManager,
           writeTaskLines,
         },
@@ -913,7 +380,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
             taskManager,
             {kind: 'resource-export', label: `Exporting resources for ${worktreeName}`, worktreeName},
             async (printer) => {
-              await handleWorktreeResourceExport(cwd, worktreeName, resources, printer);
+              await handleWorktreeResourceExport(worktrees, worktreeName, resources, printer);
             },
           );
           if (queued.blocked) {

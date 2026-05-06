@@ -1,4 +1,5 @@
 import type {Printer} from '../../core/output/printer.js';
+import type {DashboardOperationKey} from './dashboard-action-catalog.js';
 import type {DashboardOperation} from './dashboard-operation-dispatcher.js';
 
 export type DashboardOperationHandlers = {
@@ -24,55 +25,63 @@ export type DashboardOperationHandlers = {
   worktreeStop: (worktreeName: string, printer: Printer, signal: AbortSignal) => Promise<void>;
 };
 
+type QueuedOperationRunner = (
+  operation: DashboardOperation,
+  handlers: DashboardOperationHandlers,
+  printer: Printer,
+  signal: AbortSignal,
+) => Promise<void>;
+
+type PreviewOperationRunner = (operation: DashboardOperation, handlers: DashboardOperationHandlers) => Promise<unknown>;
+
+const QUEUED_OPERATION_RUNNERS: Partial<Record<DashboardOperationKey, QueuedOperationRunner>> = {
+  'repo-doctor': (_operation, handlers, printer, signal) => handlers.doctorRun(undefined, printer, signal),
+  'worktree-delete': (operation, handlers, printer, signal) =>
+    handlers.worktreeDelete(operation.worktreeName!, printer, signal),
+  'worktree-deploy': (operation, handlers, printer, signal) =>
+    handlers.deployAction(operation.worktreeName!, operation.deployAction!, printer, signal),
+  'worktree-doctor': (operation, handlers, printer, signal) =>
+    handlers.doctorRun(operation.worktreeName, printer, signal),
+  'worktree-env-init': (operation, handlers, printer, signal) =>
+    handlers.worktreeEnvInit(operation.worktreeName!, printer, signal),
+  'worktree-mcp-setup': (operation, handlers, printer, signal) =>
+    handlers.worktreeMcpSetup(operation.worktreeName!, printer, signal),
+  'worktree-repair': (operation, handlers, printer, signal) =>
+    handlers.repairAction(operation.worktreeName!, operation.repairAction!, printer, signal),
+  'worktree-start': (operation, handlers, printer, signal) =>
+    handlers.worktreeStart(operation.worktreeName!, printer, signal),
+  'worktree-stop': (operation, handlers, printer, signal) =>
+    handlers.worktreeStop(operation.worktreeName!, printer, signal),
+};
+
+const PREVIEW_OPERATION_RUNNERS: Partial<Record<DashboardOperationKey, PreviewOperationRunner>> = {
+  'repo-doctor': (_operation, handlers) => handlers.doctorPreview(),
+  'worktree-deploy': (operation, handlers) => handlers.deployPreview(operation.worktreeName!),
+  'worktree-doctor': (operation, handlers) => handlers.doctorPreview(operation.worktreeName),
+};
+
 export async function runDashboardQueuedOperation(
   operation: DashboardOperation,
   handlers: DashboardOperationHandlers,
   printer: Printer,
   signal: AbortSignal,
 ): Promise<void> {
-  switch (operation.key) {
-    case 'repo-doctor':
-      await handlers.doctorRun(undefined, printer, signal);
-      return;
-    case 'worktree-start':
-      await handlers.worktreeStart(operation.worktreeName!, printer, signal);
-      return;
-    case 'worktree-env-init':
-      await handlers.worktreeEnvInit(operation.worktreeName!, printer, signal);
-      return;
-    case 'worktree-doctor':
-      await handlers.doctorRun(operation.worktreeName, printer, signal);
-      return;
-    case 'worktree-repair':
-      await handlers.repairAction(operation.worktreeName!, operation.repairAction!, printer, signal);
-      return;
-    case 'worktree-deploy':
-      await handlers.deployAction(operation.worktreeName!, operation.deployAction!, printer, signal);
-      return;
-    case 'worktree-stop':
-      await handlers.worktreeStop(operation.worktreeName!, printer, signal);
-      return;
-    case 'worktree-delete':
-      await handlers.worktreeDelete(operation.worktreeName!, printer, signal);
-      return;
-    case 'worktree-mcp-setup':
-      await handlers.worktreeMcpSetup(operation.worktreeName!, printer, signal);
-      return;
+  const runner = QUEUED_OPERATION_RUNNERS[operation.key];
+  if (!runner) {
+    throw new Error(`Dashboard operation '${operation.action}' does not support queueing`);
   }
+
+  await runner(operation, handlers, printer, signal);
 }
 
 export async function runDashboardPreviewOperation(
   operation: DashboardOperation,
   handlers: DashboardOperationHandlers,
 ): Promise<unknown> {
-  switch (operation.key) {
-    case 'repo-doctor':
-      return handlers.doctorPreview();
-    case 'worktree-doctor':
-      return handlers.doctorPreview(operation.worktreeName);
-    case 'worktree-deploy':
-      return handlers.deployPreview(operation.worktreeName!);
-    default:
-      throw new Error(`Dashboard operation '${operation.action}' does not support preview`);
+  const runner = PREVIEW_OPERATION_RUNNERS[operation.key];
+  if (!runner) {
+    throw new Error(`Dashboard operation '${operation.action}' does not support preview`);
   }
+
+  return runner(operation, handlers);
 }
