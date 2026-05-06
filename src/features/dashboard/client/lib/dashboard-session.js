@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 
-import {changedTaskState} from './tasks.js';
+import {changedTaskState, mergeTask} from './tasks.js';
 import {readPrefs, writePrefs} from './preferences.js';
 
 export function useDashboardSession() {
@@ -51,6 +51,7 @@ export function useDashboardSession() {
     const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload ? JSON.stringify(payload) : undefined});
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+    if (body.task) setTasks((current) => mergeTask(current, body.task));
     return body;
   };
 

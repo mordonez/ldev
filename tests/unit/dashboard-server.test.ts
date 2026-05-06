@@ -598,6 +598,61 @@ describe('createDashboardServer', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
+  test('queues concurrent stops for different worktrees and returns task snapshots for reactive buttons', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/alpha', branch: 'fix/alpha', detached: false, prunable: false},
+      {path: '/repo/.worktrees/beta', branch: 'fix/beta', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockImplementation(({cwd}: {cwd: string}) => ({
+      repoRoot: cwd,
+      dockerDir: `${cwd}/docker`,
+      liferayDir: `${cwd}/liferay`,
+    }));
+
+    const resolveStops: Array<() => void> = [];
+    runEnvStopMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStops.push(() => {
+            resolve(undefined);
+          });
+        }),
+    );
+
+    server = createDashboardServer({cwd: '/repo', port: 0});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const [alphaResponse, betaResponse] = await Promise.all([
+      fetch(`http://127.0.0.1:${port}/api/worktrees/alpha/stop`, {method: 'POST'}),
+      fetch(`http://127.0.0.1:${port}/api/worktrees/beta/stop`, {method: 'POST'}),
+    ]);
+
+    expect(alphaResponse.status).toBe(202);
+    expect(betaResponse.status).toBe(202);
+    const alphaBody = await readJson<{task: {kind: string; status: string; worktreeName: string}; taskId: string}>(
+      alphaResponse,
+    );
+    const betaBody = await readJson<{task: {kind: string; status: string; worktreeName: string}; taskId: string}>(
+      betaResponse,
+    );
+    expect(alphaBody.task).toMatchObject({kind: 'worktree-stop', status: 'running', worktreeName: 'alpha'});
+    expect(betaBody.task).toMatchObject({kind: 'worktree-stop', status: 'running', worktreeName: 'beta'});
+    expect(alphaBody.taskId).not.toBe(betaBody.taskId);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runEnvStopMock).toHaveBeenCalledTimes(2);
+
+    for (const resolveStop of resolveStops) {
+      resolveStop();
+    }
+  });
+
   test('queues guided db actions from the dashboard API', async () => {
     listGitWorktreeDetailsMock.mockResolvedValue([
       {path: '/repo', branch: 'main', detached: false, prunable: false},

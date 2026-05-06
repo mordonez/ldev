@@ -56,7 +56,7 @@ import {
   runDashboardQueuedOperation,
   type DashboardOperationHandlers,
 } from './dashboard-operations.js';
-import {createDashboardTaskManager} from './dashboard-tasks.js';
+import {createDashboardTaskManager, type DashboardTask} from './dashboard-tasks.js';
 
 const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DASHBOARD_CLIENT_DIST_DIRS = [
@@ -108,6 +108,13 @@ type DashboardResourceExportKind = (typeof DASHBOARD_RESOURCE_EXPORT_KINDS)[numb
 type DashboardResourceExportPayload = {
   resources?: string[];
 };
+
+function serializeDashboardTask(task: DashboardTask): DashboardTask {
+  return {
+    ...task,
+    logs: task.logs.map((entry) => ({...entry})),
+  };
+}
 
 async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void> {
   try {
@@ -880,10 +887,17 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           worktreeName: dashboardOperation.worktreeName,
         },
         async (printer) => {
+          printer.info(`Executing ${dashboardOperation.action}`);
           await runDashboardQueuedOperation(dashboardOperation, operationHandlers, printer);
         },
       );
-      writeJson(res, 202, {ok: true, taskId: task.id, ...dashboardOperation.response, duplicate});
+      writeJson(res, 202, {
+        ok: true,
+        task: serializeDashboardTask(task),
+        taskId: task.id,
+        ...dashboardOperation.response,
+        duplicate,
+      });
       return;
     }
 
