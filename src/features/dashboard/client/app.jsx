@@ -3,13 +3,14 @@ import {useMemo, useState} from 'preact/hooks';
 
 import {Activity} from './components/activity.jsx';
 import {CreateModal} from './components/create-modal.jsx';
+import {DbFormModal} from './components/db-form-modal.jsx';
 import {Header} from './components/header.jsx';
 import {Maintenance} from './components/maintenance.jsx';
 import {Modal} from './components/modal.jsx';
-import {SimpleFormModal} from './components/simple-form-modal.jsx';
+import {ResourceExportModal} from './components/resource-export-modal.jsx';
 import {Toolbar} from './components/toolbar.jsx';
 import {WorktreeCard} from './components/worktree-card.jsx';
-import {actionUrl} from './lib/actions.js';
+import {actionUrl, previewUrl} from './lib/actions.js';
 import {classNames, FILTERS, matchesFilter, matchesSearch, priority} from './lib/dashboard-state.js';
 import {useDashboardSession} from './lib/dashboard-session.js';
 import './styles.css';
@@ -46,7 +47,7 @@ function App() {
   const openDeployPreview = async (name) => {
     setInfoModal({title: `${name} - Deploy status`, body: <div class="maintenance-empty">Loading deploy status...</div>, footer: 'preview'});
     try {
-      const res = await fetch(`/api/worktrees/${encodeURIComponent(name)}/deploy/status`, {cache: 'no-store'});
+      const res = await fetch(previewUrl(name, 'deploy-status'), {cache: 'no-store'});
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
       const modules = result.modules || [];
@@ -79,7 +80,7 @@ function App() {
   const openDoctor = async (name) => {
     setInfoModal({title: `${name || 'Repository'} - Diagnose`, body: <div class="maintenance-empty">Loading diagnosis...</div>, footer: 'preview'});
     try {
-      const url = name ? `/api/worktrees/${encodeURIComponent(name)}/doctor` : '/api/doctor';
+      const url = name ? previewUrl(name, 'doctor') : '/api/doctor';
       const res = await fetch(url, {cache: 'no-store'});
       const report = await res.json();
       if (!res.ok) throw new Error(report.error || `HTTP ${res.status}`);
@@ -142,8 +143,8 @@ function App() {
       </main>
       <div class={classNames('toast', toast && 'visible')}>{toast}</div>
       <CreateModal data={data} isOpen={showCreate} onClose={() => setShowCreate(false)} onSubmit={(form) => postJson('/api/worktrees', form).then(() => { setShowCreate(false); showToast(`Queued: create ${form.name}`); })} />
-      <SimpleFormModal isOpen={Boolean(dbWorktree)} onClose={() => setDbWorktree(null)} onSubmit={(name, action, payload) => postJson(`/api/worktrees/${encodeURIComponent(name)}/db/${action}`, payload).then(() => { setDbWorktree(null); showToast(`Queued: DB ${action}`); })} title="DB tools" type="db" worktreeName={dbWorktree} />
-      <SimpleFormModal isOpen={Boolean(resourceWorktree)} onClose={() => setResourceWorktree(null)} onSubmit={(name, resources) => postJson(`/api/worktrees/${encodeURIComponent(name)}/resource/export`, {resources}).then(() => { setResourceWorktree(null); showToast('Queued: resource export'); })} title="Resource export" type="resource" worktreeName={resourceWorktree} />
+      <DbFormModal isOpen={Boolean(dbWorktree)} onClose={() => setDbWorktree(null)} onSubmit={(name, action, payload) => postJson(`/api/worktrees/${encodeURIComponent(name)}/db/${action}`, payload).then(() => { setDbWorktree(null); showToast(`Queued: DB ${action}`); })} worktreeName={dbWorktree} />
+      <ResourceExportModal isOpen={Boolean(resourceWorktree)} onClose={() => setResourceWorktree(null)} onSubmit={(name, resources) => postJson(`/api/worktrees/${encodeURIComponent(name)}/resource/export`, {resources}).then(() => { setResourceWorktree(null); showToast('Queued: resource export'); })} worktreeName={resourceWorktree} />
       <Modal footer={`${logText.split('\n').filter(Boolean).length} lines`} isOpen={Boolean(logModal)} onClose={() => setLogModal(null)} onRefresh={() => logModal && openLogs(logModal.name)} title={logModal ? `${logModal.name} - liferay logs` : 'Logs'}>
         <pre class="log-pre">{logText}</pre>
       </Modal>

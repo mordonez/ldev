@@ -1,7 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import {describe, expect, test} from 'vitest';
 
-// @ts-expect-error Dashboard client modules are plain browser JavaScript.
 import {buildWorktreePresentation} from '../../src/features/dashboard/client/lib/worktree-presentation.js';
 
 describe('buildWorktreePresentation', () => {
@@ -26,6 +24,8 @@ describe('buildWorktreePresentation', () => {
       {label: 'attention', tone: 'red'},
     ]);
     expect(presentation.primary).toEqual(['start', 'btn-start', 'Start']);
+    expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('...');
+    expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('Delete');
     expect(presentation.busy('start')).toBe(true);
     expect(presentation.sections.map((section: {key: string}) => section.key)).toEqual(['changes']);
     expect(presentation.selected?.key).toBe('changes');
@@ -49,6 +49,18 @@ describe('buildWorktreePresentation', () => {
       {label: 'attention', tone: 'red'},
     ]);
     expect(presentation.primary).toEqual(['restart', 'btn-start', 'Restart']);
+    expect(presentation.actions.map((action: {label: string}) => action.label)).toEqual([
+      'Restart',
+      'Stop',
+      'Logs',
+      'DB',
+      'Resource export',
+      'MCP setup',
+      'Deploy status',
+      'Cache update',
+      'Recreate',
+      'Delete',
+    ]);
     expect(presentation.selected?.key).toBe('services');
   });
 });

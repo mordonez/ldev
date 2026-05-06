@@ -1,8 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {describe, expect, test} from 'vitest';
 
-// @ts-expect-error Dashboard client modules are plain browser JavaScript.
-import {actionKind, actionUrl, primaryActionForWorktree} from '../../src/features/dashboard/client/lib/actions.js';
+import {
+  actionKind,
+  actionUrl,
+  previewUrl,
+  primaryActionForWorktree,
+} from '../../src/features/dashboard/client/lib/actions.js';
 
 describe('dashboard client actions', () => {
   test('maps UI actions to running task kinds', () => {
@@ -17,6 +20,12 @@ describe('dashboard client actions', () => {
     expect(actionUrl('feature/demo', 'mcp-setup')).toBe('/api/worktrees/feature%2Fdemo/mcp/setup');
     expect(actionUrl('feature/demo', 'deploy-cache-update')).toBe('/api/worktrees/feature%2Fdemo/deploy/cache-update');
     expect(actionUrl('feature/demo', 'custom')).toBe('/api/worktrees/feature%2Fdemo/custom');
+  });
+
+  test('maps preview actions through the shared action catalog', () => {
+    expect(previewUrl('feature/demo', 'doctor')).toBe('/api/worktrees/feature%2Fdemo/doctor');
+    expect(previewUrl('feature/demo', 'deploy-status')).toBe('/api/worktrees/feature%2Fdemo/deploy/status');
+    expect(previewUrl('feature/demo', 'start')).toBe('/api/worktrees/feature%2Fdemo/start');
   });
 
   test('selects the primary worktree action from runtime state', () => {

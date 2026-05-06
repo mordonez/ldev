@@ -1,5 +1,4 @@
 import http from 'node:http';
-import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -44,7 +43,19 @@ import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
 import {runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
 import {collectDashboardStatus} from './dashboard-data.js';
-import {matchQueuedDashboardOperation} from './dashboard-operation-dispatcher.js';
+import {
+  readJsonBody,
+  serveDashboardClientAsset,
+  serveDashboardClientIndex,
+  writeDashboardError,
+  writeJson,
+} from './dashboard-http.js';
+import {matchDashboardOperation} from './dashboard-operation-dispatcher.js';
+import {
+  runDashboardPreviewOperation,
+  runDashboardQueuedOperation,
+  type DashboardOperationHandlers,
+} from './dashboard-operations.js';
 import {createDashboardTaskManager} from './dashboard-tasks.js';
 
 const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -52,45 +63,6 @@ const DASHBOARD_CLIENT_DIST_DIRS = [
   path.resolve(DASHBOARD_SERVER_DIR, 'dashboard-client'),
   path.resolve(DASHBOARD_SERVER_DIR, '../../dashboard-client'),
 ];
-
-function getContentType(filePath: string): string {
-  const ext = path.extname(filePath);
-  if (ext === '.css') {
-    return 'text/css; charset=utf-8';
-  }
-  if (ext === '.js') {
-    return 'text/javascript; charset=utf-8';
-  }
-  if (ext === '.html') {
-    return 'text/html; charset=utf-8';
-  }
-  if (ext === '.map' || ext === '.json') {
-    return 'application/json; charset=utf-8';
-  }
-  return 'application/octet-stream';
-}
-
-function readDashboardIndex(clientDistDirs: string[]): string | null {
-  for (const distDir of clientDistDirs) {
-    const distIndexPath = path.join(distDir, 'index.html');
-    if (fs.existsSync(distIndexPath)) {
-      return fs.readFileSync(distIndexPath, 'utf8');
-    }
-  }
-
-  return null;
-}
-
-function resolveDashboardAsset(urlPath: string, clientDistDirs: string[]): string | null {
-  for (const distDir of clientDistDirs) {
-    const distAssetPath = path.resolve(distDir, urlPath.replace(/^\/+/, ''));
-    if (distAssetPath.startsWith(distDir + path.sep) && fs.existsSync(distAssetPath)) {
-      return distAssetPath;
-    }
-  }
-
-  return null;
-}
 
 export type DashboardServerOptions = {
   cwd: string;
@@ -137,27 +109,6 @@ type DashboardResourceExportPayload = {
   resources?: string[];
 };
 
-function isMissingResourceError(err: unknown): boolean {
-  return err instanceof Error && err.message.includes('not found');
-}
-
-function writeDashboardError(
-  res: http.ServerResponse,
-  err: unknown,
-  options?: {badRequestMessage?: string; internalMessage?: string; notFoundMessage?: string},
-): void {
-  const status = err instanceof SyntaxError ? 400 : isMissingResourceError(err) ? 404 : 500;
-  const errorMessage =
-    status === 400
-      ? (options?.badRequestMessage ?? 'Invalid request payload')
-      : status === 404
-        ? (options?.notFoundMessage ?? 'Requested resource was not found')
-        : (options?.internalMessage ?? 'Internal dashboard error');
-
-  res.writeHead(status, {'Content-Type': 'application/json'});
-  res.end(JSON.stringify({error: errorMessage}));
-}
-
 async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void> {
   try {
     const data = await collectDashboardStatus(cwd, {includeGit: true, includeRuntimeDetails: true});
@@ -166,30 +117,6 @@ async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void
   } catch (err) {
     writeDashboardError(res, err, {internalMessage: 'Could not load dashboard status'});
   }
-}
-
-async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of req) {
-    if (typeof chunk === 'string') {
-      chunks.push(Buffer.from(chunk));
-      continue;
-    }
-
-    if (chunk instanceof Uint8Array) {
-      chunks.push(Buffer.from(chunk));
-      continue;
-    }
-
-    throw new Error('Unsupported request body chunk type');
-  }
-
-  if (chunks.length === 0) {
-    return {};
-  }
-
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
 async function resolveWorktreePath(cwd: string, worktreeName: string): Promise<string | null> {
@@ -674,6 +601,19 @@ async function handleWorktreeMcpSetup(
   }
 }
 
+async function handleWorktreeMcpSetupRun(cwd: string, worktreeName: string, printer?: Printer): Promise<void> {
+  const worktreePath = await resolveWorktreePath(cwd, worktreeName);
+
+  if (!worktreePath) {
+    throw new Error(`Worktree '${worktreeName}' not found`);
+  }
+
+  const result = await runMcpSetup({targetDir: worktreePath, tool: 'all'});
+  if (printer) {
+    writeTaskLines(printer, formatMcpSetup(result));
+  }
+}
+
 async function handleWorktreeLogs(cwd: string, worktreeName: string, res: http.ServerResponse): Promise<void> {
   try {
     const {composeEnv, containerId, running} = await resolveWorktreeLogContext(cwd, worktreeName);
@@ -831,10 +771,17 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
   const {cwd, port} = options;
   const clientDistDirs = options.clientDistDirs ?? DASHBOARD_CLIENT_DIST_DIRS;
   const taskManager = createDashboardTaskManager();
-
-  const writeJson = (res: http.ServerResponse, status: number, payload: unknown) => {
-    res.writeHead(status, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify(payload));
+  const operationHandlers: DashboardOperationHandlers = {
+    deployAction: (worktreeName, action, printer) => handleWorktreeDeployAction(cwd, worktreeName, action, printer),
+    deployPreview: (worktreeName) => handleWorktreeDeployPreview(cwd, worktreeName),
+    doctorPreview: (worktreeName) => handleDoctorPreview(cwd, worktreeName),
+    doctorRun: (worktreeName, printer) => handleDoctorRun(cwd, worktreeName, printer),
+    repairAction: (worktreeName, action, printer) => handleWorktreeRepairAction(cwd, worktreeName, action, printer),
+    worktreeDelete: (worktreeName, printer) => handleWorktreeDelete(cwd, worktreeName, printer),
+    worktreeEnvInit: (worktreeName, printer) => handleWorktreeEnvInit(cwd, worktreeName, printer),
+    worktreeMcpSetup: (worktreeName, printer) => handleWorktreeMcpSetupRun(cwd, worktreeName, printer),
+    worktreeStart: (worktreeName, printer) => handleWorktreeStart(cwd, worktreeName, printer),
+    worktreeStop: (worktreeName, printer) => handleWorktreeStop(cwd, worktreeName, printer),
   };
 
   const startTaskOnce = (
@@ -854,24 +801,13 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     const method = req.method ?? 'GET';
 
     if (method === 'GET' && (url === '/' || url === '/index.html')) {
-      const dashboardIndex = readDashboardIndex(clientDistDirs);
-      if (!dashboardIndex) {
-        res.writeHead(500, {'Content-Type': 'text/plain; charset=utf-8'});
-        res.end('Dashboard client bundle not found. Run npm run build:dashboard before starting the dashboard.');
-        return;
-      }
-
-      res.writeHead(200, {'Content-Type': 'text/html; charset=utf-8'});
-      res.end(dashboardIndex);
+      serveDashboardClientIndex(res, clientDistDirs);
       return;
     }
 
     if (method === 'GET') {
       const requestUrl = new URL(url, 'http://127.0.0.1');
-      const assetPath = resolveDashboardAsset(requestUrl.pathname, clientDistDirs);
-      if (assetPath) {
-        res.writeHead(200, {'Content-Type': getContentType(assetPath)});
-        fs.createReadStream(assetPath).pipe(res);
+      if (serveDashboardClientAsset(res, requestUrl.pathname, clientDistDirs)) {
         return;
       }
     }
@@ -883,17 +819,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
 
     if (method === 'GET' && url === '/api/tasks') {
       writeJson(res, 200, {tasks: taskManager.listTasks()});
-      return;
-    }
-
-    if (method === 'GET' && url === '/api/doctor') {
-      void handleDoctorPreview(cwd)
-        .then((report) => {
-          writeJson(res, 200, report);
-        })
-        .catch((err) => {
-          writeDashboardError(res, err, {internalMessage: 'Could not load doctor preview'});
-        });
       return;
     }
 
@@ -921,50 +846,44 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       return;
     }
 
-    const queuedOperation = matchQueuedDashboardOperation(method, url);
-    if (queuedOperation) {
+    const worktreeMcpSetupMatch = /^\/api\/worktrees\/([^/]+)\/mcp\/setup$/.exec(url);
+    if (method === 'POST' && worktreeMcpSetupMatch) {
+      void handleWorktreeMcpSetup(cwd, decodeURIComponent(worktreeMcpSetupMatch[1]), req, res, taskManager);
+      return;
+    }
+
+    const dashboardOperation = matchDashboardOperation(method, url);
+    if (dashboardOperation?.mode === 'preview') {
+      void runDashboardPreviewOperation(dashboardOperation, operationHandlers)
+        .then((result) => {
+          writeJson(res, 200, result);
+        })
+        .catch((err) => {
+          writeDashboardError(res, err, {
+            internalMessage:
+              dashboardOperation.key === 'worktree-deploy'
+                ? 'Could not load deploy status preview'
+                : dashboardOperation.key === 'worktree-doctor'
+                  ? 'Could not load worktree doctor preview'
+                  : 'Could not load doctor preview',
+            notFoundMessage: 'Worktree was not found',
+          });
+        });
+      return;
+    }
+
+    if (dashboardOperation?.mode === 'queue') {
       const {task, duplicate} = startTaskOnce(
-        {kind: queuedOperation.taskKind, label: queuedOperation.label, worktreeName: queuedOperation.worktreeName},
+        {
+          kind: dashboardOperation.taskKind!,
+          label: dashboardOperation.label!,
+          worktreeName: dashboardOperation.worktreeName,
+        },
         async (printer) => {
-          switch (queuedOperation.key) {
-            case 'repo-doctor':
-              await handleDoctorRun(cwd, undefined, printer);
-              break;
-            case 'worktree-start':
-              await handleWorktreeStart(cwd, queuedOperation.worktreeName!, printer);
-              break;
-            case 'worktree-env-init':
-              await handleWorktreeEnvInit(cwd, queuedOperation.worktreeName!, printer);
-              break;
-            case 'worktree-doctor':
-              await handleDoctorRun(cwd, queuedOperation.worktreeName, printer);
-              break;
-            case 'worktree-repair':
-              await handleWorktreeRepairAction(
-                cwd,
-                queuedOperation.worktreeName!,
-                queuedOperation.repairAction!,
-                printer,
-              );
-              break;
-            case 'worktree-deploy':
-              await handleWorktreeDeployAction(
-                cwd,
-                queuedOperation.worktreeName!,
-                queuedOperation.deployAction!,
-                printer,
-              );
-              break;
-            case 'worktree-stop':
-              await handleWorktreeStop(cwd, queuedOperation.worktreeName!, printer);
-              break;
-            case 'worktree-delete':
-              await handleWorktreeDelete(cwd, queuedOperation.worktreeName!, printer);
-              break;
-          }
+          await runDashboardQueuedOperation(dashboardOperation, operationHandlers, printer);
         },
       );
-      writeJson(res, 202, {ok: true, taskId: task.id, ...queuedOperation.response, duplicate});
+      writeJson(res, 202, {ok: true, taskId: task.id, ...dashboardOperation.response, duplicate});
       return;
     }
 
@@ -1002,12 +921,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     const logStreamMatch = /^\/api\/worktrees\/([^/]+)\/logs\/stream$/.exec(url);
     if (method === 'GET' && logStreamMatch) {
       void handleWorktreeLogStream(cwd, decodeURIComponent(logStreamMatch[1]), req, res);
-      return;
-    }
-
-    const worktreeMcpSetupMatch = /^\/api\/worktrees\/([^/]+)\/mcp\/setup$/.exec(url);
-    if (method === 'POST' && worktreeMcpSetupMatch) {
-      void handleWorktreeMcpSetup(cwd, decodeURIComponent(worktreeMcpSetupMatch[1]), req, res, taskManager);
       return;
     }
 
@@ -1054,38 +967,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
           writeDashboardError(res, err, {
             badRequestMessage: 'Invalid resource export request payload',
             internalMessage: 'Could not queue the resource export task',
-          });
-        });
-      return;
-    }
-
-    const worktreeDoctorMatch = /^\/api\/worktrees\/([^/]+)\/doctor$/.exec(url);
-    if (method === 'GET' && worktreeDoctorMatch) {
-      const worktreeName = decodeURIComponent(worktreeDoctorMatch[1]);
-      void handleDoctorPreview(cwd, worktreeName)
-        .then((report) => {
-          writeJson(res, 200, report);
-        })
-        .catch((err) => {
-          writeDashboardError(res, err, {
-            internalMessage: 'Could not load worktree doctor preview',
-            notFoundMessage: 'Worktree was not found',
-          });
-        });
-      return;
-    }
-
-    const worktreeDeployMatch = /^\/api\/worktrees\/([^/]+)\/deploy\/(status|cache-update)$/.exec(url);
-    if (method === 'GET' && worktreeDeployMatch && worktreeDeployMatch[2] === 'status') {
-      const worktreeName = decodeURIComponent(worktreeDeployMatch[1]);
-      void handleWorktreeDeployPreview(cwd, worktreeName)
-        .then((result) => {
-          writeJson(res, 200, result);
-        })
-        .catch((err) => {
-          writeDashboardError(res, err, {
-            internalMessage: 'Could not load deploy status preview',
-            notFoundMessage: 'Worktree was not found',
           });
         });
       return;

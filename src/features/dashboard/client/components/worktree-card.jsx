@@ -12,7 +12,7 @@ export function WorktreeCard({activeSection, onAction, onCopy, onDelete, onDb, o
       <PathRow onCopy={onCopy} path={wt.path} />
       <PortalRow env={wt.env} />
       <LatestCommit commit={wt.commits?.[0]} />
-      <CardActions busy={presentation.busy} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} primary={presentation.primary} running={presentation.running} stopped={presentation.stopped} wt={wt} />
+      <CardActions actions={presentation.actions} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
       <CardSections activeSection={activeSection} onSection={onSection} sections={presentation.sections} selected={presentation.selected} wt={wt} />
     </div>
   );
@@ -89,55 +89,28 @@ function LatestCommit({commit}) {
   );
 }
 
-function CardActions({busy, onAction, onDb, onDelete, onLogs, onResource, primary, running, stopped, wt}) {
+function CardActions({actions, onAction, onDb, onDelete, onLogs, onResource, wt}) {
   return (
     <div class="actions">
-      <button class={classNames('action', primary[1])} type="button" disabled={busy(primary[0])} onClick={(event) => onAction(wt.name, primary[0], event.currentTarget)}>
-        {busy(primary[0]) ? '...' : primary[2]}
-      </button>
-      {primary[0] !== 'start' && !running ? (
-        <button class="action btn-start" type="button" disabled={busy('start')} onClick={(event) => onAction(wt.name, 'start', event.currentTarget)}>
-          {busy('start') ? '...' : 'Start'}
-        </button>
-      ) : null}
-      {wt.env && !stopped ? (
-        <button class="action btn-stop" type="button" disabled={busy('stop')} onClick={(event) => onAction(wt.name, 'stop', event.currentTarget)}>
-          {busy('stop') ? '...' : 'Stop'}
-        </button>
-      ) : null}
-      {wt.env?.liferay ? (
-        <button class="action btn-logs" type="button" onClick={() => onLogs(wt.name)}>
-          Logs
-        </button>
-      ) : null}
-      <button class="action btn-ghost" type="button" onClick={() => onDb(wt.name)}>
-        DB
-      </button>
-      <button class="action btn-ghost" type="button" onClick={() => onResource(wt.name)}>
-        Resource export
-      </button>
-      <button class="action btn-ghost" type="button" disabled={busy('mcp-setup')} onClick={(event) => onAction(wt.name, 'mcp-setup', event.currentTarget)}>
-        {busy('mcp-setup') ? '...' : 'MCP setup'}
-      </button>
-      {wt.env ? (
-        <Fragment>
-          <button class="action btn-ghost" type="button" disabled={busy('deploy-status')} onClick={(event) => onAction(wt.name, 'deploy-status', event.currentTarget)}>
-            Deploy status
-          </button>
-          <button class="action btn-ghost" type="button" disabled={busy('deploy-cache-update')} onClick={(event) => onAction(wt.name, 'deploy-cache-update', event.currentTarget)}>
-            {busy('deploy-cache-update') ? '...' : 'Cache update'}
-          </button>
-          <button class="action btn-ghost" type="button" disabled={busy('recreate')} onClick={(event) => onAction(wt.name, 'recreate', event.currentTarget)}>
-            {busy('recreate') ? '...' : 'Recreate'}
+      {actions.map((action, index) => (
+        <Fragment key={`${action.target}-${action.action || action.label}`}>
+          {action.target === 'delete' && index > 0 ? <div class="actions-spacer" /> : null}
+          <button
+            class={classNames(action.target === 'delete' ? null : 'action', action.className)}
+            disabled={action.disabled}
+            type="button"
+            onClick={(event) => {
+              if (action.target === 'action') onAction(wt.name, action.action, event.currentTarget);
+              if (action.target === 'db') onDb(wt.name);
+              if (action.target === 'resource') onResource(wt.name);
+              if (action.target === 'logs') onLogs(wt.name);
+              if (action.target === 'delete') onDelete(wt.name);
+            }}
+          >
+            {action.label}
           </button>
         </Fragment>
-      ) : null}
-      <div class="actions-spacer" />
-      {!wt.isMain ? (
-        <button class="btn-delete" type="button" onClick={() => onDelete(wt.name)}>
-          Delete
-        </button>
-      ) : null}
+      ))}
     </div>
   );
 }

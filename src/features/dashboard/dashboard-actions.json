@@ -1,0 +1,98 @@
+[
+  {
+    "id": "init-env",
+    "key": "worktree-env-init",
+    "label": "Initializing environment for {worktree}",
+    "method": "POST",
+    "queueAction": "env-init",
+    "route": "/api/worktrees/{worktree}/env/init",
+    "taskKind": "worktree-env-init"
+  },
+  {
+    "id": "start",
+    "key": "worktree-start",
+    "label": "Starting environment for {worktree}",
+    "method": "POST",
+    "queueAction": "start",
+    "route": "/api/worktrees/{worktree}/start",
+    "taskKind": "worktree-start"
+  },
+  {
+    "id": "stop",
+    "key": "worktree-stop",
+    "label": "Stopping environment for {worktree}",
+    "method": "POST",
+    "queueAction": "stop",
+    "route": "/api/worktrees/{worktree}/stop",
+    "taskKind": "worktree-stop"
+  },
+  {
+    "id": "doctor",
+    "key": "worktree-doctor",
+    "label": "Running diagnosis for {worktree}",
+    "method": "POST",
+    "previewRoute": "/api/worktrees/{worktree}/doctor",
+    "queueAction": "doctor",
+    "route": "/api/worktrees/{worktree}/doctor",
+    "taskKind": "doctor"
+  },
+  {
+    "id": "mcp-setup",
+    "key": "worktree-mcp-setup",
+    "label": "Running MCP setup for {worktree}",
+    "method": "POST",
+    "queueAction": "mcp-setup",
+    "route": "/api/worktrees/{worktree}/mcp/setup",
+    "taskKind": "mcp-setup"
+  },
+  {
+    "id": "restart",
+    "key": "worktree-repair",
+    "label": "Restarting environment for {worktree}",
+    "method": "POST",
+    "queueAction": "restart",
+    "repairAction": "restart",
+    "route": "/api/worktrees/{worktree}/env/restart",
+    "taskKind": "env-restart"
+  },
+  {
+    "id": "recreate",
+    "key": "worktree-repair",
+    "label": "Recreating environment for {worktree}",
+    "method": "POST",
+    "queueAction": "recreate",
+    "repairAction": "recreate",
+    "route": "/api/worktrees/{worktree}/env/recreate",
+    "taskKind": "env-recreate"
+  },
+  {
+    "id": "deploy-status",
+    "deployAction": "status",
+    "key": "worktree-deploy",
+    "label": "Checking deploy status for {worktree}",
+    "method": "POST",
+    "previewRoute": "/api/worktrees/{worktree}/deploy/status",
+    "queueAction": "deploy-status",
+    "route": "/api/worktrees/{worktree}/deploy/status",
+    "taskKind": "deploy-status"
+  },
+  {
+    "id": "deploy-cache-update",
+    "deployAction": "cache-update",
+    "key": "worktree-deploy",
+    "label": "Updating deploy cache for {worktree}",
+    "method": "POST",
+    "queueAction": "deploy-cache-update",
+    "route": "/api/worktrees/{worktree}/deploy/cache-update",
+    "taskKind": "deploy-cache-update"
+  },
+  {
+    "id": "delete",
+    "key": "worktree-delete",
+    "label": "Deleting worktree {worktree}",
+    "method": "DELETE",
+    "queueAction": "delete",
+    "route": "/api/worktrees/{worktree}",
+    "taskKind": "worktree-delete"
+  }
+]

@@ -1,6 +1,9 @@
 import {describe, expect, test} from 'vitest';
 
-import {matchQueuedDashboardOperation} from '../../src/features/dashboard/dashboard-operation-dispatcher.js';
+import {
+  matchDashboardOperation,
+  matchQueuedDashboardOperation,
+} from '../../src/features/dashboard/dashboard-operation-dispatcher.js';
 
 describe('matchQueuedDashboardOperation', () => {
   test('normalizes repository diagnosis into a queued operation', () => {
@@ -53,5 +56,20 @@ describe('matchQueuedDashboardOperation', () => {
   test('ignores preview and unknown routes', () => {
     expect(matchQueuedDashboardOperation('GET', '/api/worktrees/demo/deploy/status')).toBeNull();
     expect(matchQueuedDashboardOperation('POST', '/api/worktrees/demo/logs')).toBeNull();
+  });
+
+  test('normalizes preview routes beside queued routes', () => {
+    expect(matchDashboardOperation('GET', '/api/doctor')).toMatchObject({
+      action: 'doctor',
+      key: 'repo-doctor',
+      mode: 'preview',
+    });
+    expect(matchDashboardOperation('GET', '/api/worktrees/demo/deploy/status')).toMatchObject({
+      action: 'deploy-status',
+      deployAction: 'status',
+      key: 'worktree-deploy',
+      mode: 'preview',
+      worktreeName: 'demo',
+    });
   });
 });
