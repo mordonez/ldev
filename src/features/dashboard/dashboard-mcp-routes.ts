@@ -4,11 +4,8 @@ import type {Printer} from '../../core/output/printer.js';
 import {formatMcpDoctor, runMcpDoctor} from '../mcp-server/mcp-server-doctor.js';
 import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
-import {
-  queueDashboardTaskOnce,
-  writeDashboardTaskAccepted,
-  writeDashboardTaskBlocked,
-} from './dashboard-task-commands.js';
+import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
+import {writeTaskLines} from './dashboard-task-output.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
 import type {DashboardWorktreeResolver} from './dashboard-worktree-resolver.js';
 
@@ -103,21 +100,16 @@ export async function handleWorktreeMcpSetup(
       return;
     }
 
-    const queued = queueDashboardTaskOnce(
+    queueDashboardTaskResponse({
       taskManager,
-      {kind: 'mcp-setup', label: `Running MCP setup for ${worktreeName}`, worktreeName},
-      async (printer) => {
+      res,
+      task: {kind: 'mcp-setup', label: `Running MCP setup for ${worktreeName}`, worktreeName},
+      run: async (printer) => {
         const result = await runMcpSetup({targetDir: worktreePath, tool, strategy});
         writeTaskLines(printer, formatMcpSetup(result));
       },
-    );
-
-    if (queued.blocked) {
-      writeDashboardTaskBlocked(res, queued, worktreeName);
-      return;
-    }
-
-    writeDashboardTaskAccepted(res, queued, {action: 'mcp-setup', worktree: worktreeName, tool});
+      response: {action: 'mcp-setup', worktree: worktreeName, tool},
+    });
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid worktree MCP setup request payload',
@@ -141,13 +133,5 @@ export async function runWorktreeMcpSetup(
   const result = await runMcpSetup({targetDir: worktreePath, tool: 'all'});
   if (printer) {
     writeTaskLines(printer, formatMcpSetup(result));
-  }
-}
-
-function writeTaskLines(printer: Printer, output: string): void {
-  for (const line of output.split('\n')) {
-    if (line.trim()) {
-      printer.info(line);
-    }
   }
 }

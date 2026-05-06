@@ -1,4 +1,4 @@
-import {actionKind, primaryActionForWorktree} from './actions.js';
+import {actionKind, primaryActionForWorktree, worktreeButton} from './actions.ts';
 import {isDirty, isRunning, needsAttention} from './dashboard-state.js';
 import {buildSections} from '../components/worktree-sections.jsx';
 
@@ -51,67 +51,53 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
   ];
 
   if (primary[0] !== 'start' && !running) {
-    actions.push({
-      action: 'start',
-      className: 'btn-start',
-      disabled: busyWorktree,
-      label: busyWorktree ? busyLabel : 'Start',
-      target: 'action',
-    });
+    actions.push(
+      worktreeButton('start', {
+        disabled: busyWorktree,
+        label: busyWorktree ? busyLabel : 'Start',
+      }),
+    );
   }
 
   if (wt.env && !stopped) {
-    actions.push({
-      action: 'stop',
-      className: 'btn-stop',
-      disabled: busyWorktree,
-      label: busyWorktree ? busyLabel : 'Stop',
-      target: 'action',
-    });
+    actions.push(
+      worktreeButton('stop', {
+        disabled: busyWorktree,
+        label: busyWorktree ? busyLabel : 'Stop',
+      }),
+    );
   }
 
-  if (wt.env?.liferay) actions.push({className: 'btn-logs', label: 'Logs', target: 'logs'});
+  if (wt.env?.liferay) actions.push(worktreeButton('logs'));
 
-  actions.push({className: 'btn-ghost', disabled: busyWorktree, label: 'DB sync', target: 'db'});
+  actions.push(worktreeButton('db', {disabled: busyWorktree}));
 
   const advancedActions = [
-    {className: 'btn-ghost', disabled: busyWorktree, label: 'Resource export', target: 'resource'},
-    {
-      action: 'mcp-setup',
-      className: 'btn-ghost',
+    worktreeButton('resource', {disabled: busyWorktree}),
+    worktreeButton('mcp-setup', {
       disabled: busyWorktree,
       label: busyWorktree ? busyLabel : 'MCP setup',
-      target: 'action',
-    },
+    }),
   ];
 
   if (wt.env) {
     advancedActions.push(
-      {
-        action: 'deploy-status',
-        className: 'btn-ghost',
+      worktreeButton('deploy-status', {
         disabled: busyWorktree,
         label: 'Deploy status',
-        target: 'action',
-      },
-      {
-        action: 'deploy-cache-update',
-        className: 'btn-ghost',
+      }),
+      worktreeButton('cache-update', {
         disabled: busyWorktree,
         label: busyWorktree ? busyLabel : 'Cache update',
-        target: 'action',
-      },
-      {
-        action: 'recreate',
-        className: 'btn-ghost',
+      }),
+      worktreeButton('recreate', {
         disabled: busyWorktree,
         label: busyWorktree ? busyLabel : 'Recreate',
-        target: 'action',
-      },
+      }),
     );
   }
 
-  if (!wt.isMain) advancedActions.push({className: 'btn-delete', disabled: busyWorktree, label: 'Delete', target: 'delete'});
+  if (!wt.isMain) advancedActions.push(worktreeButton('delete', {disabled: busyWorktree}));
 
   return {actions, advancedActions};
 }

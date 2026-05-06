@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 
-import {changedTaskState, mergeTask} from './tasks.js';
+import {changedTaskState, mergeTask} from './tasks.ts';
 import {readPrefs, writePrefs} from './preferences.js';
 
 export function useDashboardSession() {

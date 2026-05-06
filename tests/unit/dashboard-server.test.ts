@@ -255,6 +255,23 @@ describe('createDashboardServer', () => {
     return (server.address() as AddressInfo).port;
   }
 
+  async function fetchPath(path: string, init?: RequestInit): Promise<Response> {
+    const address = server?.address() as AddressInfo | null;
+    if (!address) {
+      throw new Error('Dashboard test server is not listening');
+    }
+
+    return fetch(`http://127.0.0.1:${address.port}${path}`, init);
+  }
+
+  async function postJsonPath(path: string, body: Record<string, unknown>): Promise<Response> {
+    return fetchPath(path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+  }
+
   test('serves the built dashboard client shell and bundle assets', async () => {
     const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));
     fs.mkdirSync(path.join(distDir, 'assets'), {recursive: true});
@@ -265,23 +282,23 @@ describe('createDashboardServer', () => {
     fs.writeFileSync(path.join(distDir, 'assets', 'app.js'), "console.log('dashboard bundle');");
     fs.writeFileSync(path.join(distDir, 'assets', 'style.css'), ':root { color-scheme: light; }');
 
-    const port = await startServer({clientDistDirs: [distDir]});
+    await startServer({clientDistDirs: [distDir]});
 
-    const htmlResponse = await fetch(`http://127.0.0.1:${port}/`);
+    const htmlResponse = await fetchPath(`/`);
     expect(htmlResponse.status).toBe(200);
     await expect(htmlResponse.text()).resolves.toContain('/assets/app.js');
 
-    const cssResponse = await fetch(`http://127.0.0.1:${port}/assets/style.css`);
+    const cssResponse = await fetchPath(`/assets/style.css`);
     expect(cssResponse.status).toBe(200);
     expect(cssResponse.headers.get('content-type')).toContain('text/css');
     await expect(cssResponse.text()).resolves.toContain(':root');
 
-    const scriptResponse = await fetch(`http://127.0.0.1:${port}/assets/app.js`);
+    const scriptResponse = await fetchPath(`/assets/app.js`);
     expect(scriptResponse.status).toBe(200);
     expect(scriptResponse.headers.get('content-type')).toContain('text/javascript');
     await expect(scriptResponse.text()).resolves.toContain('dashboard bundle');
 
-    const sourceScriptResponse = await fetch(`http://127.0.0.1:${port}/app.jsx`);
+    const sourceScriptResponse = await fetchPath(`/app.jsx`);
     expect(sourceScriptResponse.status).toBe(404);
   });
 
@@ -303,19 +320,15 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name: 'issue-42', baseRef: 'main'}),
-    });
+    const response = await postJsonPath(`/api/worktrees`, {name: 'issue-42', baseRef: 'main'});
 
     expect(response.status).toBe(202);
     const body = await readJson<{ok: true; taskId: string; worktree: string; action: string}>(response);
     expect(body).toMatchObject({ok: true, worktree: 'issue-42', action: 'create'});
 
-    const taskResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+    const taskResponse = await fetchPath(`/api/tasks`);
     expect(taskResponse.status).toBe(200);
     const taskPayload = await readJson<{
       tasks: Array<{id: string; label: string; status: string}>;
@@ -339,7 +352,7 @@ describe('createDashboardServer', () => {
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const completedResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+    const completedResponse = await fetchPath(`/api/tasks`);
     const completedPayload = await readJson<{
       tasks: Array<{status: string}>;
     }>(completedResponse);
@@ -369,9 +382,9 @@ describe('createDashboardServer', () => {
       worktrees: [],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    const response = await fetchPath(`/api/status`);
 
     expect(response.status).toBe(200);
     expect(collectDashboardStatusMock).toHaveBeenCalledWith('/repo', {
@@ -383,22 +396,18 @@ describe('createDashboardServer', () => {
   test('sanitizes internal dashboard status errors', async () => {
     collectDashboardStatusMock.mockRejectedValueOnce(new Error('secret stack details'));
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+    const response = await fetchPath(`/api/status`);
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({error: 'Could not load dashboard status'});
   });
 
   test('rejects worktree creation when the name is missing', async () => {
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({withEnv: true}),
-    });
+    const response = await postJsonPath(`/api/worktrees`, {withEnv: true});
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({error: 'Worktree name is required'});
@@ -413,13 +422,9 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/mcp/doctor`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({tool: 'all'}),
-    });
+    const response = await postJsonPath(`/api/mcp/doctor`, {tool: 'all'});
 
     expect(response.status).toBe(202);
     const body = await readJson<{ok: true; taskId: string; action: string; tool: string}>(response);
@@ -433,7 +438,7 @@ describe('createDashboardServer', () => {
       timeoutMs: 10000,
     });
 
-    const taskResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+    const taskResponse = await fetchPath(`/api/tasks`);
     const taskPayload = await readJson<{
       tasks: Array<{id: string; label: string; status: string}>;
     }>(taskResponse);
@@ -452,13 +457,9 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/mcp/setup`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({tool: 'all'}),
-    });
+    const response = await postJsonPath(`/api/mcp/setup`, {tool: 'all'});
 
     expect(response.status).toBe(202);
     const body = await readJson<{ok: true; taskId: string; action: string; tool: string; strategy: null}>(response);
@@ -467,7 +468,7 @@ describe('createDashboardServer', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(runMcpSetupMock).toHaveBeenCalledWith({targetDir: '/repo', tool: 'all', strategy: undefined});
 
-    const taskResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+    const taskResponse = await fetchPath(`/api/tasks`);
     const taskPayload = await readJson<{
       tasks: Array<{id: string; label: string; status: string}>;
     }>(taskResponse);
@@ -504,9 +505,9 @@ describe('createDashboardServer', () => {
       btrfsEnabled: false,
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/env/init`, {
+    const response = await fetchPath(`/api/worktrees/pw-430/env/init`, {
       method: 'POST',
     });
 
@@ -540,13 +541,13 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    const port = await startServer();
+    await startServer();
 
-    const firstResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/testworktree/start`, {method: 'POST'});
+    const firstResponse = await fetchPath(`/api/worktrees/testworktree/start`, {method: 'POST'});
     expect(firstResponse.status).toBe(202);
     const firstBody = await readJson<{taskId: string; duplicate?: boolean}>(firstResponse);
 
-    const secondResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/testworktree/start`, {method: 'POST'});
+    const secondResponse = await fetchPath(`/api/worktrees/testworktree/start`, {method: 'POST'});
     expect(secondResponse.status).toBe(202);
     await expect(secondResponse.json()).resolves.toMatchObject({taskId: firstBody.taskId, duplicate: true});
 
@@ -578,11 +579,11 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    const port = await startServer();
+    await startServer();
 
     const [alphaResponse, betaResponse] = await Promise.all([
-      fetch(`http://127.0.0.1:${port}/api/worktrees/alpha/stop`, {method: 'POST'}),
-      fetch(`http://127.0.0.1:${port}/api/worktrees/beta/stop`, {method: 'POST'}),
+      fetchPath(`/api/worktrees/alpha/stop`, {method: 'POST'}),
+      fetchPath(`/api/worktrees/beta/stop`, {method: 'POST'}),
     ]);
 
     expect(alphaResponse.status).toBe(202);
@@ -627,9 +628,9 @@ describe('createDashboardServer', () => {
         }),
     );
 
-    const port = await startServer();
+    await startServer();
 
-    const stopResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demo/stop`, {method: 'POST'});
+    const stopResponse = await fetchPath(`/api/worktrees/demo/stop`, {method: 'POST'});
     expect(stopResponse.status).toBe(202);
     const stopBody = await readJson<{taskId: string}>(stopResponse);
 
@@ -637,7 +638,7 @@ describe('createDashboardServer', () => {
       expect(operationSignal).toBeDefined();
     });
 
-    const cancelResponse = await fetch(`http://127.0.0.1:${port}/api/tasks/${stopBody.taskId}/cancel`, {
+    const cancelResponse = await fetchPath(`/api/tasks/${stopBody.taskId}/cancel`, {
       method: 'POST',
     });
     expect(cancelResponse.status).toBe(202);
@@ -647,7 +648,7 @@ describe('createDashboardServer', () => {
     expect(operationSignal?.aborted).toBe(true);
 
     await vi.waitFor(async () => {
-      const tasksResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+      const tasksResponse = await fetchPath(`/api/tasks`);
       const payload = await readJson<{tasks: Array<{id: string; status: string}>}>(tasksResponse);
       expect(payload.tasks[0]).toMatchObject({id: stopBody.taskId, status: 'canceled'});
     });
@@ -665,16 +666,12 @@ describe('createDashboardServer', () => {
     });
     runDbSyncMock.mockImplementation(() => new Promise(() => {}));
 
-    const port = await startServer();
+    await startServer();
 
-    const syncResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demoub/db/sync`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({environment: 'prd'}),
-    });
+    const syncResponse = await postJsonPath(`/api/worktrees/demoub/db/sync`, {environment: 'prd'});
     expect(syncResponse.status).toBe(202);
 
-    const startResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demoub/start`, {method: 'POST'});
+    const startResponse = await fetchPath(`/api/worktrees/demoub/start`, {method: 'POST'});
     expect(startResponse.status).toBe(409);
     const startBody = await readJson<{error: string; task: {kind: string; status: string; worktreeName: string}}>(
       startResponse,
@@ -699,34 +696,30 @@ describe('createDashboardServer', () => {
     runDbImportMock.mockResolvedValue({ok: true});
     runDbQueryMock.mockResolvedValue({ok: true});
 
-    const port = await startServer();
+    await startServer();
 
-    const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/download`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({backupId: 'backup-1', environment: 'prd', project: 'labweb'}),
+    const downloadResponse = await postJsonPath(`/api/worktrees/pw-430/db/download`, {
+      backupId: 'backup-1',
+      environment: 'prd',
+      project: 'labweb',
     });
     expect(downloadResponse.status).toBe(202);
 
-    const syncResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/sync`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({backupId: 'backup-2', environment: 'uat', force: true, project: 'labweb'}),
+    const syncResponse = await postJsonPath(`/api/worktrees/pw-430/db/sync`, {
+      backupId: 'backup-2',
+      environment: 'uat',
+      force: true,
+      project: 'labweb',
     });
     expect(syncResponse.status).toBe(202);
 
-    const importResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/import`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({file: 'C:/tmp/db.sql.gz', force: true}),
+    const importResponse = await postJsonPath(`/api/worktrees/pw-430/db/import`, {
+      file: 'C:/tmp/db.sql.gz',
+      force: true,
     });
     expect(importResponse.status).toBe(202);
 
-    const queryResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/query`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({query: 'select 1'}),
-    });
+    const queryResponse = await postJsonPath(`/api/worktrees/pw-430/db/query`, {query: 'select 1'});
     expect(queryResponse.status).toBe(202);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -807,12 +800,10 @@ describe('createDashboardServer', () => {
       siteResults: [],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/resource/export`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({resources: ['templates', 'structures', 'adts', 'fragments']}),
+    const response = await postJsonPath(`/api/worktrees/pw-430/resource/export`, {
+      resources: ['templates', 'structures', 'adts', 'fragments'],
     });
 
     expect(response.status).toBe(202);
@@ -846,12 +837,12 @@ describe('createDashboardServer', () => {
     loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
     runDoctorMock.mockResolvedValue({ok: true});
 
-    const port = await startServer();
+    await startServer();
 
-    const globalResponse = await fetch(`http://127.0.0.1:${port}/api/doctor`, {method: 'POST'});
+    const globalResponse = await fetchPath(`/api/doctor`, {method: 'POST'});
     expect(globalResponse.status).toBe(202);
 
-    const worktreeResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/doctor`, {method: 'POST'});
+    const worktreeResponse = await fetchPath(`/api/worktrees/pw-430/doctor`, {method: 'POST'});
     expect(worktreeResponse.status).toBe(202);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -884,13 +875,13 @@ describe('createDashboardServer', () => {
         osgi: null,
       });
 
-    const port = await startServer();
+    await startServer();
 
-    const globalResponse = await fetch(`http://127.0.0.1:${port}/api/doctor`);
+    const globalResponse = await fetchPath(`/api/doctor`);
     expect(globalResponse.status).toBe(200);
     await expect(globalResponse.json()).resolves.toMatchObject({ok: true, summary: {warned: 1}});
 
-    const worktreeResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/doctor`);
+    const worktreeResponse = await fetchPath(`/api/worktrees/pw-430/doctor`);
     expect(worktreeResponse.status).toBe(200);
     await expect(worktreeResponse.json()).resolves.toMatchObject({ok: false, summary: {failed: 1}});
   });
@@ -910,20 +901,12 @@ describe('createDashboardServer', () => {
     runDeployStatusMock.mockResolvedValue({ok: true});
     runDeployCacheUpdateMock.mockResolvedValue({ok: true});
 
-    const port = await startServer();
+    await startServer();
 
-    expect((await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/env/restart`, {method: 'POST'})).status).toBe(
-      202,
-    );
-    expect((await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/env/recreate`, {method: 'POST'})).status).toBe(
-      202,
-    );
-    expect((await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/deploy/status`, {method: 'POST'})).status).toBe(
-      202,
-    );
-    expect(
-      (await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/deploy/cache-update`, {method: 'POST'})).status,
-    ).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/env/restart`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/env/recreate`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/deploy/status`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/deploy/cache-update`, {method: 'POST'})).status).toBe(202);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(runEnvRestartMock).toHaveBeenCalled();
@@ -953,9 +936,9 @@ describe('createDashboardServer', () => {
       ],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/deploy/status`);
+    const response = await fetchPath(`/api/worktrees/pw-430/deploy/status`);
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
@@ -969,17 +952,13 @@ describe('createDashboardServer', () => {
       .mockResolvedValueOnce({ok: true, apply: false, candidates: ['stale-1', 'stale-2'], cleaned: []})
       .mockResolvedValueOnce({ok: true, apply: true, candidates: ['stale-1'], cleaned: ['stale-1']});
 
-    const port = await startServer();
+    await startServer();
 
-    const previewResponse = await fetch(`http://127.0.0.1:${port}/api/maintenance/worktrees/gc?days=14`);
+    const previewResponse = await fetchPath(`/api/maintenance/worktrees/gc?days=14`);
     expect(previewResponse.status).toBe(200);
     await expect(previewResponse.json()).resolves.toMatchObject({candidates: ['stale-1', 'stale-2']});
 
-    const applyResponse = await fetch(`http://127.0.0.1:${port}/api/maintenance/worktrees/gc`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({days: 14, apply: true}),
-    });
+    const applyResponse = await postJsonPath(`/api/maintenance/worktrees/gc`, {days: 14, apply: true});
     expect(applyResponse.status).toBe(202);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -1000,9 +979,9 @@ describe('createDashboardServer', () => {
   test('returns an empty maintenance preview when worktree gc is unavailable for the current checkout', async () => {
     runWorktreeGcMock.mockRejectedValueOnce(new Error('worktree gc must be run inside a valid git repository.'));
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/maintenance/worktrees/gc?days=7`);
+    const response = await fetchPath(`/api/maintenance/worktrees/gc?days=7`);
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -1027,13 +1006,9 @@ describe('createDashboardServer', () => {
       results: [],
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/mcp/setup`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({tool: 'all'}),
-    });
+    const response = await postJsonPath(`/api/worktrees/blueprints-575/mcp/setup`, {tool: 'all'});
 
     expect(response.status).toBe(202);
     const body = await readJson<{ok: true; taskId: string; action: string; tool: string; worktree: string}>(response);
@@ -1046,7 +1021,7 @@ describe('createDashboardServer', () => {
       strategy: undefined,
     });
 
-    const taskResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+    const taskResponse = await fetchPath(`/api/tasks`);
     const taskPayload = await readJson<{
       tasks: Array<{id: string; label: string; status: string; worktreeName: string}>;
     }>(taskResponse);
@@ -1077,9 +1052,9 @@ describe('createDashboardServer', () => {
       exitCode: 0,
     });
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/logs`);
+    const response = await fetchPath(`/api/worktrees/blueprints-575/logs`);
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
@@ -1111,9 +1086,9 @@ describe('createDashboardServer', () => {
     child.kill = vi.fn(() => true);
     spawnPipedProcessMock.mockReturnValue(child);
 
-    const port = await startServer();
+    await startServer();
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/worktrees/blueprints-575/logs/stream`);
+    const response = await fetchPath(`/api/worktrees/blueprints-575/logs/stream`);
 
     await vi.waitFor(() => {
       expect(spawnPipedProcessMock).toHaveBeenCalledTimes(1);

@@ -7,11 +7,7 @@ import {formatDbImport, runDbImport} from '../db/db-import.js';
 import {formatDbQuery, runDbQuery} from '../db/db-query.js';
 import {formatDbSync, runDbSync} from '../db/db-sync.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
-import {
-  queueDashboardTaskOnce,
-  writeDashboardTaskAccepted,
-  writeDashboardTaskBlocked,
-} from './dashboard-task-commands.js';
+import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
 
 export type DashboardDbAction = 'download' | 'sync' | 'import' | 'query';
@@ -43,20 +39,15 @@ export async function handleWorktreeDbAction(
     const payload = (await readJsonBody(req)) as DashboardDbActionPayload;
     const config = await deps.resolveWorktreeConfig(worktreeName);
 
-    const queued = queueDashboardTaskOnce(
-      deps.taskManager,
-      {kind: `db-${action}`, label: `DB ${action} for ${worktreeName}`, worktreeName},
-      async (printer, signal) => {
+    queueDashboardTaskResponse({
+      taskManager: deps.taskManager,
+      res,
+      task: {kind: `db-${action}`, label: `DB ${action} for ${worktreeName}`, worktreeName},
+      run: async (printer, signal) => {
         await runDbAction(deps, config, action, payload, printer, signal);
       },
-    );
-
-    if (queued.blocked) {
-      writeDashboardTaskBlocked(res, queued, worktreeName);
-      return;
-    }
-
-    writeDashboardTaskAccepted(res, queued, {worktree: worktreeName, action: `db-${action}`});
+      response: {worktree: worktreeName, action: `db-${action}`},
+    });
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid database request payload',

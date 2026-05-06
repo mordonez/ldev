@@ -62,3 +62,21 @@ export function writeDashboardTaskAccepted(
     duplicate: queued.duplicate,
   });
 }
+
+export function queueDashboardTaskResponse(options: {
+  taskManager: DashboardTaskManager;
+  res: http.ServerResponse;
+  task: {kind: string; label: string; worktreeName?: string | null};
+  run: DashboardTaskRun;
+  response?: Record<string, unknown>;
+  scopeLabel?: string;
+}): QueuedDashboardTask {
+  const queued = queueDashboardTaskOnce(options.taskManager, options.task, options.run);
+  if (queued.blocked) {
+    writeDashboardTaskBlocked(options.res, queued, options.scopeLabel ?? options.task.worktreeName ?? 'repository');
+    return queued;
+  }
+
+  writeDashboardTaskAccepted(options.res, queued, options.response ?? {});
+  return queued;
+}

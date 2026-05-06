@@ -1,7 +1,7 @@
 import {h} from 'preact';
 
 import {classNames} from '../lib/dashboard-state.js';
-import {taskTime} from '../lib/tasks.js';
+import {taskTime} from '../lib/tasks.ts';
 
 export function Activity({collapsed, onCancel, onToggle, tasks}) {
   const running = tasks.filter((task) => task.status === 'running' || task.status === 'canceling').length;
