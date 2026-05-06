@@ -23,10 +23,12 @@ export type DashboardAheadBehind = {
 
 export type DashboardEnv = {
   dockerDir: string;
+  error: string | null;
   portalUrl: string;
   portalReachable: boolean | null;
   services: EnvServiceStatus[];
   liferay: EnvServiceStatus | null;
+  status: 'ok' | 'error';
 };
 
 export type DashboardWorktree = {
@@ -105,10 +107,12 @@ async function collectWorktreeEnv(
 
       return {
         dockerDir: context.dockerDir,
+        error: null,
         portalUrl: runtime.portalUrl,
         portalReachable: null,
         services: [],
         liferay: runtime.liferay,
+        status: 'ok',
       };
     }
 
@@ -116,13 +120,23 @@ async function collectWorktreeEnv(
 
     return {
       dockerDir: context.dockerDir,
+      error: null,
       portalUrl: status.portalUrl,
       portalReachable: status.portalReachable,
       services: status.services,
       liferay: status.liferay,
+      status: 'ok',
     };
-  } catch {
-    return null;
+  } catch (err) {
+    return {
+      dockerDir: path.join(worktreePath, 'docker'),
+      error: err instanceof Error ? err.message : String(err),
+      portalUrl: '',
+      portalReachable: null,
+      services: [],
+      liferay: null,
+      status: 'error',
+    };
   }
 }
 

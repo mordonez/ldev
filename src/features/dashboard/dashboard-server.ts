@@ -11,10 +11,6 @@ import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context
 import {collectEnvStatus} from '../../core/runtime/env-health.js';
 import {runEnvStart} from '../env/env-start.js';
 import {runEnvStop} from '../env/env-stop.js';
-import {formatDbDownload, runDbDownload} from '../db/db-download.js';
-import {formatDbImport, runDbImport} from '../db/db-import.js';
-import {formatDbQuery, runDbQuery} from '../db/db-query.js';
-import {formatDbSync, runDbSync} from '../db/db-sync.js';
 import {formatDeployCacheUpdate, runDeployCacheUpdate} from '../deploy/deploy-cache-update.js';
 import {formatDeployStatus, runDeployStatus} from '../deploy/deploy-status.js';
 import {runEnvRecreate, formatEnvRecreate} from '../env/env-recreate.js';
@@ -43,6 +39,7 @@ import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
 import {runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
 import {collectDashboardStatus} from './dashboard-data.js';
+import {handleWorktreeDbAction, type DashboardDbAction} from './dashboard-db-routes.js';
 import {
   readJsonBody,
   serveDashboardClientAsset,
@@ -56,7 +53,13 @@ import {
   runDashboardQueuedOperation,
   type DashboardOperationHandlers,
 } from './dashboard-operations.js';
-import {createDashboardTaskManager, type DashboardTask} from './dashboard-tasks.js';
+import {
+  queueDashboardTaskOnce,
+  serializeDashboardTask,
+  writeDashboardTaskAccepted,
+  writeDashboardTaskBlocked,
+} from './dashboard-task-commands.js';
+import {createDashboardTaskManager} from './dashboard-tasks.js';
 
 const DASHBOARD_SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DASHBOARD_CLIENT_DIST_DIRS = [
@@ -89,13 +92,6 @@ type DashboardMcpSetupPayload = {
   strategy?: 'global' | 'local' | 'npx';
 };
 
-type DashboardDbActionPayload = {
-  environment?: string;
-  file?: string;
-  force?: boolean;
-  query?: string;
-};
-
 type DashboardMaintenancePayload = {
   days?: number;
   apply?: boolean;
@@ -108,31 +104,6 @@ type DashboardResourceExportKind = (typeof DASHBOARD_RESOURCE_EXPORT_KINDS)[numb
 type DashboardResourceExportPayload = {
   resources?: string[];
 };
-
-function serializeDashboardTask(task: DashboardTask): DashboardTask {
-  return {
-    ...task,
-    logs: task.logs.map((entry) => ({...entry})),
-  };
-}
-
-function startDashboardTaskOnce(
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-  options: {kind: string; label: string; worktreeName?: string | null},
-  run: Parameters<ReturnType<typeof createDashboardTaskManager>['startTask']>[1],
-) {
-  const existingTask = taskManager.findRunningTask(options);
-  if (existingTask) {
-    return {blocked: false, duplicate: true, task: existingTask};
-  }
-
-  const activeWorktreeTask = options.worktreeName ? taskManager.findActiveWorktreeTask(options.worktreeName) : null;
-  if (activeWorktreeTask) {
-    return {blocked: true, duplicate: false, task: activeWorktreeTask};
-  }
-
-  return {blocked: false, duplicate: false, task: taskManager.startTask(options, run)};
-}
 
 async function handleStatus(cwd: string, res: http.ServerResponse): Promise<void> {
   try {
@@ -410,92 +381,6 @@ async function handleMaintenanceApply(
   }
 }
 
-async function handleWorktreeDbAction(
-  cwd: string,
-  worktreeName: string,
-  action: 'download' | 'sync' | 'import' | 'query',
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardDbActionPayload;
-    const config = await resolveWorktreeConfig(cwd, worktreeName);
-
-    const {blocked, duplicate, task} = startDashboardTaskOnce(
-      taskManager,
-      {kind: `db-${action}`, label: `DB ${action} for ${worktreeName}`, worktreeName},
-      async (printer, signal) => {
-        if (action === 'download') {
-          const result = await runDbDownload(config, {
-            environment: payload.environment,
-            printer,
-            signal,
-          });
-          writeTaskLines(printer, formatDbDownload(result));
-          return;
-        }
-
-        if (action === 'sync') {
-          const result = await runDbSync(config, {
-            environment: payload.environment,
-            force: payload.force !== false,
-            printer,
-            signal,
-          });
-          writeTaskLines(printer, formatDbSync(result));
-          return;
-        }
-
-        if (action === 'import') {
-          const result = await runDbImport(config, {
-            file: payload.file,
-            force: payload.force !== false,
-            printer,
-            signal,
-          });
-          writeTaskLines(printer, formatDbImport(result));
-          return;
-        }
-
-        const result = await runDbQuery(config, {
-          query: payload.query,
-          file: payload.file,
-          processEnv: process.env,
-        });
-        writeTaskLines(printer, formatDbQuery(result));
-      },
-    );
-
-    if (blocked) {
-      writeJson(res, 409, {
-        error: `Task already running for ${worktreeName}: ${task.label}`,
-        task: serializeDashboardTask(task),
-        taskId: task.id,
-      });
-      return;
-    }
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(
-      JSON.stringify({
-        ok: true,
-        task: serializeDashboardTask(task),
-        taskId: task.id,
-        worktree: worktreeName,
-        action: `db-${action}`,
-        duplicate,
-      }),
-    );
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid database request payload',
-      internalMessage: 'Could not queue the database task',
-      notFoundMessage: 'Worktree was not found',
-    });
-  }
-}
-
 async function handleWorktreeCreate(
   cwd: string,
   req: http.IncomingMessage,
@@ -635,7 +520,7 @@ async function handleWorktreeMcpSetup(
       return;
     }
 
-    const {blocked, duplicate, task} = startDashboardTaskOnce(
+    const queued = queueDashboardTaskOnce(
       taskManager,
       {kind: 'mcp-setup', label: `Running MCP setup for ${worktreeName}`, worktreeName},
       async (printer) => {
@@ -649,27 +534,12 @@ async function handleWorktreeMcpSetup(
       },
     );
 
-    if (blocked) {
-      writeJson(res, 409, {
-        error: `Task already running for ${worktreeName}: ${task.label}`,
-        task: serializeDashboardTask(task),
-        taskId: task.id,
-      });
+    if (queued.blocked) {
+      writeDashboardTaskBlocked(res, queued, worktreeName);
       return;
     }
 
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(
-      JSON.stringify({
-        ok: true,
-        task: serializeDashboardTask(task),
-        taskId: task.id,
-        action: 'mcp-setup',
-        worktree: worktreeName,
-        tool,
-        duplicate,
-      }),
-    );
+    writeDashboardTaskAccepted(res, queued, {action: 'mcp-setup', worktree: worktreeName, tool});
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid worktree MCP setup request payload',
@@ -952,7 +822,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     }
 
     if (dashboardOperation?.mode === 'queue') {
-      const {blocked, task, duplicate} = startDashboardTaskOnce(
+      const queued = queueDashboardTaskOnce(
         taskManager,
         {
           kind: dashboardOperation.taskKind!,
@@ -965,22 +835,12 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
         },
       );
 
-      if (blocked) {
-        writeJson(res, 409, {
-          error: `Task already running for ${dashboardOperation.worktreeName}: ${task.label}`,
-          task: serializeDashboardTask(task),
-          taskId: task.id,
-        });
+      if (queued.blocked) {
+        writeDashboardTaskBlocked(res, queued, dashboardOperation.worktreeName ?? 'repository');
         return;
       }
 
-      writeJson(res, 202, {
-        ok: true,
-        task: serializeDashboardTask(task),
-        taskId: task.id,
-        ...dashboardOperation.response,
-        duplicate,
-      });
+      writeDashboardTaskAccepted(res, queued, dashboardOperation.response ?? {});
       return;
     }
 
@@ -1024,12 +884,16 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
     const worktreeDbMatch = /^\/api\/worktrees\/([^/]+)\/db\/(download|sync|import|query)$/.exec(url);
     if (method === 'POST' && worktreeDbMatch) {
       void handleWorktreeDbAction(
-        cwd,
+        {
+          processEnv: process.env,
+          resolveWorktreeConfig: (worktreeName) => resolveWorktreeConfig(cwd, worktreeName),
+          taskManager,
+          writeTaskLines,
+        },
         decodeURIComponent(worktreeDbMatch[1]),
-        worktreeDbMatch[2] as 'download' | 'sync' | 'import' | 'query',
+        worktreeDbMatch[2] as DashboardDbAction,
         req,
         res,
-        taskManager,
       );
       return;
     }
@@ -1045,30 +909,22 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
             return;
           }
 
-          const {blocked, task, duplicate} = startDashboardTaskOnce(
+          const queued = queueDashboardTaskOnce(
             taskManager,
             {kind: 'resource-export', label: `Exporting resources for ${worktreeName}`, worktreeName},
             async (printer) => {
               await handleWorktreeResourceExport(cwd, worktreeName, resources, printer);
             },
           );
-          if (blocked) {
-            writeJson(res, 409, {
-              error: `Task already running for ${worktreeName}: ${task.label}`,
-              task: serializeDashboardTask(task),
-              taskId: task.id,
-            });
+          if (queued.blocked) {
+            writeDashboardTaskBlocked(res, queued, worktreeName);
             return;
           }
 
-          writeJson(res, 202, {
-            ok: true,
-            task: serializeDashboardTask(task),
-            taskId: task.id,
+          writeDashboardTaskAccepted(res, queued, {
             worktree: worktreeName,
             action: 'resource-export',
             resources,
-            duplicate,
           });
         })
         .catch((err) => {

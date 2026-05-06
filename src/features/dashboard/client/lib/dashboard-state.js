@@ -45,6 +45,7 @@ export function isBehind(wt) {
 export function needsAttention(wt) {
   if (isDirty(wt) || isBehind(wt)) return true;
   if (!wt.env) return false;
+  if (wt.env.status === 'error') return true;
   if (wt.env.portalReachable === false) return true;
   return (wt.env.services || []).some((service) => serviceTone(service) === 'red');
 }

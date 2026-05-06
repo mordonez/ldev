@@ -142,4 +142,25 @@ describe('collectDashboardStatus', () => {
     expect(collectEnvStatusMock).toHaveBeenCalledTimes(1);
     expect(collectEnvRuntimeSummaryMock).not.toHaveBeenCalled();
   });
+
+  test('returns a structured env error when runtime inspection fails', async () => {
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo',
+      dockerDir: '/repo/docker',
+      liferayDir: '/repo/liferay',
+      files: {dockerEnv: '/repo/docker/.env'},
+    });
+    resolveEnvContextMock.mockReturnValue({dockerDir: '/repo/docker'});
+    collectEnvStatusMock.mockRejectedValueOnce(new Error('docker compose failed'));
+
+    const status = await collectDashboardStatus('/repo', {includeRuntimeDetails: true});
+    const mainWorktree = status.worktrees.find((entry) => entry.name === 'repo');
+
+    expect(mainWorktree?.env).toMatchObject({
+      status: 'error',
+      error: 'docker compose failed',
+      services: [],
+      liferay: null,
+    });
+  });
 });

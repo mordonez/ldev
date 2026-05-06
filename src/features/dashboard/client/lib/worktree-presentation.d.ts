@@ -17,6 +17,7 @@ export function buildWorktreePresentation(
   activeSection?: string,
 ): {
   actions: DashboardPresentationAction[];
+  advancedActions: DashboardPresentationAction[];
   badges: Array<{label: string; tone: string}>;
   busy: (action: string) => boolean;
   primary: [string, string, string];

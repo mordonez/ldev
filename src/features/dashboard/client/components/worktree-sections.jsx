@@ -9,6 +9,9 @@ export function buildSections(wt) {
   if (changedPaths.length) {
     sections.push(buildChangesSection(changedPaths, wt.changedFiles));
   }
+  if (wt.env?.status === 'error') {
+    sections.push(buildEnvErrorSection(wt.env));
+  }
   if (wt.env?.services?.length) {
     sections.push(buildServicesSection(wt.env.services));
   }
@@ -16,6 +19,22 @@ export function buildSections(wt) {
     sections.push(buildCommitsSection(wt.commits, wt.changedFiles));
   }
   return sections;
+}
+
+function buildEnvErrorSection(env) {
+  return {
+    key: 'env',
+    label: 'Env',
+    count: 'error',
+    tone: 'red',
+    content: (
+      <div class="detail-section">
+        <div class="changed-file">
+          <span class="changed-file-path">{env.error || 'Could not inspect the local runtime.'}</span>
+        </div>
+      </div>
+    ),
+  };
 }
 
 function buildChangesSection(changedPaths, changedFiles) {

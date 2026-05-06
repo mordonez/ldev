@@ -25,7 +25,7 @@ describe('buildWorktreePresentation', () => {
     ]);
     expect(presentation.primary).toEqual(['start', 'btn-start', 'Start']);
     expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('...');
-    expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('Delete');
+    expect(presentation.advancedActions.map((action: {label: string}) => action.label)).toContain('Delete');
     expect(presentation.busy('start')).toBe(true);
     expect(presentation.sections.map((section: {key: string}) => section.key)).toEqual(['changes']);
     expect(presentation.selected?.key).toBe('changes');
@@ -53,7 +53,9 @@ describe('buildWorktreePresentation', () => {
       'Restart',
       'Stop',
       'Logs',
-      'DB',
+      'DB sync',
+    ]);
+    expect(presentation.advancedActions.map((action: {label: string}) => action.label)).toEqual([
       'Resource export',
       'MCP setup',
       'Deploy status',
@@ -78,7 +80,7 @@ describe('buildWorktreePresentation', () => {
     );
 
     expect(
-      presentation.actions.every(
+      [...presentation.actions, ...presentation.advancedActions].every(
         (action: {disabled?: boolean; target: string}) => action.target === 'logs' || action.disabled,
       ),
     ).toBe(true);

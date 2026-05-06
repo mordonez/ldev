@@ -12,7 +12,7 @@ export function WorktreeCard({activeSection, onAction, onCopy, onDelete, onDb, o
       <PathRow onCopy={onCopy} path={wt.path} />
       <PortalRow env={wt.env} />
       <LatestCommit commit={wt.commits?.[0]} />
-      <CardActions actions={presentation.actions} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
+      <CardActions actions={presentation.actions} advancedActions={presentation.advancedActions} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
       <CardSections activeSection={activeSection} onSection={onSection} sections={presentation.sections} selected={presentation.selected} wt={wt} />
     </div>
   );
@@ -89,29 +89,44 @@ function LatestCommit({commit}) {
   );
 }
 
-function CardActions({actions, onAction, onDb, onDelete, onLogs, onResource, wt}) {
+function CardActions({actions, advancedActions, onAction, onDb, onDelete, onLogs, onResource, wt}) {
   return (
     <div class="actions">
-      {actions.map((action, index) => (
+      {actions.map((action) => (
         <Fragment key={`${action.target}-${action.action || action.label}`}>
-          {action.target === 'delete' && index > 0 ? <div class="actions-spacer" /> : null}
-          <button
-            class={classNames(action.target === 'delete' ? null : 'action', action.className)}
-            disabled={action.disabled}
-            type="button"
-            onClick={(event) => {
-              if (action.target === 'action') onAction(wt.name, action.action, event.currentTarget);
-              if (action.target === 'db') onDb(wt.name);
-              if (action.target === 'resource') onResource(wt.name);
-              if (action.target === 'logs') onLogs(wt.name);
-              if (action.target === 'delete') onDelete(wt.name);
-            }}
-          >
-            {action.label}
-          </button>
+          <ActionButton action={action} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
         </Fragment>
       ))}
+      {advancedActions?.length ? (
+        <details class="actions-more">
+          <summary>More</summary>
+          <div class="actions-more-menu">
+            {advancedActions.map((action) => (
+              <ActionButton action={action} key={`${action.target}-${action.action || action.label}`} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
+            ))}
+          </div>
+        </details>
+      ) : null}
     </div>
+  );
+}
+
+function ActionButton({action, onAction, onDb, onDelete, onLogs, onResource, wt}) {
+  return (
+    <button
+      class={classNames(action.target === 'delete' ? null : 'action', action.className)}
+      disabled={action.disabled}
+      type="button"
+      onClick={(event) => {
+        if (action.target === 'action') onAction(wt.name, action.action, event.currentTarget);
+        if (action.target === 'db') onDb(wt.name);
+        if (action.target === 'resource') onResource(wt.name);
+        if (action.target === 'logs') onLogs(wt.name);
+        if (action.target === 'delete') onDelete(wt.name);
+      }}
+    >
+      {action.label}
+    </button>
   );
 }
 

@@ -16,11 +16,18 @@ export function useDashboardSession() {
   const [tasks, setTasks] = useState([]);
   const [toast, setToast] = useState('');
   const previousTasks = useRef([]);
+  const toastTimer = useRef(null);
 
   const savePrefs = (patch) => writePrefs({activeFilter, activityCollapsed, searchQuery, cardSections, ...patch});
   const showToast = (message) => {
+    if (toastTimer.current) {
+      clearTimeout(toastTimer.current);
+    }
     setToast(message);
-    setTimeout(() => setToast(''), 2200);
+    toastTimer.current = setTimeout(() => {
+      toastTimer.current = null;
+      setToast('');
+    }, 2200);
   };
 
   const fetchStatus = async () => {
@@ -77,6 +84,9 @@ export function useDashboardSession() {
       previousTasks.current = next;
       setTasks(next);
     };
+    source.onerror = () => {
+      setError('Task stream disconnected; status polling is still active.');
+    };
     const timer = setInterval(() => {
       setCountdown((current) => {
         if (current <= 1) {
@@ -89,6 +99,7 @@ export function useDashboardSession() {
     return () => {
       source.close();
       clearInterval(timer);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
 

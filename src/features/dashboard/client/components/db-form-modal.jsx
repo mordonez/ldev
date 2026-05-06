@@ -5,8 +5,8 @@ import {classNames} from '../lib/dashboard-state.js';
 import {ModalFrame} from './modal-frame.jsx';
 
 export function DbFormModal({isOpen, onClose, onSubmit, worktreeName}) {
-  const [dbAction, setDbAction] = useState('download');
-  const [form, setForm] = useState({environment: '', file: '', force: true, query: ''});
+  const [dbAction, setDbAction] = useState('sync');
+  const [form, setForm] = useState({backupId: '', environment: '', file: '', force: true, project: '', query: ''});
   if (!isOpen) return null;
 
   const submit = (event) => {
@@ -25,9 +25,20 @@ export function DbFormModal({isOpen, onClose, onSubmit, worktreeName}) {
           ))}
         </div>
         {dbAction === 'download' || dbAction === 'sync' ? (
-          <div class="field">
-            <label>Environment (Liferay Cloud)</label>
-            <input placeholder="prd" value={form.environment} onInput={(event) => setForm((current) => ({...current, environment: event.currentTarget.value}))} />
+          <div class="db-sync-fields">
+            <div class="field">
+              <label>Project</label>
+              <input placeholder="From docker/.env" value={form.project} onInput={(event) => setForm((current) => ({...current, project: event.currentTarget.value}))} />
+            </div>
+            <div class="field">
+              <label>Environment</label>
+              <input placeholder="prd" value={form.environment} onInput={(event) => setForm((current) => ({...current, environment: event.currentTarget.value}))} />
+            </div>
+            <div class="field">
+              <label>Backup ID</label>
+              <input placeholder="Latest successful backup" value={form.backupId} onInput={(event) => setForm((current) => ({...current, backupId: event.currentTarget.value}))} />
+              <div class="field-hint">Empty uses the latest successful LCP backup. Re-running sync with the same backup ID imports the same data.</div>
+            </div>
           </div>
         ) : null}
         {dbAction === 'import' || dbAction === 'query' ? (

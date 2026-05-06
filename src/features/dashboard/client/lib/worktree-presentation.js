@@ -13,7 +13,7 @@ export function buildWorktreePresentation(wt, tasks, activeSection) {
   );
 
   return {
-    actions: worktreeActions(
+    ...worktreeActions(
       wt,
       running,
       stopped,
@@ -72,8 +72,9 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
 
   if (wt.env?.liferay) actions.push({className: 'btn-logs', label: 'Logs', target: 'logs'});
 
-  actions.push(
-    {className: 'btn-ghost', disabled: busyWorktree, label: 'DB', target: 'db'},
+  actions.push({className: 'btn-ghost', disabled: busyWorktree, label: 'DB sync', target: 'db'});
+
+  const advancedActions = [
     {className: 'btn-ghost', disabled: busyWorktree, label: 'Resource export', target: 'resource'},
     {
       action: 'mcp-setup',
@@ -82,10 +83,10 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
       label: busyWorktree ? busyLabel : 'MCP setup',
       target: 'action',
     },
-  );
+  ];
 
   if (wt.env) {
-    actions.push(
+    advancedActions.push(
       {
         action: 'deploy-status',
         className: 'btn-ghost',
@@ -110,9 +111,9 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
     );
   }
 
-  if (!wt.isMain) actions.push({className: 'btn-delete', disabled: busyWorktree, label: 'Delete', target: 'delete'});
+  if (!wt.isMain) advancedActions.push({className: 'btn-delete', disabled: busyWorktree, label: 'Delete', target: 'delete'});
 
-  return actions;
+  return {actions, advancedActions};
 }
 
 function worktreeBadges(wt, running) {

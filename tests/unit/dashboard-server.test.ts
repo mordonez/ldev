@@ -191,11 +191,13 @@ type WorktreeEnvOptions = {
 };
 
 type DbOptions = {
+  backupId?: string;
   environment?: string;
   file?: string;
   force?: boolean;
   printer?: unknown;
   processEnv?: NodeJS.ProcessEnv;
+  project?: string;
   query?: string;
 };
 
@@ -770,14 +772,14 @@ describe('createDashboardServer', () => {
     const downloadResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/download`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({environment: 'prd'}),
+      body: JSON.stringify({backupId: 'backup-1', environment: 'prd', project: 'labweb'}),
     });
     expect(downloadResponse.status).toBe(202);
 
     const syncResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/pw-430/db/sync`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({environment: 'uat', force: true}),
+      body: JSON.stringify({backupId: 'backup-2', environment: 'uat', force: true, project: 'labweb'}),
     });
     expect(syncResponse.status).toBe(202);
 
@@ -801,14 +803,18 @@ describe('createDashboardServer', () => {
       expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
     );
     const downloadOptions = runDbDownloadMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(downloadOptions?.backupId).toBe('backup-1');
     expect(downloadOptions?.environment).toBe('prd');
     expect(downloadOptions?.printer).toBeTruthy();
+    expect(downloadOptions?.project).toBe('labweb');
 
     expect(runDbSyncMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
     const syncOptions = runDbSyncMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(syncOptions?.backupId).toBe('backup-2');
     expect(syncOptions?.environment).toBe('uat');
     expect(syncOptions?.force).toBe(true);
     expect(syncOptions?.printer).toBeTruthy();
+    expect(syncOptions?.project).toBe('labweb');
 
     expect(runDbImportMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
     const importOptions = runDbImportMock.mock.calls[0]?.[1] as DbOptions | undefined;
