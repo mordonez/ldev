@@ -3,6 +3,7 @@ import type http from 'node:http';
 import type {Printer} from '../../core/output/printer.js';
 import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
+import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
 
 type DashboardMaintenancePayload = {
@@ -54,16 +55,16 @@ export async function handleMaintenanceApply(
   try {
     const payload = (await readJsonBody(req)) as DashboardMaintenancePayload;
     const days = Number.parseInt(String(payload.days ?? 7), 10) || 7;
-    const task = taskManager.startTask(
-      {kind: 'worktree-gc', label: `Applying worktree maintenance (${days}d)`},
-      async (printer) => {
+    queueDashboardTaskResponse({
+      taskManager,
+      res,
+      task: {kind: 'worktree-gc', label: `Applying worktree maintenance (${days}d)`},
+      run: async (printer) => {
         const result = await runWorktreeGc({cwd, days, apply: true, processEnv: process.env, printer});
         writeTaskLines(printer, formatWorktreeGc(result));
       },
-    );
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'worktree-gc'}));
+      response: {action: 'worktree-gc'},
+    });
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid maintenance request payload',

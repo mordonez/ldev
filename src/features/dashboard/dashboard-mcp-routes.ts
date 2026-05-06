@@ -1,6 +1,5 @@
 import type http from 'node:http';
 
-import type {Printer} from '../../core/output/printer.js';
 import {formatMcpDoctor, runMcpDoctor} from '../mcp-server/mcp-server-doctor.js';
 import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
@@ -30,23 +29,26 @@ export async function handleMcpDoctor(
     const tool = payload.tool ?? 'all';
     const handshake = payload.skipHandshake !== true;
 
-    const task = taskManager.startTask({kind: 'mcp-doctor', label: `Running MCP doctor (${tool})`}, async (printer) => {
-      const result = await runMcpDoctor({
-        targetDir: cwd,
-        tool,
-        handshake,
-        timeoutMs: handshake ? 10000 : 5000,
-      });
+    queueDashboardTaskResponse({
+      taskManager,
+      res,
+      task: {kind: 'mcp-doctor', label: `Running MCP doctor (${tool})`},
+      run: async (printer) => {
+        const result = await runMcpDoctor({
+          targetDir: cwd,
+          tool,
+          handshake,
+          timeoutMs: handshake ? 10000 : 5000,
+        });
 
-      writeTaskLines(printer, formatMcpDoctor(result));
+        writeTaskLines(printer, formatMcpDoctor(result));
 
-      if (!result.ok) {
-        throw new Error('MCP doctor found issues');
-      }
+        if (!result.ok) {
+          throw new Error('MCP doctor found issues');
+        }
+      },
+      response: {action: 'mcp-doctor', tool},
     });
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-doctor', tool}));
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid MCP doctor request payload',
@@ -66,13 +68,16 @@ export async function handleMcpSetup(
     const tool = payload.tool ?? 'all';
     const strategy = payload.strategy;
 
-    const task = taskManager.startTask({kind: 'mcp-setup', label: `Running MCP setup (${tool})`}, async (printer) => {
-      const result = await runMcpSetup({targetDir: cwd, tool, strategy});
-      writeTaskLines(printer, formatMcpSetup(result));
+    queueDashboardTaskResponse({
+      taskManager,
+      res,
+      task: {kind: 'mcp-setup', label: `Running MCP setup (${tool})`},
+      run: async (printer) => {
+        const result = await runMcpSetup({targetDir: cwd, tool, strategy});
+        writeTaskLines(printer, formatMcpSetup(result));
+      },
+      response: {action: 'mcp-setup', tool, strategy: strategy ?? null},
     });
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, action: 'mcp-setup', tool, strategy: strategy ?? null}));
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid MCP setup request payload',
@@ -116,22 +121,5 @@ export async function handleWorktreeMcpSetup(
       internalMessage: 'Could not queue the worktree MCP setup task',
       notFoundMessage: 'Worktree was not found',
     });
-  }
-}
-
-export async function runWorktreeMcpSetup(
-  resolver: DashboardWorktreeResolver,
-  worktreeName: string,
-  printer?: Printer,
-): Promise<void> {
-  const worktreePath = await resolver.resolvePath(worktreeName);
-
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  const result = await runMcpSetup({targetDir: worktreePath, tool: 'all'});
-  if (printer) {
-    writeTaskLines(printer, formatMcpSetup(result));
   }
 }

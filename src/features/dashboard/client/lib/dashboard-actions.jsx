@@ -1,7 +1,10 @@
-import {h} from 'preact';
+import {Fragment, h} from 'preact';
 import {useState} from 'preact/hooks';
 
+import {DbFormModal} from '../components/db-form-modal.jsx';
+import {Modal} from '../components/modal.jsx';
 import {DeployPreview, DoctorPreview} from '../components/previews.jsx';
+import {ResourceExportModal} from '../components/resource-export-modal.jsx';
 import {actionUrl, previewUrl} from './actions.ts';
 
 function errorBody(err) {
@@ -120,4 +123,50 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
     resourceWorktree,
     runAction,
   };
+}
+
+export function DashboardActionModals({actions, postJson, showToast}) {
+  return (
+    <>
+      <DbFormModal
+        isOpen={Boolean(actions.dbWorktree)}
+        onClose={actions.closeDbModal}
+        onSubmit={(name, action, payload) =>
+          postJson(`/api/worktrees/${encodeURIComponent(name)}/db/${action}`, payload).then(() => {
+            actions.closeDbModal();
+            showToast(`Queued: DB ${action}`);
+          })
+        }
+        worktreeName={actions.dbWorktree}
+      />
+      <ResourceExportModal
+        isOpen={Boolean(actions.resourceWorktree)}
+        onClose={actions.closeResourceModal}
+        onSubmit={(name, resources) =>
+          postJson(`/api/worktrees/${encodeURIComponent(name)}/resource/export`, {resources}).then(() => {
+            actions.closeResourceModal();
+            showToast('Queued: resource export');
+          })
+        }
+        worktreeName={actions.resourceWorktree}
+      />
+      <Modal
+        footer={`${actions.logText.split('\n').filter(Boolean).length} lines`}
+        isOpen={Boolean(actions.logModal)}
+        onClose={actions.closeLogModal}
+        onRefresh={() => actions.logModal && actions.openLogs(actions.logModal.name)}
+        title={actions.logModal ? `${actions.logModal.name} - liferay logs` : 'Logs'}
+      >
+        <pre class="log-pre">{actions.logText}</pre>
+      </Modal>
+      <Modal
+        footer={actions.infoModal?.footer}
+        isOpen={Boolean(actions.infoModal)}
+        onClose={actions.closeInfoModal}
+        title={actions.infoModal?.title || ''}
+      >
+        {actions.infoModal?.body}
+      </Modal>
+    </>
+  );
 }

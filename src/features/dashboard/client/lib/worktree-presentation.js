@@ -86,7 +86,7 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
         disabled: busyWorktree,
         label: 'Deploy status',
       }),
-      worktreeButton('cache-update', {
+      worktreeButton('deploy-cache-update', {
         disabled: busyWorktree,
         label: busyWorktree ? busyLabel : 'Cache update',
       }),

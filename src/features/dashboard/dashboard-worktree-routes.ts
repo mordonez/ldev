@@ -4,6 +4,7 @@ import {runEnvStart} from '../env/env-start.js';
 import {runEnvStop} from '../env/env-stop.js';
 import {runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
+import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
 
 type DashboardCreateWorktreePayload = {
@@ -35,9 +36,11 @@ export async function handleWorktreeCreate(
     const stopMainForClone = withEnv ? payload.stopMainForClone !== false : false;
     const restartMainAfterClone = withEnv && Boolean(payload.restartMainAfterClone);
 
-    const task = taskManager.startTask(
-      {kind: 'worktree-create', label: `Creating worktree ${name}`, worktreeName: name},
-      async (printer) => {
+    queueDashboardTaskResponse({
+      taskManager,
+      res,
+      task: {kind: 'worktree-create', label: `Creating worktree ${name}`, worktreeName: name},
+      run: async (printer) => {
         const result = await runWorktreeSetup({
           cwd,
           name,
@@ -51,10 +54,8 @@ export async function handleWorktreeCreate(
         });
         printer.info(`Worktree ready: ${result.worktreeDir}`);
       },
-    );
-
-    res.writeHead(202, {'Content-Type': 'application/json'});
-    res.end(JSON.stringify({ok: true, taskId: task.id, worktree: name, action: 'create'}));
+      response: {worktree: name, action: 'create'},
+    });
   } catch (err) {
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid worktree creation request',

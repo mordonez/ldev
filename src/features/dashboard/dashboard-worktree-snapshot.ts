@@ -3,10 +3,10 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import {loadConfig} from '../../core/config/load-config.js';
-import {listGitWorktreeDetails} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
 import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 import {collectEnvRuntimeSummary, collectEnvStatus, type EnvServiceStatus} from '../../core/runtime/env-health.js';
+import {listDashboardWorktreeRefs} from './dashboard-worktree-resolver.js';
 
 export type DashboardGitCommit = {
   hash: string;
@@ -52,39 +52,31 @@ export async function collectDashboardWorktrees(
   cwd: string,
   options?: CollectDashboardWorktreeOptions,
 ): Promise<DashboardWorktree[]> {
-  const mainRepoRoot = path.resolve(cwd);
-  const worktreeInfos = await listGitWorktreeDetails(cwd);
+  const worktrees = await listDashboardWorktreeRefs(cwd);
   const includeGit = options?.includeGit === true;
   const includeRuntimeDetails = options?.includeRuntimeDetails === true;
 
   return Promise.all(
-    worktreeInfos
-      .filter((info) => !info.prunable)
-      .map(async (info) => {
-        const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
-        const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
+    worktrees.map(async (info) => {
+      const [env, {commits, changedFiles, changedPaths}, aheadBehind] = await Promise.all([
+        collectWorktreeEnv(info.path, {includeRuntimeDetails}),
+        includeGit ? collectWorktreeGit(info.path) : Promise.resolve({commits: [], changedFiles: 0, changedPaths: []}),
+        includeGit && !info.isMain ? collectAheadBehind(info.path) : Promise.resolve(null),
+      ]);
 
-        const [env, {commits, changedFiles, changedPaths}, aheadBehind] = await Promise.all([
-          collectWorktreeEnv(info.path, {includeRuntimeDetails}),
-          includeGit
-            ? collectWorktreeGit(info.path)
-            : Promise.resolve({commits: [], changedFiles: 0, changedPaths: []}),
-          includeGit && !isMain ? collectAheadBehind(info.path) : Promise.resolve(null),
-        ]);
-
-        return {
-          name,
-          path: info.path,
-          branch: info.branch,
-          isMain,
-          detached: info.detached,
-          env,
-          commits,
-          changedFiles,
-          changedPaths,
-          aheadBehind,
-        } satisfies DashboardWorktree;
-      }),
+      return {
+        name: info.name,
+        path: info.path,
+        branch: info.branch,
+        isMain: info.isMain,
+        detached: info.detached,
+        env,
+        commits,
+        changedFiles,
+        changedPaths,
+        aheadBehind,
+      } satisfies DashboardWorktree;
+    }),
   );
 }
 

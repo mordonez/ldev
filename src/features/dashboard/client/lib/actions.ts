@@ -15,16 +15,19 @@ export const WORKTREE_ACTIONS = Object.fromEntries(worktreeActions.map((action) 
 >;
 
 const WORKTREE_BUTTONS: Partial<Record<string, WorktreeButton>> = {
-  'cache-update': {action: 'deploy-cache-update', className: 'btn-ghost', label: 'Cache update', target: 'action'},
   db: {className: 'btn-ghost', label: 'DB sync', target: 'db'},
-  delete: {className: 'btn-delete', label: 'Delete', target: 'delete'},
-  'deploy-status': {action: 'deploy-status', className: 'btn-ghost', label: 'Deploy status', target: 'action'},
   logs: {className: 'btn-logs', label: 'Logs', target: 'logs'},
-  'mcp-setup': {action: 'mcp-setup', className: 'btn-ghost', label: 'MCP setup', target: 'action'},
-  recreate: {action: 'recreate', className: 'btn-ghost', label: 'Recreate', target: 'action'},
   resource: {className: 'btn-ghost', label: 'Resource export', target: 'resource'},
-  start: {action: 'start', className: 'btn-start', label: 'Start', target: 'action'},
-  stop: {action: 'stop', className: 'btn-stop', label: 'Stop', target: 'action'},
+};
+
+const ACTION_BUTTONS: Partial<Record<string, Pick<WorktreeButton, 'className' | 'label' | 'target'>>> = {
+  'deploy-cache-update': {className: 'btn-ghost', label: 'Cache update', target: 'action'},
+  'deploy-status': {className: 'btn-ghost', label: 'Deploy status', target: 'action'},
+  delete: {className: 'btn-delete', label: 'Delete', target: 'delete'},
+  'mcp-setup': {className: 'btn-ghost', label: 'MCP setup', target: 'action'},
+  recreate: {className: 'btn-ghost', label: 'Recreate', target: 'action'},
+  start: {className: 'btn-start', label: 'Start', target: 'action'},
+  stop: {className: 'btn-stop', label: 'Stop', target: 'action'},
 };
 
 function renderRoute(route: string, name: string): string {
@@ -58,7 +61,9 @@ export function primaryActionForWorktree(
 }
 
 export function worktreeButton(id: string, overrides: Partial<WorktreeButton> = {}): WorktreeButton {
-  const button = WORKTREE_BUTTONS[id];
+  const action = WORKTREE_ACTIONS[id];
+  const actionButton = action ? ACTION_BUTTONS[action.queueAction] : undefined;
+  const button = action && actionButton ? {action: action.queueAction, ...actionButton} : WORKTREE_BUTTONS[id];
   if (!button) {
     throw new Error(`Unknown dashboard worktree button: ${id}`);
   }

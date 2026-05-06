@@ -3,6 +3,14 @@ import path from 'node:path';
 import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
 import {listGitWorktreeDetails} from '../../core/platform/git.js';
 
+export type DashboardWorktreeRef = {
+  branch: string | null;
+  detached: boolean;
+  isMain: boolean;
+  name: string;
+  path: string;
+};
+
 export type DashboardWorktreeResolver = {
   resolveConfig(worktreeName: string): Promise<AppConfig>;
   resolvePath(worktreeName: string): Promise<string | null>;
@@ -18,13 +26,7 @@ export function createDashboardWorktreeResolver(cwd: string): DashboardWorktreeR
 }
 
 async function resolveWorktreePath(cwd: string, worktreeName: string): Promise<string | null> {
-  const worktreeInfos = await listGitWorktreeDetails(cwd);
-  const mainRepoRoot = path.resolve(cwd);
-  const target = worktreeInfos.find((info) => {
-    const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
-    const name = isMain ? path.basename(mainRepoRoot) : path.basename(info.path);
-    return name === worktreeName;
-  });
+  const target = (await listDashboardWorktreeRefs(cwd)).find((info) => info.name === worktreeName);
   return target?.path ?? null;
 }
 
@@ -59,4 +61,23 @@ async function resolveScopedConfig(cwd: string, worktreeName?: string): Promise<
     cwd: worktreePath,
     config: loadConfig({cwd: worktreePath}),
   };
+}
+
+export async function listDashboardWorktreeRefs(cwd: string): Promise<DashboardWorktreeRef[]> {
+  const mainRepoRoot = path.resolve(cwd);
+  const worktreeInfos = await listGitWorktreeDetails(cwd);
+
+  return worktreeInfos
+    .filter((info) => !info.prunable)
+    .map((info) => {
+      const isMain = path.normalize(info.path) === path.normalize(mainRepoRoot);
+
+      return {
+        branch: info.branch,
+        detached: info.detached,
+        isMain,
+        name: isMain ? path.basename(mainRepoRoot) : path.basename(info.path),
+        path: info.path,
+      };
+    });
 }
