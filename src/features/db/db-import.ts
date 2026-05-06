@@ -41,6 +41,7 @@ export async function runDbImport(
     force?: boolean;
     processEnv?: NodeJS.ProcessEnv;
     printer?: Printer;
+    signal?: AbortSignal;
   },
 ): Promise<DbImportResult> {
   const capabilities = await detectCapabilities(config.cwd);
@@ -75,15 +76,18 @@ export async function runDbImport(
           await runDockerCompose(context.dockerDir, ['stop', 'postgres'], {
             env: postgresEnv,
             reject: false,
+            signal: options?.signal,
           });
           await runDockerCompose(context.dockerDir, ['rm', '-f', '-s', 'postgres'], {
             env: postgresEnv,
             reject: false,
+            signal: options?.signal,
           });
 
           const removeResult = await runDocker(['volume', 'rm', postgresStorage.volumeName], {
             env: options?.processEnv,
             reject: false,
+            signal: options?.signal,
           });
 
           if (!removeResult.ok) {
@@ -107,22 +111,25 @@ export async function runDbImport(
   }
 
   await runStep(options?.printer, 'Starting postgres', async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {env: postgresEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', 'postgres'], {
+      env: postgresEnv,
+      signal: options?.signal,
+    });
   });
 
   await runStep(options?.printer, 'Waiting for PostgreSQL to become ready', async () => {
-    await waitForPostgresReady(context.dockerDir, context.envValues, postgresEnv);
+    await waitForPostgresReady(context.dockerDir, context.envValues, postgresEnv, options?.signal);
   });
 
   await runStep(options?.printer, 'Importing backup into PostgreSQL', async () => {
-    await streamSqlIntoPostgres(context.dockerDir, backupFile, context.envValues, postgresEnv);
+    await streamSqlIntoPostgres(context.dockerDir, backupFile, context.envValues, postgresEnv, options?.signal);
   });
 
   const postImportFiles = !(options?.skipPostImport ?? false) ? await resolvePostImportFiles(context.dockerDir) : [];
 
   for (const sqlFile of postImportFiles) {
     await runStep(options?.printer, `Applying post-import ${path.basename(sqlFile)}`, async () => {
-      await streamSqlIntoPostgres(context.dockerDir, sqlFile, context.envValues, postgresEnv);
+      await streamSqlIntoPostgres(context.dockerDir, sqlFile, context.envValues, postgresEnv, options?.signal);
     });
   }
 
@@ -270,6 +277,7 @@ async function waitForPostgresReady(
   dockerDir: string,
   envValues: Record<string, string>,
   processEnv?: NodeJS.ProcessEnv,
+  signal?: AbortSignal,
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
@@ -280,7 +288,7 @@ async function waitForPostgresReady(
         const result = await runDockerCompose(
           dockerDir,
           ['exec', '-T', 'postgres', 'psql', '-U', user, '-d', db, '-c', 'SELECT 1'],
-          {env: processEnv, input: ''},
+          {env: processEnv, input: '', signal},
         );
         return result.ok;
       },
@@ -296,14 +304,18 @@ export async function streamSqlIntoPostgres(
   sqlFile: string,
   envValues: Record<string, string>,
   processEnv?: NodeJS.ProcessEnv,
-  spawnFn: SpawnProcessFn = spawnPipedProcess,
+  signalOrSpawnFn?: AbortSignal | SpawnProcessFn,
+  spawnFnArg?: SpawnProcessFn,
 ): Promise<void> {
   const user = envValues.POSTGRES_USER || 'liferay';
   const db = envValues.POSTGRES_DB || 'liferay';
   const normalizedEnv = normalizeProcessEnv(processEnv);
+  const signal = typeof signalOrSpawnFn === 'function' ? undefined : signalOrSpawnFn;
+  const spawnFn = typeof signalOrSpawnFn === 'function' ? signalOrSpawnFn : (spawnFnArg ?? spawnPipedProcess);
   const child = spawnFn('docker', ['compose', 'exec', '-T', 'postgres', 'psql', '-U', user, '-d', db], {
     cwd: dockerDir,
     env: normalizedEnv,
+    signal,
     shell: process.platform === 'win32',
     stdio: ['pipe', 'pipe', 'pipe'],
   });

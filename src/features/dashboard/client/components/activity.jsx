@@ -3,14 +3,16 @@ import {h} from 'preact';
 import {classNames} from '../lib/dashboard-state.js';
 import {taskTime} from '../lib/tasks.js';
 
-export function Activity({collapsed, onToggle, tasks}) {
-  const running = tasks.filter((task) => task.status === 'running').length;
+export function Activity({collapsed, onCancel, onToggle, tasks}) {
+  const running = tasks.filter((task) => task.status === 'running' || task.status === 'canceling').length;
   return (
     <aside class={classNames('activity', collapsed && 'is-collapsed')}>
       <div class="activity-header">
         <div>
           <div class="activity-title">Activity</div>
-          <div class="activity-meta">{running ? `${running} active task${running === 1 ? '' : 's'}` : 'No active tasks'}</div>
+          <div class="activity-meta">
+            {running ? `${running} active task${running === 1 ? '' : 's'}` : 'No active tasks'}
+          </div>
         </div>
         <button class="activity-toggle" type="button" aria-expanded={!collapsed} onClick={onToggle}>
           {collapsed ? 'Show' : 'Hide'}
@@ -27,7 +29,16 @@ export function Activity({collapsed, onToggle, tasks}) {
                   <div class="task-title">{task.label}</div>
                   <div class="task-sub">{taskTime(task.startedAt)}</div>
                 </div>
-                <span class={classNames('task-status', task.status)}>{task.status === 'succeeded' ? 'done' : task.status}</span>
+                <div class="task-head-actions">
+                  {task.status === 'running' ? (
+                    <button class="task-cancel" type="button" onClick={() => onCancel(task.id)}>
+                      Cancel
+                    </button>
+                  ) : null}
+                  <span class={classNames('task-status', task.status)}>
+                    {task.status === 'succeeded' ? 'done' : task.status}
+                  </span>
+                </div>
               </div>
               <div class="task-log">
                 {(task.logs || []).map((entry) => (

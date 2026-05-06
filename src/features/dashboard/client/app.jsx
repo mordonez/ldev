@@ -26,6 +26,7 @@ function App() {
     activeFilter,
     activityCollapsed,
     cardSections,
+    cancelTask,
     countdown,
     data,
     error,
@@ -138,7 +139,7 @@ function App() {
               </div>
             ) : null}
           </section>
-          <Activity collapsed={activityCollapsed} onToggle={toggleActivity} tasks={tasks} />
+          <Activity collapsed={activityCollapsed} onCancel={cancelTask} onToggle={toggleActivity} tasks={tasks} />
         </div>
       </main>
       <div class={classNames('toast', toast && 'visible')}>{toast}</div>

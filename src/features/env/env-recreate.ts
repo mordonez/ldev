@@ -16,7 +16,13 @@ export type EnvRecreateResult = {
 
 export async function runEnvRecreate(
   config: AppConfig,
-  options?: {wait?: boolean; timeoutSeconds?: number; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
+  options?: {
+    wait?: boolean;
+    timeoutSeconds?: number;
+    processEnv?: NodeJS.ProcessEnv;
+    printer?: Printer;
+    signal?: AbortSignal;
+  },
 ): Promise<EnvRecreateResult> {
   const context = resolveEnvContext(config);
   const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
@@ -29,9 +35,10 @@ export async function runEnvRecreate(
   }
 
   const recreateTask = async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['stop', 'liferay'], {env: composeEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['stop', 'liferay'], {env: composeEnv, signal: options?.signal});
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d', '--force-recreate', 'liferay'], {
       env: composeEnv,
+      signal: options?.signal,
     });
   };
 

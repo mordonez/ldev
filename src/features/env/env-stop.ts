@@ -15,7 +15,7 @@ export type EnvStopResult = {
 
 export async function runEnvStop(
   config: AppConfig,
-  options?: {processEnv?: NodeJS.ProcessEnv; printer?: Printer},
+  options?: {processEnv?: NodeJS.ProcessEnv; printer?: Printer; signal?: AbortSignal},
 ): Promise<EnvStopResult> {
   const context = resolveEnvContext(config);
   const capabilities = await detectCapabilities(config.cwd);
@@ -26,8 +26,8 @@ export async function runEnvStop(
 
   const stopTask = async () => {
     const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
-    await runDockerComposeOrThrow(context.dockerDir, ['stop'], {env: composeEnv});
-    await runDockerComposeOrThrow(context.dockerDir, ['down'], {env: composeEnv});
+    await runDockerComposeOrThrow(context.dockerDir, ['stop'], {env: composeEnv, signal: options?.signal});
+    await runDockerComposeOrThrow(context.dockerDir, ['down'], {env: composeEnv, signal: options?.signal});
   };
 
   if (options?.printer) {

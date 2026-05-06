@@ -63,4 +63,25 @@ describe('buildWorktreePresentation', () => {
     ]);
     expect(presentation.selected?.key).toBe('services');
   });
+
+  test('disables worktree actions while another task owns the same worktree', () => {
+    const presentation = buildWorktreePresentation(
+      {
+        name: 'demoub',
+        changedFiles: 0,
+        commits: [],
+        env: {liferay: {state: null}, services: [{service: 'postgres', state: 'running'}]},
+        path: '/repo/demoub',
+      },
+      [{kind: 'db-sync', status: 'running', worktreeName: 'demoub'}],
+      undefined,
+    );
+
+    expect(
+      presentation.actions.every(
+        (action: {disabled?: boolean; target: string}) => action.target === 'logs' || action.disabled,
+      ),
+    ).toBe(true);
+    expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('...');
+  });
 });

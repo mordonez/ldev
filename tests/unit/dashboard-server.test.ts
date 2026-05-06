@@ -653,6 +653,97 @@ describe('createDashboardServer', () => {
     }
   });
 
+  test('cancels a running dashboard task and aborts its operation signal', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/demo', branch: 'fix/demo', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/demo',
+      dockerDir: '/repo/.worktrees/demo/docker',
+      liferayDir: '/repo/.worktrees/demo/liferay',
+    });
+
+    let operationSignal: AbortSignal | undefined;
+    runEnvStopMock.mockImplementation(
+      (_config, options: {signal?: AbortSignal}) =>
+        new Promise((resolve) => {
+          operationSignal = options.signal;
+          operationSignal?.addEventListener('abort', () => {
+            resolve(undefined);
+          });
+        }),
+    );
+
+    server = createDashboardServer({cwd: '/repo', port: 0});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const stopResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demo/stop`, {method: 'POST'});
+    expect(stopResponse.status).toBe(202);
+    const stopBody = await readJson<{taskId: string}>(stopResponse);
+
+    await vi.waitFor(() => {
+      expect(operationSignal).toBeDefined();
+    });
+
+    const cancelResponse = await fetch(`http://127.0.0.1:${port}/api/tasks/${stopBody.taskId}/cancel`, {
+      method: 'POST',
+    });
+    expect(cancelResponse.status).toBe(202);
+    await expect(cancelResponse.json()).resolves.toMatchObject({
+      task: {id: stopBody.taskId, status: 'canceling'},
+    });
+    expect(operationSignal?.aborted).toBe(true);
+
+    await vi.waitFor(async () => {
+      const tasksResponse = await fetch(`http://127.0.0.1:${port}/api/tasks`);
+      const payload = await readJson<{tasks: Array<{id: string; status: string}>}>(tasksResponse);
+      expect(payload.tasks[0]).toMatchObject({id: stopBody.taskId, status: 'canceled'});
+    });
+  });
+
+  test('blocks conflicting worktree actions while a db sync is running', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/demoub', branch: 'fix/demoub', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/demoub',
+      dockerDir: '/repo/.worktrees/demoub/docker',
+      liferayDir: '/repo/.worktrees/demoub/liferay',
+    });
+    runDbSyncMock.mockImplementation(() => new Promise(() => {}));
+
+    server = createDashboardServer({cwd: '/repo', port: 0});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    const port = (server.address() as AddressInfo).port;
+
+    const syncResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demoub/db/sync`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({environment: 'prd'}),
+    });
+    expect(syncResponse.status).toBe(202);
+
+    const startResponse = await fetch(`http://127.0.0.1:${port}/api/worktrees/demoub/start`, {method: 'POST'});
+    expect(startResponse.status).toBe(409);
+    const startBody = await readJson<{error: string; task: {kind: string; status: string; worktreeName: string}}>(
+      startResponse,
+    );
+    expect(startBody.error).toContain('DB sync for demoub');
+    expect(startBody.task).toMatchObject({kind: 'db-sync', status: 'running', worktreeName: 'demoub'});
+    expect(runEnvStartMock).not.toHaveBeenCalled();
+  });
+
   test('queues guided db actions from the dashboard API', async () => {
     listGitWorktreeDetailsMock.mockResolvedValue([
       {path: '/repo', branch: 'main', detached: false, prunable: false},

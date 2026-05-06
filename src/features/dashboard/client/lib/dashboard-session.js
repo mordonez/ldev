@@ -38,7 +38,9 @@ export function useDashboardSession() {
   const fetchMaintenance = async (days = maintenance.days) => {
     setMaintenance((current) => ({...current, days, loading: true, error: null}));
     try {
-      const res = await fetch(`/api/maintenance/worktrees/gc?days=${encodeURIComponent(String(days))}`, {cache: 'no-store'});
+      const res = await fetch(`/api/maintenance/worktrees/gc?days=${encodeURIComponent(String(days))}`, {
+        cache: 'no-store',
+      });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       setMaintenance({days, candidates: body.candidates || [], loading: false, error: null});
@@ -48,10 +50,20 @@ export function useDashboardSession() {
   };
 
   const postJson = async (url, payload) => {
-    const res = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload ? JSON.stringify(payload) : undefined});
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: payload ? JSON.stringify(payload) : undefined,
+    });
     const body = await res.json();
-    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
     if (body.task) setTasks((current) => mergeTask(current, body.task));
+    if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+    return body;
+  };
+
+  const cancelTask = async (taskId) => {
+    const body = await postJson(`/api/tasks/${encodeURIComponent(taskId)}/cancel`);
+    showToast('Cancel requested');
     return body;
   };
 
@@ -103,6 +115,7 @@ export function useDashboardSession() {
     activeFilter,
     activityCollapsed,
     cardSections,
+    cancelTask,
     countdown,
     data,
     error,

@@ -175,12 +175,17 @@ button.action:disabled{opacity:.45;cursor:not-allowed}
 .task-card.succeeded{border-color:rgba(63,185,80,.28)}
 .task-card.failed{border-color:rgba(248,81,73,.35)}
 .task-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:10px 11px;border-bottom:1px solid rgba(48,54,61,.7)}
+.task-head-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.task-cancel{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.3);color:var(--red);padding:4px 7px;border-radius:999px;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase}
+.task-cancel:hover{opacity:.82}
 .task-title{font-size:12px;font-weight:600;line-height:1.4}
 .task-sub{font-size:11px;color:var(--text2);margin-top:3px}
 .task-status{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:999px;border:1px solid var(--border)}
 .task-status.running{color:var(--blue);border-color:rgba(88,166,255,.28);background:rgba(88,166,255,.1)}
 .task-status.succeeded{color:var(--green);border-color:rgba(63,185,80,.28);background:rgba(63,185,80,.1)}
 .task-status.failed{color:var(--red);border-color:rgba(248,81,73,.28);background:rgba(248,81,73,.1)}
+.task-status.canceling{color:var(--yellow);border-color:rgba(210,153,34,.28);background:rgba(210,153,34,.1)}
+.task-status.canceled{color:var(--text2);border-color:var(--border);background:rgba(139,148,158,.1)}
 .task-log{padding:10px 11px;display:flex;flex-direction:column;gap:7px;max-height:220px;overflow-y:auto}
 .task-line{display:grid;grid-template-columns:46px 1fr;gap:8px;font-family:'Cascadia Code','Fira Code','JetBrains Mono',monospace;font-size:11px;line-height:1.5;color:#c9d1d9}
 .task-line.error .task-msg{color:#ffb3ad}

@@ -24,6 +24,7 @@ export async function runDbDownload(
     backupId?: string;
     project?: string;
     printer?: Printer;
+    signal?: AbortSignal;
   },
 ): Promise<DbDownloadResult> {
   if (!config.dockerDir || !config.files.dockerEnv) {
@@ -44,7 +45,14 @@ export async function runDbDownload(
 
   await fs.ensureDir(backupDir);
 
-  const databaseBackupFile = await ensureDatabaseBackup(backupDir, project, environment, backupId, options?.printer);
+  const databaseBackupFile = await ensureDatabaseBackup(
+    backupDir,
+    project,
+    environment,
+    backupId,
+    options?.printer,
+    options?.signal,
+  );
 
   return {
     ok: true,
@@ -118,6 +126,7 @@ async function ensureDatabaseBackup(
   environment: string,
   backupId: string,
   printer?: Printer,
+  signal?: AbortSignal,
 ): Promise<string> {
   const existing = await findBackupForId(backupDir, backupId);
   if (existing) {
@@ -142,7 +151,7 @@ async function ensureDatabaseBackup(
         '--dest',
         backupDir,
       ],
-      {reject: false},
+      {reject: false, signal},
     );
     if (!result.ok) {
       throw new CliError(formatProcessError(result, 'lcp backup download --database'), {
