@@ -221,6 +221,7 @@ function makeDoctorContext(overrides?: Partial<DoctorContext>): DoctorContext {
     },
     activationKeyFile: null,
     activationKeyExists: false,
+    activationKeyInstalledFile: null,
     activationKeyValidName: false,
     httpPort: 8080,
     httpPortStatus: 'free',

@@ -8,7 +8,7 @@ import {runEnvRecreate, formatEnvRecreate} from '../env/env-recreate.js';
 import {runEnvRestart, formatEnvRestart} from '../env/env-restart.js';
 import {runEnvStart} from '../env/env-start.js';
 import {runEnvStop} from '../env/env-stop.js';
-import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
+import {formatOAuthInstall, runOAuthInstall} from '../oauth/oauth-install.js';
 import {runWorktreeClean} from '../worktree/worktree-clean.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
 import {
@@ -50,8 +50,8 @@ const QUEUED_OPERATION_RUNNERS: Partial<Record<DashboardOperationKey, QueuedOper
   'worktree-doctor': (operation, deps, printer) => runDoctorOperation(deps.worktrees, operation.worktreeName, printer),
   'worktree-env-init': (operation, deps, printer) =>
     runWorktreeEnvInit(deps.worktrees, requireWorktreeName(operation), printer),
-  'worktree-mcp-setup': (operation, deps, printer) =>
-    runWorktreeMcpSetup(deps.worktrees, requireWorktreeName(operation), printer),
+  'worktree-oauth-install': (operation, deps, printer) =>
+    runWorktreeOAuthInstall(deps.worktrees, requireWorktreeName(operation), printer),
   'worktree-repair': (operation, deps, printer, signal) =>
     runRepairOperation(deps.worktrees, requireWorktreeName(operation), operation.repairAction!, printer, signal),
   'worktree-start': (operation, deps, printer, signal) =>
@@ -273,20 +273,15 @@ async function previewDeployOperation(resolver: DashboardWorktreeResolver, workt
   return runDeployStatus(config, {processEnv: process.env});
 }
 
-async function runWorktreeMcpSetup(
+async function runWorktreeOAuthInstall(
   resolver: DashboardWorktreeResolver,
   worktreeName: string,
   printer?: Printer,
 ): Promise<void> {
-  const worktreePath = await resolver.resolvePath(worktreeName);
-
-  if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
-  }
-
-  const result = await runMcpSetup({targetDir: worktreePath, tool: 'all'});
+  const config = await resolver.resolveConfig(worktreeName);
+  const result = await runOAuthInstall(config, {writeEnv: true, printer});
   if (printer) {
-    writeTaskLines(printer, formatMcpSetup(result));
+    writeTaskLines(printer, formatOAuthInstall(result));
   }
 }
 

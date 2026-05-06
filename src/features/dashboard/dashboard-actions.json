@@ -37,13 +37,13 @@
     "taskKind": "doctor"
   },
   {
-    "id": "mcp-setup",
-    "key": "worktree-mcp-setup",
-    "label": "Running MCP setup for {worktree}",
+    "id": "oauth-install",
+    "key": "worktree-oauth-install",
+    "label": "Installing OAuth credentials for {worktree}",
     "method": "POST",
-    "queueAction": "mcp-setup",
-    "route": "/api/worktrees/{worktree}/mcp/setup",
-    "taskKind": "mcp-setup"
+    "queueAction": "oauth-install",
+    "route": "/api/worktrees/{worktree}/oauth/install",
+    "taskKind": "oauth-install"
   },
   {
     "id": "restart",

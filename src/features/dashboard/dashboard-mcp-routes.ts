@@ -6,7 +6,6 @@ import {readJsonBody, writeDashboardError} from './dashboard-http.js';
 import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import {writeTaskLines} from './dashboard-task-output.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
-import type {DashboardWorktreeResolver} from './dashboard-worktree-resolver.js';
 
 type DashboardMcpDoctorPayload = {
   tool?: 'all' | 'claude-code' | 'cursor' | 'vscode';
@@ -82,44 +81,6 @@ export async function handleMcpSetup(
     writeDashboardError(res, err, {
       badRequestMessage: 'Invalid MCP setup request payload',
       internalMessage: 'Could not queue the MCP setup task',
-    });
-  }
-}
-
-export async function handleWorktreeMcpSetup(
-  resolver: DashboardWorktreeResolver,
-  worktreeName: string,
-  req: http.IncomingMessage,
-  res: http.ServerResponse,
-  taskManager: ReturnType<typeof createDashboardTaskManager>,
-): Promise<void> {
-  try {
-    const payload = (await readJsonBody(req)) as DashboardMcpSetupPayload;
-    const tool = payload.tool ?? 'all';
-    const strategy = payload.strategy;
-    const worktreePath = await resolver.resolvePath(worktreeName);
-
-    if (!worktreePath) {
-      res.writeHead(404, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({error: `Worktree '${worktreeName}' not found`}));
-      return;
-    }
-
-    queueDashboardTaskResponse({
-      taskManager,
-      res,
-      task: {kind: 'mcp-setup', label: `Running MCP setup for ${worktreeName}`, worktreeName},
-      run: async (printer) => {
-        const result = await runMcpSetup({targetDir: worktreePath, tool, strategy});
-        writeTaskLines(printer, formatMcpSetup(result));
-      },
-      response: {action: 'mcp-setup', worktree: worktreeName, tool},
-    });
-  } catch (err) {
-    writeDashboardError(res, err, {
-      badRequestMessage: 'Invalid worktree MCP setup request payload',
-      internalMessage: 'Could not queue the worktree MCP setup task',
-      notFoundMessage: 'Worktree was not found',
     });
   }
 }

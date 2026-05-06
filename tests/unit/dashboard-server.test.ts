@@ -20,6 +20,7 @@ const runEnvStartMock = vi.fn();
 const runEnvStopMock = vi.fn();
 const runMcpDoctorMock = vi.fn();
 const runMcpSetupMock = vi.fn();
+const runOAuthInstallMock = vi.fn();
 const runWorktreeSetupMock = vi.fn();
 const runWorktreeEnvMock = vi.fn();
 const runDbDownloadMock = vi.fn();
@@ -165,6 +166,11 @@ vi.mock('../../src/features/mcp-server/mcp-server-doctor.js', () => ({
 vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
   formatMcpSetup: vi.fn(() => 'Configured 3 MCP client configs'),
   runMcpSetup: runMcpSetupMock,
+}));
+
+vi.mock('../../src/features/oauth/oauth-install.js', () => ({
+  formatOAuthInstall: vi.fn(() => 'OAuth install OK'),
+  runOAuthInstall: runOAuthInstallMock,
 }));
 
 vi.mock('../../src/features/dashboard/dashboard-data.js', () => ({
@@ -994,32 +1000,49 @@ describe('createDashboardServer', () => {
     });
   });
 
-  test('queues MCP setup for a specific worktree', async () => {
+  test('queues OAuth install for a specific worktree', async () => {
     listGitWorktreeDetailsMock.mockResolvedValue([
       {path: '/repo', branch: 'main', detached: false, prunable: false},
       {path: '/repo/.worktrees/blueprints-575', branch: 'fix/blueprints-575', detached: false, prunable: false},
     ]);
-    runMcpSetupMock.mockResolvedValue({
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/blueprints-575',
+      dockerDir: '/repo/.worktrees/blueprints-575/docker',
+      liferayDir: '/repo/.worktrees/blueprints-575/liferay',
+    });
+    runOAuthInstallMock.mockResolvedValue({
       ok: true,
-      tool: 'all',
-      strategy: 'global',
-      results: [],
+      localProfileUpdated: true,
+      localProfileFile: '/repo/.worktrees/blueprints-575/.liferay-cli.local.yml',
+      command: 'osgi-config',
+      companyId: '20116',
+      companyWebId: 'liferay.com',
+      userId: '12345',
+      userEmail: 'test@example.com',
+      bundleFile: '/repo/.worktrees/blueprints-575/liferay/configs/local/deploy/oauth.jar',
+      scopeAliases: [],
+      readWrite: {clientId: 'id', clientSecret: 'secret'},
+      readOnly: null,
+      verification: {attempted: false, verified: true, sanitized: false, tokenType: null, expiresIn: null, error: null},
     });
 
     await startServer();
 
-    const response = await postJsonPath(`/api/worktrees/blueprints-575/mcp/setup`, {tool: 'all'});
+    const response = await fetchPath(`/api/worktrees/blueprints-575/oauth/install`, {method: 'POST'});
 
     expect(response.status).toBe(202);
-    const body = await readJson<{ok: true; taskId: string; action: string; tool: string; worktree: string}>(response);
-    expect(body).toMatchObject({ok: true, action: 'mcp-setup', tool: 'all', worktree: 'blueprints-575'});
+    const body = await readJson<{ok: true; taskId: string; action: string; worktree: string}>(response);
+    expect(body).toMatchObject({ok: true, action: 'oauth-install', worktree: 'blueprints-575'});
 
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(runMcpSetupMock).toHaveBeenCalledWith({
-      targetDir: '/repo/.worktrees/blueprints-575',
-      tool: 'all',
-      strategy: undefined,
-    });
+    expect(runOAuthInstallMock).toHaveBeenCalledWith(
+      {
+        repoRoot: '/repo/.worktrees/blueprints-575',
+        dockerDir: '/repo/.worktrees/blueprints-575/docker',
+        liferayDir: '/repo/.worktrees/blueprints-575/liferay',
+      },
+      expect.objectContaining({writeEnv: true}),
+    );
 
     const taskResponse = await fetchPath(`/api/tasks`);
     const taskPayload = await readJson<{
@@ -1027,7 +1050,7 @@ describe('createDashboardServer', () => {
     }>(taskResponse);
     expect(taskPayload.tasks[0]).toMatchObject({
       id: body.taskId,
-      label: 'Running MCP setup for blueprints-575',
+      label: 'Installing OAuth credentials for blueprints-575',
       status: 'succeeded',
       worktreeName: 'blueprints-575',
     });

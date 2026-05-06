@@ -72,6 +72,8 @@ export async function collectDoctorContext(
   const activationKeyFile = resolveActivationKeyFile(project.cwd, env.LDEV_ACTIVATION_KEY_FILE);
   const activationKeyExists = activationKeyFile ? fileExistsFn(activationKeyFile) : false;
   const activationKeyValidName = activationKeyFile ? isActivationKeyFileName(activationKeyFile) : false;
+  const activationKeyInstalledFile =
+    activationKeyExists && activationKeyValidName ? activationKeyFile : findInstalledActivationKey(project.cwd);
   const httpPort = parseTcpPort(project.env.httpPort);
   const httpPortStatus =
     project.env.bindIp && httpPort ? await checkTcpPortFn(project.env.bindIp, httpPort) : ('unsupported' as const);
@@ -148,6 +150,7 @@ export async function collectDoctorContext(
     configSources,
     activationKeyFile,
     activationKeyExists,
+    activationKeyInstalledFile,
     activationKeyValidName,
     httpPort,
     httpPortStatus,
@@ -230,6 +233,28 @@ export function resolveConfigSource(
     return 'profile';
   }
   return 'fallback';
+}
+
+export function findInstalledActivationKey(cwd: string): string | null {
+  for (const relativeDir of [
+    path.join('liferay', 'configs', 'local', 'osgi', 'modules'),
+    path.join('liferay', 'configs', 'dockerenv', 'osgi', 'modules'),
+  ]) {
+    const dir = path.join(cwd, relativeDir);
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+
+    const activationKey = entries.find((entry) => isActivationKeyFileName(entry));
+    if (activationKey) {
+      return path.join(dir, activationKey);
+    }
+  }
+
+  return null;
 }
 
 export function resolveNumericConfigSource(

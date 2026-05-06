@@ -57,7 +57,7 @@ describe('buildWorktreePresentation', () => {
     ]);
     expect(presentation.advancedActions.map((action: {label: string}) => action.label)).toEqual([
       'Resource export',
-      'MCP setup',
+      'OAuth install',
       'Deploy status',
       'Cache update',
       'Recreate',

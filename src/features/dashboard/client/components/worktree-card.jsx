@@ -1,4 +1,5 @@
 import {Fragment, h} from 'preact';
+import {useEffect, useRef} from 'preact/hooks';
 
 import {classNames} from '../lib/dashboard-state.js';
 import {buildWorktreePresentation} from '../lib/worktree-presentation.js';
@@ -98,16 +99,44 @@ function CardActions({actions, advancedActions, onAction, onDb, onDelete, onLogs
         </Fragment>
       ))}
       {advancedActions?.length ? (
-        <details class="actions-more">
-          <summary>More</summary>
-          <div class="actions-more-menu">
-            {advancedActions.map((action) => (
-              <ActionButton action={action} key={`${action.target}-${action.action || action.label}`} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
-            ))}
-          </div>
-        </details>
+        <ActionsMore actions={advancedActions} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
       ) : null}
     </div>
+  );
+}
+
+function ActionsMore({actions, onAction, onDb, onDelete, onLogs, onResource, wt}) {
+  const detailsRef = useRef(null);
+
+  useEffect(() => {
+    const close = (event) => {
+      const details = detailsRef.current;
+      if (!details?.open || details.contains(event.target)) return;
+      details.open = false;
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape' && detailsRef.current?.open) {
+        detailsRef.current.open = false;
+      }
+    };
+
+    document.addEventListener('pointerdown', close);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', close);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, []);
+
+  return (
+    <details class="actions-more" ref={detailsRef}>
+      <summary>More</summary>
+      <div class="actions-more-menu">
+        {actions.map((action) => (
+          <ActionButton action={action} key={`${action.target}-${action.action || action.label}`} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -118,6 +147,7 @@ function ActionButton({action, onAction, onDb, onDelete, onLogs, onResource, wt}
       disabled={action.disabled}
       type="button"
       onClick={(event) => {
+        event.currentTarget.closest('details')?.removeAttribute('open');
         if (action.target === 'action') onAction(wt.name, action.action, event.currentTarget);
         if (action.target === 'db') onDb(wt.name);
         if (action.target === 'resource') onResource(wt.name);

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
@@ -233,6 +235,61 @@ describe('capabilities', () => {
     expect(text).toContain('point `LDEV_ACTIVATION_KEY_FILE` to it before running `ldev start`');
     expect(text).toContain('host port localhost:8080 is already in use');
     expect(text).toContain('below the recommended 8 GB');
+  });
+
+  test('accepts an activation key already installed in liferay configs', async () => {
+    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-doctor-activation-'));
+    const modulesDir = path.join(repoRoot, 'liferay', 'configs', 'local', 'osgi', 'modules');
+    fs.mkdirSync(modulesDir, {recursive: true});
+    fs.writeFileSync(path.join(modulesDir, 'activation-key-dxpdevelopment.xml'), '<activation-key />');
+
+    const report = await runDoctor(repoRoot, {
+      env: {},
+      config: {
+        ...BASE_CONFIG,
+        cwd: repoRoot,
+        repoRoot,
+        dockerDir: path.join(repoRoot, 'docker'),
+        liferayDir: path.join(repoRoot, 'liferay'),
+      },
+      dependencies: {
+        detectCapabilities: async () => {
+          await Promise.resolve();
+          return BASE_CAPABILITIES;
+        },
+        detectRepoPaths: () => ({
+          repoRoot,
+          dockerDir: path.join(repoRoot, 'docker'),
+          liferayDir: path.join(repoRoot, 'liferay'),
+          dockerEnvFile: path.join(repoRoot, 'docker', '.env'),
+          liferayProfileFile: path.join(repoRoot, '.liferay-cli.yml'),
+        }),
+        isWorktree: async () => {
+          await Promise.resolve();
+          return false;
+        },
+        readEnvFile: () => ({}),
+        readProfileFile: () => ({}),
+        checkTcpPort: async () => {
+          await Promise.resolve();
+          return 'free';
+        },
+        runProcess: async (command, args) => {
+          await Promise.resolve();
+          return {
+            command: [command, ...(args ?? [])].join(' '),
+            stdout: `${command} version`,
+            stderr: '',
+            exitCode: 0,
+            ok: true,
+          };
+        },
+      },
+    });
+
+    const check = report.checks.find((item) => item.id === 'activation-key');
+    expect(check?.status).toBe('pass');
+    expect(check?.summary).toContain('activation-key-dxpdevelopment.xml');
   });
 
   test('treats docker as optional for blade-workspace diagnostics', async () => {

@@ -24,7 +24,7 @@ const ACTION_BUTTONS: Partial<Record<string, Pick<WorktreeButton, 'className' | 
   'deploy-cache-update': {className: 'btn-ghost', label: 'Cache update', target: 'action'},
   'deploy-status': {className: 'btn-ghost', label: 'Deploy status', target: 'action'},
   delete: {className: 'btn-delete', label: 'Delete', target: 'delete'},
-  'mcp-setup': {className: 'btn-ghost', label: 'MCP setup', target: 'action'},
+  'oauth-install': {className: 'btn-ghost', label: 'OAuth install', target: 'action'},
   recreate: {className: 'btn-ghost', label: 'Recreate', target: 'action'},
   start: {className: 'btn-start', label: 'Start', target: 'action'},
   stop: {className: 'btn-stop', label: 'Stop', target: 'action'},

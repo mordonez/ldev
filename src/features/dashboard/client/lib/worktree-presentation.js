@@ -74,9 +74,9 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
 
   const advancedActions = [
     worktreeButton('resource', {disabled: busyWorktree}),
-    worktreeButton('mcp-setup', {
+    worktreeButton('oauth-install', {
       disabled: busyWorktree,
-      label: busyWorktree ? busyLabel : 'MCP setup',
+      label: busyWorktree ? busyLabel : 'OAuth install',
     }),
   ];
 

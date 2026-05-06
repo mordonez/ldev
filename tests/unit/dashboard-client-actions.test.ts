@@ -17,7 +17,7 @@ describe('dashboard client actions', () => {
 
   test('maps UI actions to dashboard API URLs', () => {
     expect(actionUrl('feature/demo', 'init-env')).toBe('/api/worktrees/feature%2Fdemo/env/init');
-    expect(actionUrl('feature/demo', 'mcp-setup')).toBe('/api/worktrees/feature%2Fdemo/mcp/setup');
+    expect(actionUrl('feature/demo', 'oauth-install')).toBe('/api/worktrees/feature%2Fdemo/oauth/install');
     expect(actionUrl('feature/demo', 'deploy-cache-update')).toBe('/api/worktrees/feature%2Fdemo/deploy/cache-update');
     expect(actionUrl('feature/demo', 'custom')).toBe('/api/worktrees/feature%2Fdemo/custom');
   });

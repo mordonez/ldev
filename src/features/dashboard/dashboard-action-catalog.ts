@@ -6,7 +6,7 @@ export type DashboardOperationKey =
   | 'worktree-deploy'
   | 'worktree-doctor'
   | 'worktree-env-init'
-  | 'worktree-mcp-setup'
+  | 'worktree-oauth-install'
   | 'worktree-repair'
   | 'worktree-start'
   | 'worktree-stop';
