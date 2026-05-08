@@ -204,7 +204,7 @@ Preferred strategy:
 - If you must start from the public page, use `run-code` to open the `Edita` dropdown and
   read the admin `href` that points to `/journal/edit_article`, then open that URL directly.
 - In the editor, prefer selectors anchored to the visible primary publish dropdown button,
-  its open menu, and the post-publish success alert rather than any translated label.
+  its open menu, and a post-action runtime check rather than any translated label.
 
 Example:
 
@@ -232,11 +232,13 @@ async function (page) {
   const openMenu = page.locator('[role="menu"]:visible, .dropdown-menu.show:visible').last();
   const publishAction = openMenu.locator('[role="menuitem"], button, a').first();
   await publishAction.click();
-
-  await page.locator('.alert-success, [role="alert"], :text-matches("publicat|publicado|published", "i")').first().waitFor();
 }
 '@
 playwright-cli -s=editor-<issue> run-code "$PUBLISH"
+
+# Direct editor URLs often reload the edit form instead of showing a visible success toast.
+# Re-run inventory and confirm lifecycle.dateModified advanced after the publish action.
+ldev portal inventory page --url <fullUrl> --full --json
 ```
 
 If the public page is the only starting point, use a code-driven dropdown step instead of
@@ -262,7 +264,8 @@ Checks:
   visible primary dropdown button, the open menu, and its first publish action as the publish path,
   even when the trigger label changes by locale.
 - If you still need a text fallback, use it only as a last resort and assume it must vary across locales.
-- Success is the visible published/publicado/publicat alert after the action, not merely opening the publish menu.
+- If the flow starts from the public detail page, a visible published/publicado/publicat alert can be a valid success signal.
+- If the flow starts from the direct Journal edit URL returned by inventory, the editor often reloads the form instead of showing that alert; in that path, success is `ldev portal inventory page --url <fullUrl> --full --json` showing an advanced `lifecycle.dateModified` after the publish action.
 
 ## Page layout mutations
 
