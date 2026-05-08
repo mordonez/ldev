@@ -18,6 +18,9 @@ Quick rules:
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with a shell-native multiline
   literal: `cat <<'EOF'` in bash/zsh, `@'...'@` in PowerShell.
+- On PowerShell, prefer writing non-trivial `run-code` functions to a `.tmp/<issue>/*.js`
+  file, then pass `Get-Content -Raw` to `run-code`. This avoids terminal wrappers
+  rewriting JavaScript operators such as `&&`, `||`, `?`, `:`, `<`, or `>`.
 - **Never chain `open` and `run-code` in the same terminal command** using `;`, `&&`,
   or any other combinator. Run `open` first as a standalone command and wait for it to
   complete before running `run-code` as a separate command. Chaining them races the
@@ -25,8 +28,9 @@ Quick rules:
 - **`run-code` transforms shell operators**: the shell intercepts `||`, `&&`, `>`,
   and `<` before JavaScript sees them. Use ternary expressions (`condition ? a : b`)
   or `if/else` blocks inside `run-code` functions instead of `||` or `&&`. Always
-  assign the code to a variable first (using `cat <<'EOF'` or `@'...'@`) so the
-  shell cannot split or reinterpret it.
+  assign the code to a variable first (using `cat <<'EOF'`, `@'...'@`, or preferably
+  `Get-Content -Raw` from a `.js` file on PowerShell) so the shell cannot split or
+  reinterpret it.
 - Keep one browser helper active at a time per session name. Do not run helpers in
   parallel against the same session — open first, then sequence snapshot / run-code /
   goto / screenshot.
@@ -35,7 +39,7 @@ Quick rules:
 - If local virtual host routing sends the browser to another site while `curl` reaches
   the expected page, record it as a browser-routing limitation and finish validation with
   HTTP + logs.
-- `ldev portal inventory page --url ... --json` may return `adminUrls.*` with a different
+- `ldev portal inventory page --url ... --full --json` may return `adminUrls.*` with a different
   host spelling. Normalize the host before opening.
 
 ## Project menu maps (optional)
@@ -110,13 +114,15 @@ PowerShell:
 
 ```powershell
 playwright-cli -s=mobile-<issue> open "<url>"
-$CODE = @'
+New-Item -ItemType Directory -Force .tmp/<issue> | Out-Null
+@'
 async function (page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: "domcontentloaded" });
 }
-'@
-playwright-cli -s=mobile-<issue> run-code "$CODE"
+'@ | Set-Content -NoNewline .tmp/<issue>/mobile-viewport.js
+$CODE = Get-Content -Raw .tmp/<issue>/mobile-viewport.js
+playwright-cli -s=mobile-<issue> run-code $CODE
 playwright-cli -s=mobile-<issue> screenshot --filename=.tmp/<issue>/mobile.png
 playwright-cli -s=mobile-<issue> close
 ```
@@ -179,6 +185,84 @@ Navigate explicitly to the target site's admin URL afterwards.
 
 If a direct `adminUrls.translate` or `adminUrls.configure` URL falls back to a generic
 "Pàgines del lloc web" screen, treat that URL as a hint rather than a guaranteed deep-link.
+
+## Journal article edit and publish
+
+For Journal articles rendered on a public page, do not rely on wrapper clicks on the
+control-menu `Edita` button. In practice that control is often a dropdown behind the
+product menu or a sticky header, and the visible `Publica` control in the editor is a
+split button whose accessible name changes after the editor finishes loading.
+
+Do not make this flow depend on localized labels such as `Edita`, `Edit`, `Publica`,
+or `Publish` as the primary selector strategy. Catalan, Spanish, and English portals
+can expose different labels for the same controls.
+
+Preferred strategy:
+
+- Resolve the page first with `ldev portal inventory page --url <fullUrl> --full --json` and
+  use the Journal edit URL returned there as the primary path into the editor.
+- If you must start from the public page, use `run-code` to open the `Edita` dropdown and
+  read the admin `href` that points to `/journal/edit_article`, then open that URL directly.
+- In the editor, prefer selectors anchored to the visible primary publish dropdown button,
+  its open menu, and the post-publish success alert rather than any translated label.
+
+Example:
+
+```powershell
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+playwright-cli -s=editor-<issue> open "$PortalUrl/c/portal/login"
+$LOGIN = @'
+async function (page) {
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_login").fill("<test-user-email>");
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_password").fill("<test-user-password>");
+  await page.locator("button[type=submit]").first().click();
+}
+'@
+playwright-cli -s=editor-<issue> run-code "$LOGIN"
+
+# Prefer opening the direct edit URL returned by ldev portal inventory page.
+# Fall back to the control-menu href only when inventory does not expose the needed editor URL.
+playwright-cli -s=editor-<issue> open "<journalEditUrl>"
+
+$PUBLISH = @'
+async function (page) {
+  const publishTrigger = page.locator('button.btn.btn-primary.dropdown-toggle[aria-haspopup="true"]').first();
+  await publishTrigger.click();
+
+  const openMenu = page.locator('[role="menu"]:visible, .dropdown-menu.show:visible').last();
+  const publishAction = openMenu.locator('[role="menuitem"], button, a').first();
+  await publishAction.click();
+
+  await page.locator('.alert-success, [role="alert"], :text-matches("publicat|publicado|published", "i")').first().waitFor();
+}
+'@
+playwright-cli -s=editor-<issue> run-code "$PUBLISH"
+```
+
+If the public page is the only starting point, use a code-driven dropdown step instead of
+the wrapper click helper:
+
+```powershell
+$EDIT_FROM_PAGE = @'
+async function (page) {
+  const controlButton = page.locator('[aria-controls][aria-haspopup="menu"], .control-menu button.dropdown-toggle').first();
+  await controlButton.click();
+  const href = await page.locator('a[href*="/journal/edit_article"]').first().getAttribute('href');
+  return href;
+}
+'@
+playwright-cli -s=runtime-<issue> run-code "$EDIT_FROM_PAGE"
+```
+
+Checks:
+
+- A click failure mentioning `intercepts pointer events` on `Edita` usually means the
+  control menu, product menu, or sticky header is overlaying the target; do not keep retrying wrapper clicks.
+- If the editor turns publish into a split button or menu-trigger after hydration, treat the
+  visible primary dropdown button, the open menu, and its first publish action as the publish path,
+  even when the trigger label changes by locale.
+- If you still need a text fallback, use it only as a last resort and assume it must vary across locales.
+- Success is the visible published/publicado/publicat alert after the action, not merely opening the publish menu.
 
 ## Page layout mutations
 
