@@ -63,8 +63,8 @@ ldev resource migration-init \
   --templates
 ```
 
-This creates a descriptor file under the configured migrations path. Edit
-it: define the field mapping, decide whether to clean up old fields, list
+This creates a descriptor file under the configured migrations path. Edit it:
+define the field mapping, keep cleanup disabled for the first proof, and list
 the templates to apply.
 
 ## 4. Validate the pipeline without mutating content
@@ -88,8 +88,24 @@ ldev resource migration-pipeline \
   --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json
 ```
 
-The descriptor is the source of truth. If you intend to execute the cleanup
-phase as part of the real run, enable it explicitly:
+The first real proof should keep the legacy fields readable in the structure,
+use mappings with cleanup disabled, and verify the copied values in the new
+shape. If the slow Liferay write path causes client timeouts, increase the
+request timeout:
+
+```bash
+ldev resource migration-pipeline \
+  --liferay-timeout-seconds 300 \
+  --migration-file liferay/resources/journal/migrations/global/MY_STRUCTURE.migration.json
+```
+
+The same timeout can be configured with
+`LIFERAY_CLI_HTTP_TIMEOUT_SECONDS=300` or `liferay.oauth2.timeoutSeconds`.
+Longer timeouts reduce ambiguous recoverable timeouts, but they do not replace
+read-after-write verification.
+
+If you intend to execute cleanup after that proof, get explicit approval and
+run it deliberately:
 
 ```bash
 ldev resource migration-pipeline \
@@ -99,7 +115,8 @@ ldev resource migration-pipeline \
 
 Do not read this as a recommendation to run the pipeline twice in sequence.
 After validation, choose one approved real execution plan and run it
-deliberately with the flags that match.
+deliberately with the flags that match. Do not remove legacy fields, fallback
+template reads, or source values before the copied target values are verified.
 
 ## 6. Verify
 

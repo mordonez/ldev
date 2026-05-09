@@ -719,6 +719,89 @@ describe('structure migration', () => {
       expect(stats.migrated).toBe(1);
       expect(mockGateway.putJson).toHaveBeenCalledTimes(1);
     });
+
+    test('accepts read-back with runtime internal names for repeatable fieldset targets', async () => {
+      tempDir = createTempDir('migration-fieldset-readback-internal-names-');
+      const planPath = path.join(tempDir, 'plan.json');
+
+      await fs.writeJson(planPath, {
+        plan: {
+          mappings: [
+            {source: 'cuerpoDelTexto2', target: 'bloquesTextoDestacados[].cuerpoDelTexto2Repetible'},
+            {source: 'textoDestacado', target: 'bloquesTextoDestacados[].textoDestacadoRepetible'},
+          ],
+        },
+      });
+
+      let persistedFields: Array<Record<string, unknown>> = [
+        {name: 'cuerpoDelTexto2', contentFieldValue: {data: 'body text'}},
+        {name: 'textoDestacado', contentFieldValue: {data: 'highlight'}},
+        {
+          name: 'bloquesTextoDestacados',
+          contentFieldValue: {},
+          nestedContentFields: [
+            {name: 'cuerpoDelTexto2Repetible', contentFieldValue: {data: ''}},
+            {name: 'textoDestacadoRepetible', contentFieldValue: {data: ''}},
+          ],
+        },
+      ];
+
+      const mockGateway = createMigrationGateway({
+        getJson: vi.fn(async (requestPath: string) => {
+          await Promise.resolve();
+          if (requestPath.includes('/o/data-engine/v2.0/data-definitions/struct-123')) {
+            return {
+              dataDefinitionFields: [
+                {
+                  name: 'Fieldset84041664',
+                  customProperties: {fieldReference: 'bloquesTextoDestacados'},
+                  nestedDataDefinitionFields: [
+                    {name: 'Text75852383', customProperties: {fieldReference: 'cuerpoDelTexto2Repetible'}},
+                    {name: 'Text98612061', customProperties: {fieldReference: 'textoDestacadoRepetible'}},
+                  ],
+                },
+              ],
+            };
+          }
+
+          if (requestPath.includes('/content-structures/')) {
+            return {
+              items: [{id: 'content-1', key: 'article-1', contentStructureId: 'struct-123'}],
+              lastPage: 1,
+            };
+          }
+
+          if (requestPath.includes('/structured-contents/content-1')) {
+            return {
+              id: 'content-1',
+              key: 'article-1',
+              contentStructureId: 'struct-123',
+              contentFields: persistedFields,
+            };
+          }
+
+          return {};
+        }),
+        putJson: vi.fn(async (_path: string, payload: {contentFields?: Array<Record<string, unknown>>}) => {
+          await Promise.resolve();
+          persistedFields = payload.contentFields ?? [];
+          return {id: 'content-1'};
+        }),
+      });
+
+      const stats = await runStructureMigration(mockConfig, 'TEST_STRUCTURE', 20121, planPath, {
+        gateway: mockGateway,
+        dryRun: false,
+        cleanupSource: false,
+        fetchStructureByKeyFn: async () => {
+          await Promise.resolve();
+          return {id: 'struct-123', dataDefinitionKey: 'TEST_STRUCTURE'};
+        },
+      });
+
+      expect(stats.migrated).toBe(1);
+      expect(mockGateway.putJson).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('captureMigrationSourceSnapshots', () => {

@@ -178,6 +178,13 @@ describe('smoke help', () => {
     expect(result.stdout).not.toContain('get-structure');
   }, 10000);
 
+  test('resource migration-init --help warns that templates are broad scope', async () => {
+    const result = await runCli(['resource', 'migration-init', '--help'], {cwd: CLI_CWD});
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('--templates');
+    expect(result.stdout).toContain('avoid for data-only migrations');
+  }, 10000);
+
   test('portal inventory --help documents the discovery commands', async () => {
     const result = await runCli(['portal', 'inventory', '--help'], {cwd: CLI_CWD});
     expect(result.exitCode).toBe(0);

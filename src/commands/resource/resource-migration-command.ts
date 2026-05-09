@@ -27,7 +27,10 @@ export function registerResourceMigrationCommand(resource: Command): void {
           '--output <file>',
           'Destination migration descriptor; defaults to paths.migrations/<site>/<structure>.migration.json',
         )
-        .option('--templates', 'Sync templates associated to the structure in migration-pipeline')
+        .option(
+          '--templates',
+          'Sync every template associated to the structure in migration-pipeline; avoid for data-only migrations',
+        )
         .option('--overwrite', 'Overwrite an existing descriptor'),
     run: async (context, options) => {
       return runLiferayResourceMigrationInit(context.config, {

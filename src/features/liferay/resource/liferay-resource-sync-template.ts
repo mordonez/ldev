@@ -9,10 +9,17 @@
  * - formatLiferayResourceSyncTemplate: format result for output
  */
 
+import path from 'node:path';
+
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
-import {resolveSiteToken, resolveTemplateFile} from './liferay-resource-paths.js';
+import {
+  resolveSiteToken,
+  resolveTemplateFile,
+  resolveTemplatesBaseDir,
+  siteTokenToFriendlyUrl,
+} from './liferay-resource-paths.js';
 import {syncArtifact} from './sync-engine.js';
 import {templateSyncStrategy} from './sync-strategies/template-sync-strategy.js';
 
@@ -42,7 +49,7 @@ export async function runLiferayResourceSyncTemplate(
   },
   dependencies?: ResourceSyncDependencies,
 ): Promise<LiferayResourceSyncTemplateResult> {
-  const site = await resolveResourceSite(config, options.site ?? '/global', dependencies);
+  const site = await resolveResourceSite(config, inferTemplateSite(config, options) ?? '/global', dependencies);
 
   // Use SyncEngine with template strategy
   const engineResult = await syncArtifact(
@@ -83,4 +90,43 @@ export function formatLiferayResourceSyncTemplate(result: LiferayResourceSyncTem
     `site=${result.siteFriendlyUrl} (${result.siteId})`,
     `file=${result.templateFile}`,
   ].join('\n');
+}
+
+function inferTemplateSite(
+  config: AppConfig,
+  options: {
+    site?: string;
+    file?: string;
+  },
+): string | undefined {
+  if (options.site?.trim()) {
+    return options.site;
+  }
+
+  const file = options.file?.trim();
+  if (!file) {
+    return undefined;
+  }
+
+  const baseDir = resolveTemplatesBaseDir(config);
+  const candidates = [path.resolve(file)];
+  if (config.repoRoot) {
+    candidates.push(path.resolve(config.repoRoot, file));
+  }
+
+  for (const candidate of candidates) {
+    const relative = path.relative(baseDir, candidate);
+    if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
+      continue;
+    }
+
+    const segments = relative.split(path.sep).filter(Boolean);
+    if (segments.length === 1) {
+      return '/global';
+    }
+
+    return siteTokenToFriendlyUrl(segments[0]);
+  }
+
+  return undefined;
 }

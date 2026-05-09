@@ -16,6 +16,8 @@ import type {ResolvedSite} from '../../portal/site-resolution.js';
 import {resolveStructureFile} from '../liferay-resource-paths.js';
 import {
   buildTransitionPayload,
+  collectDuplicateFieldIdentities,
+  collectFieldShapeChanges,
   collectFieldReferences,
   extractStructureShapeSignature,
   removeExternalReferenceCode,
@@ -75,6 +77,12 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     try {
       const filePath = await resolveStructureFile(config, opts.key, opts.file);
       const payload = await readJsonRecord(filePath);
+      const duplicateFieldIdentities = collectDuplicateFieldIdentities(payload);
+      if (duplicateFieldIdentities.length > 0) {
+        throw LiferayErrors.resourceError(
+          `Invalid structure ${opts.key}: field references/names must be unique. Duplicate field identifier(s): ${duplicateFieldIdentities.join(', ')}.`,
+        );
+      }
       const normalizedContent = JSON.stringify(payload);
 
       return {
@@ -137,11 +145,26 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     const removedFieldReferences = remoteArtifact
       ? [...setDifference(remoteArtifact.data.existingFieldRefs, payloadFieldRefs)]
       : [];
+    const changedFieldShapes = remoteArtifact
+      ? collectFieldShapeChanges(remoteArtifact.data.runtimeDefinition, payload)
+      : [];
 
     // Breaking-change guard
-    if (removedFieldReferences.length > 0 && !opts.migrationPlan && !opts.allowBreakingChange) {
+    if (
+      (removedFieldReferences.length > 0 || changedFieldShapes.length > 0) &&
+      !opts.migrationPlan &&
+      !opts.allowBreakingChange
+    ) {
+      const reasons = [
+        ...(removedFieldReferences.length > 0
+          ? [`removes ${removedFieldReferences.length} field(s) ${removedFieldReferences.join(', ')}`]
+          : []),
+        ...(changedFieldShapes.length > 0
+          ? [`changes the shape of existing field(s) ${changedFieldShapes.join(', ')}`]
+          : []),
+      ];
       throw LiferayErrors.resourceBreakingChange(
-        `Blocked change: the structure removes ${removedFieldReferences.length} field(s) ${removedFieldReferences.join(', ')}. Define --migration-plan or use --allow-breaking-change.`,
+        `Blocked change: the structure ${reasons.join(' and ')}. Define --migration-plan or use --allow-breaking-change.`,
       );
     }
 
@@ -214,7 +237,10 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     }
 
     const runtimeId = remoteArtifact.data.structureId;
-    const autoTransition = opts.migrationPlan && phase === 'post' && removedFieldReferences.length > 0;
+    const autoTransition =
+      opts.migrationPlan &&
+      shouldRunPostMigration(phase) &&
+      (removedFieldReferences.length > 0 || changedFieldShapes.length > 0);
 
     if (autoTransition) {
       const sourceSnapshots = await captureMigrationSourceSnapshots(config, runtimeId, site.id, opts.migrationPlan!, {
@@ -415,8 +441,8 @@ async function pollStructureUpdateRecovery(
   previousRuntimeDefinition: StructureDefinitionPayload,
   sleepImpl: (ms: number) => Promise<void>,
 ): Promise<StructureDefinitionPayload | null> {
-  const maxAttempts = 4;
-  const retryDelayMs = 1500;
+  const maxAttempts = 20;
+  const retryDelayMs = 3000;
   const expectedShape = extractStructureShapeSignature(payload);
   const previousShape = extractStructureShapeSignature(previousRuntimeDefinition);
 
