@@ -153,9 +153,15 @@ Rebuild and deploy a theme.
 ```bash
 ldev deploy theme
 ldev deploy theme --theme my-custom-theme
+ldev deploy theme --format json
 ```
 
 Default `--theme` is `ub-theme`.
+
+In JSON output, `ok: true` means the theme artifact was prepared and copied.
+Use `runtimeRefreshed` to know whether the running portal was hot-deployed. If
+`runtimeActionRequired` is set, run that command before treating the browser
+runtime as updated.
 
 ### `ldev deploy service`
 

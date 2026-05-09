@@ -26,6 +26,7 @@ export type DeployThemeResult = {
   cacheDir: string;
   targetCommit: string;
   runtimeRefreshed: boolean;
+  runtimeActionRequired: string | null;
 };
 
 export async function runDeployTheme(
@@ -60,18 +61,20 @@ export async function runDeployTheme(
     cacheDir: cache.cacheDir,
     targetCommit,
     runtimeRefreshed: hotDeploy.hotDeployed,
+    runtimeActionRequired: hotDeploy.hotDeployed ? null : 'Run ldev env restart before treating the theme as live.',
   };
 }
 
 export function formatDeployTheme(result: DeployThemeResult): string {
   return [
-    `Deployed theme: ${result.theme}`,
+    `Theme artifacts prepared: ${result.theme}`,
     `Artifacts in build/docker/deploy: ${result.artifactsCopiedToBuild}`,
-    `Hot deployed to running Liferay: ${result.hotDeployed ? `yes (${result.artifactsHotDeployed})` : 'no'}`,
+    `Runtime hot deploy: ${result.hotDeployed ? `succeeded (${result.artifactsHotDeployed})` : 'not refreshed'}`,
     ...(result.hotDeployReason ? [`Hot deploy reason: ${result.hotDeployReason}`] : []),
     ...(result.hotDeployTarget ? [`Hot deploy target: ${result.hotDeployTarget}`] : []),
     `Artifacts in cache: ${result.artifactsCopiedToCache}`,
     `Runtime refreshed: ${result.runtimeRefreshed ? 'yes' : 'no'}`,
+    ...(result.runtimeActionRequired ? [`Runtime action required: ${result.runtimeActionRequired}`] : []),
     `Prepared commit: ${result.targetCommit}`,
   ].join('\n');
 }
