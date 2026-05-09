@@ -1,6 +1,8 @@
 import {h} from 'preact';
 
 export function Maintenance({maintenance, onApply, onPreview, onSetDays}) {
+  const protectedWorktrees = Array.isArray(maintenance.protected) ? maintenance.protected : [];
+
   return (
     <div class="maintenance">
       <div class="maintenance-header">
@@ -22,13 +24,27 @@ export function Maintenance({maintenance, onApply, onPreview, onSetDays}) {
         <div class="maintenance-empty">Loading maintenance preview...</div>
       ) : maintenance.error ? (
         <div class="maintenance-empty">Error: {maintenance.error}</div>
-      ) : maintenance.candidates.length ? (
-        <div class="maintenance-list">
-          {maintenance.candidates.map((candidate) => (
-            <span class="maintenance-chip" key={candidate}>
-              {candidate}
-            </span>
-          ))}
+      ) : maintenance.candidates.length || protectedWorktrees.length ? (
+        <div class="maintenance-results">
+          {maintenance.candidates.length ? (
+            <div class="maintenance-results">
+              <div class="maintenance-warning maintenance-warning-danger">
+                <strong>Apply GC removes the listed worktree directories and local runtime data.</strong> Local branches are kept.
+              </div>
+              <div class="maintenance-list">
+                {maintenance.candidates.map((candidate) => (
+                  <span class="maintenance-chip" key={candidate}>
+                    {candidate}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {protectedWorktrees.length ? (
+            <div class="maintenance-warning">
+              <strong>Protected from GC:</strong> {protectedWorktrees.join(', ')} have uncommitted, staged, or untracked changes.
+            </div>
+          ) : null}
         </div>
       ) : (
         <div class="maintenance-empty">No stale worktrees found.</div>

@@ -44,7 +44,13 @@ type PreviewOperationRunner = (operation: DashboardOperation, deps: DashboardOpe
 const QUEUED_OPERATION_RUNNERS: Partial<Record<DashboardOperationKey, QueuedOperationRunner>> = {
   'repo-doctor': (_operation, deps, printer) => runDoctorOperation(deps.worktrees, undefined, printer),
   'worktree-delete': (operation, deps, printer) =>
-    runWorktreeDelete(deps.cwd, deps.worktrees, requireWorktreeName(operation), printer),
+    runWorktreeDelete(
+      deps.cwd,
+      deps.worktrees,
+      requireWorktreeName(operation),
+      Boolean(operation.deleteBranch),
+      printer,
+    ),
   'worktree-deploy': (operation, deps, printer) =>
     runDeployOperation(deps.worktrees, requireWorktreeName(operation), operation.deployAction!, printer),
   'worktree-doctor': (operation, deps, printer) => runDoctorOperation(deps.worktrees, operation.worktreeName, printer),
@@ -187,6 +193,7 @@ async function runWorktreeDelete(
   cwd: string,
   resolver: DashboardWorktreeResolver,
   worktreeName: string,
+  deleteBranch: boolean,
   printer?: Printer,
 ): Promise<void> {
   const mainRepoRoot = path.resolve(cwd);
@@ -199,7 +206,7 @@ async function runWorktreeDelete(
     throw new Error('Cannot delete the main worktree');
   }
 
-  await runWorktreeClean({cwd, name: worktreeName, force: true, printer});
+  await runWorktreeClean({cwd, name: worktreeName, force: true, deleteBranch, printer});
 }
 
 async function runWorktreeEnvInit(

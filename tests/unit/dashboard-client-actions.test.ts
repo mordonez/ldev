@@ -1,6 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
 import {
+  buildDeleteWorktreeUrl,
+  normalizeDeleteBranchCandidate,
+} from '../../src/features/dashboard/client/lib/dashboard-action-utils';
+import {
   actionKind,
   actionUrl,
   previewUrl,
@@ -37,5 +41,16 @@ describe('dashboard client actions', () => {
     ]);
     expect(primaryActionForWorktree({env: {}}, false, true)).toEqual(['start', 'btn-start', 'Start']);
     expect(primaryActionForWorktree({env: {}}, true, false)).toEqual(['doctor', 'btn-ghost', 'Diagnose']);
+  });
+
+  test('builds the delete worktree URL with optional branch deletion', () => {
+    expect(buildDeleteWorktreeUrl('feature/demo', false)).toBe('/api/worktrees/feature%2Fdemo');
+    expect(buildDeleteWorktreeUrl('feature/demo', true)).toBe('/api/worktrees/feature%2Fdemo?deleteBranch=true');
+  });
+
+  test('normalizes the branch candidate shown in the delete modal', () => {
+    expect(normalizeDeleteBranchCandidate(' fix/feature-demo ')).toBe('fix/feature-demo');
+    expect(normalizeDeleteBranchCandidate('HEAD detached')).toBeNull();
+    expect(normalizeDeleteBranchCandidate('   ')).toBeNull();
   });
 });

@@ -6,14 +6,24 @@ export function CreateModal({data, isOpen, onClose, onSubmit}) {
   const [form, setForm] = useState({
     name: '',
     baseRef: '',
+    startAfterCreate: true,
     withEnv: true,
+    installMcp: true,
     stopMainForClone: true,
     restartMainAfterClone: false,
   });
 
   useEffect(() => {
     if (isOpen) {
-      setForm({name: '', baseRef: mainBranch, withEnv: true, stopMainForClone: true, restartMainAfterClone: false});
+      setForm({
+        name: '',
+        baseRef: mainBranch,
+        startAfterCreate: true,
+        withEnv: true,
+        installMcp: true,
+        stopMainForClone: true,
+        restartMainAfterClone: false,
+      });
     }
   }, [isOpen, mainBranch]);
 
@@ -48,7 +58,9 @@ export function CreateModal({data, isOpen, onClose, onSubmit}) {
               <input placeholder="HEAD (optional)" value={form.baseRef} onInput={(event) => update('baseRef', event.currentTarget.value)} />
             </div>
             {[
+              ['startAfterCreate', 'Start the worktree environment when creation finishes'],
               ['withEnv', 'Prepare an isolated local environment for this worktree'],
+              ['installMcp', 'Install ldev MCP client configs in the new worktree'],
               ['stopMainForClone', 'Stop the main environment during non-Btrfs state cloning when needed'],
               ['restartMainAfterClone', 'Restart the main environment after cloning so both runtimes can keep running'],
             ].map(([key, label]) => (

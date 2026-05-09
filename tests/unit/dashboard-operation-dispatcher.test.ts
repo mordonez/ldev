@@ -48,8 +48,15 @@ describe('matchQueuedDashboardOperation', () => {
     expect(matchQueuedDashboardOperation('DELETE', '/api/worktrees/demo')).toMatchObject({
       action: 'delete',
       key: 'worktree-delete',
-      response: {deleted: 'demo'},
+      deleteBranch: false,
+      response: {deleted: 'demo', deleteBranch: false},
       taskKind: 'worktree-delete',
+    });
+
+    expect(matchQueuedDashboardOperation('DELETE', '/api/worktrees/demo?deleteBranch=true')).toMatchObject({
+      action: 'delete',
+      deleteBranch: true,
+      response: {deleted: 'demo', deleteBranch: true},
     });
   });
 

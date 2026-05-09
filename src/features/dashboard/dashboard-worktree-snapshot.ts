@@ -55,13 +55,18 @@ export async function collectDashboardWorktrees(
   const worktrees = await listDashboardWorktreeRefs(cwd);
   const includeGit = options?.includeGit === true;
   const includeRuntimeDetails = options?.includeRuntimeDetails === true;
+  const aheadBehindBaseCandidates = buildAheadBehindBaseCandidates(
+    worktrees.find((info) => info.isMain)?.branch ?? worktrees[0]?.branch,
+  );
 
   return Promise.all(
     worktrees.map(async (info) => {
       const [env, {commits, changedFiles, changedPaths}, aheadBehind] = await Promise.all([
         collectWorktreeEnv(info.path, {includeRuntimeDetails}),
-        includeGit ? collectWorktreeGit(info.path) : Promise.resolve({commits: [], changedFiles: 0, changedPaths: []}),
-        includeGit && !info.isMain ? collectAheadBehind(info.path) : Promise.resolve(null),
+        includeGit
+          ? collectWorktreeGit(info.path, info.isMain ? undefined : aheadBehindBaseCandidates)
+          : Promise.resolve({commits: [], changedFiles: 0, changedPaths: []}),
+        includeGit && !info.isMain ? collectAheadBehind(info.path, aheadBehindBaseCandidates) : Promise.resolve(null),
       ]);
 
       return {
@@ -134,13 +139,18 @@ async function collectWorktreeEnv(
   }
 }
 
-async function collectWorktreeGit(worktreePath: string): Promise<{
+async function collectWorktreeGit(
+  worktreePath: string,
+  baseCandidates?: string[],
+): Promise<{
   commits: DashboardGitCommit[];
   changedFiles: number;
   changedPaths: string[];
 }> {
+  const base = baseCandidates ? await resolveFirstExistingBase(worktreePath, baseCandidates) : null;
+  const logRef = base ? `${base}..HEAD` : 'HEAD';
   const [logResult, statusResult] = await Promise.all([
-    runProcess('git', ['log', '--format=%H\t%s\t%ci', '-8', 'HEAD'], {cwd: worktreePath, reject: false}),
+    runProcess('git', ['log', '--format=%H\t%s\t%ci', '-8', logRef], {cwd: worktreePath, reject: false}),
     runProcess('git', ['status', '--porcelain'], {cwd: worktreePath, reject: false}),
   ]);
 
@@ -170,10 +180,38 @@ async function collectWorktreeGit(worktreePath: string): Promise<{
   return {commits, changedFiles: changedPaths.length, changedPaths};
 }
 
-async function collectAheadBehind(worktreePath: string): Promise<DashboardAheadBehind | null> {
-  for (const base of ['origin/main', 'main', 'origin/master', 'master']) {
+function buildAheadBehindBaseCandidates(primaryBranch: string | null | undefined): string[] {
+  const candidates = primaryBranch ? [primaryBranch, `origin/${primaryBranch}`] : [];
+
+  for (const fallback of ['main', 'origin/main', 'master', 'origin/master']) {
+    if (!candidates.includes(fallback)) {
+      candidates.push(fallback);
+    }
+  }
+
+  return candidates;
+}
+
+async function resolveFirstExistingBase(worktreePath: string, baseCandidates: string[]): Promise<string | null> {
+  for (const base of baseCandidates) {
     const check = await runProcess('git', ['rev-parse', '--verify', base], {cwd: worktreePath, reject: false});
-    if (!check.ok) continue;
+    if (check.ok) {
+      return base;
+    }
+  }
+
+  return null;
+}
+
+async function collectAheadBehind(
+  worktreePath: string,
+  baseCandidates: string[],
+): Promise<DashboardAheadBehind | null> {
+  for (const base of baseCandidates) {
+    const check = await runProcess('git', ['rev-parse', '--verify', base], {cwd: worktreePath, reject: false});
+    if (!check.ok) {
+      continue;
+    }
 
     const [aResult, bResult] = await Promise.all([
       runProcess('git', ['rev-list', '--count', `${base}..HEAD`], {cwd: worktreePath, reject: false}),

@@ -1,5 +1,5 @@
 import {Fragment, h, render} from 'preact';
-import {useMemo, useState} from 'preact/hooks';
+import {useMemo, useRef, useState} from 'preact/hooks';
 
 import {Activity} from './components/activity.jsx';
 import {CreateModal} from './components/create-modal.jsx';
@@ -14,56 +14,93 @@ import './styles.css';
 
 function App() {
   const [showCreate, setShowCreate] = useState(false);
+  const modalOpenRef = useRef(false);
   const {
     activeFilter,
     activityCollapsed,
+    activityTasks,
     cardSections,
     cancelTask,
     countdown,
     data,
+    dismissCompletedTasks,
+    dismissTask,
     error,
     fetchMaintenance,
     fetchStatus,
+    dismissedTaskCount,
     maintenance,
     postJson,
+    restoreDismissedTasks,
     searchQuery,
     setFilter,
     setMaintenance,
     setSearch,
     setSection,
     showToast,
+    taskCollapsed,
     tasks,
     toast,
     toggleActivity,
-  } = useDashboardSession();
+    toggleTaskCollapsed,
+  } = useDashboardSession({isRefreshPaused: () => modalOpenRef.current});
   const actions = useDashboardActions({fetchStatus, postJson, showToast});
 
   const worktrees = useMemo(() => (data?.worktrees || []).slice().sort((a, b) => priority(a) - priority(b) || a.name.localeCompare(b.name)), [data]);
   const counts = useMemo(() => Object.fromEntries(FILTERS.map(([key]) => [key, worktrees.filter((wt) => matchesFilter(wt, key)).length])), [worktrees]);
   const visible = worktrees.filter((wt) => matchesFilter(wt, activeFilter) && matchesSearch(wt, searchQuery.toLowerCase()));
-  const refreshLabel = error ? 'Error' : data ? `Updated ${new Date(data.refreshedAt).toLocaleTimeString()} - ${countdown}s` : '-';
+  const modalOpen = showCreate || actions.hasOpenModal;
+  modalOpenRef.current = modalOpen;
+  const refreshLabel = error
+    ? 'Error'
+    : modalOpen
+      ? 'Refresh paused while modal is open'
+      : data
+        ? `Updated ${new Date(data.refreshedAt).toLocaleTimeString()} - ${countdown}s`
+        : '-';
 
   return (
     <Fragment>
-      <Header cwd={data?.cwd || ''} onDiagnose={() => actions.openDoctor(null)} onNew={() => setShowCreate(true)} onRefresh={fetchStatus} refreshLabel={refreshLabel} />
+      <Header cwd={data?.cwd || ''} onDiagnose={() => actions.openDoctor(null)} onNew={() => setShowCreate(true)} onRefresh={fetchStatus} refreshLabel={refreshLabel} refreshPaused={modalOpen} />
       <main>
         <div class="layout">
-          <section>
+          <section class="dashboard-main">
             {error ? <div class="error-msg">Error: {error}</div> : null}
             {!data && !error ? <div class="center">Loading dashboard...</div> : null}
             {data ? (
               <div class="dashboard-stack">
                 <Toolbar activeFilter={activeFilter} counts={counts} onFilter={setFilter} onSearch={setSearch} query={searchQuery} total={worktrees.length} visible={visible.length} />
-                <Maintenance maintenance={maintenance} onApply={(days) => postJson('/api/maintenance/worktrees/gc', {days, apply: true}).then(() => showToast('Queued: maintenance GC'))} onPreview={fetchMaintenance} onSetDays={(days) => setMaintenance((current) => ({...current, days}))} />
+                <Maintenance
+                  maintenance={maintenance}
+                  onApply={(days) => {
+                    if (!window.confirm('Apply GC will permanently remove the listed worktree directories and local runtime data. Local branches are kept.')) {
+                      return;
+                    }
+                    return postJson('/api/maintenance/worktrees/gc', {days, apply: true}).then(() => showToast('Queued: maintenance GC'));
+                  }}
+                  onPreview={fetchMaintenance}
+                  onSetDays={(days) => setMaintenance((current) => ({...current, days}))}
+                />
                 <WorktreeGrid actions={actions} cardSections={cardSections} setSection={setSection} tasks={tasks} visible={visible} />
               </div>
             ) : null}
           </section>
-          <Activity collapsed={activityCollapsed} onCancel={cancelTask} onToggle={toggleActivity} tasks={tasks} />
+          <Activity
+            collapsed={activityCollapsed}
+            hiddenCount={dismissedTaskCount}
+            onCancel={cancelTask}
+            onClearDone={dismissCompletedTasks}
+            onDismiss={dismissTask}
+            onRestoreHidden={restoreDismissedTasks}
+            onToggle={toggleActivity}
+            onToggleTask={toggleTaskCollapsed}
+            taskCollapsed={taskCollapsed}
+            tasks={activityTasks}
+          />
         </div>
       </main>
       <div class={classNames('toast', toast && 'visible')}>{toast}</div>
-      <CreateModal data={data} isOpen={showCreate} onClose={() => setShowCreate(false)} onSubmit={(form) => postJson('/api/worktrees', form).then(() => { setShowCreate(false); showToast(`Queued: create ${form.name}`); })} />
+      <CreateModal data={data} isOpen={showCreate} onClose={() => setShowCreate(false)} onSubmit={(form) => postJson('/api/worktrees', form).then(() => { setShowCreate(false); showToast(form.startAfterCreate ? `Queued: create ${form.name} and start` : `Queued: create ${form.name}`); })} />
       <DashboardActionModals actions={actions} postJson={postJson} showToast={showToast} />
     </Fragment>
   );

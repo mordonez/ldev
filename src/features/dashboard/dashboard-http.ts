@@ -56,6 +56,7 @@ export function getContentType(filePath: string): string {
   if (ext === '.css') return 'text/css; charset=utf-8';
   if (ext === '.js') return 'text/javascript; charset=utf-8';
   if (ext === '.html') return 'text/html; charset=utf-8';
+  if (ext === '.svg') return 'image/svg+xml';
   if (ext === '.map' || ext === '.json') return 'application/json; charset=utf-8';
   return 'application/octet-stream';
 }

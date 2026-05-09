@@ -21,6 +21,7 @@ const runEnvStopMock = vi.fn();
 const runMcpDoctorMock = vi.fn();
 const runMcpSetupMock = vi.fn();
 const runOAuthInstallMock = vi.fn();
+const runWorktreeCleanMock = vi.fn();
 const runWorktreeSetupMock = vi.fn();
 const runWorktreeEnvMock = vi.fn();
 const runDbDownloadMock = vi.fn();
@@ -69,6 +70,7 @@ vi.mock('../../src/core/runtime/env-health.js', () => ({
 }));
 
 vi.mock('../../src/features/env/env-start.js', () => ({
+  formatEnvStart: vi.fn(() => 'Environment started'),
   runEnvStart: runEnvStartMock,
 }));
 
@@ -77,10 +79,11 @@ vi.mock('../../src/features/env/env-stop.js', () => ({
 }));
 
 vi.mock('../../src/features/worktree/worktree-clean.js', () => ({
-  runWorktreeClean: vi.fn(),
+  runWorktreeClean: runWorktreeCleanMock,
 }));
 
 vi.mock('../../src/features/worktree/worktree-setup.js', () => ({
+  formatWorktreeSetup: vi.fn(() => 'Worktree setup OK'),
   runWorktreeSetup: runWorktreeSetupMock,
 }));
 
@@ -187,13 +190,21 @@ type CreateWorktreeOptions = {
   stopMainForClone: boolean;
   restartMainAfterClone: boolean;
   stopEnv: unknown;
-  startEnv: unknown;
+  startEnv: (config: unknown, options?: {wait?: boolean}) => Promise<unknown>;
   printer: unknown;
 };
 
 type WorktreeEnvOptions = {
   cwd: string;
   printer: unknown;
+};
+
+type WorktreeCleanOptions = {
+  cwd: string;
+  deleteBranch: boolean;
+  force: boolean;
+  name: string;
+  printer?: unknown;
 };
 
 type DbOptions = {
@@ -214,6 +225,10 @@ type WorktreeGcOptions = {
   processEnv: NodeJS.ProcessEnv;
   printer?: unknown;
 };
+
+function asCreateWorktreeOptions(value: unknown): CreateWorktreeOptions | undefined {
+  return value as CreateWorktreeOptions | undefined;
+}
 
 async function readJson<T>(response: Response): Promise<T> {
   return (await response.json()) as T;
@@ -319,6 +334,19 @@ describe('createDashboardServer', () => {
       mainEnvStoppedForClone: boolean;
       mainEnvRestartedAfterClone: boolean;
     }) => void;
+    loadConfigMock.mockReturnValue({
+      cwd: '/repo/.worktrees/issue-42',
+      repoRoot: '/repo/.worktrees/issue-42',
+      dockerDir: '/repo/.worktrees/issue-42/docker',
+      liferayDir: '/repo/.worktrees/issue-42/liferay',
+    });
+    runEnvStartMock.mockResolvedValue({
+      ok: true,
+      dockerDir: '/repo/.worktrees/issue-42/docker',
+      portalUrl: 'http://localhost:8080',
+      waitedForHealth: false,
+      activationKeyFile: null,
+    });
     runWorktreeSetupMock.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -365,7 +393,7 @@ describe('createDashboardServer', () => {
     expect(completedPayload.tasks[0]).toMatchObject({status: 'succeeded'});
     expect(runWorktreeSetupMock).toHaveBeenCalledTimes(1);
 
-    const options = runWorktreeSetupMock.mock.calls[0]?.[0] as CreateWorktreeOptions | undefined;
+    const options = asCreateWorktreeOptions(runWorktreeSetupMock.mock.calls[0]?.[0]);
     expect(options).toBeDefined();
     expect(options).toMatchObject({
       cwd: '/repo',
@@ -378,6 +406,135 @@ describe('createDashboardServer', () => {
     expect(options?.stopEnv).toEqual(expect.any(Function));
     expect(options?.startEnv).toEqual(expect.any(Function));
     expect(options?.printer).toEqual(expect.anything());
+    expect(runMcpSetupMock).toHaveBeenCalledWith({
+      targetDir: '/repo/.worktrees/issue-42',
+      tool: 'all',
+    });
+    expect(loadConfigMock).toHaveBeenCalledWith({cwd: '/repo/.worktrees/issue-42', env: process.env});
+    expect(runEnvStartMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/issue-42'}),
+      expect.objectContaining({wait: false}),
+    );
+  });
+
+  test('can skip MCP setup when creating a worktree from the dashboard API', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-45',
+      worktreeDir: '/repo/.worktrees/issue-45',
+      branch: 'fix/issue-45',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: false,
+      mainEnvRestartedAfterClone: false,
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-45',
+      installMcp: false,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runWorktreeSetupMock).toHaveBeenCalledTimes(1);
+    expect(runMcpSetupMock).not.toHaveBeenCalled();
+  });
+
+  test('can skip auto-start when creating a worktree from the dashboard API', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-46',
+      worktreeDir: '/repo/.worktrees/issue-46',
+      branch: 'fix/issue-46',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: false,
+      mainEnvRestartedAfterClone: false,
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-46',
+      startAfterCreate: false,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runEnvStartMock).not.toHaveBeenCalled();
+  });
+
+  test('waits for main environment restart when requested from worktree creation', async () => {
+    runEnvStartMock.mockResolvedValue({ok: true});
+    runWorktreeSetupMock.mockImplementation(async (options: CreateWorktreeOptions) => {
+      await options.startEnv({repoRoot: '/repo'}, {wait: false});
+      return {
+        ok: true,
+        worktreeName: 'issue-43',
+        worktreeDir: '/repo/.worktrees/issue-43',
+        branch: 'fix/issue-43',
+        reused: false,
+        envPrepared: true,
+        mainEnvStoppedForClone: true,
+        mainEnvRestartedAfterClone: true,
+      };
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-43',
+      withEnv: true,
+      stopMainForClone: true,
+      restartMainAfterClone: true,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const setupOptions = runWorktreeSetupMock.mock.calls[0]?.[0] as CreateWorktreeOptions | undefined;
+    expect(setupOptions).toEqual(expect.objectContaining({restartMainAfterClone: true}));
+    expect(setupOptions?.startEnv).toEqual(expect.any(Function));
+    expect(runEnvStartMock).toHaveBeenCalledWith({repoRoot: '/repo'}, {wait: true});
+  });
+
+  test('fails the dashboard task when requested main restart does not complete', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-44',
+      worktreeDir: '/repo/.worktrees/issue-44',
+      branch: 'fix/issue-44',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: true,
+      mainEnvRestartedAfterClone: false,
+      mainRestartError: 'docker unavailable',
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-44',
+      withEnv: true,
+      stopMainForClone: true,
+      restartMainAfterClone: true,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    const taskPayload = await readJson<{
+      tasks: Array<{status: string; logs: Array<{level: string; message: string}>}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks[0]?.status).toBe('failed');
+    expect(taskPayload.tasks[0]?.logs).toEqual(
+      expect.arrayContaining([expect.objectContaining({level: 'error', message: 'docker unavailable'})]),
+    );
   });
 
   test('serves full dashboard status with git and runtime details enabled', async () => {
@@ -524,6 +681,45 @@ describe('createDashboardServer', () => {
     const initOptions = runWorktreeEnvMock.mock.calls[0]?.[0] as WorktreeEnvOptions | undefined;
     expect(initOptions?.cwd).toBe('/repo/.worktrees/pw-430');
     expect(initOptions?.printer).toBeTruthy();
+  });
+
+  test('queues worktree deletion with optional local branch deletion', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    runWorktreeCleanMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'pw-430',
+      worktreeDir: '/repo/.worktrees/pw-430',
+      branchDeleted: true,
+      dataRootsDeleted: [],
+      dataRootsSkipped: [],
+      doclibVolumesRemoved: [],
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/pw-430?deleteBranch=true`, {
+      method: 'DELETE',
+    });
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      deleted: 'pw-430',
+      deleteBranch: true,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const cleanOptions = runWorktreeCleanMock.mock.calls[0]?.[0] as WorktreeCleanOptions | undefined;
+    expect(cleanOptions).toMatchObject({
+      cwd: '/repo',
+      name: 'pw-430',
+      force: true,
+      deleteBranch: true,
+    });
+    expect(cleanOptions?.printer).toBeTruthy();
   });
 
   test('deduplicates repeated start requests for the same worktree while the action is still running', async () => {

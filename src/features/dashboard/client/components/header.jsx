@@ -1,6 +1,6 @@
 import {h} from 'preact';
 
-export function Header({cwd, onDiagnose, onNew, onRefresh, refreshLabel}) {
+export function Header({cwd, onDiagnose, onNew, onRefresh, refreshLabel, refreshPaused}) {
   return (
     <header>
       <div class="logo">
@@ -15,7 +15,7 @@ export function Header({cwd, onDiagnose, onNew, onRefresh, refreshLabel}) {
         + New worktree
       </button>
       <span class="refresh-pill">{refreshLabel}</span>
-      <button class="refresh-btn" type="button" onClick={onRefresh}>
+      <button class="refresh-btn" disabled={refreshPaused} type="button" onClick={onRefresh}>
         Refresh
       </button>
     </header>

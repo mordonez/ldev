@@ -118,15 +118,29 @@ describe('collectDashboardStatus', () => {
   });
 
   test('includes changed file paths and full runtime details when requested', async () => {
-    runProcessMock
-      .mockResolvedValueOnce({ok: true, stdout: 'abc12345\tMain commit\t2026-05-04 10:00:00 +0000\n', stderr: ''})
-      .mockResolvedValueOnce({
+    runProcessMock.mockImplementation((_command: string, args: string[]) => {
+      if (args[0] === 'log') {
+        return Promise.resolve({ok: true, stdout: 'abc12345\tMain commit\t2026-05-04 10:00:00 +0000\n', stderr: ''});
+      }
+
+      if (args[0] === 'status') {
+        return Promise.resolve({
+          ok: true,
+          stdout: ' M src/features/dashboard/dashboard-html.ts\nA  docs/workflows/dashboard.md\n',
+          stderr: '',
+        });
+      }
+
+      if (args[0] === 'rev-parse') {
+        return Promise.resolve({ok: true, stdout: '', stderr: ''});
+      }
+
+      return Promise.resolve({
         ok: true,
-        stdout: ' M src/features/dashboard/dashboard-html.ts\nA  docs/workflows/dashboard.md\n',
+        stdout: '1',
         stderr: '',
-      })
-      .mockResolvedValueOnce({ok: true, stdout: '2', stderr: ''})
-      .mockResolvedValueOnce({ok: true, stdout: '1', stderr: ''});
+      });
+    });
 
     const status = await collectDashboardStatus('/repo/.worktrees/pw-430', {
       includeGit: true,
@@ -141,6 +155,33 @@ describe('collectDashboardStatus', () => {
     ]);
     expect(collectEnvStatusMock).toHaveBeenCalledTimes(1);
     expect(collectEnvRuntimeSummaryMock).not.toHaveBeenCalled();
+  });
+
+  test('compares worktree ahead/behind against the active primary checkout branch', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'feat/ldev', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    runProcessMock.mockResolvedValue({ok: true, stdout: '', stderr: ''});
+
+    await collectDashboardStatus('/repo', {includeGit: true});
+
+    expect(runProcessMock).toHaveBeenCalledWith('git', ['rev-parse', '--verify', 'feat/ldev'], {
+      cwd: '/repo/.worktrees/pw-430',
+      reject: false,
+    });
+    expect(runProcessMock).toHaveBeenCalledWith('git', ['log', '--format=%H\t%s\t%ci', '-8', 'feat/ldev..HEAD'], {
+      cwd: '/repo/.worktrees/pw-430',
+      reject: false,
+    });
+    expect(runProcessMock).toHaveBeenCalledWith('git', ['rev-list', '--count', 'feat/ldev..HEAD'], {
+      cwd: '/repo/.worktrees/pw-430',
+      reject: false,
+    });
+    expect(runProcessMock).toHaveBeenCalledWith('git', ['rev-list', '--count', 'HEAD..feat/ldev'], {
+      cwd: '/repo/.worktrees/pw-430',
+      reject: false,
+    });
   });
 
   test('returns a structured env error when runtime inspection fails', async () => {

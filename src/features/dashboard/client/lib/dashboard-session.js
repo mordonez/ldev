@@ -1,9 +1,10 @@
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks';
 
-import {changedTaskState, mergeTask} from './tasks.ts';
+import {changedTaskState, isActiveTask, isTaskCollapsed, mergeTask, reconcileTaskViewState} from './tasks.ts';
 import {readPrefs, writePrefs} from './preferences.js';
 
-export function useDashboardSession() {
+export function useDashboardSession(options = {}) {
+  const isRefreshPaused = typeof options.isRefreshPaused === 'function' ? options.isRefreshPaused : () => false;
   const prefs = useMemo(readPrefs, []);
   const [activeFilter, setActiveFilterState] = useState(prefs.activeFilter || 'all');
   const [activityCollapsed, setActivityCollapsedState] = useState(prefs.activityCollapsed ?? true);
@@ -11,10 +12,13 @@ export function useDashboardSession() {
   const [countdown, setCountdown] = useState(20);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
-  const [maintenance, setMaintenance] = useState({days: 7, candidates: [], loading: false, error: null});
+  const [maintenance, setMaintenance] = useState({days: 7, candidates: [], protected: [], loading: false, error: null});
   const [searchQuery, setSearchQueryState] = useState(prefs.searchQuery || '');
   const [tasks, setTasks] = useState([]);
   const [toast, setToast] = useState('');
+  const [dismissedTaskIds, setDismissedTaskIds] = useState([]);
+  const [collapsedTaskIds, setCollapsedTaskIds] = useState({});
+  const pendingStatusRefresh = useRef(false);
   const previousTasks = useRef([]);
   const toastTimer = useRef(null);
 
@@ -50,9 +54,9 @@ export function useDashboardSession() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
-      setMaintenance({days, candidates: body.candidates || [], loading: false, error: null});
+      setMaintenance({days, candidates: body.candidates || [], protected: body.protected || [], loading: false, error: null});
     } catch (err) {
-      setMaintenance({days, candidates: [], loading: false, error: String(err.message || err)});
+      setMaintenance({days, candidates: [], protected: [], loading: false, error: String(err.message || err)});
     }
   };
 
@@ -74,13 +78,32 @@ export function useDashboardSession() {
     return body;
   };
 
+  const requestStatusRefresh = () => {
+    if (isRefreshPaused()) {
+      pendingStatusRefresh.current = true;
+      return;
+    }
+
+    pendingStatusRefresh.current = false;
+    void fetchStatus();
+  };
+
+  useEffect(() => {
+    if (!isRefreshPaused() && pendingStatusRefresh.current) {
+      pendingStatusRefresh.current = false;
+      void fetchStatus();
+    }
+  });
+
   useEffect(() => {
     void fetchStatus();
     void fetchMaintenance(7);
     const source = new EventSource('/api/tasks/stream');
     source.onmessage = (event) => {
       const next = JSON.parse(event.data).tasks || [];
-      if (changedTaskState(previousTasks.current, next)) void fetchStatus();
+      if (changedTaskState(previousTasks.current, next)) {
+        requestStatusRefresh();
+      }
       previousTasks.current = next;
       setTasks(next);
     };
@@ -90,7 +113,7 @@ export function useDashboardSession() {
     const timer = setInterval(() => {
       setCountdown((current) => {
         if (current <= 1) {
-          void fetchStatus();
+          requestStatusRefresh();
           return 20;
         }
         return current - 1;
@@ -102,6 +125,26 @@ export function useDashboardSession() {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    const next = reconcileTaskViewState(tasks, dismissedTaskIds, collapsedTaskIds);
+    const dismissedChanged =
+      next.dismissedTaskIds.length !== dismissedTaskIds.length ||
+      next.dismissedTaskIds.some((taskId, index) => dismissedTaskIds[index] !== taskId);
+    const collapsedEntries = Object.entries(collapsedTaskIds);
+    const nextCollapsedEntries = Object.entries(next.collapsedTaskIds);
+    const collapsedChanged =
+      nextCollapsedEntries.length !== collapsedEntries.length ||
+      nextCollapsedEntries.some(([taskId, value]) => collapsedTaskIds[taskId] !== value);
+
+    if (dismissedChanged) {
+      setDismissedTaskIds(next.dismissedTaskIds);
+    }
+
+    if (collapsedChanged) {
+      setCollapsedTaskIds(next.collapsedTaskIds);
+    }
+  }, [collapsedTaskIds, dismissedTaskIds, tasks]);
 
   const setFilter = (filter) => {
     setActiveFilterState(filter);
@@ -121,27 +164,69 @@ export function useDashboardSession() {
     setActivityCollapsedState(next);
     savePrefs({activityCollapsed: next});
   };
+  const dismissTask = (taskId) => {
+    setDismissedTaskIds((current) => (current.includes(taskId) ? current : [...current, taskId]));
+  };
+  const dismissCompletedTasks = () => {
+    setDismissedTaskIds((current) => {
+      const next = new Set(current);
+      for (const task of tasks) {
+        if (!isActiveTask(task)) {
+          next.add(task.id);
+        }
+      }
+      return Array.from(next);
+    });
+  };
+  const restoreDismissedTasks = () => {
+    setDismissedTaskIds([]);
+  };
+  const toggleTaskCollapsed = (taskId) => {
+    setCollapsedTaskIds((current) => {
+      const task = tasks.find((item) => item.id === taskId);
+      if (!task) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [taskId]: !isTaskCollapsed(task, current),
+      };
+    });
+  };
+  const activityTasks = useMemo(
+    () => tasks.filter((task) => !dismissedTaskIds.includes(task.id)),
+    [dismissedTaskIds, tasks],
+  );
+  const taskCollapsed = (task) => isTaskCollapsed(task, collapsedTaskIds);
 
   return {
     activeFilter,
     activityCollapsed,
+    activityTasks,
     cardSections,
     cancelTask,
     countdown,
     data,
+    dismissCompletedTasks,
+    dismissTask,
     error,
     fetchMaintenance,
     fetchStatus,
+    dismissedTaskCount: dismissedTaskIds.length,
     maintenance,
     postJson,
+    restoreDismissedTasks,
     searchQuery,
     setFilter,
     setMaintenance,
     setSearch,
     setSection,
     showToast,
+    taskCollapsed,
     tasks,
     toast,
     toggleActivity,
+    toggleTaskCollapsed,
   };
 }

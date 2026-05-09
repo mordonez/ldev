@@ -9,6 +9,7 @@ export type DashboardOperationMode = 'preview' | 'queue';
 
 export type DashboardOperation = {
   action: string;
+  deleteBranch?: boolean;
   deployAction?: 'status' | 'cache-update';
   key: DashboardOperationKey;
   label?: string;
@@ -49,7 +50,10 @@ const routeMatchers: DashboardRouteMatcher[] = DASHBOARD_WORKTREE_ACTIONS.flatMa
 });
 
 export function matchDashboardOperation(method: string, url: string): DashboardOperation | null {
-  if (method === 'POST' && url === '/api/doctor') {
+  const parsed = new URL(url, 'http://dashboard.local');
+  const pathname = parsed.pathname;
+
+  if (method === 'POST' && pathname === '/api/doctor') {
     return {
       action: 'doctor',
       key: 'repo-doctor',
@@ -60,7 +64,7 @@ export function matchDashboardOperation(method: string, url: string): DashboardO
     };
   }
 
-  if (method === 'GET' && url === '/api/doctor') {
+  if (method === 'GET' && pathname === '/api/doctor') {
     return {
       action: 'doctor',
       key: 'repo-doctor',
@@ -71,17 +75,20 @@ export function matchDashboardOperation(method: string, url: string): DashboardO
   for (const matcher of routeMatchers) {
     if (method !== matcher.method) continue;
 
-    const match = matcher.pattern.exec(url);
+    const match = matcher.pattern.exec(pathname);
     if (!match) continue;
 
     const worktreeName = decodeURIComponent(match[1]);
+    const deleteBranch =
+      matcher.descriptor.key === 'worktree-delete' && parsed.searchParams.get('deleteBranch') === 'true';
     const response =
       matcher.descriptor.key === 'worktree-delete'
-        ? {deleted: worktreeName}
+        ? {deleted: worktreeName, deleteBranch}
         : {worktree: worktreeName, action: matcher.descriptor.queueAction};
 
     return {
       action: matcher.descriptor.queueAction,
+      deleteBranch,
       deployAction: matcher.descriptor.deployAction,
       key: matcher.descriptor.key,
       label: renderWorktreeActionLabel(matcher.descriptor.label, worktreeName),

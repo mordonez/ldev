@@ -152,7 +152,7 @@ function ActionButton({action, onAction, onDb, onDelete, onLogs, onResource, wt}
         if (action.target === 'db') onDb(wt.name);
         if (action.target === 'resource') onResource(wt.name);
         if (action.target === 'logs') onLogs(wt.name);
-        if (action.target === 'delete') onDelete(wt.name);
+        if (action.target === 'delete') onDelete(wt.name, wt.branch);
       }}
     >
       {action.label}

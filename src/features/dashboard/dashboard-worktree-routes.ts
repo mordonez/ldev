@@ -1,8 +1,10 @@
 import type http from 'node:http';
 
-import {runEnvStart} from '../env/env-start.js';
+import {loadConfig} from '../../core/config/load-config.js';
+import {formatEnvStart, runEnvStart} from '../env/env-start.js';
 import {runEnvStop} from '../env/env-stop.js';
-import {runWorktreeSetup} from '../worktree/worktree-setup.js';
+import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
+import {formatWorktreeSetup, runWorktreeSetup} from '../worktree/worktree-setup.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
 import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';
@@ -10,7 +12,9 @@ import type {createDashboardTaskManager} from './dashboard-tasks.js';
 type DashboardCreateWorktreePayload = {
   name?: string;
   baseRef?: string;
+  startAfterCreate?: boolean;
   withEnv?: boolean;
+  installMcp?: boolean;
   stopMainForClone?: boolean;
   restartMainAfterClone?: boolean;
 };
@@ -32,7 +36,9 @@ export async function handleWorktreeCreate(
     }
 
     const baseRef = payload.baseRef?.trim() || undefined;
+    const startAfterCreate = payload.startAfterCreate !== false;
     const withEnv = payload.withEnv !== false;
+    const installMcp = payload.installMcp !== false;
     const stopMainForClone = withEnv ? payload.stopMainForClone !== false : false;
     const restartMainAfterClone = withEnv && Boolean(payload.restartMainAfterClone);
 
@@ -49,10 +55,22 @@ export async function handleWorktreeCreate(
           stopMainForClone,
           restartMainAfterClone,
           stopEnv: runEnvStop,
-          startEnv: runEnvStart,
+          startEnv: (config, options) => runEnvStart(config, {...options, wait: true}),
           printer,
         });
-        printer.info(`Worktree ready: ${result.worktreeDir}`);
+        printer.info(formatWorktreeSetup(result));
+        if (installMcp) {
+          const mcpResult = await runMcpSetup({targetDir: result.worktreeDir, tool: 'all'});
+          printer.info(formatMcpSetup(mcpResult));
+        }
+        if (restartMainAfterClone && result.mainEnvStoppedForClone && !result.mainEnvRestartedAfterClone) {
+          throw new Error(result.mainRestartError ?? 'Main environment was stopped for clone but did not restart.');
+        }
+        if (startAfterCreate) {
+          const worktreeConfig = loadConfig({cwd: result.worktreeDir, env: process.env});
+          const startResult = await runEnvStart(worktreeConfig, {wait: false, printer});
+          printer.info(formatEnvStart(startResult));
+        }
       },
       response: {worktree: name, action: 'create'},
     });
