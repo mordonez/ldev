@@ -236,6 +236,25 @@ describe('AI template guardrails', () => {
     expect(intake).toContain('saved legacy values must migrate');
   });
 
+  test('site-building guidance covers headless-first content and page mutation flows', async () => {
+    const skill = await readTemplate('templates/ai/skills/developing-liferay/SKILL.md');
+    const siteBuilding = await readTemplate('templates/ai/skills/developing-liferay/references/site-building.md');
+    const oauthSetup = await readTemplate('templates/ai/skills/developing-liferay/references/oauth2-setup.md');
+
+    expect(skill).toContain('references/site-building.md');
+    expect(siteBuilding).toContain('structured-contents/{structuredContentId}');
+    expect(siteBuilding).toContain('site pages');
+    expect(siteBuilding).toContain(
+      'Use browser automation only when the runtime exposes no stable headless mutation path',
+    );
+    expect(siteBuilding).toContain('Runtime-Proven Update Matrix');
+    expect(siteBuilding).toContain('top-level fields are safely mutable with `PATCH`');
+    expect(siteBuilding).toContain('nested multimedia text fields are only proven with `PUT`');
+    expect(siteBuilding).toContain('nested image fields are not yet reliable headless mutation targets');
+    expect(oauthSetup).toContain('Liferay.Headless.Admin.Site.everything.write');
+    expect(oauthSetup).toContain('ldev oauth install --write-env');
+  });
+
   test('reindex is documented as a manual UI action, not an ldev command', async () => {
     const skillFiles = [
       ...(await findSkillFiles('templates/ai/skills')),

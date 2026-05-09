@@ -41,6 +41,7 @@ file exports/imports and all mutations.
 - OSGi module or Java code -> `references/osgi.md`
 - Extension point selection -> `references/extending-liferay.md`
 - Liferay Objects -> `references/objects.md`
+- Structured content or site page mutation -> `references/site-building.md`
 - Workflow or publication state -> `references/workflow.md`
 - Headless/Groovy/OAuth2 support -> related files under `references/`
 - Structures/templates/ADTs/fragments -> `portal-resource-workflow`

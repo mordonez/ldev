@@ -99,6 +99,7 @@ These rules apply to every task, regardless of the skill in use:
 6. After any mutation, verify with operation-specific evidence:
   - Resource imports (`import-structure`, `import-template`, `import-adt`, `import-fragment`): read back the updated resource with `ldev resource structure/template/adt` / `ldev resource export-*` / `ldev portal inventory ... --json`.
   - Deploy/runtime changes (modules, themes, startup/runtime faults): use `ldev logs diagnose --since 5m --json`.
+  - Structured content or site page mutations: prefer OAuth-backed Headless APIs plus read-back before browser checks; use browser automation only when no stable headless mutation path exists for the target runtime.
 7. When the change affects rendered pages or UI, verify with browser automation after the runtime settles.
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
