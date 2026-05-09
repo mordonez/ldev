@@ -29,7 +29,7 @@ Start with `ldev` discovery and the portal UI:
 
 ```bash
 ldev portal inventory sites --json
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 ldev context --json
 ```
 
@@ -98,7 +98,7 @@ Common causes, in order of likelihood:
    is published but not mapped to any page. Verify with:
 
    ```bash
-   ldev portal inventory page --url /web/<site>/<page> --json
+   ldev portal inventory page --url /web/<site>/<page> --full --json
    ```
 
 5. **Site permissions** — the article is published but the viewing user lacks

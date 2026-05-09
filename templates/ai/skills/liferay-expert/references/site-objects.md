@@ -2,7 +2,7 @@
 
 ## Display Page Templates
 
-`ldev portal inventory page --url <url> --json` exposes Display Page Template
+`ldev portal inventory page --url <url> --full --json` exposes Display Page Template
 metadata directly in the default output. No MCP or separate lookup is needed for
 the most common discovery tasks.
 
@@ -16,10 +16,10 @@ For a display page URL, the result includes:
 - `taxonomy.categories` — category names applied to the article
 - `lifecycle.*` — `availableLanguages`, `dateCreated`, `dateModified`, `datePublished`, `neverExpire`
 
-For the full raw data (all content fields, all template candidates, all taxonomy briefs):
+Use full page inventory for content fields, template candidates, and taxonomy briefs:
 
 ```bash
-ldev portal inventory page --url <url> --json --full
+ldev portal inventory page --url <url> --full --json
 ```
 
 `full.articleDetails.displayPageTemplateCandidates` lists every compatible Display Page
@@ -54,7 +54,7 @@ browser URL. Shared or global structures live in `/global` or a shared site.
 Always verify the owning site before editing or importing:
 
 ```bash
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 ldev portal inventory structures --site /global --with-templates --json
 ldev portal inventory structures --site /<site> --with-templates --json
 ```

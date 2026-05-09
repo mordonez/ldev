@@ -179,6 +179,6 @@ of truth.
 
 ```bash
 ldev --repo-root <main-root> portal inventory sites --json
-ldev --repo-root <main-root> portal inventory page --url /web/guest/home --json
+ldev --repo-root <main-root> portal inventory page --url /web/guest/home --full --json
 ldev --repo-root <main-root> ai bootstrap --intent=develop --cache=60 --json
 ```

@@ -4,10 +4,11 @@ Short contract for issue work in `ldev` projects.
 
 ## Hard Gates
 
-1. Resolve the issue URL to a local runtime URL before browser reproduction.
-2. Reproduce the bug locally before creating code changes.
-3. If the project uses isolated worktrees, reproduce again in the worktree
-   runtime before the first edit or runtime mutation.
+1. Resolve issue URLs with `ldev portal inventory` for context, but do not use
+   the primary checkout as the Red environment for `ldev-native` work.
+2. If the project uses isolated worktrees, create or enter the worktree first.
+3. Reproduce the bug once in the worktree runtime before the first edit or
+   runtime mutation.
 4. Before the first edit, prove the current editing root is the isolated
    worktree with `git rev-parse --show-toplevel`; edited paths must be under
    that root, never the primary checkout.
@@ -24,7 +25,7 @@ Short contract for issue work in `ldev` projects.
 Before editing, record:
 
 - issue number
-- local URL used for `Red`
+- worktree local URL used for `Red`
 - page/layout/site resolved by `ldev`
 - owning surface: ADT, template, fragment, theme, module, or `UNKNOWN`
 - editing root from `git rev-parse --show-toplevel`
@@ -32,7 +33,7 @@ Before editing, record:
 
 ## Invalid Shortcuts
 
-- production screenshot counted as local reproduction
+- production screenshot counted as worktree reproduction
 - grep first, inspect later
 - worktree created but edits still written under the primary checkout
 - import/deploy success counted as validation

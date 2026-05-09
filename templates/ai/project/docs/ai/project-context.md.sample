@@ -13,6 +13,9 @@ Document facts an agent cannot derive on its own at runtime:
   vocabulary IDs, navigation menu names discovered in a previous session.
 - Project-specific conventions that differ from the ldev defaults: custom deploy
   sequences, non-standard module paths, monorepo quirks.
+- Shared resource ownership facts that runtime discovery cannot infer safely,
+  such as "resources under /global are the source of truth; copied resources
+  under /site-a or /site-b are generated or unused."
 - Confirmed OSGi bundle symbolic names for in-repo modules.
 - Playwright or browser-automation patterns that work for this project's specific
   login/admin flows (project-specific credential overrides, MFA, SSO).
@@ -100,6 +103,22 @@ Notes:
 - Keep project-specific AI knowledge in repo-owned docs, not in vendor skills.
 - Prefer the smallest deploy or import that proves a change.
 - For runtime or portal diagnosis, capture the exact failing command or URL first.
+
+## Shared Resource Ownership
+
+Document stable facts about shared Journal structures, templates, ADTs, and
+fragments here. If a shared site is the canonical source of truth, say so
+explicitly and list known copied folders that are not edited directly.
+
+Example:
+
+- `/global` owns shared Journal resources for public pages.
+- `model-facultat` and `departaments` contain copied resources and are not edited
+  directly unless runtime inventory proves a page uses those copies.
+
+Agents should not edit copied resources unless this section or fresh runtime
+inventory proves the copy is the active source for the issue.
+Operational shorthand: do not edit copied resources without proof.
 
 ## Project Runbooks
 

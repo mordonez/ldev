@@ -18,6 +18,8 @@ Typical examples:
 - domain routers such as `liferay-expert`
 - local deploy and troubleshooting playbooks
 - resource migration guidance based on stable `ldev portal ...` and `ldev resource ...` commands
+- canonical Red -> Green gates for mutating `ldev` work
+- canonical portal resource workflows for structures, templates, ADTs, and fragments
 - production-to-local reproduction workflows based on `ldev db ...`, `ldev env ...`, and `ldev worktree ...`
 - generic agent bootstrap instructions that point to `ldev doctor` and `ldev context --json`
 - minimal bootstrap scaffolding such as `CLAUDE.md`
@@ -39,7 +41,8 @@ Typical examples:
 - concrete project knowledge filled with client, repo or environment specifics
 - browser automation tied to a project wrapper that `ldev` does not provide
 - Claude-only runbooks and hidden agent pipelines
-- full end-to-end issue resolution workflows that mix `ldev` execution with project GitHub process
+- full end-to-end issue resolution workflows that mix reusable `ldev` execution
+  gates with project GitHub process, naming, labels, reviewers, or handoff policy
 
 ## Installation Rules
 

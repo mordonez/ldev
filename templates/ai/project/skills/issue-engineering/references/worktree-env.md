@@ -23,7 +23,7 @@ For issue work that starts from a URL, the vendor skill's quick inspection must
 be followed by:
 
 ```bash
-ldev portal inventory page --url <localUrl> --json
+ldev portal inventory page --url <localUrl> --full --json
 ```
 
 Do not start repo-wide grep or code edits until the worktree runtime has loaded

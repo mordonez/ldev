@@ -1,41 +1,33 @@
 # Routing Reference
 
 Use this reference when `liferay-expert` has already determined that the task is
-technical Liferay work and you need the next specialized skill.
+technical Liferay work and the next skill is still ambiguous.
 
-## Choose the next skill
+## Canonical Choices
 
-- If the cause is not clear yet -> `troubleshooting-liferay`
-- If the change is known and you need to edit source or portal resources -> `developing-liferay`
-- If the change already exists and you need to build, deploy, or verify runtime -> `deploying-liferay`
-- If the task changes Journal structures with data migration risk -> `migrating-journal-structures`
+- Non-trivial issue, feature, or bug fix that will mutate code/resources/runtime -> `runtime-change-workflow`
+- Cause is unclear or the local portal is unhealthy -> `troubleshooting-liferay`
+- Affected implementation surface is known -> `developing-liferay`
+- Structures, templates, ADTs, or fragments -> `portal-resource-workflow`
+- Existing change needs build, deploy, import, or runtime verification -> `deploying-liferay`
+- Journal structure change may move, rename, convert, or clean saved data -> `migrating-journal-structures`
+- User-facing browser reproduction or visual evidence -> `automating-browser-tests`
 
-## Useful follow-up references
+## Scenario Checks
 
-### Troubleshooting
+- Feature request from an issue: start with `runtime-change-workflow`; it will
+  route implementation and verification.
+- Runtime incident: start with `troubleshooting-liferay`; switch to
+  implementation/deploy only after the root cause is known.
+- Journal template or ADT edit: use `portal-resource-workflow`; do not use theme
+  or module deploys.
+- Structure change that must preserve existing values in a new location: use
+  `migrating-journal-structures`; plain import is not enough.
 
-- `../../troubleshooting-liferay/references/reindex-after-import.md`
-- `../../troubleshooting-liferay/references/reindex-journal.md`
-- `../../troubleshooting-liferay/references/ddm-migration.md`
-- `../../troubleshooting-liferay/references/search-debug.md`
-- `../../troubleshooting-liferay/references/content-versions.md`
+## Useful Follow-Up References
 
-### Implementation
-
-- `../../developing-liferay/references/theme.md`
-- `../../developing-liferay/references/structures.md`
-- `../../developing-liferay/references/fragments.md`
-- `../../developing-liferay/references/osgi.md`
-- `../../developing-liferay/references/extending-liferay.md`
-- `../../developing-liferay/references/groovy-console.md`
-- `../../developing-liferay/references/workflow.md`
-
-### Deploy and verify
-
-- `../../deploying-liferay/references/worktree-pitfalls.md`
-
-## Site-level objects
-
-When the task involves Display Page Templates, Navigation Menus, multi-site
-resource ownership, or content volume inspection, resolve the affected site
-first and then use `site-objects.md` for the deeper object guidance.
+- Troubleshooting: `../../troubleshooting-liferay/references/specialized-diagnosis.md`
+- Implementation paths: `../../developing-liferay/references/implementation-paths.md`
+- Structures: `../../developing-liferay/references/structures.md`
+- Site objects: `site-objects.md`
+- Worktree deploy pitfalls: `../../deploying-liferay/references/worktree-pitfalls.md`

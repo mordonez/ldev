@@ -1,185 +1,100 @@
 ---
 name: migrating-journal-structures
-description: 'Use when a Journal structure or template change requires controlled data migration, staged validation or cleanup.'
+description: 'Runs controlled Journal structure/template migrations with descriptor-backed validation. Use when existing Journal content may be moved, renamed, converted, cleaned up, or must preserve existing content in a new field shape.'
 ---
 
 # Migrating Journal Structures
 
-Use this skill when a structure change can affect existing content and must be
-validated as a migration, not as a simple import.
+Use when a Journal structure change can affect saved content. Plain imports are
+only for compatible additive changes handled by `portal-resource-workflow`.
 
-## Required bootstrap
+## Hard Gate
+
+Before editing a Journal structure, classify the change:
+
+- Additive-only and content-compatible: optional new fields or fieldsets, no
+  renames, no type changes, no movement/nesting of existing fields, no cleanup.
+- Migration-required: any rename, type change, nesting/movement, repeatability
+  conversion, cleanup of legacy fields, or requirement that existing values
+  appear in a new field location.
+
+For migration-required changes, `migration-init is mandatory`. Do not hand-write
+the descriptor from scratch, do not rely on `import-structure`, and do not
+continue without a pipeline plan.
+
+If the issue asks to make an existing field or field pair repeatable, ask
+whether saved values must migrate into the new repeatable shape or stay in
+legacy fields with additive extra fields.
+
+Existing-content and new-content validation are both required.
+
+## Bootstrap
 
 ```bash
 ldev ai bootstrap --intent=migrate-resources --json
 ```
 
-Use `bootstrap.context.paths.resources.migrations` and
-`bootstrap.context.paths.resources.structures` for descriptor and structure
-locations. Use `doctor.readiness.reindex` and portal checks to decide whether
-the runtime is ready for migration validation.
+Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`.
 
-## Bootstrap fields
+If any are missing, report that installed `ldev` AI assets are out of sync.
 
-- Required fields: `context.paths.resources.migrations`,
-  `context.paths.resources.structures`, `context.liferay.auth.oauth2.*.status`,
-  `doctor.readiness.reindex`.
-- If any of those fields is missing, stop and report that the installed `ldev`
-  AI assets are out of sync with the CLI.
+## Isolation
 
-> **Always run migrations inside a worktree, never against the main environment.**
-> Use `../isolating-worktrees/SKILL.md` first to create the isolated worktree,
-> confirm the edit root, and recover safely from setup blockers before running a
-> migration.
+Never run migrations against the main environment. Use `isolating-worktrees`
+first, lock the root, start the worktree runtime, and reproduce there.
 
-## Recommended workflow
+## Pipeline
 
-### 0. Create dependent structures first (if needed)
+1. Inspect portal state with `portal inventory structures` and
+   `resource structure`.
 
-If the migration targets fields that will live inside a **new** structure that
-does not yet exist in the portal (for example, a new repeatable fieldset
-structure), create it from source before running `migration-init`.
-
-Do **not** use the Liferay UI for this. Edit the structure JSON directly and
-import it:
-
-```bash
-# 1. Write or edit the structure JSON under context.paths.resources.structures.path/<site>/<KEY>.json
-#    Use ../developing-liferay/references/structure-field-catalog.md for the correct field shapes.
-
-# 2. Validate before importing:
-ldev resource import-structure --site /<site> --structure <KEY> --check-only
-
-# 3. Import to the portal:
-ldev resource import-structure --site /<site> --structure <KEY>
-
-# 4. Confirm the structure exists:
-ldev resource structure --site /<site> --structure <KEY> --json
-```
-
-Reference: `../developing-liferay/references/structure-field-catalog.md`
-
-### 1. Inspect current portal state
-
-```bash
-ldev portal inventory structures --site /<site> --json
-ldev portal inventory templates --site /<site> --json
-ldev resource structure --site /<site> --structure <STRUCTURE_KEY> --json
-ldev resource template --site /<site> --template <TEMPLATE_ID> --json
-```
-
-Use local `ldev` MCP tools for the inventory commands when visible:
-`liferay_inventory_structures` and `liferay_inventory_templates`. Resource
-reads, descriptor creation, validation, and migration execution remain CLI-first
-because they are file-backed or mutating workflows.
-
-### 2. Scaffold a migration descriptor
-
-Use `migration-init` to generate a base descriptor from the current portal state
-before editing it by hand:
+2. Scaffold, then edit the descriptor:
 
 ```bash
 ldev resource migration-init --site /<site> --structure <STRUCTURE_KEY>
 ```
 
-Add `--templates` to include associated templates in the generated descriptor.
-The output defaults to `context.paths.resources.migrations.path/<site>/<key>.migration.json`.
+Set `introduce.articleIds` to the article under test. Do not scan the whole
+site first unless approved. Do not pass `--templates` for a data-only migration.
 
-Edit the descriptor to define:
-
-- Explicit field mappings (`introduce.mappings`)
-- Scope (see below)
-- Dependent structures (`dependentStructures`) if the migration targets fields
-  in structures that were just created
-- Whether templates are included (`templates: true`)
-- An optional cleanup phase
-
-**Descriptor fields reference:**
-
-| Field                             | Purpose                                                        |
-| --------------------------------- | -------------------------------------------------------------- |
-| `"templates": true`               | Include associated templates in the pipeline run               |
-| `"dependentStructures": ["KEY"]`  | Structures the pipeline must verify exist before running       |
-| `"introduce.rootFolderIds": [id]` | Scope to a folder tree (recursive)                             |
-| `"introduce.folderIds": [id]`     | Scope to exact folders only (non-recursive)                    |
-| `"introduce.articleIds": [id]`    | Scope to specific content items                                |
-| _(no scope field)_                | Scan all content in the site (use with caution on large sites) |
-
-**Mapping syntax:**
-
-```json
-{ "source": "oldField", "target": "newField" }
-{ "source": "oldField", "target": "FieldsetName[].TargetField", "cleanupSource": true }
-```
-
-Use `FieldsetName[].TargetField` when the destination lives inside a repeatable
-fieldset in the new structure. Add `"cleanupSource": true` to remove the source
-field from the original structure after migration.
-
-When the migration introduces new fields or changes field types, use the field
-type catalog to verify JSON shapes:
-
-Reference: `../developing-liferay/references/structure-field-catalog.md`
-
-### 3. Validate before mutating
+3. Validate before mutating:
 
 ```bash
 ldev resource migration-pipeline --migration-file <file> --check-only
 ```
 
-For large changes, also dry-run content migration updates:
-
-```bash
-ldev resource migration-pipeline \
-  --migration-file <file> \
-  --check-only \
-  --migration-dry-run
-```
-
-### 4. Run the real pipeline deliberately
+4. Run deliberately:
 
 ```bash
 ldev resource migration-pipeline --migration-file <file>
 ```
 
-If the descriptor includes cleanup and you intend to execute that cleanup in the
-same real run, enable it explicitly:
+First proof is non-destructive: keep legacy fields in the schema, run
+introduce-only on scoped `articleIds`, and use no cleanup. Removing legacy
+fields, removing fallbacks, `cleanupSource=true`, or `--run-cleanup` requires a
+separate user-confirmed step after read-after-write and render proof.
 
-```bash
-ldev resource migration-pipeline --migration-file <file> --run-cleanup
-```
+For descriptor fields, mappings, dry-runs, and validation details, read `references/pipeline.md`.
 
-Do not treat this as a default "run it once and then run it again" sequence.
-Use one real execution plan deliberately after validation, with or without
-`--run-cleanup`, based on the migration you are approving.
+## Minimum Green
 
-## Validation checklist
-
-- Structures and templates can still be discovered through `ldev portal inventory ...`.
-- The migration pipeline completes without unexpected errors.
-- `ldev logs --since 5m --service liferay --no-follow` stays clean enough to explain the outcome.
-- If search behavior depends on migrated fields, verify reindex state with:
-
-```bash
-ldev portal reindex status --json
-ldev portal reindex tasks --json
-```
+- Migration pipeline completes without unexpected errors.
+- Read-after-write confirms the target structure and templates.
+- Existing-content validation confirms old saved values remain visible.
+- New-content validation saves local content with at least two repeated entries
+  and confirms all entries render.
+- Fresh logs are clean enough to explain the outcome.
 
 ## Guardrails
 
-- **Never run migrations against the main environment.** Always use the vendor
-  skill `isolating-worktrees` first so the portal state can be restored or
-  discarded if the migration fails or produces unexpected results.
-- Use MCP only for read-only inventory/diagnosis during migration work. Do not
-  use MCP as a shortcut around worktree isolation, `--check-only`, or explicit
-  migration approval.
-- Never treat a live content migration as a plain import.
+- Use MCP only for read-only inventory/diagnosis.
+- Do not claim Green from structure import alone.
+- Do not use `import-structure --migration-plan` as the normal path.
 - Always keep a descriptor file under version control.
-- Always use `migration-init` to scaffold the descriptor; do not write it from scratch.
+- Always scope the first validation descriptor with `introduce.articleIds`.
 - Always run `--check-only` before the real pipeline.
-- Do not document or automate migration-pipeline as a mandatory two-run sequence.
-- If cleanup is intended, make that choice explicit in the approved real execution plan.
-- If the migration targets fields in a new dependent structure, create and import
-  that structure from JSON first (step 0) — do not use the Liferay UI.
-- Use `../developing-liferay/references/structure-field-catalog.md` when authoring or editing structure
-  JSON directly; do not guess field shapes.
+- Ask explicit user confirmation before legacy cleanup/removal.
+- Use `--liferay-timeout-seconds 300` on real structure/template/pipeline mutations; still read back.
+- Do not document migration-pipeline as a mandatory two-run sequence.
+- Treat `--check-only` as plan validation, not persistence proof.
+- Use `../developing-liferay/references/structure-field-catalog.md`.

@@ -53,7 +53,7 @@ same session.
   `ldev portal inventory page --url <localUrl> --full --json` before deciding what to edit.
 - Use DOM-id selectors for login; localized text clicks are brittle.
 - Normalize `adminUrls.*` to the browser session host before opening.
-- For Journal article editing, prefer the direct edit URL from page inventory and locale-agnostic `run-code` selectors based on URLs, forms, and open menus rather than rendered labels on the public page.
+- For Journal article editing, use the direct edit URL from page inventory, publish from the editor with structural selectors, then verify success by re-running page inventory and confirming `lifecycle.dateModified` advanced.
 - Prefer project menu maps from `docs/ai/project-context.md` when present.
 
 ## Evidence

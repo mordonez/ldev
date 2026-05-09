@@ -25,7 +25,7 @@ Always verify before exporting or importing:
 
 ```bash
 # Identify the page and its portlet context
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 
 # Check global site first for shared resources
 ldev portal inventory structures --site /global --with-templates --json

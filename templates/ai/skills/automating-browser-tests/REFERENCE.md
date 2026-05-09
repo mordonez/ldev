@@ -188,23 +188,16 @@ If a direct `adminUrls.translate` or `adminUrls.configure` URL falls back to a g
 
 ## Journal article edit and publish
 
-For Journal articles rendered on a public page, do not rely on wrapper clicks on the
-control-menu `Edita` button. In practice that control is often a dropdown behind the
-product menu or a sticky header, and the visible `Publica` control in the editor is a
-split button whose accessible name changes after the editor finishes loading.
+Use one path only:
 
-Do not make this flow depend on localized labels such as `Edita`, `Edit`, `Publica`,
-or `Publish` as the primary selector strategy. Catalan, Spanish, and English portals
-can expose different labels for the same controls.
+1. Resolve the page with `ldev portal inventory page --url <fullUrl> --full --json`.
+2. Open the Journal edit URL returned by inventory.
+3. Publish from the editor using structural selectors.
+4. Re-run `ldev portal inventory page --url <fullUrl> --full --json` and confirm
+   `lifecycle.dateModified` advanced.
 
-Preferred strategy:
-
-- Resolve the page first with `ldev portal inventory page --url <fullUrl> --full --json` and
-  use the Journal edit URL returned there as the primary path into the editor.
-- If you must start from the public page, use `run-code` to open the `Edita` dropdown and
-  read the admin `href` that points to `/journal/edit_article`, then open that URL directly.
-- In the editor, prefer selectors anchored to the visible primary publish dropdown button,
-  its open menu, and a post-action runtime check rather than any translated label.
+Do not rely on rendered control-menu actions on the public page. Do not use
+translated button text as the primary selector strategy.
 
 Example:
 
@@ -220,52 +213,36 @@ async function (page) {
 '@
 playwright-cli -s=editor-<issue> run-code "$LOGIN"
 
-# Prefer opening the direct edit URL returned by ldev portal inventory page.
-# Fall back to the control-menu href only when inventory does not expose the needed editor URL.
+# Open the direct edit URL returned by ldev portal inventory page.
 playwright-cli -s=editor-<issue> open "<journalEditUrl>"
 
 $PUBLISH = @'
 async function (page) {
+  await page.locator('button[aria-haspopup="true"], button.btn.btn-primary').first().waitFor();
+
   const publishTrigger = page.locator('button.btn.btn-primary.dropdown-toggle[aria-haspopup="true"]').first();
+  await publishTrigger.waitFor();
   await publishTrigger.click();
 
   const openMenu = page.locator('[role="menu"]:visible, .dropdown-menu.show:visible').last();
+  await openMenu.waitFor();
   const publishAction = openMenu.locator('[role="menuitem"], button, a').first();
+  await publishAction.waitFor();
   await publishAction.click();
 }
 '@
 playwright-cli -s=editor-<issue> run-code "$PUBLISH"
 
-# Direct editor URLs often reload the edit form instead of showing a visible success toast.
 # Re-run inventory and confirm lifecycle.dateModified advanced after the publish action.
 ldev portal inventory page --url <fullUrl> --full --json
 ```
 
-If the public page is the only starting point, use a code-driven dropdown step instead of
-the wrapper click helper:
-
-```powershell
-$EDIT_FROM_PAGE = @'
-async function (page) {
-  const controlButton = page.locator('[aria-controls][aria-haspopup="menu"], .control-menu button.dropdown-toggle').first();
-  await controlButton.click();
-  const href = await page.locator('a[href*="/journal/edit_article"]').first().getAttribute('href');
-  return href;
-}
-'@
-playwright-cli -s=runtime-<issue> run-code "$EDIT_FROM_PAGE"
-```
-
 Checks:
 
-- A click failure mentioning `intercepts pointer events` on `Edita` usually means the
-  control menu, product menu, or sticky header is overlaying the target; do not keep retrying wrapper clicks.
-- If the editor turns publish into a split button or menu-trigger after hydration, treat the
-  visible primary dropdown button, the open menu, and its first publish action as the publish path,
-  even when the trigger label changes by locale.
-- If you still need a text fallback, use it only as a last resort and assume it must vary across locales.
-- If the flow starts from the public detail page, a visible published/publicado/publicat alert can be a valid success signal.
-- If the flow starts from the direct Journal edit URL returned by inventory, the editor often reloads the form instead of showing that alert; in that path, success is `ldev portal inventory page --url <fullUrl> --full --json` showing an advanced `lifecycle.dateModified` after the publish action.
+- Wait for the editor toolbar and publish control to finish hydrating before the publish click; the first button instance can be replaced during load.
+- Treat the visible primary dropdown button, the open menu, and its first publish action as the publish path.
+- Success is not opening the publish menu and not waiting for a localized toast.
+- Success is `ldev portal inventory page --url <fullUrl> --full --json` showing an advanced `lifecycle.dateModified` after the publish action.
 
 ## Page layout mutations
 

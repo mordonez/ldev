@@ -31,6 +31,28 @@ Before changing code or runtime state:
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
+For non-trivial mutating work, `runtime-change-workflow` is the canonical
+technical gate order. For structures, templates, ADTs, and fragments,
+`portal-resource-workflow` is the canonical resource import and verification
+workflow.
+
+## Agent Portability Contract
+
+Same prompt, same gate order. The active assistant may be GitHub Copilot,
+Claude Code, Codex, Gemini, Cursor, or another coding agent, but the workflow
+contract is this file plus the installed skills.
+
+Slash commands are aliases. If the user invokes `/project-issue-engineering`,
+`$project-issue-engineering`, names a skill, or pastes a skill body, resolve it
+to the matching file under `.agents/skills/` and follow that skill. For
+non-trivial code, resource, or runtime mutations, read `.agents/skills/project-issue-engineering/SKILL.md`
+when it exists, even if the current assistant does not implement slash commands
+natively.
+
+Tool-specific files such as `CLAUDE.md`, `.github/copilot-instructions.md`,
+`.gemini/GEMINI.md`, and `.cursorrules` are delegators. They must not invent a
+different issue workflow, skip required gates, or reinterpret project skills.
+
 ## Safety Invariants
 
 These rules apply to every task, regardless of the skill in use:
@@ -47,8 +69,8 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
-11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: `Red-1` reproduction in current runtime → isolated worktree setup and root lock → `Red-2` reproduction in worktree runtime → import/deploy verification with runtime evidence → `Red → Green` visual validation. Before imposing the full gate sequence, briefly assess the task scope: for bug fixes, migrations, and significant feature work, apply the full gate. For clearly trivial changes (single-field config update, copy fix, isolated template tweak the developer explicitly scoped), ask the developer whether they want the full isolation workflow or prefer to proceed in the current checkout.
-12. Safety checks that apply to every task regardless of scope: `--check-only` before any resource import, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, Red-1/Red-2 cycle, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
+11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: isolated worktree setup and root lock → Red reproduction in the worktree runtime → import/deploy verification with runtime evidence → Green visual validation in that same worktree runtime. Do not reproduce first in the primary checkout. For clearly trivial changes (single-field config update, copy fix, isolated template tweak the developer explicitly scoped), ask the developer whether they want the full isolation workflow or prefer to proceed in the current checkout.
+12. Safety checks that apply to every task regardless of scope: `--check-only` before any resource import, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
 
 ## ldev Command Resolution
 
@@ -61,6 +83,19 @@ When instructions say `ldev ...`, resolve the CLI in this order:
 
 For agent work, treat `npx.cmd @mordonezdev/ldev` as the Windows-safe fallback.
 Do not stop on `CommandNotFound` for `ldev` until this fallback has been tried.
+
+### PowerShell ldev Invocation
+
+On PowerShell, never build `ldev` commands as strings and never use
+`Invoke-Expression` for `ldev`. Pass arguments as an array so URLs, `?`, `&`,
+quotes, and flags are preserved exactly:
+
+```powershell
+$ldev = if (Get-Command ldev -ErrorAction SilentlyContinue) { 'ldev' } else { 'npx.cmd' }
+$args = @('portal', 'inventory', 'page', '--url', $url, '--json')
+$json = if ($ldev -eq 'ldev') { & ldev @args } else { & npx.cmd '@mordonezdev/ldev' @args }
+$data = $json | ConvertFrom-Json
+```
 
 ## Optional Shell Helpers
 
@@ -199,6 +234,8 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 - `isolating-worktrees`: isolated `ldev-native` worktree setup, edit-root lock, recovery and cleanup.
 - `deploying-liferay`: build, deploy and runtime verification flow.
 - `troubleshooting-liferay`: diagnosis and recovery flow.
+- `runtime-change-workflow`: canonical Red -> Green gates for mutating work.
+- `portal-resource-workflow`: canonical workflow for structures, templates, ADTs and fragments.
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.

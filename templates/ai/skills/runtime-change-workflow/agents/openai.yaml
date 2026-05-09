@@ -1,0 +1,4 @@
+interface:
+  display_name: "Runtime Change Workflow"
+  short_description: "Run the canonical Red -> Green loop for mutating ldev work"
+  default_prompt: "Use $runtime-change-workflow to handle this non-trivial code, resource, or runtime mutation with root lock, scope lock, smallest action, and verification evidence."

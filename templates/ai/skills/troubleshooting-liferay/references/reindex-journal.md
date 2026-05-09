@@ -1,29 +1,34 @@
 # Reindex Journal Reference
 
-Use this reference when the problem affects `JournalArticle` specifically or the reindex looks incomplete.
+Use this reference when the problem affects `JournalArticle` specifically or
+web content search looks stale after import, migration, or cleanup.
 
-## Typical signals
+## Hard Boundary
 
-- Global reindex finishes but web content is still missing
-- The index progresses much more slowly than expected
-- Persistent differences remain between DB reality and Elasticsearch
+`ldev` cannot force Journal reindexing. A human must start the relevant reindex
+from the Liferay UI. Do not use or document CLI reindex commands.
 
-## Base commands
+Typical manual path: Control Panel -> Configuration -> Search -> Index Actions,
+then choose the Journal/Web Content related reindex action when available.
+
+## What To Check Before Asking For Reindex
 
 ```bash
-ldev portal reindex status --json
-ldev portal reindex tasks --json
-ldev portal reindex watch --json
-ldev logs --since 10m --service liferay --no-follow
+ldev status --json
+ldev doctor --portal --json
+ldev logs diagnose --since 10m --json
 ```
 
-## What to look for
+Also verify the affected content exists and is published through portal
+inventory or the content UI before assuming the index is stale.
 
-- `RUNNING` or failed tasks
-- Parse or mapping errors in logs
-- Signals that only Journal is failing instead of the whole index
+## What To Validate After Manual Reindex
+
+- The affected web content appears in search or Asset Publisher results.
+- Logs do not show fresh indexing or mapping errors.
+- Browser-visible behavior matches the original Green criteria.
 
 ## Guardrails
 
-- Do not restart reflexively if reindex is still progressing
-- If you suspect corrupt data, capture evidence before any cleanup
+- Do not restart reflexively if manual reindex is still running.
+- If you suspect corrupt data, capture evidence before cleanup.
