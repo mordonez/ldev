@@ -14,6 +14,7 @@ import {buildComposeEnv, resolvePostgresStorage} from './env-files.js';
 import {resolveBtrfsConfig} from '../worktree/worktree-state.js';
 import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {resolveEnvContext} from './env-files.js';
+import {LIFERAY_LOCAL_PROFILE_FILE} from '../../core/config/liferay-profile.js';
 
 const RESTORE_SUBDIRS = [
   'liferay-data',
@@ -98,6 +99,8 @@ export async function runEnvRestore(
     restoredDeployArtifacts = restoreResult.copied;
   }
 
+  await syncWorktreeLocalLiferayProfile(mainRepoRoot, targetContext.repoRoot);
+
   return {
     ok: true,
     sourceDataRoot,
@@ -106,6 +109,20 @@ export async function runEnvRestore(
     preservedDeployCache,
     restoredDeployArtifacts,
   };
+}
+
+async function syncWorktreeLocalLiferayProfile(mainRepoRoot: string, targetRepoRoot: string): Promise<void> {
+  if (path.resolve(mainRepoRoot) === path.resolve(targetRepoRoot)) {
+    return;
+  }
+
+  const sourceProfile = path.join(mainRepoRoot, LIFERAY_LOCAL_PROFILE_FILE);
+  if (!(await fs.pathExists(sourceProfile))) {
+    return;
+  }
+
+  const targetProfile = path.join(targetRepoRoot, LIFERAY_LOCAL_PROFILE_FILE);
+  await fs.copy(sourceProfile, targetProfile, {overwrite: true});
 }
 
 export function formatEnvRestore(result: EnvRestoreResult): string {

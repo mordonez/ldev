@@ -430,6 +430,46 @@ describe('env integration', () => {
     expect(await fs.readFile(path.join(worktreeBuildDeployDir, 'local.jar'), 'utf8')).toBe('keep\n');
     expect(await fs.readFile(path.join(worktreeBuildDeployDir, 'shared.jar'), 'utf8')).toBe('from-main\n');
   }, 30000);
+
+  test('env restore re-syncs the worktree local Liferay profile from main', async () => {
+    const repoRoot = createTempDir('dev-cli-env-restore-profile-main-');
+    const worktreeRoot = path.join(repoRoot, '.worktrees', 'issue-profile');
+    const mainDataRoot = path.join(repoRoot, 'docker', 'data', 'default');
+    const worktreeDataRoot = path.join(worktreeRoot, 'docker', 'data', 'envs', 'issue-profile');
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+    const mainProfile = 'liferay:\n  oauth2:\n    clientId: main-id\n    clientSecret: main-secret\n';
+    const worktreeProfile = 'liferay:\n  oauth2:\n    clientId: worktree-id\n    clientSecret: worktree-secret\n';
+
+    await fs.ensureDir(path.join(repoRoot, 'docker'));
+    await fs.ensureDir(path.join(repoRoot, 'liferay'));
+    await fs.ensureDir(path.join(worktreeRoot, 'docker'));
+    await fs.ensureDir(path.join(worktreeRoot, 'liferay'));
+    await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
+    await fs.writeFile(path.join(worktreeRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n  postgres:\n');
+    await fs.writeFile(
+      path.join(repoRoot, 'docker', '.env'),
+      'COMPOSE_PROJECT_NAME=demo\nENV_DATA_ROOT=./data/default\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\n',
+    );
+    await fs.writeFile(
+      path.join(worktreeRoot, 'docker', '.env'),
+      `COMPOSE_PROJECT_NAME=demo-issue-profile\nENV_DATA_ROOT=${worktreeDataRoot}\nLDEV_STORAGE_PLATFORM=other\nPOSTGRES_DATA_MODE=bind\n`,
+    );
+    await fs.writeFile(path.join(repoRoot, '.liferay-cli.local.yml'), mainProfile);
+    await fs.writeFile(path.join(worktreeRoot, '.liferay-cli.local.yml'), worktreeProfile);
+
+    await fs.ensureDir(path.join(mainDataRoot, 'postgres-data'));
+    await fs.ensureDir(path.join(mainDataRoot, 'liferay-data'));
+    await fs.writeFile(path.join(mainDataRoot, 'postgres-data', 'PG_VERSION'), '15\n');
+    await fs.writeFile(path.join(mainDataRoot, 'liferay-data', 'from-main.txt'), 'main\n');
+
+    const result = await runEnvRestore(loadConfig({cwd: worktreeRoot, env: process.env}), {
+      processEnv,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(await fs.readFile(path.join(worktreeRoot, '.liferay-cli.local.yml'), 'utf8')).toBe(mainProfile);
+  }, 30000);
 });
 
 async function createEnvRepoFixture(): Promise<string> {

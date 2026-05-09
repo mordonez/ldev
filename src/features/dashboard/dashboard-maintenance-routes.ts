@@ -31,6 +31,7 @@ export async function handleMaintenancePreview(
           ok: true,
           apply: false,
           candidates: [],
+          protected: [],
           cleaned: [],
           unavailable: true,
           message: 'Maintenance preview is unavailable outside a git repository',
