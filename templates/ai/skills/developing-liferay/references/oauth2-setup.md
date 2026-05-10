@@ -38,6 +38,10 @@ the **Scopes** tab of the OAuth2 application.
 
 For read-only use cases, replace `everything` with `everything.read`.
 
+For agentic structured-content mutation, treat `Liferay.Headless.Delivery` plus
+`Liferay.Headless.Admin.Content` as the minimum practical write baseline. Site
+page mutation additionally needs `Liferay.Headless.Admin.Site.everything.write`.
+
 ## Grant types
 
 | Grant | When to use |

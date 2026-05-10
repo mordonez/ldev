@@ -33,7 +33,9 @@ resolve it with the portal discovery contract in
 search or edits.
 
 Use local `ldev` MCP tools for read-only inventory when visible. Use the CLI for
-file exports/imports and all mutations.
+file exports/imports and file-backed resource mutations. For structured content
+or site page mutations that do not yet have a dedicated `ldev` command, prefer
+OAuth-backed Headless APIs plus read-back proof.
 
 ## Choose The Implementation Path
 
