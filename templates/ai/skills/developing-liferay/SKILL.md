@@ -5,8 +5,7 @@ description: 'Guides implementation changes in Liferay projects that run with ld
 
 # Developing Liferay
 
-Use this skill after the affected surface is clear. For issue-scale work, the
-outer gate owner should be `runtime-change-workflow`.
+Use this skill after the affected surface is clear. For issue-scale work, the outer gate owner should be `runtime-change-workflow`.
 
 ## Bootstrap
 
@@ -22,30 +21,15 @@ Inspect:
 - `context.commands.*`
 - `doctor.readiness.*`
 
-If these fields are missing, stop and report that the installed `ldev` AI assets
-are out of sync with the CLI.
+If these fields are missing, stop and report that the installed `ldev` AI assets are out of sync with the CLI.
 
 ## Discover Before Editing
 
-If the task mentions a site, page, URL, structure, template, ADT, or fragment,
-resolve it with the portal discovery contract in
-[../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md) before code
-search or edits.
+If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md) before code search or edits.
 
-Preferred discovery commands:
+Preferred discovery commands live in `PORTAL_DISCOVERY.md`; use `inventory where-used` when the key is already known and impact must be scoped before editing.
 
-```bash
-ldev portal inventory sites --json
-ldev portal inventory pages --site /<site> --json
-ldev portal inventory page --url <fullUrl> --json
-ldev portal inventory where-used --type <fragment|widget|structure|template|adt> --key <KEY> --site /<site> --json
-ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
-```
-
-Use local `ldev` MCP tools for read-only inventory when visible. Use the CLI for
-file exports/imports and file-backed resource mutations. For structured content
-or site page mutations that do not yet have a dedicated `ldev` command, prefer
-OAuth-backed Headless APIs plus read-back proof.
+Use local `ldev` MCP tools for read-only inventory when visible. Use the CLI for file exports/imports and file-backed resource mutations. For structured content or site page mutations that do not yet have a dedicated `ldev` command, prefer OAuth-backed Headless APIs plus read-back proof.
 
 ## Choose The Implementation Path
 
@@ -74,17 +58,11 @@ If more than one surface changed, apply and verify each surface separately.
 
 ## Resource Boundary
 
-For structures, templates, ADTs, and fragments, do not use deploy commands.
-Switch to `portal-resource-workflow`, which owns source-of-truth resolution,
-export/import, import-vs-migration, read-after-write, and browser validation.
+For structures, templates, ADTs, and fragments, do not use deploy commands. Switch to `portal-resource-workflow`, which owns source-of-truth resolution, export/import, import-vs-migration, read-after-write, and browser validation.
 
-If you already know the resource key and need impact analysis before editing it,
-use `ldev portal inventory where-used`. It is the preferred discovery step for
-“what Pages will I affect if I change this Structure, Template, Fragment,
-widget, or ADT?”
+If you already know the resource key and need impact analysis before editing it, use `ldev portal inventory where-used`. It is the preferred discovery step for “what Pages will I affect if I change this Structure, Template, Fragment, widget, or ADT?”
 
-Prefer `--site` by default so discovery stays fast and scoped to the Site you
-are already working on.
+Prefer `--site` by default so discovery stays fast and scoped to the Site you are already working on.
 
 For production promotion notes for runtime-backed resources, use
 `references/runtime-resource-production-handoff.md`.
