@@ -214,22 +214,25 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
     {
       id: 'activation-key',
       label: 'Activation Key',
-      status:
-        ctx.activationKeyFile === null
+      status: ctx.activationKeyInstalledFile
+        ? 'pass'
+        : ctx.activationKeyFile === null
           ? 'warn'
           : ctx.activationKeyExists && ctx.activationKeyValidName
             ? 'pass'
             : 'fail',
-      summary:
-        ctx.activationKeyFile === null
+      summary: ctx.activationKeyInstalledFile
+        ? `activation key installed at ${ctx.activationKeyInstalledFile}`
+        : ctx.activationKeyFile === null
           ? 'LDEV_ACTIVATION_KEY_FILE is not configured; DXP users must pass a valid activation key before start'
           : ctx.activationKeyExists && ctx.activationKeyValidName
             ? `activation key ready at ${ctx.activationKeyFile}`
             : ctx.activationKeyExists
               ? `activation key file name is invalid: ${path.basename(ctx.activationKeyFile)}`
               : `activation key file does not exist: ${ctx.activationKeyFile}`,
-      details:
-        ctx.activationKeyFile === null
+      details: ctx.activationKeyInstalledFile
+        ? undefined
+        : ctx.activationKeyFile === null
           ? [
               'Set `LDEV_ACTIVATION_KEY_FILE` or pass `ldev start --activation-key-file /path/to/activation-key-*.xml` when using DXP.',
             ]

@@ -1,6 +1,6 @@
 {
   "name": "@mordonezdev/ldev",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Advanced developer workflows for Liferay local environments",
   "type": "module",
   "bin": {
@@ -40,7 +40,8 @@
     "smoke:solo": "bash scripts/smoke-test-solo-dxp.sh",
     "smoke:workspace": "bash scripts/smoke-test-workspace.sh",
     "build:oauth-bundle": "bash scripts/build-oauth-bundle.sh",
-    "build": "tsdown",
+    "build": "tsdown && npm run build:dashboard",
+    "build:dashboard": "vite build --config vite.dashboard.config.ts",
     "build:watch": "tsdown --watch",
     "dev": "tsx src/index.ts",
     "docs:dev": "vitepress dev docs",
@@ -62,7 +63,7 @@
     "verify:docs": "npm run docs:build && npm run docs:check-links",
     "verify:ai-templates": "node scripts/verify-ai-templates.mjs",
     "verify:schema": "tsx scripts/verify-schema.mts",
-    "verify:package": "rm -f mordonezdev-ldev-*.tgz && npm run build && PACK_JSON=\"$(npm pack --json --ignore-scripts)\" && PACKAGE_FILE=\"$(printf '%s' \"$PACK_JSON\" | node scripts/extract-pack-filename.mjs)\" && TMPDIR=\"$(mktemp -d)\" && npm install -g --prefix \"$TMPDIR\" \"./$PACKAGE_FILE\" && \"$TMPDIR/bin/ldev\" --help && \"$TMPDIR/bin/ldev\" --version && rm -rf \"$TMPDIR\" && rm -f \"$PACKAGE_FILE\"",
+    "verify:package": "node scripts/verify-package.mjs",
     "verify": "npm run verify:ci && npm run verify:docs && npm run verify:package",
     "prepack": "npm run build",
     "test": "vitest run",
@@ -108,6 +109,10 @@
     "yaml": "^2.8.1",
     "zod": "^4.1.5"
   },
+  "overrides": {
+    "fast-uri": "3.1.2",
+    "hono": "4.12.18"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/fs-extra": "^11.0.4",
@@ -115,11 +120,13 @@
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^10.1.0",
     "linkinator": "^7.6.1",
+    "preact": "^10.29.1",
     "prettier": "^3.8.1",
     "tsdown": "^0.21.7",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.57.2",
+    "vite": "^5.4.21",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4"
   }

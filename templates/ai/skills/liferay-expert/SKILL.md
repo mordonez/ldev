@@ -1,51 +1,51 @@
 ---
 name: liferay-expert
-description: 'Use when the task is technical Liferay work and it is not yet clear whether the next step is implementation, deployment or troubleshooting.'
+description: 'Routes technical Liferay work to the right ldev specialist workflow. Use when the task involves Liferay and it is not yet clear whether the next step is diagnosis, implementation, deployment, resource import, or migration.'
 ---
 
 # Liferay Expert
 
-This skill is the domain router for reusable `ldev` Liferay workflows.
+This is the domain router for reusable `ldev` Liferay workflows. It should
+classify quickly and then hand off; deep playbooks live in specialist skills.
 
-It does not contain deep playbooks of its own. Its job is to choose the right
-specialist skill quickly.
-
-## Start here
-
-Run this bootstrap first. If the local `ldev_context` MCP tool is visible, it
-can provide the fast context snapshot; otherwise use the CLI command below.
+## Bootstrap
 
 ```bash
 ldev ai bootstrap --intent=discover --cache=60 --json
 ```
 
-Use `--cache=60` for read-only discovery. If the task depends on fresh runtime
-or portal state, switch to the task-shaped command that probes that surface
-instead of forcing a no-cache discovery bootstrap.
+Use `bootstrap.context` to route:
 
-Use `bootstrap.context` to decide routing:
+- `context.commands.*` for supported command namespaces.
+- `context.liferay.portalUrl` for the effective local portal URL.
+- `context.liferay.auth.oauth2.*.status` for configured credentials.
+- `context.paths.resources.*` for local resource directories.
 
-- `context.commands.*` — supported command namespaces and missing requirements.
-- `context.liferay.auth.oauth2.*.status` — configured auth state.
-- `context.liferay.portalUrl` — effective local portal URL.
-- `context.paths.resources.*` — local resource dirs.
+If required fields are missing, stop and report that the installed `ldev` AI
+assets are out of sync with the CLI.
 
-## Bootstrap fields
+## Resolve Runtime Context
 
-- Required fields: `context.commands.*`, `context.liferay.version`,
-  `context.liferay.edition`, `context.paths.resources.*`.
-- If any of those fields is missing, stop and report that the installed `ldev`
-  AI assets are out of sync with the CLI.
+If the task mentions a site, page, URL, structure, template, ADT, or fragment,
+resolve it with the portal discovery contract in
+[../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md) before
+searching or editing.
 
-If the site is not known, discover it:
+## Routing
 
-```bash
-ldev portal inventory sites --json
-```
+- Issue/feature work with mutation risk -> `runtime-change-workflow`
+- Unknown failure or unhealthy runtime -> `troubleshooting-liferay`
+- Known code/theme/module/config implementation -> `developing-liferay`
+- Journal structures, Journal templates, ADTs, or fragments -> `portal-resource-workflow`
+- Existing change needing build, deploy, import, or runtime proof -> `deploying-liferay`
+- Journal structure change with data movement or compatibility risk -> `migrating-journal-structures`
+- Browser reproduction or visual proof -> `automating-browser-tests`
 
-MCP equivalent when visible: `liferay_inventory_sites`.
+For deeper routing examples, read `references/routing.md`. For Display Page
+Templates, Navigation Menus, multi-site ownership, and content volume checks,
+read `references/site-objects.md`.
 
-If the task involves a portal URL or resource, resolve that context first:
+## Command Boundaries
 
 ```bash
 ldev portal inventory page --url <fullUrl> --json
@@ -54,7 +54,12 @@ ldev portal inventory templates --site /<site> --json
 ldev portal inventory where-used --type <fragment|widget|structure|template|adt> --key <KEY> --site /<site> --json
 ```
 
-For cross-site structure/template discovery, prefer:
+- `ldev context --json`: offline repo/config facts.
+- `ldev status --json`: Docker/runtime state.
+- `ldev doctor --json`: active checks and readiness; add `--runtime`,
+  `--portal`, or `--osgi` when that surface matters.
+
+Do not substitute these commands for each other in plans or handoffs.
 
 ```bash
 ldev portal inventory structures --with-templates --all-sites --json
@@ -156,15 +161,8 @@ ldev oauth admin-unblock
 ## Shared guardrails
 
 - Use `ldev` as the official interface.
-- Use `ldev context --json` for offline routing; use `ldev status --json` only
-  to confirm runtime state. They are not interchangeable.
-- Prefer local `ldev` MCP tools for read-only discovery/diagnosis when visible.
-  Fall back to CLI with `--json` without blocking the task.
-- Prefer `ldev context --json`, `ldev doctor --json` and `ldev status --json`
-  for automation and agents when MCP is not available.
-- Prefer the smallest deploy or import that proves the change.
-- Do not invent portal mutations if an `ldev resource ...` workflow already exists.
-- For site-level objects without dedicated `ldev` commands, verify the Liferay
-  portal MCP server with `ldev mcp check --json` before assembling low-level API
-  calls manually.
-- Keep deep guidance in the specialist skill references; do not duplicate it here.
+- Prefer local `ldev` MCP tools for read-only discovery when visible; fall back
+  to CLI with `--json`.
+- Do not invent portal mutations when an `ldev resource ...` workflow exists.
+- Keep the smallest specialist skill active; do not carry every Liferay skill
+  into the same task unless routing proves it is needed.

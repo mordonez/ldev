@@ -92,7 +92,7 @@ function makeDoctorContext(overrides?: Partial<DoctorContext>): DoctorContext {
         bindIp: 'localhost',
         httpPort: '8080',
         portalUrl: 'http://localhost:8080',
-        composeProjectName: 'labweb',
+        composeProjectName: 'sample-project',
         dataRoot: '/repo/docker/data/default',
       },
       inventory: {
@@ -221,6 +221,7 @@ function makeDoctorContext(overrides?: Partial<DoctorContext>): DoctorContext {
     },
     activationKeyFile: null,
     activationKeyExists: false,
+    activationKeyInstalledFile: null,
     activationKeyValidName: false,
     httpPort: 8080,
     httpPortStatus: 'free',

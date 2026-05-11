@@ -8,6 +8,7 @@ import {loadConfig} from '../../src/core/config/load-config.js';
 import {runEnvStart} from '../../src/features/env/env-start.js';
 import {runWorktreeBtrfsRefreshBase} from '../../src/features/worktree/worktree-btrfs-refresh-base.js';
 import {runWorktreeEnv} from '../../src/features/worktree/worktree-env.js';
+import {runWorktreeGc} from '../../src/features/worktree/worktree-gc.js';
 import {runWorktreeSetup} from '../../src/features/worktree/worktree-setup.js';
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
@@ -361,6 +362,27 @@ describe('worktree integration', () => {
         process.env.PATH = previousPath;
       }
     }
+  }, 20000);
+
+  test('worktree gc protects stale worktrees with uncommitted changes', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+
+    await runWorktreeSetup({cwd: repoRoot, name: 'clean-stale', printer: silentPrinter});
+    await runWorktreeSetup({cwd: repoRoot, name: 'dirty-stale', printer: silentPrinter});
+
+    const cleanRoot = path.join(repoRoot, '.worktrees', 'clean-stale');
+    const dirtyRoot = path.join(repoRoot, '.worktrees', 'dirty-stale');
+    await fs.writeFile(path.join(dirtyRoot, 'not-committed.txt'), 'local work\n');
+
+    const oldTime = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await fs.utimes(cleanRoot, oldTime, oldTime);
+    await fs.utimes(dirtyRoot, oldTime, oldTime);
+
+    const result = await runWorktreeGc({cwd: repoRoot, days: 1, apply: false});
+
+    expect(result.candidates).toContain('clean-stale');
+    expect(result.candidates).not.toContain('dirty-stale');
+    expect(result.protected).toContain('dirty-stale');
   }, 20000);
 
   test('worktree setup --with-env fails in preflight before creating the git worktree when main is running without Btrfs', async () => {

@@ -29,7 +29,7 @@ ldev worktree setup --name incident-123 --with-env
 ldev worktree setup --name feature-x --base origin/main --with-env
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone --restart-main-after-clone
-cd ..\labweb.worktrees\feature-x
+cd .worktrees/feature-x
 ldev worktree setup --with-env
 cd .worktrees/incident-123
 ldev start
@@ -50,6 +50,20 @@ ldev worktree gc --days 14 --apply
 - `env` — prepare or inspect the worktree's local env wiring
 - `clean` — destructive; requires `--force`; optionally deletes `fix/<name>` branch
 - `gc` — preview (default) or `--apply` removal of stale worktrees older than `--days`
+
+## Dashboard
+
+Open a local browser dashboard for worktree and environment operations.
+
+```bash
+ldev dashboard
+ldev dashboard --port 4242 --no-open
+```
+
+- shows worktree inventory, recent commits, changed files, ahead/behind state, and env status
+- queues long-running actions into a live activity rail instead of blocking the terminal
+- exposes guided flows for diagnose, deploy status, DB tools, maintenance preview, and resource export
+- is best used as a local operational console; the CLI remains the canonical automation surface
 
 ### BTRFS snapshots (Linux)
 

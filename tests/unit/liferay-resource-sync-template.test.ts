@@ -161,6 +161,69 @@ describe('liferay resource template-sync', () => {
     );
   });
 
+  test('check-only accepts an intended local template change without requiring the runtime hash first', async () => {
+    const {config, templateFile} = await createRepoFixture();
+    await fs.writeFile(templateFile, 'Hello after local edit');
+
+    const calls: string[] = [];
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=BASIC')) {
+          return new Response('{"templateId":"T-100","templateKey":"BASIC","classPK":"301"}', {status: 200});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":"T-100","templateKey":"T-100","externalReferenceCode":"BASIC","nameCurrentValue":"BASIC","name":"BASIC","script":"Hello before local edit","classPK":"301"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=T-100')) {
+          return new Response('{"templateId":"T-100","classPK":"301","script":"Hello before local edit"}', {
+            status: 200,
+          });
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayResourceSyncTemplate(
+      config,
+      {site: '/global', key: 'BASIC', file: templateFile, checkOnly: true},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('checked');
+    expect(calls).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
+  });
+
   test('resolves a content-template inventory id to the matching ddm template key', async () => {
     const {config, templateFile} = await createRepoFixture();
     const calls: string[] = [];
@@ -233,6 +296,93 @@ describe('liferay resource template-sync', () => {
         expect.stringContaining(
           'GET http://localhost:8080/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33954',
         ),
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
+  });
+
+  test('updates by the DDM templateId when only inventory matches the requested template key', async () => {
+    const {config, templateFile} = await createRepoFixture();
+    const calls: string[] = [];
+    let persistedScript = 'Old';
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response(
+            '{"items":[{"id":"33954","name":"UB_TPL_NOTA_PRENSA_DETALLE","contentStructureId":301,"externalReferenceCode":"UB_TPL_NOTA_PRENSA_DETALLE","templateScript":"Old"}],"lastPage":1,"page":1,"pageSize":200,"totalCount":1}',
+            {status: 200},
+          );
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=UB_TPL_NOTA_PRENSA_DETALLE',
+          )
+        ) {
+          return new Response('{"status":404}', {status: 404});
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234&resourceClassNameId=5678&status=0',
+          )
+        ) {
+          return new Response(
+            JSON.stringify([
+              {
+                templateId: '33955',
+                templateKey: '33954',
+                externalReferenceCode: 'UB_TPL_NOTA_PRENSA_DETALLE',
+                nameCurrentValue: 'UB_TPL_NOTA_PRENSA_DETALLE',
+                name: 'UB_TPL_NOTA_PRENSA_DETALLE',
+                script: persistedScript,
+                classPK: '301',
+              },
+            ]),
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
+          expect(form.get('templateId')).toBe('33955');
+          expect(form.get('script')).toBe('Hello from local');
+          persistedScript = form.get('script') ?? '';
+          return new Response('{"templateId":"33955"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=33954')) {
+          return new Response(
+            '{"cacheable":true,"templateId":"33955","templateKey":"33954","script":"Hello from local"}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayResourceSyncTemplate(
+      config,
+      {site: '/global', key: 'UB_TPL_NOTA_PRENSA_DETALLE', file: templateFile},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('updated');
+    expect(calls).toEqual(
+      expect.arrayContaining([
         expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
       ]),
     );

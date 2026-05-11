@@ -1,6 +1,6 @@
 ---
 title: Diagnose an Issue
-description: Use ldev to identify whether a Liferay problem is environment, application, portal, or OSGi related.
+description: A practical triage flow with ldev — useful for routing to the right area, with honest expectations about what each command does.
 ---
 
 # Diagnose an Issue
@@ -12,14 +12,27 @@ Use this flow when the symptom is vague:
 - deployments stop working
 - startup does not complete
 
+The goal is to route the problem to the right area — environment,
+application, portal or OSGi — quickly, with structured evidence at each
+step.
+
+A note up front: `ldev` does not diagnose Liferay magically. `logs diagnose`
+groups exceptions with regex and applies a small set of keyword rules,
+`doctor` checks environment readiness, `osgi diag` wraps Gogo. They are
+fast convenience over things you would otherwise do by hand. The win is
+speed and structured output, not insight.
+
 ## 1. Confirm environment health
 
 ```bash
 ldev status --json
 ldev doctor --json
+ldev doctor --runtime --portal --osgi --json
 ```
 
-If Docker, ports, activation, or effective config are broken, fix that first. Do not spend time in portal APIs before the environment is healthy enough to trust.
+If Docker, ports, activation, or effective config are broken, fix that
+first. There is no point chasing application errors against a broken
+environment.
 
 ## 2. Group the recent errors
 
@@ -27,7 +40,8 @@ If Docker, ports, activation, or effective config are broken, fix that first. Do
 ldev logs diagnose --since 15m --json
 ```
 
-This is the fastest way to move from raw logs to a shortlist of likely causes.
+This is the fastest way to move from raw logs to a shortlist of likely
+causes. Use it as a triage signal, not as a diagnosis.
 
 ## 3. Check API reachability
 
@@ -35,7 +49,8 @@ This is the fastest way to move from raw logs to a shortlist of likely causes.
 ldev portal check --json
 ```
 
-If this fails, the issue may be authentication, startup, or basic portal reachability rather than page-specific behavior.
+If this fails, the issue is probably authentication, startup, or basic
+portal reachability — not page-specific behavior.
 
 ## 4. Inspect the affected area
 
@@ -68,9 +83,11 @@ ldev deploy module foo-web
 ldev env restart
 ```
 
-Use `deploy module` before broader rebuilds. Restart only when the runtime state needs to be refreshed.
+Use `deploy module` before broader rebuilds. Restart only when runtime state
+needs to be refreshed.
 
-If deploy output reports that only some artifacts were hot-deployed, treat it as a failed deploy and retry after checking the reported artifact errors.
+If deploy output reports that only some artifacts were hot-deployed, treat
+it as a failed deploy and retry after fixing the reported artifact errors.
 
 ## 6. Verify
 
@@ -79,4 +96,5 @@ ldev portal check
 ldev logs diagnose --since 5m --json
 ```
 
-Verification is complete when the user-facing symptom is gone and the error no longer appears in a fresh diagnosis window.
+Verification is complete when the user-facing symptom is gone and the
+original error no longer appears in a fresh diagnosis window.

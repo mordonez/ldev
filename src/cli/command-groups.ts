@@ -20,6 +20,7 @@ import {createOsgiCommand} from '../commands/osgi/osgi.command.js';
 import {createOAuthCommand} from '../commands/oauth/oauth.command.js';
 import {createProjectCommand} from '../commands/project/project.command.js';
 import {createResourceCommand} from '../commands/resource/resource.command.js';
+import {createDashboardCommand} from '../commands/dashboard/dashboard.command.js';
 import {createWorktreeCommand} from '../commands/worktree/worktree.command.js';
 
 export const coreGroup: CommandGroup = {
@@ -83,6 +84,7 @@ export const infrastructureGroup: CommandGroup = {
       createDbCommand,
       createOsgiCommand,
       createWorktreeCommand,
+      createDashboardCommand,
     ]) {
       program.addCommand(factory().helpGroup(this.group!));
     }

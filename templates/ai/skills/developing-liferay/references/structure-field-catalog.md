@@ -100,24 +100,24 @@ not a naming rule.
 
 ## Field type table
 
-| `fieldType`        | `dataType`         | `indexType` | `localizable` | Notes                               |
-|--------------------|--------------------|-------------|---------------|-------------------------------------|
-| `text`             | `string`           | `keyword`   | `true`        | singleline or multiline             |
-| `select`           | `string`           | `keyword`   | `true`        | single or multi-value               |
-| `radio`            | `string`           | `keyword`   | `true`        | single-choice, inline option        |
-| `grid`             | `string`           | `keyword`   | `true`        | matrix with rows + columns          |
+| `fieldType`        | `dataType`         | `indexType` | `localizable` | Notes                                    |
+| ------------------ | ------------------ | ----------- | ------------- | ---------------------------------------- |
+| `text`             | `string`           | `keyword`   | `true`        | singleline or multiline                  |
+| `select`           | `string`           | `keyword`   | `true`        | single or multi-value                    |
+| `radio`            | `string`           | `keyword`   | `true`        | single-choice, inline option             |
+| `grid`             | `string`           | `keyword`   | `true`        | matrix with rows + columns               |
 | `checkbox`         | `boolean`          | `keyword`   | `true`        | single toggle, `defaultValue: ["false"]` |
-| `numeric`          | `integer`/`double` | `keyword`   | `true`        | `dataType` decides int vs decimal   |
-| `date`             | `date`             | `keyword`   | `true`        |                                     |
-| `date_time`        | `datetime`         | `keyword`   | **`false`**   | `rulesActionDisabled: true`         |
-| `rich_text`        | `string`           | **`text`**  | `true`        | omit `editorConfig` — portal fills it |
-| `image`            | `image`            | **`text`**  | `true`        | `requiredDescription` controls alt-text |
-| `document_library` | `document-library` | `keyword`   | `true`        |                                     |
-| `journal_article`  | `journal-article`  | `keyword`   | `true`        |                                     |
-| `link_to_layout`   | `link-to-page`     | `keyword`   | `true`        |                                     |
-| `color`            | `string`           | `keyword`   | `true`        |                                     |
-| `geolocation`      | `geolocation`      | `keyword`   | `true`        |                                     |
-| `separator`        | `""`               | —           | **`false`**   | `indexable: false`                  |
+| `numeric`          | `integer`/`double` | `keyword`   | `true`        | `dataType` decides int vs decimal        |
+| `date`             | `date`             | `keyword`   | `true`        |                                          |
+| `date_time`        | `datetime`         | `keyword`   | **`false`**   | `rulesActionDisabled: true`              |
+| `rich_text`        | `string`           | **`text`**  | `true`        | omit `editorConfig` — portal fills it    |
+| `image`            | `image`            | **`text`**  | `true`        | `requiredDescription` controls alt-text  |
+| `document_library` | `document-library` | `keyword`   | `true`        |                                          |
+| `journal_article`  | `journal-article`  | `keyword`   | `true`        |                                          |
+| `link_to_layout`   | `link-to-page`     | `keyword`   | `true`        |                                          |
+| `color`            | `string`           | `keyword`   | `true`        |                                          |
+| `geolocation`      | `geolocation`      | `keyword`   | `true`        |                                          |
+| `separator`        | `""`               | —           | **`false`**   | `indexable: false`                       |
 
 ---
 
@@ -133,10 +133,10 @@ not a naming rule.
   "labelAtStructureLevel": true,
   "nativeField": false,
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "displayStyle": "singleline",
-  "placeholder": { "ca_ES": "" },
+  "placeholder": {"ca_ES": ""},
   "hideField": false,
   "autocomplete": false,
   "requireConfirmation": false
@@ -155,15 +155,15 @@ not a naming rule.
   "fieldReference": "FieldName",
   "fieldNamespace": "",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "dataSourceType": ["manual"],
   "multiple": false,
   "alphabeticalOrder": false,
   "options": {
     "ca_ES": [
-      { "reference": "Option1", "label": "Option 1", "value": "Option1" },
-      { "reference": "Option2", "label": "Option 2", "value": "Option2" }
+      {"reference": "Option1", "label": "Option 1", "value": "Option1"},
+      {"reference": "Option2", "label": "Option 2", "value": "Option2"}
     ]
   }
 }
@@ -181,13 +181,11 @@ Set `"multiple": true` for multi-value selects. `defaultValue` becomes `[]` when
   "fieldReference": "FieldName",
   "fieldNamespace": "",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "inline": true,
   "options": {
-    "ca_ES": [
-      { "reference": "OptionA", "label": "Option A", "value": "OptionA" }
-    ]
+    "ca_ES": [{"reference": "OptionA", "label": "Option A", "value": "OptionA"}]
   }
 }
 ```
@@ -203,14 +201,10 @@ Set `"multiple": true` for multi-value selects. `defaultValue` becomes `[]` when
   "dataType": "string",
   "fieldReference": "FieldName",
   "columns": {
-    "ca_ES": [
-      { "reference": "Col1", "label": "Column 1", "value": "Col1" }
-    ]
+    "ca_ES": [{"reference": "Col1", "label": "Column 1", "value": "Col1"}]
   },
   "rows": {
-    "ca_ES": [
-      { "reference": "Row1", "label": "Row 1", "value": "Row1" }
-    ]
+    "ca_ES": [{"reference": "Row1", "label": "Row 1", "value": "Row1"}]
   }
 }
 ```
@@ -226,7 +220,7 @@ Set `"multiple": true` for multi-value selects. `defaultValue` becomes `[]` when
   "fieldNamespace": "",
   "labelAtStructureLevel": true,
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "options": {},
   "showAsSwitcher": true
@@ -247,11 +241,11 @@ Set `"multiple": true` for multi-value selects. `defaultValue` becomes `[]` when
   "labelAtStructureLevel": true,
   "nativeField": false,
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "inputMask": false,
   "characterOptions": false,
-  "placeholder": { "ca_ES": "" },
+  "placeholder": {"ca_ES": ""},
   "hideField": false
 }
 ```
@@ -270,7 +264,7 @@ Use `"dataType": "double"` for decimal values.
   "labelAtStructureLevel": true,
   "nativeField": false,
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "htmlAutocompleteAttribute": ""
 }
@@ -285,7 +279,7 @@ Use `"dataType": "double"` for decimal values.
   "dataType": "datetime",
   "fieldReference": "FieldName",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "rulesActionDisabled": true
 }
 ```
@@ -302,7 +296,7 @@ Use `"dataType": "double"` for decimal values.
   "fieldReference": "FieldName",
   "fieldNamespace": "",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": ""
 }
 ```
@@ -321,7 +315,7 @@ file browser URLs and toolbar presets that break in other environments.
   "fieldReference": "FieldName",
   "fieldNamespace": "",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "requiredDescription": false
 }
@@ -340,7 +334,7 @@ file browser URLs and toolbar presets that break in other environments.
   "fieldNamespace": "",
   "labelAtStructureLevel": true,
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": "",
   "allowGuestUsers": false
 }
@@ -384,7 +378,7 @@ No `objectFieldName`, no `requiredErrorMessage` at the top level.
   "fieldReference": "FieldName",
   "fieldNamespace": "",
   "objectFieldName": "",
-  "requiredErrorMessage": { "ca_ES": "" },
+  "requiredErrorMessage": {"ca_ES": ""},
   "visibilityExpression": ""
 }
 ```
@@ -411,7 +405,7 @@ Minimal properties — no `fieldNamespace`, `objectFieldName`, or `visibilityExp
   "dataType": "",
   "fieldReference": "FieldName",
   "rulesConditionDisabled": true,
-  "style": { "ca_ES": "" }
+  "style": {"ca_ES": ""}
 }
 ```
 
@@ -492,6 +486,11 @@ one `fieldNames` array.
 - Never copy `editorConfig` from an export — it contains site-specific URLs.
 - `fieldReference` inside `customProperties` must equal the field `name`.
 - Every field in `dataDefinitionFields` must appear in the layout `fieldNames`.
+- Place new fields in `defaultDataLayout` at the visual position requested by
+  the issue; adding only `dataDefinitionFields` is not enough for authors.
+- Do not include `FieldSet` in a new fieldset name/reference. Use a semantic
+  name such as `HighlightedTextBlocks`; exported/generated names like
+  `HighlightedTextBlocksFieldSetFieldSet` produce brittle migration targets.
 - `date_time` must have `localizable: false`.
 - `separator` must have `indexable: false` and `localizable: false`.
 - Do not use auto-generated numeric suffixes in `name` — use meaningful PascalCase names.

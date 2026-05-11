@@ -31,7 +31,7 @@ playwright-cli -s=runtime-NUM close
 1. Resolve the page:
 
 ```bash
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 ```
 
 2. Export before mutating:

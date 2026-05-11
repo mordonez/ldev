@@ -1,8 +1,8 @@
-import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import process from 'node:process';
 import {setTimeout as delay} from 'node:timers/promises';
+import {execa} from 'execa';
 
 const previewHost = 'localhost';
 const previewPort = 4173 + Math.floor(Math.random() * 1000);
@@ -15,20 +15,16 @@ const requiredCleanUrls = [
   '/ldev/troubleshooting',
 ];
 
-function getNpmCommand() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
-}
-
 /**
  * @param {string[]} args
- * @param {import('node:child_process').SpawnOptions} [options]
  */
-function spawnNpm(args, options = {}) {
-  return spawn(getNpmCommand(), args, {
+function runNpm(args) {
+  return execa('npm', args, {
     cwd: process.cwd(),
     env: process.env,
-    stdio: 'inherit',
-    ...options,
+    reject: false,
+    stdout: 'inherit',
+    stderr: 'inherit',
   });
 }
 
@@ -140,7 +136,7 @@ async function run() {
     throw new Error(`Built docs not found at ${previewBuildPath}. Run "npm run docs:build" first.`);
   }
 
-  const preview = spawnNpm([
+  const preview = runNpm([
     'exec',
     '--',
     'vitepress',
@@ -157,37 +153,29 @@ async function run() {
     await waitForCriticalAssets(previewUrl);
     await assertRequiredRoutes(previewUrl);
 
-    await new Promise((resolve, reject) => {
-      const checker = spawnNpm([
-        'exec',
-        '--',
-        'linkinator',
-        previewUrl,
-        '--recurse',
-        '--check-fragments',
-        '--check-css',
-        '--timeout',
-        '5000',
-        '--skip',
-        '^mailto:',
-        '--skip',
-        '^tel:',
-        '--skip',
-        '^javascript:',
-        '--skip',
-        `^https?://(?!${previewHost}:${previewPort}/ldev/)`,
-      ]);
+    const checker = await runNpm([
+      'exec',
+      '--',
+      'linkinator',
+      previewUrl,
+      '--recurse',
+      '--check-fragments',
+      '--check-css',
+      '--timeout',
+      '5000',
+      '--skip',
+      '^mailto:',
+      '--skip',
+      '^tel:',
+      '--skip',
+      '^javascript:',
+      '--skip',
+      `^https?://(?!${previewHost}:${previewPort}/ldev/)`,
+    ]);
 
-      checker.on('exit', (code) => {
-        if (code === 0) {
-          resolve();
-          return;
-        }
-
-        reject(new Error(`Link checking failed with exit code ${code ?? 'unknown'}`));
-      });
-      checker.on('error', reject);
-    });
+    if (checker.exitCode !== 0) {
+      throw new Error(`Link checking failed with exit code ${checker.exitCode ?? 'unknown'}`);
+    }
   } finally {
     preview.kill('SIGTERM');
     await delay(250);

@@ -29,13 +29,18 @@ the **Scopes** tab of the OAuth2 application.
 
 | Scope | Required for |
 |---|---|
-| `Liferay.Headless.Delivery.everything` | Reading and writing Journal Articles, structured contents, pages |
+| `Liferay.Headless.Delivery.everything` | Reading and writing Journal Articles and `structured-contents` payloads |
+| `Liferay.Headless.Admin.Content.everything` | Content administration workflows, structure-linked content authoring, and admin-side content operations |
+| `Liferay.Headless.Admin.Site.everything.write` | Mutating site pages and other site administration surfaces exposed by `headless-admin-site` |
 | `Liferay.Headless.Admin.User.everything` | Managing users, roles, site memberships |
-| `Liferay.Headless.Admin.Content.everything` | Content administration workflows |
 | `Liferay.Object.Admin.everything` | Creating and managing Object definitions |
 | `Liferay.Headless.Batch.Engine.everything` | Batch import/export of Object entries and other entities |
 
 For read-only use cases, replace `everything` with `everything.read`.
+
+For agentic structured-content mutation, treat `Liferay.Headless.Delivery` plus
+`Liferay.Headless.Admin.Content` as the minimum practical write baseline. Site
+page mutation additionally needs `Liferay.Headless.Admin.Site.everything.write`.
 
 ## Grant types
 
@@ -56,6 +61,13 @@ use automatically.
 ```bash
 ldev oauth install --write-env
 ```
+
+The default `ldev` install is intended to be agent-usable for local authoring.
+It provisions read/write scopes for Headless Delivery, Headless Admin Content,
+Headless Admin Site, Data Engine, and JSONWS. Add `--scope-profile objects`
+only when the task also needs Object administration. If a project deliberately
+uses a narrower OAuth app, document that constraint in project-owned AI files
+so agents do not assume content/page mutation is available.
 
 What it writes (variables available after the command completes):
 
@@ -126,3 +138,9 @@ in Liferay). When a token expires:
 | `403 Forbidden` on API call | Token is valid but the OAuth2 application lacks the required scope, or the service account lacks the portal role |
 | `invalid_client` on token request | Client ID or Secret is wrong — re-check against the portal OAuth2 application |
 | OAuth2 application not found | The portal was reset or the application was deleted — re-create and re-run `ldev oauth install --write-env` |
+
+For page/content authoring failures, separate `401`/`403` from payload errors:
+
+1. `401` or `403`: inspect the OAuth app scopes first.
+2. `500` with a valid token: inspect the exact request body against the runtime
+  OpenAPI in `/o/api` or `/o/<api>/openapi.json`; do not keep retrying blind.

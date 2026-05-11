@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {CliError} from '../../core/errors.js';
 import {loadConfig} from '../../core/config/load-config.js';
-import {isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
+import {hasUncommittedChanges, isGitRepository, listGitWorktrees} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {runDocker} from '../../core/platform/docker.js';
 import {runWorktreeClean} from './worktree-clean.js';
@@ -13,6 +13,7 @@ export type WorktreeGcResult = {
   ok: true;
   apply: boolean;
   candidates: string[];
+  protected: string[];
   cleaned: string[];
 };
 
@@ -37,6 +38,7 @@ export async function runWorktreeGc(options: {
   const runningNames = await listRunningWorktreeNames(composePrefix, options.processEnv);
   const cutoffMs = Date.now() - (options.days ?? 7) * 24 * 60 * 60 * 1000;
   const candidates: string[] = [];
+  const protectedWorktrees: string[] = [];
 
   for (const worktreePath of all) {
     const base = path.basename(worktreePath);
@@ -51,6 +53,10 @@ export async function runWorktreeGc(options: {
     }
     const stat = await fs.stat(worktreePath).catch(() => null);
     if (!stat || stat.mtimeMs > cutoffMs) {
+      continue;
+    }
+    if (await hasUncommittedChanges(worktreePath)) {
+      protectedWorktrees.push(base);
       continue;
     }
     candidates.push(base);
@@ -74,18 +80,22 @@ export async function runWorktreeGc(options: {
     ok: true,
     apply: options.apply ?? false,
     candidates,
+    protected: protectedWorktrees,
     cleaned,
   };
 }
 
 export function formatWorktreeGc(result: WorktreeGcResult): string {
+  const protectedLines = result.protected.map((candidate) => `GC protected dirty worktree: ${candidate}`);
   if (result.candidates.length === 0) {
-    return 'No worktrees are candidates for cleanup.';
+    return ['No worktrees are candidates for cleanup.', ...protectedLines].join('\n');
   }
   if (!result.apply) {
-    return result.candidates.map((candidate) => `DRY-RUN GC candidate: ${candidate}`).join('\n');
+    return [...result.candidates.map((candidate) => `DRY-RUN GC candidate: ${candidate}`), ...protectedLines].join(
+      '\n',
+    );
   }
-  return result.cleaned.map((candidate) => `GC removed: ${candidate}`).join('\n');
+  return [...result.cleaned.map((candidate) => `GC removed: ${candidate}`), ...protectedLines].join('\n');
 }
 
 function loadComposePrefix(mainRepoRoot: string): string {

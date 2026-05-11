@@ -30,6 +30,7 @@ export async function runEnvStart(
     processEnv?: NodeJS.ProcessEnv;
     printer?: Printer;
     activationKeyFile?: string;
+    signal?: AbortSignal;
   },
 ): Promise<EnvStartResult> {
   const waitForHealth = options?.wait ?? true;
@@ -51,16 +52,19 @@ export async function runEnvStart(
   await restoreBuildDeployFromCache(config);
   await ensureDoclibVolume(context, {processEnv: options?.processEnv});
   const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
+  const signal = options?.signal;
 
   if (options?.printer) {
     await withProgress(options.printer, 'Starting Docker services', async () => {
       await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
         env: composeEnv,
+        signal,
       });
     });
   } else {
     await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
       env: composeEnv,
+      signal,
     });
   }
 

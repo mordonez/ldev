@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portal Resource Workflow"
+  short_description: "Change and verify Liferay portal resources through ldev"
+  default_prompt: "Use $portal-resource-workflow to resolve, export, change, import, and verify Liferay structures, templates, ADTs, or fragments without guessing resource ownership."

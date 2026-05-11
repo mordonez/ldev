@@ -36,18 +36,9 @@ References:
 - `reindex-after-import.md`
 - `reindex-journal.md`
 
-```bash
-ldev portal reindex status --json
-ldev portal reindex tasks --json
-ldev portal reindex watch --json
-```
-
-Enable temporary speedup only while an actual reindex is active:
-
-```bash
-ldev portal reindex speedup-on
-ldev portal reindex speedup-off
-```
+`ldev` cannot force or start reindex. A human must run reindex from the Liferay
+UI. Use `ldev` only for health checks, logs, portal inventory, and browser
+validation around that manual step.
 
 ## Search and buscadores
 

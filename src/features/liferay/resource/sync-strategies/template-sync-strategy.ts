@@ -14,7 +14,11 @@ import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetTemplate} from '../liferay-resource-get-template.js';
 import {fetchStructureByKey} from '../liferay-resource-sync-structure-shared.js';
 import {resolveTemplateFile, resolveSiteToken} from '../liferay-resource-paths.js';
-import {fetchStructureTemplateClassIds} from '../liferay-resource-shared.js';
+import {
+  fetchStructureTemplateClassIds,
+  listDdmTemplates,
+  type ResolvedResourceSite,
+} from '../liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from '../liferay-resource-template-normalize.js';
 import {
   ensureString,
@@ -106,13 +110,34 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
     const directDdmTemplate = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), opts.key);
 
-    const existing = directDdmTemplate
-      ? structureIdFilter === '' || ensureString(directDdmTemplate.classPK ?? '', 'classPK') === structureIdFilter
-        ? directDdmTemplate
-        : null
-      : null;
+    const listedDdmTemplate = directDdmTemplate
+      ? null
+      : (
+          await listDdmTemplates(config, site as ResolvedResourceSite, dependencies, {
+            includeCompanyFallback: site.friendlyUrlPath === '/global',
+          })
+        ).find((item) => {
+          if (
+            !matchesInventoryTemplate(
+              {
+                id: String(item.templateId ?? ''),
+                externalReferenceCode: String(item.externalReferenceCode ?? item.templateKey ?? ''),
+                name: String(item.nameCurrentValue ?? item.name ?? ''),
+              },
+              opts.key,
+            )
+          ) {
+            return false;
+          }
+          return structureIdFilter === '' || ensureString(item.classPK ?? '', 'classPK') === structureIdFilter;
+        });
+
+    const existing = directDdmTemplate ?? listedDdmTemplate ?? null;
 
     if (existing) {
+      if (structureIdFilter !== '' && ensureString(existing.classPK ?? '', 'classPK') !== structureIdFilter) {
+        return null;
+      }
       return {
         id: ensureString(existing.templateKey ?? existing.templateId, 'templateKey'),
         name: ensureString(existing.templateKey ?? existing.templateId ?? opts.key, 'templateName'),

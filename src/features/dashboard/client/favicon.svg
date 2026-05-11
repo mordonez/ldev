@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">ldev Dashboard</title>
+  <desc id="desc">Rounded badge with layered blocks and a terminal prompt.</desc>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f3b68" />
+      <stop offset="1" stop-color="#2ea97d" />
+    </linearGradient>
+    <linearGradient id="card" x1="18" y1="18" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f6fbff" stop-opacity="0.98" />
+      <stop offset="1" stop-color="#d7f3e8" stop-opacity="0.92" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="52" height="52" rx="16" fill="url(#bg)" />
+  <path d="M21 19h16l6 6v20H21z" fill="url(#card)" opacity="0.95" />
+  <path d="M37 19v8h8" fill="none" stroke="#77d1b0" stroke-width="3" stroke-linejoin="round" />
+  <path d="M19 39l6-6 6 6" fill="none" stroke="#0f3b68" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M35 45h11" fill="none" stroke="#0f3b68" stroke-width="4" stroke-linecap="round" />
+  <circle cx="49" cy="19" r="4" fill="#ffcf5a" />
+</svg>

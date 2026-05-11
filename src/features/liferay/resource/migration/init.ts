@@ -76,7 +76,7 @@ export async function runLiferayResourceMigrationInit(
     dependentStructures,
     introduce: {
       notes: [
-        'Fill in introduce.mappings before running migration-run or migration-pipeline.',
+        'Fill in introduce.mappings before running migration-pipeline.',
         'Use target with fieldset[].field syntax when the destination lives inside a fieldset.',
         'Limit the scope with articleIds, folderIds, or rootFolderIds to avoid migrating the whole site when it is not needed.',
       ],
@@ -96,10 +96,10 @@ export async function runLiferayResourceMigrationInit(
         source: 'Current field reference you want to migrate from the old structure.',
         target: 'Target field reference in the new structure. If it lives inside a fieldset, use fieldset[].field.',
         cleanupSource:
-          'Set to true when the source field should be cleaned in the second phase and removed from the final structure.',
+          'Keep false for the first proof. Set true only after copied target values are verified and cleanup is explicitly approved.',
         examples: [
           {source: 'oldTitle', target: 'newTitle', cleanupSource: false},
-          {source: 'legacyBody', target: 'content[].body', cleanupSource: true},
+          {source: 'legacyBody', target: 'content[].body', cleanupSource: false},
         ],
       },
       suggestions: {

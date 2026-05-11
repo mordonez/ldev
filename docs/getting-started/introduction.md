@@ -1,104 +1,84 @@
 ---
 title: Introduction
-description: What ldev is for and how to think about it before you use the command reference.
+description: Why ldev exists, what it covers, and how to think about it before reading the command reference.
 ---
 
 # Introduction
 
-`ldev` is not a generic CLI for Liferay.
+`ldev` is a CLI for the Liferay operations that today only live in the admin
+UI — and for the surrounding scaffolding that makes those operations safe to
+run from a script or an agent.
 
-It is an operational CLI for maintenance and troubleshooting work:
+If you have not yet, start with [What is ldev](/getting-started/what-is-ldev)
+for a one-page summary.
 
-- understand Liferay systems quickly
-- diagnose issues faster
-- reproduce production locally
-- apply fixes safely
-- verify results consistently
+## Where Liferay leaves gaps
 
-## Start with workflows, not commands
+A few examples of work that today is harder than it should be:
 
-The main question is:
+- importing or exporting structures, templates, ADTs and fragments — UI-only
+- migrating journal articles when a structure changes — no native pipeline
+- standing up a clean local environment from a Liferay Cloud backup —
+  manual steps
+- giving an AI agent a real execution layer on Liferay — it cannot click
 
-`How do I use ldev to solve a real Liferay problem?`
+`ldev` is built around those gaps. Everything else is convenience.
 
-Not:
+## How to read the docs
 
-`What commands exist?`
+The docs are organised in three layers:
 
-That is why the docs are organized around workflows such as:
+1. **Getting started** — install, stand up an environment, run the first
+   commands.
+2. **Workflows** — full walkthroughs for the things `ldev` is built around:
+   resources as files, structure migration, branch-isolated runtimes,
+   reproducing production locally.
+3. **Reference and advanced** — flags, configuration, MCP tools, OSGi probes,
+   troubleshooting.
 
-- diagnosing a broken environment
-- fixing an OSGi bundle
-- reproducing a production issue locally
-- exploring a portal without depending on the UI
+If you only have ten minutes, read [What is ldev](/getting-started/what-is-ldev)
+and [Export and Import Resources](/workflows/export-import-resources).
 
-## The default operating model
+## Two project shapes
 
-Use `ldev` in this order:
+`ldev` works in two ways:
 
-1. understand the environment
-2. diagnose the problem
-3. apply the smallest safe fix locally
-4. verify the result
+- **`ldev-native`** — `ldev` manages a Docker-based local runtime end to end.
+  Use this when you want a turnkey local Liferay.
+- **Liferay Workspace (Blade)** — `ldev` runs on top of an existing standard
+  workspace. Use this when your team already uses Blade and you want to keep
+  that layout.
 
-Typical commands:
+`ldev` detects which shape applies and adapts. You do not have to choose at
+install time.
 
-```bash
-ldev context --json
-ldev doctor --json
-ldev logs diagnose --json
-ldev portal inventory page --url /home --json
-ldev osgi diag com.acme.foo.web
-ldev deploy module foo-web
-ldev portal check
-```
+## Structured output by default
 
-## What makes ldev different
+Every command that returns data supports `--json` (and `--ndjson` where
+streaming makes sense). That matters because the same workflow is used by:
 
-### Works with two local models
+- developers running commands by hand
+- scripts in CI
+- AI agents over MCP
 
-You can use `ldev` in two main ways:
+The output is identical. You build automation against it the same way you
+read it.
 
-- `ldev-native`: `ldev` manages its own Docker-based local runtime
-- `blade-workspace`: `ldev` runs on top of a standard Liferay Workspace
+## A note on honesty
 
-That matters because `ldev` is not trying to replace the standard Liferay development layout. It can complement it.
+A few things to set expectations for:
 
-### Production to local
-
-You can move production-like state into local so debugging happens in a safer place.
-
-```bash
-ldev db sync --environment production --project my-lcp-project --force
-ldev start
-```
-
-### Discovery without UI
-
-You can inspect sites and pages directly from the CLI.
-
-```bash
-ldev portal inventory sites --json
-ldev portal inventory pages --site /global --json
-ldev portal inventory page --url /home --json
-```
-
-### Structured output
-
-Humans and agents can use the same commands and the same JSON output.
-
-### Agent bootstrap
-
-`ldev ai install` prepares a repo so agents have the right rules, skills, and entrypoints:
-
-```bash
-ldev ai install --target .
-ldev ai install --target . --project --project-context
-```
+- `ldev logs diagnose` groups exceptions and applies a small set of keyword
+  rules. It speeds up triage; it does not perform root-cause analysis.
+- `ldev db sync` pulls from **Liferay Cloud (LCP)** only. For self-hosted,
+  `ldev db import --file <backup>` with a backup you already have.
+- Btrfs-accelerated worktrees are Linux-only. Other platforms still work,
+  just without instant snapshots.
 
 ## Where to go next
 
+- [What is ldev](/getting-started/what-is-ldev)
 - [Quickstart](/getting-started/quickstart)
-- [First Incident](/getting-started/first-incident)
-- [Diagnose an Issue](/workflows/diagnose-issue)
-- [PaaS to Local Migration](/workflows/paas-to-local-migration)
+- [Export and Import Resources](/workflows/export-import-resources)
+- [Resource Migration Pipeline](/workflows/resource-migration-pipeline)
+- [Agents and MCP](/agentic/)

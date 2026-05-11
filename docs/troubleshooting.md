@@ -5,7 +5,11 @@ description: Common error patterns and fixes for ldev runtimes, Docker issues, a
 
 # Troubleshooting
 
-Start with `ldev doctor`, then `ldev logs diagnose` for detailed diagnosis.
+Start with `ldev doctor` to confirm the environment is sane, then
+`ldev logs diagnose` for grouped exception triage. Be honest about what
+those give you: `doctor` runs environment-readiness checks, `logs diagnose`
+groups recent exceptions with regex and applies a small set of keyword
+rules. They speed up triage; they do not perform deep diagnosis.
 
 `ldev` normalizes errors into a stable envelope:
 

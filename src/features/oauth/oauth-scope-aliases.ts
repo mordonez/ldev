@@ -1,7 +1,9 @@
 export const DEFAULT_OAUTH_SCOPE_ALIASES = [
   'Liferay.Headless.Admin.User.everything.read',
   'Liferay.Headless.Admin.Content.everything.read',
+  'Liferay.Headless.Admin.Content.everything.write',
   'Liferay.Headless.Admin.Site.everything.read',
+  'Liferay.Headless.Admin.Site.everything.write',
   'Liferay.Data.Engine.REST.everything.read',
   'Liferay.Data.Engine.REST.everything.write',
   'Liferay.Headless.Delivery.everything.read',
@@ -11,6 +13,8 @@ export const DEFAULT_OAUTH_SCOPE_ALIASES = [
   'Liferay.Headless.Discovery.API.everything.read',
   'Liferay.Headless.Discovery.OpenAPI.everything.read',
 ] as const;
+
+const MANAGED_OAUTH_SCOPE_ALIASES = DEFAULT_OAUTH_SCOPE_ALIASES;
 
 export const PORTAL_INVENTORY_SCOPE_ALIAS = 'Liferay.Headless.Admin.Site.everything.read';
 
@@ -43,6 +47,10 @@ export type OAuthScopeProfileName = keyof typeof OAUTH_SCOPE_PROFILES;
 export function resolveManagedOAuthScopeAliases(scopeAliases: Iterable<string | null | undefined>): string[] {
   const aliases = new Set<string>();
 
+  for (const scopeAlias of MANAGED_OAUTH_SCOPE_ALIASES) {
+    aliases.add(scopeAlias);
+  }
+
   for (const scopeAlias of scopeAliases) {
     const normalizedScopeAlias = scopeAlias?.trim();
 
@@ -50,8 +58,6 @@ export function resolveManagedOAuthScopeAliases(scopeAliases: Iterable<string | 
       aliases.add(normalizedScopeAlias);
     }
   }
-
-  aliases.add(PORTAL_INVENTORY_SCOPE_ALIAS);
 
   return Array.from(aliases);
 }

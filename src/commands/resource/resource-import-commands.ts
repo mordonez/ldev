@@ -79,8 +79,8 @@ export function registerResourceImportCommands(resource: Command): void {
     configure: (command) =>
       command
         .option('--template <template>', 'Template key, ERC, numeric id, or visible name')
-        .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
-        .option('--file <file>', 'Template FTL file; autodetects by template when omitted')
+        .option('--site <site>', 'Site friendly URL or numeric ID')
+        .option('--file <file>', 'Template FTL file; infers --site from the site folder when omitted')
         .option('--structure <structure>', 'Structure key to use when creating a missing template')
         .option('--check-only', 'Preview only; do not update the template')
         .option('--create-missing', 'Create the template when it does not exist'),

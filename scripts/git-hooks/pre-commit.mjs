@@ -14,7 +14,7 @@ if (lintableFiles.length === 0) {
   process.exit(0);
 }
 
-run('npx', ['eslint', '--fix', ...lintableFiles], {stdio: 'inherit'});
+run('npx', ['eslint', '--fix', '--no-warn-ignored', ...lintableFiles], {stdio: 'inherit'});
 run('npx', ['prettier', '--write', ...lintableFiles], {stdio: 'inherit'});
 run('git', ['add', '--', ...lintableFiles], {stdio: 'inherit'});
 // Full typecheck runs last so it sees the auto-fixed staged state

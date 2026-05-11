@@ -1,17 +1,28 @@
 ---
 title: First Incident
-description: Work through a realistic Liferay incident with ldev from diagnosis to verification.
+description: A practical walkthrough of triaging a Liferay issue with ldev — without overstating what each command does.
 ---
 
 # First Incident
 
-Scenario: the portal starts, but `/home` is failing and users report errors after a module deployment.
+Scenario: the portal starts, but `/home` is failing and users report errors
+after a module deployment.
 
-The goal is not to memorize commands. The goal is to follow a repeatable flow:
+This page walks through how `ldev` helps you triage that, with honest
+expectations about what each command actually does.
 
-`understand -> diagnose -> fix -> verify`
+## What ldev gives you in this flow
 
-## 1. Start from the local environment
+- a fast way to **check that the environment itself is sane** (`doctor`)
+- a way to **group recent exceptions** in the logs by type and frequency
+  (`logs diagnose`) — this is regex-driven aggregation, not deep diagnosis
+- **consolidated portal context** for the affected page (`portal inventory
+  page`)
+- **bundle state** lookups that wrap Gogo Shell (`osgi status|diag`)
+- **targeted redeploy** of one module (`deploy module`)
+- **structured evidence** to verify the result
+
+## 1. Confirm the environment is healthy
 
 ```bash
 ldev start
@@ -19,58 +30,72 @@ ldev status
 ldev doctor
 ```
 
-You want the environment running before you inspect anything else. `doctor` tells you if the problem is really application-level or if the environment itself is misconfigured.
+`doctor` checks tools, ports, memory, configuration files, and (with
+`--runtime`/`--portal`/`--osgi`) optional probes for Compose state, an HTTP
+hit on the portal, and a Gogo bundle summary.
 
-## 2. Diagnose the failure from logs
+If any of those fail, fix them first. There is no point in chasing
+application errors against a broken environment.
+
+## 2. Group recent exceptions
 
 ```bash
 ldev logs diagnose --since 10m --json
 ```
 
-Look for repeated exceptions, startup failures, missing configuration, or unresolved component errors.
+This reads recent Docker Compose logs, groups exceptions by class with regex,
+counts warnings, and applies a small set of keyword rules to suggest possible
+causes. It is fast and useful for triage, but treat the suggestions as
+hints, not diagnoses.
 
-If the report points to a bundle or module, keep that name. You will use it in the next step.
+Capture any bundle symbolic name that appears repeatedly in the output.
+You will use it next.
 
-## 3. Check the affected page without using the UI
+## 3. Get the page in context
 
 ```bash
 ldev portal inventory page --url /home --json
 ```
 
-This tells you what page `ldev` can resolve at `/home`, which layout it maps to, and what is on the page. If the UI is broken, you can still inspect the route and page structure from the API.
+This consolidates several Headless API calls into a single response: the
+resolved layout, fragments, widgets and articles on the page. If the UI is
+broken, you can still see the page's structure from here.
 
-## 4. Inspect the failing OSGi bundle
-
-If the logs mention `com.acme.foo.web`, inspect it directly:
+## 4. Inspect the bundle the logs pointed at
 
 ```bash
 ldev osgi status com.acme.foo.web
 ldev osgi diag com.acme.foo.web
 ```
 
-Typical outcomes:
+These commands wrap Gogo Shell. `status` shows whether the bundle is
+`Active`, `Resolved`, or `Installed`. `diag` runs Liferay's `diag` Gogo
+command on the bundle id and surfaces unsatisfied references.
 
-- the bundle is `Active`: the issue is probably configuration or data
-- the bundle is `Resolved` or `Installed`: a dependency is missing
-- `diag` shows an unsatisfied reference: fix the missing service or deploy the matching module
+Common readings:
 
-## 5. Apply the fix locally
+- `Active` → the bundle is fine; the problem is probably config, data, or a
+  caller, not the bundle itself
+- `Resolved` or `Installed` → a dependency is missing
+- `diag` flags an unsatisfied reference → fix or deploy the missing module
 
-If you changed one module, redeploy only that module:
+## 5. Apply a targeted fix
+
+If the issue is in one module, redeploy only that module:
 
 ```bash
 ldev deploy module foo-web
 ```
 
-If the bundle state is still stale after deployment, restart the runtime service:
+If runtime state is stale even after deployment, refresh:
 
 ```bash
 ldev env restart
 ```
 
-If the problem was configuration, update the config in your repo, then restart and re-check.
+Avoid `deploy all` unless a full rebuild is justified.
 
-## 6. Verify before you stop
+## 6. Verify
 
 ```bash
 ldev portal check
@@ -82,15 +107,15 @@ You are done when:
 
 - `portal check` succeeds
 - the page resolves cleanly
-- the repeated exception is gone from the diagnosis output
+- the original exception no longer appears in a fresh diagnosis window
 
-## Why this flow matters
+## What this flow is, and is not
 
-This is the default `ldev` operating model:
+This is convenience triage, done well. `ldev` does not magically diagnose
+Liferay for you — it gives you a fast loop with structured evidence at each
+step, so you spend time thinking about the problem instead of pasting log
+fragments into chat.
 
-1. understand the environment
-2. diagnose from structured signals
-3. apply the smallest safe fix locally
-4. verify with the same commands
-
-That is how you move from production symptoms to local confidence.
+The bigger value of `ldev` lives in workflows you cannot do at all without
+it — see [Export and Import Resources](/workflows/export-import-resources)
+and [Resource Migration Pipeline](/workflows/resource-migration-pipeline).

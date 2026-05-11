@@ -132,16 +132,12 @@ articles.each { article ->
 
 ## After version cleanup
 
-Reindex Journal content after bulk version deletions to keep search consistent:
+After bulk version deletions, ask a human to force the relevant Journal/Web
+Content reindex from the Liferay UI. `ldev` cannot start or force reindex.
+
+After the manual UI action, monitor logs and behavior:
 
 ```bash
-ldev portal reindex watch --json
-```
-
-Monitor:
-
-```bash
-ldev portal reindex status --json
 ldev logs diagnose --since 10m --json
 ```
 

@@ -42,6 +42,28 @@ Before changing code or runtime state:
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
+For non-trivial mutating work, `runtime-change-workflow` is the canonical
+technical gate order. For structures, templates, ADTs, and fragments,
+`portal-resource-workflow` is the canonical resource import and verification
+workflow.
+
+## Agent Portability Contract
+
+Same prompt, same gate order. The active assistant may be GitHub Copilot,
+Claude Code, Codex, Gemini, Cursor, or another coding agent, but the workflow
+contract is this file plus the installed skills and Workspace base rules.
+
+Slash commands are aliases. If the user invokes `/project-issue-engineering`,
+`$project-issue-engineering`, names a skill, or pastes a skill body, resolve it
+to the matching file under `.agents/skills/` and follow that skill. For
+non-trivial code, resource, or runtime mutations, read `.agents/skills/project-issue-engineering/SKILL.md`
+when it exists, even if the current assistant does not implement slash commands
+natively.
+
+Tool-specific files under `.claude/`, `.github/`, `.gemini/`, `.cursor/`, or
+other editor directories are delegators. They must not invent a different issue
+workflow, skip required gates, or reinterpret project skills.
+
 ## Optional Shell Helpers
 
 - `jq` is not installed by default on every machine. Check with `jq --version`.
@@ -51,6 +73,19 @@ Use `ldev --help` as the source of truth for the public CLI surface.
   - Linux (Debian/Ubuntu): `sudo apt install jq`
 - In reusable agent docs, prefer direct JSON parsing by the agent or shell-native
   parsing (`ConvertFrom-Json` in PowerShell) instead of assuming `jq` exists.
+
+### PowerShell ldev Invocation
+
+On PowerShell, never build `ldev` commands as strings and never use
+`Invoke-Expression` for `ldev`. Pass arguments as an array so URLs, `?`, `&`,
+quotes, and flags are preserved exactly:
+
+```powershell
+$ldev = if (Get-Command ldev -ErrorAction SilentlyContinue) { 'ldev' } else { 'npx.cmd' }
+$args = @('portal', 'inventory', 'page', '--url', $url, '--json')
+$json = if ($ldev -eq 'ldev') { & ldev @args } else { & npx.cmd '@mordonezdev/ldev' @args }
+$data = $json | ConvertFrom-Json
+```
 
 ## Safety Invariants
 
@@ -64,6 +99,7 @@ These rules apply to every task, regardless of the skill in use:
 6. After any mutation, verify with operation-specific evidence:
   - Resource imports (`import-structure`, `import-template`, `import-adt`, `import-fragment`): read back the updated resource with `ldev resource structure/template/adt` / `ldev resource export-*` / `ldev portal inventory ... --json`.
   - Deploy/runtime changes (modules, themes, startup/runtime faults): use `ldev logs diagnose --since 5m --json`.
+  - Structured content or site page mutations: prefer OAuth-backed Headless APIs plus read-back before browser checks; use browser automation only when no stable headless mutation path exists for the target runtime.
 7. When the change affects rendered pages or UI, verify with browser automation after the runtime settles.
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
@@ -172,6 +208,8 @@ Use these as the standard reusable entrypoints:
 - `isolating-worktrees`
 - `deploying-liferay`
 - `troubleshooting-liferay`
+- `runtime-change-workflow`
+- `portal-resource-workflow`
 - `migrating-journal-structures`
 - `automating-browser-tests`
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.

@@ -7,6 +7,7 @@ import {execa} from 'execa';
 export type RunProcessOptions = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
+  signal?: AbortSignal;
   timeoutMs?: number;
   reject?: boolean;
   stdin?: 'ignore' | 'inherit' | 'pipe';
@@ -114,6 +115,7 @@ export async function runProcess(
   options?: RunProcessOptions,
 ): Promise<RunProcessResult> {
   const result = await execa(command, args, {
+    cancelSignal: options?.signal,
     cwd: options?.cwd,
     env: normalizeProcessEnv(options?.env),
     input: options?.input,

@@ -7,6 +7,12 @@ import {readEnvFile} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {formatProcessError, runProcess} from '../../core/platform/process.js';
+import {
+  findDatabaseBackupForId,
+  listDatabaseBackups,
+  pickNewestAddedBackup,
+  pickNewestBackup,
+} from './db-backup-intake.js';
 
 export type DbDownloadResult = {
   ok: true;
@@ -24,6 +30,7 @@ export async function runDbDownload(
     backupId?: string;
     project?: string;
     printer?: Printer;
+    signal?: AbortSignal;
   },
 ): Promise<DbDownloadResult> {
   if (!config.dockerDir || !config.files.dockerEnv) {
@@ -44,7 +51,14 @@ export async function runDbDownload(
 
   await fs.ensureDir(backupDir);
 
-  const databaseBackupFile = await ensureDatabaseBackup(backupDir, project, environment, backupId, options?.printer);
+  const databaseBackupFile = await ensureDatabaseBackup(
+    backupDir,
+    project,
+    environment,
+    backupId,
+    options?.printer,
+    options?.signal,
+  );
 
   return {
     ok: true,
@@ -118,9 +132,11 @@ async function ensureDatabaseBackup(
   environment: string,
   backupId: string,
   printer?: Printer,
+  signal?: AbortSignal,
 ): Promise<string> {
-  const existing = await findBackupForId(backupDir, backupId);
+  const existing = await findDatabaseBackupForId(backupDir, backupId);
   if (existing) {
+    printer?.info(`Using existing database backup for ${backupId}: ${existing}`);
     return existing;
   }
 
@@ -142,7 +158,7 @@ async function ensureDatabaseBackup(
         '--dest',
         backupDir,
       ],
-      {reject: false},
+      {reject: false, signal},
     );
     if (!result.ok) {
       throw new CliError(formatProcessError(result, 'lcp backup download --database'), {
@@ -151,7 +167,7 @@ async function ensureDatabaseBackup(
     }
   });
 
-  const downloaded = await findBackupForId(backupDir, backupId);
+  const downloaded = await findDatabaseBackupForId(backupDir, backupId);
   if (downloaded) {
     return downloaded;
   }
@@ -170,88 +186,6 @@ async function ensureDatabaseBackup(
   throw new CliError(`The downloaded backup for ${backupId} was not found in ${backupDir}`, {
     code: 'DB_LCP_BACKUP_NOT_FOUND',
   });
-}
-
-async function findBackupForId(root: string, backupId: string): Promise<string | null> {
-  if (!(await fs.pathExists(root))) {
-    return null;
-  }
-
-  const queue = [root];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
-      continue;
-    }
-
-    const entries = await fs.readdir(current, {withFileTypes: true});
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        queue.push(entryPath);
-        continue;
-      }
-
-      if (entry.isFile() && /\.(gz|sql|dump)$/i.test(entry.name) && entry.name.includes(backupId)) {
-        return entryPath;
-      }
-    }
-  }
-
-  return null;
-}
-
-async function listDatabaseBackups(root: string): Promise<Array<{path: string; mtimeMs: number}>> {
-  if (!(await fs.pathExists(root))) {
-    return [];
-  }
-
-  const results: Array<{path: string; mtimeMs: number}> = [];
-  const queue = [root];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
-      continue;
-    }
-
-    const entries = await fs.readdir(current, {withFileTypes: true});
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        queue.push(entryPath);
-        continue;
-      }
-
-      if (!entry.isFile() || !/\.(gz|sql|dump)$/i.test(entry.name)) {
-        continue;
-      }
-
-      const stats = await fs.stat(entryPath);
-      results.push({path: entryPath, mtimeMs: stats.mtimeMs});
-    }
-  }
-
-  return results;
-}
-
-function pickNewestAddedBackup(
-  before: Array<{path: string; mtimeMs: number}>,
-  after: Array<{path: string; mtimeMs: number}>,
-): string | null {
-  const existing = new Set(before.map((entry) => entry.path));
-  const added = after.filter((entry) => !existing.has(entry.path));
-  return pickNewestBackup(added);
-}
-
-function pickNewestBackup(entries: Array<{path: string; mtimeMs: number}>): string | null {
-  if (entries.length === 0) {
-    return null;
-  }
-
-  return (
-    [...entries].sort((left, right) => right.mtimeMs - left.mtimeMs || left.path.localeCompare(right.path))[0]?.path ??
-    null
-  );
 }
 
 async function runStep<T>(printer: Printer | undefined, label: string, run: () => Promise<T>): Promise<T> {

@@ -11,6 +11,14 @@ alwaysApply: true
 - Treat the official Liferay Workspace AI files as the base layer.
 - Treat `AGENTS.md` as the bootstrap entrypoint.
 - Use this rule only as a short policy reminder: `ldev` is the workflow layer on top of Workspace, not a replacement for it.
+- Agent Portability Contract: Same prompt, same gate order. Slash commands are aliases. If the user invokes `/project-issue-engineering`, names a skill, or
+  pastes a skill body, resolve it to `.agents/skills/` and follow it. For
+  non-trivial code, resource, or runtime mutations, read `.agents/skills/project-issue-engineering/SKILL.md`
+  when it exists, even if the current assistant does not implement slash
+  commands natively.
+- For non-trivial mutating work, `runtime-change-workflow` owns the reusable
+  gate order. For Journal templates, ADTs, fragments, and structures,
+  `portal-resource-workflow` owns import and verification.
 
 Preferred task-shaped entry points after bootstrap:
 

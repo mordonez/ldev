@@ -104,12 +104,7 @@ export async function runStructureMigration(
     ) => Promise<StructureLookup | null>;
   },
 ): Promise<MigrationStats> {
-  const planRoot: unknown = await fs.readJson(migrationPlanPath);
-  const plan = readMigrationPlanShape(planRoot);
-  const planData = parseMigrationPlan(plan);
-  if (planData.rules.length === 0) {
-    throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
-  }
+  const planData = await readMigrationPlanData(migrationPlanPath);
 
   options.printer?.info(
     `Migrating structure content: resolving structure definition and selecting targeted content...`,
@@ -216,7 +211,7 @@ export async function runStructureMigration(
             'structure-migrate update',
             locale !== '' ? {headers: {'Accept-Language': locale}} : undefined,
           );
-          await verifyStructuredContentPersistence(options.gateway, contentId, after, locale);
+          await verifyStructuredContentPersistence(options.gateway, contentId, after, runtimeDefinitionFields, locale);
         }
       }
 
@@ -284,9 +279,7 @@ export async function captureMigrationSourceSnapshots(
     gateway: LiferayGateway;
   },
 ): Promise<Map<string, LocalizedContentSnapshots>> {
-  const planRoot: unknown = await fs.readJson(migrationPlanPath);
-  const plan = readMigrationPlanShape(planRoot);
-  const planData = parseMigrationPlan(plan);
+  const planData = await readMigrationPlanData(migrationPlanPath);
   const selected = await selectStructureContents(options.gateway, siteId, structureId, planData);
   const snapshots = new Map<string, LocalizedContentSnapshots>();
   for (const item of selected) {
@@ -518,6 +511,7 @@ async function verifyStructuredContentPersistence(
   gateway: LiferayGateway,
   contentId: string,
   expected: StructuredContentRow,
+  runtimeDefinitionFields: DataDefinitionField[],
   acceptLanguage = '',
 ): Promise<void> {
   const maxAttempts = 8;
@@ -527,7 +521,7 @@ async function verifyStructuredContentPersistence(
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const persisted = await fetchStructuredContentForMigration(gateway, contentId, acceptLanguage);
     lastPersisted = persisted;
-    if (contentFieldsEqual(expected, persisted)) {
+    if (contentFieldsEqual(expected, persisted, runtimeDefinitionFields)) {
       return;
     }
 
@@ -590,6 +584,16 @@ export function parseMigrationPlan(plan: MigrationPlanShape): MigrationPlanData 
     scopedFolderIds: parseNumberList(plan.folderIds),
     articleIds: parseStringList(plan.articleIds),
   };
+}
+
+async function readMigrationPlanData(migrationPlanPath: string): Promise<MigrationPlanData> {
+  const planRoot: unknown = await fs.readJson(migrationPlanPath);
+  const plan = readMigrationPlanShape(planRoot);
+  const planData = parseMigrationPlan(plan);
+  if (planData.rules.length === 0) {
+    throw LiferayErrors.resourceError('Invalid migration plan: missing mappings[]');
+  }
+  return planData;
 }
 
 function parseMappings(rawMappings: unknown): MigrationRule[] {
@@ -771,10 +775,10 @@ function cleanupSourceInFields(fields: ContentField[], source: string): boolean 
   return changed;
 }
 
-function contentFieldsEqual(left: JsonRecord, right: JsonRecord): boolean {
+function contentFieldsEqual(left: JsonRecord, right: JsonRecord, definitionFields?: DataDefinitionField[]): boolean {
   return (
-    JSON.stringify(normalizeComparableValue(left.contentFields ?? [])) ===
-    JSON.stringify(normalizeComparableValue(right.contentFields ?? []))
+    JSON.stringify(normalizeComparableContentFields(left.contentFields ?? [], definitionFields)) ===
+    JSON.stringify(normalizeComparableContentFields(right.contentFields ?? [], definitionFields))
   );
 }
 
@@ -806,7 +810,14 @@ function toApiContentFields(contentFields: unknown, definitionFields: unknown): 
 }
 
 function readMigrationPlanShape(planRoot: unknown): MigrationPlanShape {
-  const plan = isRecord(planRoot) && 'plan' in planRoot ? planRoot.plan : planRoot;
+  const plan =
+    isRecord(planRoot) && 'plan' in planRoot
+      ? planRoot.plan
+      : isRecord(planRoot) && isRecord(planRoot.introduce)
+        ? Array.isArray(planRoot.introduce.mappings)
+          ? planRoot.introduce
+          : planRoot.introduce.plan
+        : planRoot;
   return isRecord(plan) ? plan : {};
 }
 
@@ -841,6 +852,44 @@ function normalizeComparableValue(value: unknown): unknown {
   }
 
   return value;
+}
+
+function normalizeComparableContentFields(value: unknown, definitionFields?: DataDefinitionField[]): unknown {
+  if (!Array.isArray(value)) {
+    return normalizeComparableValue(value);
+  }
+
+  const scope = Array.isArray(definitionFields) ? definitionFields : [];
+  return value.map((entry) => {
+    if (!isRecord(entry)) {
+      return normalizeComparableValue(entry);
+    }
+
+    const normalized: JsonRecord = {};
+    const definition = findDefinitionField(scope, normalizeScalarString(entry.name) ?? '');
+
+    for (const key of Object.keys(entry).sort()) {
+      if (key === 'name') {
+        normalized.name =
+          normalizeScalarString(definition?.customProperties?.fieldReference) ??
+          normalizeScalarString(definition?.name) ??
+          entry.name;
+        continue;
+      }
+
+      if (key === 'nestedContentFields') {
+        normalized.nestedContentFields = normalizeComparableContentFields(
+          entry.nestedContentFields,
+          definition?.nestedDataDefinitionFields as DataDefinitionField[] | undefined,
+        );
+        continue;
+      }
+
+      normalized[key] = normalizeComparableValue(entry[key]);
+    }
+
+    return normalized;
+  });
 }
 
 function ensureContentFields(item: JsonRecord): ContentField[] {

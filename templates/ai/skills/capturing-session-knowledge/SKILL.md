@@ -1,6 +1,6 @@
 ---
 name: capturing-session-knowledge
-description: "Use at the end of a session to save learnings that prevent future mistakes and improve efficiency."
+description: "Captures durable project learnings that prevent repeated agent mistakes. Use when ending a session after discovering non-obvious project constraints, failure causes, or efficiency shortcuts."
 ---
 
 # capturing-session-knowledge

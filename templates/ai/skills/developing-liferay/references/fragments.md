@@ -13,7 +13,7 @@ Do not create parallel fragment sources outside the versioned project layout.
 1. Discover the affected site or page:
 
 ```bash
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 ldev resource fragments --site /<site> --json
 ```
 

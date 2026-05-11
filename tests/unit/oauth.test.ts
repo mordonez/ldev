@@ -10,6 +10,7 @@ import {
 } from '../../src/features/oauth/oauth-install.js';
 import {formatOAuthAdminUnblock} from '../../src/features/oauth/oauth-admin-unblock.js';
 import {
+  DEFAULT_OAUTH_SCOPE_ALIASES,
   resolveManagedOAuthScopeAliases,
   resolveOAuthScopeProfileAliases,
   resolveOAuthScopeProfileNames,
@@ -21,6 +22,32 @@ import {
 // ---------------------------------------------------------------------------
 
 describe('resolveManagedOAuthScopeAliases', () => {
+  test('default OAuth install scopes cover headless admin writes needed for agentic authoring', () => {
+    expect(DEFAULT_OAUTH_SCOPE_ALIASES).toContain('Liferay.Headless.Admin.Content.everything.write');
+    expect(DEFAULT_OAUTH_SCOPE_ALIASES).toContain('Liferay.Headless.Admin.Site.everything.write');
+  });
+
+  test('re-adds managed write scopes when persisted config still contains an older scope set', () => {
+    const staleConfigScopes = [
+      'Liferay.Headless.Admin.User.everything.read',
+      'Liferay.Headless.Admin.Content.everything.read',
+      'Liferay.Headless.Admin.Site.everything.read',
+      'Liferay.Data.Engine.REST.everything.read',
+      'Liferay.Data.Engine.REST.everything.write',
+      'Liferay.Headless.Delivery.everything.read',
+      'Liferay.Headless.Delivery.everything.write',
+      'liferay-json-web-services.everything.read',
+      'liferay-json-web-services.everything.write',
+      'Liferay.Headless.Discovery.API.everything.read',
+      'Liferay.Headless.Discovery.OpenAPI.everything.read',
+    ];
+
+    const result = resolveManagedOAuthScopeAliases(staleConfigScopes);
+
+    expect(result).toContain('Liferay.Headless.Admin.Content.everything.write');
+    expect(result).toContain('Liferay.Headless.Admin.Site.everything.write');
+  });
+
   test('always includes the portal inventory scope alias', () => {
     const result = resolveManagedOAuthScopeAliases([]);
 
