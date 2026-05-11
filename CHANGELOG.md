@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/mordonez/ldev/compare/ldev-v0.5.4...ldev-v0.6.0) (2026-05-11)
+
+
+### Features
+
+* **mcp:** expand local MCP server support ([#131](https://github.com/mordonez/ldev/issues/131)) ([bb479b1](https://github.com/mordonez/ldev/commit/bb479b1b9efd9ffcedb1473cbe5709c3824befda))
+* new dashboard workflow and operational visibility ([#135](https://github.com/mordonez/ldev/issues/135)) ([c6595a1](https://github.com/mordonez/ldev/commit/c6595a185b9f4709715a2ac07a71233cc037cbec))
+
 ## [0.5.4](https://github.com/mordonez/ldev/compare/ldev-v0.5.3...ldev-v0.5.4) (2026-04-28)
 
 
