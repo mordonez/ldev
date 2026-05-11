@@ -21,13 +21,13 @@ export type WhereUsedMatch = {
 };
 
 export function matchEvidenceAgainstResource(evidence: PageEvidence[], query: WhereUsedQuery): WhereUsedMatch[] {
-  const keys = new Set(query.keys);
+  const keys = new Set(query.keys.map((key) => normalizeWhereUsedKey(key, query.type)));
   const seen = new Set<string>();
   const matchedEvidence = normalizeWhereUsedEvidence(
     evidence
       .filter((item) => isEvidenceForResourceType(item, query.type))
       .filter((item) => item.kind !== 'journalArticle')
-      .filter((item) => keys.has(item.key)),
+      .filter((item) => keys.has(normalizeWhereUsedKey(item.key, query.type))),
     query.type,
   );
 
@@ -36,7 +36,7 @@ export function matchEvidenceAgainstResource(evidence: PageEvidence[], query: Wh
       resourceType: query.type,
       matchedKey: item.key,
       matchKind: item.kind as WhereUsedMatchKind,
-      label: labelForMatchKind(item.kind as WhereUsedMatchKind),
+      label: labelForMatchKind(item.kind as WhereUsedMatchKind, item.source),
       detail: item.detail,
       source: item.source,
     };
@@ -53,6 +53,10 @@ export function matchPageAgainstResource(page: LiferayInventoryPageResult, query
   return matchEvidenceAgainstResource(extractPageEvidence(page), query);
 }
 
+function normalizeWhereUsedKey(key: string, type: WhereUsedResourceType): string {
+  return type === 'fragment' ? key.toLowerCase() : key;
+}
+
 function isEvidenceForResourceType(evidence: PageEvidence, type: WhereUsedResourceType): boolean {
   if (type === 'widget' || type === 'portlet') {
     return evidence.resourceType === 'widget' || evidence.resourceType === 'portlet';
@@ -60,7 +64,7 @@ function isEvidenceForResourceType(evidence: PageEvidence, type: WhereUsedResour
   return evidence.resourceType === type;
 }
 
-function labelForMatchKind(kind: WhereUsedMatchKind): string {
+function labelForMatchKind(kind: WhereUsedMatchKind, source: PageEvidence['source']): string {
   switch (kind) {
     case 'fragmentEntry':
       return 'Fragment on page';
@@ -71,9 +75,13 @@ function labelForMatchKind(kind: WhereUsedMatchKind): string {
     case 'portlet':
       return 'Portlet on layout';
     case 'journalArticleStructure':
-      return 'Journal article structure';
+      return source === 'renderedHtmlJournalContent'
+        ? 'Journal article structure (static Journal Content rendered in HTML)'
+        : 'Journal article structure';
     case 'journalArticleTemplate':
-      return 'Journal article template';
+      return source === 'renderedHtmlJournalContent'
+        ? 'Journal article template (static Journal Content rendered in HTML)'
+        : 'Journal article template';
     case 'fragmentMappedStructure':
       return 'Fragment mapped structure';
     case 'fragmentMappedTemplate':

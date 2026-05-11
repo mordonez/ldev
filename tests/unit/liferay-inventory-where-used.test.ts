@@ -10,11 +10,18 @@ import {
 import {buildPageMatch} from '../../src/features/liferay/inventory/liferay-inventory-where-used-pages.js';
 import {collectWhereUsedPageCandidates} from '../../src/features/liferay/inventory/liferay-inventory-where-used-page-candidates.js';
 import {
+  buildWhereUsedAdtKeys,
+  collectWhereUsedFragmentKeys,
+  collectWhereUsedTemplateKeys,
+  collectWhereUsedAdtKeys,
   formatLiferayInventoryWhereUsed,
   isSkippableWhereUsedCandidateError,
   matchPageAgainstResource,
+  selectWhereUsedSites,
+  validateWhereUsedPlanResult,
   validateWhereUsedResult,
   validateWhereUsedQuery,
+  validateWhereUsedScopeOptions,
   type WhereUsedResult,
 } from '../../src/features/liferay/inventory/liferay-inventory-where-used.js';
 import {buildPortalAbsoluteUrl} from '../../src/features/liferay/inventory/liferay-inventory-url.js';
@@ -62,6 +69,256 @@ describe('validateWhereUsedQuery', () => {
   });
 });
 
+describe('validateWhereUsedScopeOptions', () => {
+  test('rejects invalid site-order', () => {
+    expect(() => validateWhereUsedScopeOptions({siteOrder: 'slowest' as never})).toThrow(/--site-order/);
+  });
+
+  test('rejects invalid site-limit', () => {
+    expect(() => validateWhereUsedScopeOptions({siteLimit: 0})).toThrow(/--site-limit/);
+  });
+
+  test('normalizes and deduplicates excluded sites', () => {
+    expect(
+      validateWhereUsedScopeOptions({excludeSites: ['global', '/global', '  /ub  '], siteOrder: 'content', plan: true}),
+    ).toEqual({
+      siteOrder: 'content',
+      excludedSites: ['/global', '/ub'],
+      plan: true,
+    });
+  });
+});
+
+describe('selectWhereUsedSites', () => {
+  const sites = [
+    {groupId: 3, siteFriendlyUrl: '/global', name: 'Global', pagesCommand: ''},
+    {groupId: 2, siteFriendlyUrl: '/ub', name: 'Universitat de Barcelona', pagesCommand: ''},
+    {groupId: 4, siteFriendlyUrl: '/labweb', name: 'LabWeb', pagesCommand: ''},
+  ];
+
+  test('orders by structured content volume and applies site-limit', () => {
+    const selection = selectWhereUsedSites({
+      sites,
+      siteOrder: 'content',
+      siteLimit: 2,
+      excludedSites: [],
+      contentStatsSites: [
+        {
+          groupId: 4,
+          siteFriendlyUrl: '/labweb',
+          name: 'LabWeb',
+          rootFolderCount: 1,
+          folderCount: 10,
+          structuredContents: 900,
+          topFolders: [],
+        },
+        {
+          groupId: 2,
+          siteFriendlyUrl: '/ub',
+          name: 'Universitat de Barcelona',
+          rootFolderCount: 1,
+          folderCount: 10,
+          structuredContents: 700,
+          topFolders: [],
+        },
+      ],
+    });
+
+    expect(selection.selectedSites.map((site) => site.siteFriendlyUrl)).toEqual(['/labweb', '/ub']);
+    expect(selection.planSites).toEqual([
+      expect.objectContaining({
+        rank: 1,
+        siteFriendlyUrl: '/labweb',
+        structuredContents: 900,
+        selectionReason: 'contentOrder',
+      }),
+      expect.objectContaining({
+        rank: 2,
+        siteFriendlyUrl: '/ub',
+        structuredContents: 700,
+        selectionReason: 'contentOrder',
+      }),
+    ]);
+  });
+
+  test('filters excluded sites before ordering', () => {
+    const selection = selectWhereUsedSites({
+      sites,
+      siteOrder: 'site',
+      excludedSites: ['/global'],
+    });
+
+    expect(selection.selectedSites.map((site) => site.siteFriendlyUrl)).toEqual(['/labweb', '/ub']);
+    expect(selection.excludedCount).toBe(1);
+  });
+
+  test('uses explicit site even if not present in the accessible site list', () => {
+    const selection = selectWhereUsedSites({
+      sites,
+      explicitSites: ['/missing'],
+      siteOrder: 'content',
+      siteLimit: 1,
+      excludedSites: ['/global'],
+    });
+
+    expect(selection.selectedSites).toEqual([
+      expect.objectContaining({siteFriendlyUrl: '/missing', groupId: -1, name: '/missing'}),
+    ]);
+    expect(selection.planSites[0]).toMatchObject({selectionReason: 'explicitSite', rank: 1});
+  });
+
+  test('keeps multiple explicit sites in the requested order', () => {
+    const selection = selectWhereUsedSites({
+      sites,
+      explicitSites: ['/ub', '/missing', '/labweb'],
+      siteOrder: 'content',
+      siteLimit: 1,
+      excludedSites: ['/global'],
+    });
+
+    expect(selection.selectedSites).toEqual([
+      expect.objectContaining({siteFriendlyUrl: '/ub', groupId: 2}),
+      expect.objectContaining({siteFriendlyUrl: '/missing', groupId: -1, name: '/missing'}),
+      expect.objectContaining({siteFriendlyUrl: '/labweb', groupId: 4}),
+    ]);
+    expect(selection.planSites).toEqual([
+      expect.objectContaining({rank: 1, siteFriendlyUrl: '/ub', selectionReason: 'explicitSite'}),
+      expect.objectContaining({rank: 2, siteFriendlyUrl: '/missing', selectionReason: 'explicitSite'}),
+      expect.objectContaining({rank: 3, siteFriendlyUrl: '/labweb', selectionReason: 'explicitSite'}),
+    ]);
+  });
+});
+
+describe('buildWhereUsedAdtKeys', () => {
+  test('includes both templateId-based and templateKey-based displayStyle values', () => {
+    expect(buildWhereUsedAdtKeys({displayStyle: 'ddmTemplate_2919390', templateKey: '19690812'})).toEqual([
+      'ddmTemplate_2919390',
+      'ddmTemplate_19690812',
+    ]);
+  });
+
+  test('deduplicates when templateKey already matches the displayStyle suffix', () => {
+    expect(buildWhereUsedAdtKeys({displayStyle: 'ddmTemplate_19690812', templateKey: '19690812'})).toEqual([
+      'ddmTemplate_19690812',
+    ]);
+  });
+});
+
+describe('collectWhereUsedAdtKeys', () => {
+  test('includes keys from every matching ADT row instead of stopping at the first visible-name match', () => {
+    const keys = collectWhereUsedAdtKeys(
+      [
+        {
+          templateId: 2919390,
+          templateKey: 'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER',
+          displayName: 'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER_perEsborrar',
+          adtName: 'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER_perEsborrar',
+        },
+        {
+          templateId: 19690813,
+          templateKey: '19690812',
+          displayName: 'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER',
+          adtName: 'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER',
+        },
+      ],
+      'UB_ADT_CUSTOM_FILTER_DATERANGEPICKER',
+    );
+
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'ddmTemplate_2919390',
+        'ddmTemplate_UB_ADT_CUSTOM_FILTER_DATERANGEPICKER',
+        'ddmTemplate_19690813',
+        'ddmTemplate_19690812',
+      ]),
+    );
+    expect(keys).toHaveLength(4);
+  });
+});
+
+describe('collectWhereUsedFragmentKeys', () => {
+  test('resolves a fragment name to its fragment key', () => {
+    expect(
+      collectWhereUsedFragmentKeys(
+        [
+          {
+            fragmentKey: 'ub-frg-navigation',
+            fragmentName: 'UB_FRG_1rN_INDEX',
+          },
+        ],
+        'UB_FRG_1rN_INDEX',
+      ),
+    ).toEqual(['ub-frg-navigation']);
+  });
+
+  test('keeps the original identifier when no fragment name or key matches', () => {
+    expect(
+      collectWhereUsedFragmentKeys(
+        [
+          {
+            fragmentKey: 'ub-frg-navigation',
+            fragmentName: 'UB_FRG_1rN_INDEX',
+          },
+        ],
+        'missing-fragment',
+      ),
+    ).toEqual(['missing-fragment']);
+  });
+});
+
+describe('collectWhereUsedTemplateKeys', () => {
+  test('resolves a template display name to the templateKey used in page evidence', () => {
+    expect(
+      collectWhereUsedTemplateKeys(
+        [
+          {
+            templateId: '2919390',
+            templateKey: 'NEWS_CARD_TEMPLATE',
+            externalReferenceCode: 'news-card-template-erc',
+            nameCurrentValue: 'News Card Template',
+            name: 'News Card Template',
+          },
+        ],
+        'News Card Template',
+      ),
+    ).toEqual(['NEWS_CARD_TEMPLATE']);
+  });
+
+  test('resolves a template externalReferenceCode to the templateKey used in page evidence', () => {
+    expect(
+      collectWhereUsedTemplateKeys(
+        [
+          {
+            templateId: '2919390',
+            templateKey: 'NEWS_CARD_TEMPLATE',
+            externalReferenceCode: 'news-card-template-erc',
+            nameCurrentValue: 'News Card Template',
+            name: 'News Card Template',
+          },
+        ],
+        'news-card-template-erc',
+      ),
+    ).toEqual(['NEWS_CARD_TEMPLATE']);
+  });
+
+  test('keeps the original identifier when no template alias matches', () => {
+    expect(
+      collectWhereUsedTemplateKeys(
+        [
+          {
+            templateId: '2919390',
+            templateKey: 'NEWS_CARD_TEMPLATE',
+            externalReferenceCode: 'news-card-template-erc',
+            nameCurrentValue: 'News Card Template',
+            name: 'News Card Template',
+          },
+        ],
+        'missing-template',
+      ),
+    ).toEqual(['missing-template']);
+  });
+});
+
 describe('matchPageAgainstResource - fragments', () => {
   test('matches fragment by fragmentKey on regular page', () => {
     const page: LiferayInventoryPageResult = {
@@ -81,6 +338,24 @@ describe('matchPageAgainstResource - fragments', () => {
       matchKind: 'fragmentEntry',
     });
     expect(matches[0].detail).toContain('index=1');
+  });
+
+  test('matches fragment keys case-insensitively for exported fragment slugs', () => {
+    const page: LiferayInventoryPageResult = {
+      ...REGULAR_PAGE_BASE,
+      fragmentEntryLinks: [{type: 'fragment', fragmentKey: 'ub_frg_text_enriquit'}],
+    };
+
+    expect(matchPageAgainstResource(page, {type: 'fragment', keys: ['UB_FRG_TEXT_ENRIQUIT']})).toEqual([
+      {
+        resourceType: 'fragment',
+        matchedKey: 'ub_frg_text_enriquit',
+        matchKind: 'fragmentEntry',
+        label: 'Fragment on page',
+        detail: 'fragmentKey=ub_frg_text_enriquit index=0',
+        source: 'fragmentEntryLink',
+      },
+    ]);
   });
 
   test('returns empty when fragment is not present', () => {
@@ -180,6 +455,136 @@ describe('matchPageAgainstResource - structures and templates', () => {
         source: 'journalArticle',
       },
     ]);
+  });
+
+  test('labels rendered HTML journal content template matches explicitly', () => {
+    const page: LiferayInventoryPageResult = {
+      ...REGULAR_PAGE_BASE,
+      evidence: [
+        {
+          resourceType: 'template',
+          key: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+          kind: 'journalArticleTemplate',
+          detail: 'articleId=ART-1 title=Article',
+          source: 'renderedHtmlJournalContent',
+        },
+      ],
+    };
+
+    expect(matchPageAgainstResource(page, {type: 'template', keys: ['UB_TPL_ENLACES_MENU_SUPERIOR']})).toEqual([
+      {
+        resourceType: 'template',
+        matchedKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+        matchKind: 'journalArticleTemplate',
+        label: 'Journal article template (static Journal Content rendered in HTML)',
+        detail: 'articleId=ART-1 title=Article',
+        source: 'renderedHtmlJournalContent',
+      },
+    ]);
+  });
+
+  test('formats where-used plans and validates the dedicated plan contract', () => {
+    const result = validateWhereUsedPlanResult({
+      inventoryType: 'whereUsedPlan',
+      query: {type: 'template', keys: ['UB_TPL_DESTACATS_MULTIMEDIA']},
+      scope: {
+        sites: ['/labweb', '/ub'],
+        includePrivate: false,
+        concurrency: 4,
+        maxDepth: 12,
+        siteOrder: 'content',
+        siteLimit: 2,
+        excludedSites: ['/global'],
+        plan: true,
+      },
+      summary: {
+        totalSites: 3,
+        selectedSites: 2,
+        excludedSites: 1,
+        skippedSites: 0,
+      },
+      sites: [
+        {
+          rank: 1,
+          siteFriendlyUrl: '/labweb',
+          siteName: 'LabWeb',
+          groupId: 4,
+          structuredContents: 900,
+          selectionReason: 'contentOrder',
+        },
+      ],
+    });
+
+    expect(formatLiferayInventoryWhereUsed(result)).toContain('WHERE USED PLAN');
+    expect(formatLiferayInventoryWhereUsed(result)).toContain('siteOrder=content');
+    expect(formatLiferayInventoryWhereUsed(result)).toContain('structuredContents=900');
+  });
+
+  test('includes skipped ranking sites in real where-used results and formatter output', () => {
+    const result = validateWhereUsedResult({
+      inventoryType: 'whereUsed',
+      query: {type: 'template', keys: ['UB_TPL_DESTACATS_MULTIMEDIA']},
+      scope: {
+        sites: ['/labweb', '/ub'],
+        includePrivate: false,
+        concurrency: 4,
+        maxDepth: 12,
+        siteOrder: 'content',
+        siteLimit: 2,
+        excludedSites: ['/global'],
+        plan: false,
+      },
+      summary: {
+        totalSites: 2,
+        totalScannedPages: 30,
+        totalMatchedPages: 1,
+        totalMatches: 1,
+        totalFailedPages: 0,
+      },
+      sites: [
+        {
+          siteFriendlyUrl: '/labweb',
+          siteName: 'LabWeb',
+          groupId: 4,
+          scannedPages: 30,
+          failedPages: 0,
+          matchedPages: [
+            {
+              pageType: 'displayPage',
+              pageName: 'Video',
+              friendlyUrl: '/w/video',
+              fullUrl: '/web/labweb/w/video',
+              privateLayout: false,
+              matches: [
+                {
+                  resourceType: 'template',
+                  matchedKey: 'UB_TPL_DESTACATS_MULTIMEDIA',
+                  matchKind: 'journalArticleTemplate',
+                  label: 'Journal article template',
+                  detail: 'articleId=123 title=Video',
+                  source: 'journalArticle',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      skippedSites: [
+        {
+          siteFriendlyUrl: '/departaments',
+          groupId: 22,
+          reason: 'content stats failed',
+        },
+      ],
+    });
+
+    const formatted = formatLiferayInventoryWhereUsed(result);
+    expect(result.skippedSites).toEqual([
+      expect.objectContaining({siteFriendlyUrl: '/departaments', groupId: 22, reason: 'content stats failed'}),
+    ]);
+    expect(formatted).toContain('skippedSites=1');
+    expect(formatted).toContain('Skipped ranking sites: 1');
+    expect(formatted).toContain('site=/departaments groupId=22 reason=content stats failed');
   });
 
   test('matches structure via journal article ddmStructureKey', () => {
@@ -471,7 +876,15 @@ describe('formatLiferayInventoryWhereUsed', () => {
     const result: WhereUsedResult = {
       inventoryType: 'whereUsed',
       query: {type: 'fragment', keys: ['banner']},
-      scope: {sites: ['/guest'], includePrivate: false, concurrency: 4, maxDepth: 12},
+      scope: {
+        sites: ['/guest'],
+        includePrivate: false,
+        concurrency: 4,
+        maxDepth: 12,
+        siteOrder: 'site',
+        excludedSites: [],
+        plan: false,
+      },
       summary: {
         totalSites: 1,
         totalScannedPages: 5,
@@ -501,7 +914,15 @@ describe('formatLiferayInventoryWhereUsed', () => {
     const result: WhereUsedResult = {
       inventoryType: 'whereUsed',
       query: {type: 'fragment', keys: ['banner']},
-      scope: {sites: ['/guest'], includePrivate: false, concurrency: 4, maxDepth: 12},
+      scope: {
+        sites: ['/guest'],
+        includePrivate: false,
+        concurrency: 4,
+        maxDepth: 12,
+        siteOrder: 'site',
+        excludedSites: [],
+        plan: false,
+      },
       summary: {
         totalSites: 1,
         totalScannedPages: 1,
@@ -550,6 +971,66 @@ describe('formatLiferayInventoryWhereUsed', () => {
     expect(text).toContain('Home http://localhost:8080/web/guest/home');
     expect(text).toContain('Fragment on page: fragmentKey=banner');
     expect(text).toContain('editUrl=http://localhost:8080/web/guest/home');
+  });
+
+  test('marks rendered HTML journal content provenance in formatted output', () => {
+    const result: WhereUsedResult = {
+      inventoryType: 'whereUsed',
+      query: {type: 'template', keys: ['UB_TPL_ENLACES_MENU_SUPERIOR']},
+      scope: {
+        sites: ['/ub'],
+        includePrivate: false,
+        concurrency: 4,
+        maxDepth: 12,
+        siteOrder: 'site',
+        excludedSites: [],
+        plan: false,
+      },
+      summary: {
+        totalSites: 1,
+        totalScannedPages: 1,
+        totalMatchedPages: 1,
+        totalMatches: 1,
+        totalFailedPages: 0,
+      },
+      sites: [
+        {
+          siteFriendlyUrl: '/ub',
+          siteName: 'UB',
+          groupId: 2685349,
+          scannedPages: 1,
+          failedPages: 0,
+          matchedPages: [
+            {
+              pageType: 'regularPage',
+              pageName: 'Inici',
+              friendlyUrl: '/inici',
+              fullUrl: '/web/ub/inici',
+              viewUrl: 'http://localhost:8080/web/ub/inici',
+              layoutId: 1,
+              plid: 76,
+              hidden: false,
+              privateLayout: false,
+              matches: [
+                {
+                  resourceType: 'template',
+                  matchedKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+                  matchKind: 'journalArticleTemplate',
+                  label: 'Journal article template (static Journal Content rendered in HTML)',
+                  detail: 'articleId=2686429 title=No editar - Menú superior',
+                  source: 'renderedHtmlJournalContent',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const text = formatLiferayInventoryWhereUsed(result);
+    expect(text).toContain(
+      'Journal article template (static Journal Content rendered in HTML): articleId=2686429 title=No editar - Menú superior [source=static Journal Content rendered in HTML]',
+    );
   });
 });
 

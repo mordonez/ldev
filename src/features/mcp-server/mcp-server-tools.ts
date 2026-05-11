@@ -7,6 +7,7 @@ import * as sitesTool from './tools/tool-liferay-inventory-sites.js';
 import * as structuresTool from './tools/tool-liferay-inventory-structures.js';
 import * as pagesTool from './tools/tool-liferay-inventory-pages.js';
 import * as pageTool from './tools/tool-liferay-inventory-page.js';
+import * as whereUsedTool from './tools/tool-liferay-inventory-where-used.js';
 import * as checkTool from './tools/tool-liferay-check.js';
 import * as doctorTool from './tools/tool-liferay-doctor.js';
 import * as templatesTool from './tools/tool-liferay-inventory-templates.js';
@@ -33,6 +34,7 @@ export const ALL_TOOLS: McpToolModule[] = [
   structuresTool,
   pagesTool,
   pageTool,
+  whereUsedTool,
   doctorTool,
   templatesTool,
   deployStatusTool,

@@ -85,10 +85,14 @@ type InventoryPreflightCommandOptions = {
 type InventoryWhereUsedCommandOptions = {
   type: string;
   key: string[];
-  site?: string;
+  site: string[];
+  excludeSite: string[];
   widgetType?: string;
   className?: string;
   includePrivate?: boolean;
+  siteLimit?: string;
+  siteOrder?: string;
+  plan?: boolean;
   maxDepth: string;
   concurrency: string;
   pageSize: string;
@@ -342,10 +346,28 @@ Notes:
         collect,
         [] as string[],
       )
-      .option('--site <site>', 'Limit lookup to a single site (defaults to scanning all accessible sites)')
+      .option(
+        '--site <site>',
+        'Limit lookup to one or more sites (repeatable; defaults to scanning all accessible sites)',
+        collect,
+        [] as string[],
+      )
+      .option(
+        '--exclude-site <site>',
+        'Exclude a site when scanning all accessible sites (repeatable)',
+        collect,
+        [] as string[],
+      )
       .option('--widget-type <widgetType>', 'ADT widget type filter used only when --type adt')
       .option('--class-name <className>', 'ADT class name filter used only when --type adt')
       .option('--include-private', 'Also scan private layouts')
+      .option('--site-limit <n>', 'Maximum number of sites to scan when --site is not provided')
+      .option(
+        '--site-order <order>',
+        'Site prioritization: site | name | content (content is most useful for template|structure lookups)',
+        'site',
+      )
+      .option('--plan', 'Show the selected site scan plan and exit without inspecting pages')
       .option('--max-depth <maxDepth>', 'Maximum page tree recursion depth', '12')
       .option('--concurrency <n>', 'Parallel page fetches per site', '4')
       .option('--page-size <pageSize>', 'Headless page size for site listings', '200')
@@ -354,17 +376,23 @@ Notes:
         `
 Examples:
   ldev portal inventory where-used --type fragment --key card-hero --site /guest
+  ldev portal inventory where-used --type fragment --key card-hero --site /guest --site /global
   ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet --site /guest
   ldev portal inventory where-used --type structure --key BASIC --site /facultat-farmacia-alimentacio
   ldev portal inventory where-used --type adt --key UB_ADT_STUDIES_SEARCH --site /global
   ldev portal inventory where-used --type template --key NEWS_TEMPLATE --site /global --include-private --json
+  ldev portal inventory where-used --type template --key UB_TPL_DESTACATS_MULTIMEDIA --site-order content --site-limit 10 --plan
+  ldev portal inventory where-used --type template --key UB_TPL_DESTACATS_MULTIMEDIA --site-order content --site-limit 10 --exclude-site /global
 
 Notes:
-  - Prefer --site when you already know the owning site; scanning all accessible sites can take much longer.
+  - Prefer one or more --site values when you already know the owning sites; scanning all accessible sites can take much longer.
+  - Without --site, use --site-order content plus --site-limit to prioritize the largest content sites first for template|structure lookups.
+  - For fragment|widget|portlet|adt, keep the default site order unless you have a specific reason to rank by content volume.
   - The lookup walks the same data exposed by 'inventory page' so any reference visible there can be matched.
   - --key may be repeated to OR-match several keys in a single pass.
   - For widget/portlet lookups both the widgetName and the full portletId are matched.
   - For ADT lookups the key is resolved through the ADT catalog first, then matched by widget displayStyle on pages.
+  - --plan resolves and prints the site scan order without fetching page inventories.
   - Pages that fail to load (e.g. permission errors) are reported under failedPages without aborting the run.
 `,
       ),
@@ -374,14 +402,19 @@ Notes:
         const parsedMaxDepth = Number.parseInt(options.maxDepth, 10);
         const parsedConcurrency = Number.parseInt(options.concurrency, 10);
         const parsedPageSize = Number.parseInt(options.pageSize, 10);
+        const parsedSiteLimit = options.siteLimit !== undefined ? Number.parseInt(options.siteLimit, 10) : undefined;
 
         return runLiferayInventoryWhereUsed(context.config, {
           type: options.type as WhereUsedResourceType,
           keys: options.key,
-          site: options.site,
+          ...(options.site.length > 0 ? {sites: options.site} : {}),
+          excludeSites: options.excludeSite,
           widgetType: options.widgetType,
           className: options.className,
           includePrivate: Boolean(options.includePrivate),
+          ...(parsedSiteLimit !== undefined ? {siteLimit: parsedSiteLimit} : {}),
+          ...(options.siteOrder ? {siteOrder: options.siteOrder} : {}),
+          plan: Boolean(options.plan),
           maxDepth: Number.isFinite(parsedMaxDepth) ? parsedMaxDepth : 12,
           concurrency: Number.isFinite(parsedConcurrency) ? parsedConcurrency : 4,
           pageSize: Number.isFinite(parsedPageSize) ? parsedPageSize : 200,
