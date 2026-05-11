@@ -76,7 +76,7 @@ export async function runLiferayResourceMigrationInit(
     dependentStructures,
     introduce: {
       notes: [
-        'Fill in introduce.mappings before running migration-run or migration-pipeline.',
+        'Fill in introduce.mappings before running migration-pipeline.',
         'Use target with fieldset[].field syntax when the destination lives inside a fieldset.',
         'Limit the scope with articleIds, folderIds, or rootFolderIds to avoid migrating the whole site when it is not needed.',
       ],

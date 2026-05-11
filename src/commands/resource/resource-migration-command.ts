@@ -1,17 +1,11 @@
 import type {Command} from 'commander';
 
-import {
-  registerResourceWorkflow,
-  type ResourceCommandOptionBag,
-  type ResourceMigrationStage,
-} from './resource-workflow.js';
+import {registerResourceWorkflow, type ResourceCommandOptionBag} from './resource-workflow.js';
 import {
   formatLiferayResourceMigrationInit,
   formatLiferayResourceMigrationPipeline,
-  formatLiferayResourceMigrationRun,
   runLiferayResourceMigrationInit,
   runLiferayResourceMigrationPipeline,
-  runLiferayResourceMigrationRun,
 } from '../../features/liferay/resource/migration/index.js';
 
 export function registerResourceMigrationCommand(resource: Command): void {
@@ -43,28 +37,6 @@ export function registerResourceMigrationCommand(resource: Command): void {
       });
     },
     render: {text: formatLiferayResourceMigrationInit},
-  });
-
-  registerResourceWorkflow(resource, {
-    name: 'migration-run',
-    description: 'Advanced: run a single migration stage from a descriptor; prefer migration-pipeline for normal use',
-    configure: (command) =>
-      command
-        .requiredOption('--migration-file <file>', 'Migration descriptor JSON file')
-        .option('--stage <stage>', 'Stage to run: introduce or cleanup', 'introduce')
-        .option('--check-only', 'Validate only; do not mutate structures')
-        .option('--migration-dry-run', 'Do not persist structured content migration updates')
-        .option('--skip-update', 'Do not update the structure definition itself'),
-    run: async (context, options: ResourceCommandOptionBag & {migrationFile: string; stage: ResourceMigrationStage}) =>
-      runLiferayResourceMigrationRun(context.config, {
-        migrationFile: options.migrationFile,
-        stage: options.stage,
-        checkOnly: Boolean(options.checkOnly),
-        migrationDryRun: Boolean(options.migrationDryRun),
-        skipUpdate: Boolean(options.skipUpdate),
-        printer: context.printer,
-      }),
-    render: {text: formatLiferayResourceMigrationRun},
   });
 
   registerResourceWorkflow(resource, {

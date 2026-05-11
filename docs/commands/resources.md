@@ -93,12 +93,10 @@ ldev resource migration-init --site /global --structure MY_STRUCTURE --templates
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json --check-only --migration-dry-run
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json
 ldev resource migration-pipeline --migration-file path/to/MY_STRUCTURE.migration.json --run-cleanup
-ldev resource migration-run --migration-file path/to/MY_STRUCTURE.migration.json --stage introduce
 ```
 
 Use `migration-pipeline` as the default command for real migrations — it is the
-full validated workflow. Use `migration-run` only when you need to execute one
-stage in isolation (debugging, retrying, validating a single phase).
+full validated workflow.
 
 The migration output includes a `reasonBreakdown` per migrated structure with counters for:
 
@@ -117,7 +115,6 @@ Flags worth remembering:
 - `migration-pipeline --run-cleanup` runs the cleanup phase defined in the same descriptor after explicit approval
 - `migration-pipeline --skip-validation` skips the final check-only pass
 - `migration-pipeline --create-missing-templates` creates descriptor templates when absent
-- `migration-run --stage introduce|cleanup` picks one phase only
 - `--liferay-timeout-seconds 300` is useful for slow structure/migration calls; repeated runs can use `LIFERAY_CLI_HTTP_TIMEOUT_SECONDS` or `liferay.oauth2.timeoutSeconds`
 
 See the [Resource Migration Pipeline workflow](/workflows/resource-migration-pipeline) for an end-to-end example.

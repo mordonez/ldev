@@ -20,13 +20,10 @@ Import:
   import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts
 
 Migration:
-  migration-init, migration-pipeline, migration-run
+  migration-init, migration-pipeline
 
 Recommended:
   migration-pipeline for normal end-to-end migrations
-
-Advanced:
-  migration-run for running one phase only while debugging or recovering
 `,
     }),
   );
