@@ -18,29 +18,60 @@ export function createPrinter(format: OutputFormat): Printer {
       prepareForTerminalOutput();
       if (format === 'text') {
         if (typeof value === 'string') {
-          process.stdout.write(`${value}\n`);
+          writeStdout(`${value}\n`);
           return;
         }
-        process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+        writeStdout(`${JSON.stringify(value, null, 2)}\n`);
         return;
       }
 
       if (format === 'ndjson') {
-        process.stdout.write(`${JSON.stringify(value)}\n`);
+        writeStdout(`${serializeJsonForCli(value)}\n`);
         return;
       }
 
-      process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+      writeStdout(`${serializeJsonForCli(value, 2)}\n`);
     },
     error(message) {
       prepareForTerminalOutput();
-      process.stderr.write(`${format === 'text' ? pc.red(message) : message}\n`);
+      writeStderr(`${format === 'text' ? pc.red(message) : message}\n`);
     },
     info(message) {
       prepareForTerminalOutput();
-      process.stderr.write(`${format === 'text' ? pc.cyan(message) : message}\n`);
+      writeStderr(`${format === 'text' ? pc.cyan(message) : message}\n`);
     },
   };
+}
+
+function writeStdout(text: string): void {
+  process.stdout.write(Buffer.from(text, 'utf8'));
+}
+
+function writeStderr(text: string): void {
+  process.stderr.write(Buffer.from(text, 'utf8'));
+}
+
+function serializeJsonForCli(value: unknown, indent?: number): string {
+  return escapeNonAsciiJsonStrings(JSON.stringify(value, null, indent));
+}
+
+function escapeNonAsciiJsonStrings(value: string): string {
+  return value.replace(/"(?:\\.|[^"\\])*"/g, (jsonString) => {
+    const inner = jsonString.slice(1, -1);
+    const escaped = inner.replace(/[^\x20-\x7E]/gu, (char) => escapeJsonCodePoint(char.codePointAt(0)!));
+    return `"${escaped}"`;
+  });
+}
+
+function escapeJsonCodePoint(codePoint: number): string {
+  if (codePoint <= 0xffff) {
+    return `\\u${codePoint.toString(16).padStart(4, '0')}`;
+  }
+
+  const normalized = codePoint - 0x10000;
+  const highSurrogate = 0xd800 + (normalized >> 10);
+  const lowSurrogate = 0xdc00 + (normalized & 0x3ff);
+  return `\\u${highSurrogate.toString(16).padStart(4, '0')}\\u${lowSurrogate.toString(16).padStart(4, '0')}`;
 }
 
 export async function withProgress<T>(printer: Printer, message: string, task: () => Promise<T>): Promise<T> {

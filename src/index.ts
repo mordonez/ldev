@@ -8,7 +8,9 @@ import {sanitizeErrorMessage} from './core/errors-sanitize.js';
 async function main(): Promise<void> {
   const cli = createCli();
   if (process.argv.length <= 2) {
-    process.stdout.write(`${buildContextualRootSummary(resolveCommandRoot(undefined, process.argv, process.env))}\n`);
+    process.stdout.write(
+      Buffer.from(`${buildContextualRootSummary(resolveCommandRoot(undefined, process.argv, process.env))}\n`, 'utf8'),
+    );
     return;
   }
   await cli.parseAsync(process.argv);
@@ -21,10 +23,13 @@ main().catch((error: unknown) => {
   const format = resolveOutputFormatFromArgv(process.argv);
 
   if (format === 'text') {
-    process.stderr.write(`${safeCliError.code}: ${safeCliError.message}\n`);
+    process.stderr.write(Buffer.from(`${safeCliError.code}: ${safeCliError.message}\n`, 'utf8'));
   } else {
     process.stderr.write(
-      `${JSON.stringify(toCliErrorPayload(safeCliError), null, format === 'json' ? 2 : undefined)}\n`,
+      Buffer.from(
+        `${JSON.stringify(toCliErrorPayload(safeCliError), null, format === 'json' ? 2 : undefined)}\n`,
+        'utf8',
+      ),
     );
   }
 
