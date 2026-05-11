@@ -50,6 +50,7 @@ export const pageEvidenceSourceValues = [
   'fragmentEntryLink',
   'portletLayout',
   'journalArticle',
+  'renderedHtmlJournalContent',
   'contentStructure',
   'displayPageArticle',
 ] as const;

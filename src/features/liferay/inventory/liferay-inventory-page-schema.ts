@@ -11,6 +11,7 @@ const contentFieldSummarySchema = z.object({
 });
 
 const journalArticleSummarySchema = z.object({
+  discoverySource: z.enum(['journalArticle', 'renderedHtmlJournalContent']).optional(),
   groupId: z.number().optional(),
   siteFriendlyUrl: z.string().optional(),
   siteName: z.string().optional(),

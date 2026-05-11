@@ -21,6 +21,7 @@ export type ContentFieldSummary = {
 };
 
 export type JournalArticleSummary = {
+  discoverySource?: 'journalArticle' | 'renderedHtmlJournalContent';
   groupId?: number;
   siteFriendlyUrl?: string;
   siteName?: string;

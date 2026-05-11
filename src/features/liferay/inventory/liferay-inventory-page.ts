@@ -484,6 +484,7 @@ function projectDisplayPageJson(
       title: result.article.title,
       friendlyUrlPath: result.article.friendlyUrlPath,
       contentStructureId: result.article.contentStructureId,
+      ...(articleDetails?.discoverySource ? {discoverySource: articleDetails.discoverySource} : {}),
       ...(articleDetails?.groupId ? {groupId: articleDetails.groupId} : {}),
       ...(articleDetails?.siteId ? {siteId: articleDetails.siteId} : {}),
       ...(articleDetails?.siteFriendlyUrl ? {siteFriendlyUrl: articleDetails.siteFriendlyUrl} : {}),
@@ -563,6 +564,7 @@ function projectJournalArticleRef(article: JournalArticleSummary) {
   return {
     articleId: article.articleId,
     title: article.title,
+    ...(article.discoverySource ? {discoverySource: article.discoverySource} : {}),
     ...(article.groupId ? {groupId: article.groupId} : {}),
     ...(article.siteId ? {siteId: article.siteId} : {}),
     ...(article.siteFriendlyUrl ? {siteFriendlyUrl: article.siteFriendlyUrl} : {}),

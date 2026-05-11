@@ -195,6 +195,8 @@ function buildJournalArticleEvidence(
 
   for (const article of articles) {
     const descriptor = describeJournalArticleEvidence(article, structures);
+    const source =
+      article.discoverySource === 'renderedHtmlJournalContent' ? 'renderedHtmlJournalContent' : 'journalArticle';
 
     if (article.articleId) {
       evidence.push(
@@ -203,7 +205,7 @@ function buildJournalArticleEvidence(
           key: article.articleId,
           kind: 'journalArticle',
           detail: descriptor.where,
-          source: 'journalArticle',
+          source,
           context: descriptor.context,
         }),
       );
@@ -216,7 +218,7 @@ function buildJournalArticleEvidence(
           key: article.ddmStructureKey,
           kind: 'journalArticleStructure',
           detail: buildJournalArticleStructureDetail(descriptor),
-          source: 'journalArticle',
+          source,
           context: descriptor.context,
         }),
       );
@@ -235,7 +237,7 @@ function buildJournalArticleEvidence(
           key: templateKey,
           kind: 'journalArticleTemplate',
           detail: descriptor.where,
-          source: 'journalArticle',
+          source,
           context: descriptor.context,
         }),
       );

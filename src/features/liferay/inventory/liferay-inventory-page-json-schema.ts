@@ -106,6 +106,7 @@ const regularPageJsonSchema = z.object({
       z.object({
         articleId: z.string(),
         title: z.string(),
+        discoverySource: z.enum(['journalArticle', 'renderedHtmlJournalContent']).optional(),
         groupId: z.number().optional(),
         siteId: z.number().optional(),
         siteFriendlyUrl: z.string().optional(),
@@ -163,6 +164,7 @@ const displayPageJsonSchema = z.object({
     title: z.string(),
     friendlyUrlPath: z.string(),
     contentStructureId: z.number(),
+    discoverySource: z.enum(['journalArticle', 'renderedHtmlJournalContent']).optional(),
     groupId: z.number().optional(),
     siteId: z.number().optional(),
     siteFriendlyUrl: z.string().optional(),
