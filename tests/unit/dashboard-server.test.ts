@@ -903,7 +903,7 @@ describe('createDashboardServer', () => {
     const downloadResponse = await postJsonPath(`/api/worktrees/pw-430/db/download`, {
       backupId: 'backup-1',
       environment: 'prd',
-      project: 'labweb',
+      project: 'sample-project',
     });
     expect(downloadResponse.status).toBe(202);
 
@@ -911,7 +911,7 @@ describe('createDashboardServer', () => {
       backupId: 'backup-2',
       environment: 'uat',
       force: true,
-      project: 'labweb',
+      project: 'sample-project',
     });
     expect(syncResponse.status).toBe(202);
 
@@ -933,7 +933,7 @@ describe('createDashboardServer', () => {
     expect(downloadOptions?.backupId).toBe('backup-1');
     expect(downloadOptions?.environment).toBe('prd');
     expect(downloadOptions?.printer).toBeTruthy();
-    expect(downloadOptions?.project).toBe('labweb');
+    expect(downloadOptions?.project).toBe('sample-project');
 
     expect(runDbSyncMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
     const syncOptions = runDbSyncMock.mock.calls[0]?.[1] as DbOptions | undefined;
@@ -941,7 +941,7 @@ describe('createDashboardServer', () => {
     expect(syncOptions?.environment).toBe('uat');
     expect(syncOptions?.force).toBe(true);
     expect(syncOptions?.printer).toBeTruthy();
-    expect(syncOptions?.project).toBe('labweb');
+    expect(syncOptions?.project).toBe('sample-project');
 
     expect(runDbImportMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
     const importOptions = runDbImportMock.mock.calls[0]?.[1] as DbOptions | undefined;

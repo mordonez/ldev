@@ -29,7 +29,7 @@ ldev worktree setup --name incident-123 --with-env
 ldev worktree setup --name feature-x --base origin/main --with-env
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone
 ldev worktree setup --name feature-x --with-env --stop-main-for-clone --restart-main-after-clone
-cd ..\labweb.worktrees\feature-x
+cd .worktrees/feature-x
 ldev worktree setup --with-env
 cd .worktrees/incident-123
 ldev start

@@ -113,7 +113,7 @@ explicitly and list known copied folders that are not edited directly.
 Example:
 
 - `/global` owns shared Journal resources for public pages.
-- `model-facultat` and `departaments` contain copied resources and are not edited
+- `marketing-copy` and `regional-copy` contain copied resources and are not edited
   directly unless runtime inventory proves a page uses those copies.
 
 Agents should not edit copied resources unless this section or fresh runtime

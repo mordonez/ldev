@@ -110,7 +110,7 @@ Inspect Journal content volume before deciding what to prune.
 ```bash
 ldev portal inventory sites --with-content --sort-by content
 ldev portal inventory sites --with-content --group-id 2710030 --limit 20
-ldev portal inventory sites --site /facultat-farmacia-alimentacio --with-structures --limit 20
+ldev portal inventory sites --site /example-site --with-structures --limit 20
 ```
 
 Treat `--with-content --sort-by content` as a fast radar. Use `--site`/`--group-id` scoped mode when you need the exact folder and structure counts that drive a prune.

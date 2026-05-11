@@ -24,7 +24,7 @@ describe('db backup intake', () => {
 
   test('returns the newest matching backup when the same backup id exists more than once', async () => {
     const root = createTempDir('db-backup-intake-newest-');
-    const backupId = 'dxpcloud-labweb-202605052200';
+    const backupId = 'dxpcloud-sample-project-202605052200';
     const olderDir = path.join(root, `${backupId}-older`);
     const newerDir = path.join(root, `${backupId}-newer`);
     fs.mkdirSync(olderDir, {recursive: true});
