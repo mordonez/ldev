@@ -202,9 +202,12 @@ export async function syncArtifactDetailed<Local = never, Remote = never>(
       : null
     : await strategy.upsert(config, site, localArtifact, remoteArtifact, strategyOpts, dependencies);
 
-  // 6. Verify (always, even in check-only mode for hash validation)
+  // 6. Verify after real mutations. In check-only mode, strategies validate the
+  // request shape through preview/upsert where needed; hashing the unchanged
+  // remote artifact against a modified local file would make every intended
+  // template/ADT/script edit look like a failed preflight.
   const verifiedRemote = await strategy.findRemote(config, site, localArtifact, strategyOpts, dependencies);
-  if (verifiedRemote) {
+  if (verifiedRemote && !options.checkOnly) {
     await strategy.verify(config, site, localArtifact, verifiedRemote, dependencies);
   }
 

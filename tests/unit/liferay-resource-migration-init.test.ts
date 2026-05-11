@@ -150,7 +150,7 @@ describe('liferay resource migration-init', () => {
     });
     expect(descriptor.introduce.mappingHelp.examples).toEqual([
       {source: 'oldTitle', target: 'newTitle', cleanupSource: false},
-      {source: 'legacyBody', target: 'content[].body', cleanupSource: true},
+      {source: 'legacyBody', target: 'content[].body', cleanupSource: false},
     ]);
     expect(descriptor.introduce.suggestions.suggestedMappings).toEqual([
       {source: 'oldHeadline', target: 'content[].newHeadline', cleanupSource: false},

@@ -126,6 +126,26 @@ ldev oauth install --write-env
 To use it on top of an existing Liferay Workspace, just run `ldev` from the
 workspace root — it detects Blade workspaces and adapts.
 
+## Dashboard
+
+`ldev dashboard` gives you a local control surface for the operational loop:
+worktree inventory, local runtime actions, recent commits, changed files,
+maintenance preview, live task activity, and guided flows such as DB tools,
+diagnose, deploy status, and resource exports.
+
+```bash
+ldev dashboard
+ldev dashboard --port 4242 --no-open
+```
+
+<p align="center">
+  <img src="docs/public/dashboard-overview.png" alt="ldev dashboard showing worktree state, changed files, and operational actions" width="1200">
+</p>
+
+The dashboard is not a separate product surface. It is the same `understand →
+diagnose → fix → verify` model exposed in a faster local UI for day-to-day
+worktree and environment operations.
+
 ## Who it is for
 
 - Liferay developers who want to script the parts of the platform that today
@@ -159,6 +179,7 @@ Full docs: **[mordonez.github.io/ldev](https://mordonez.github.io/ldev/)**
 - [What is ldev](https://mordonez.github.io/ldev/getting-started/what-is-ldev)
 - [Quickstart](https://mordonez.github.io/ldev/getting-started/quickstart)
 - [Resource workflows](https://mordonez.github.io/ldev/workflows/export-import-resources)
+- [Dashboard workflow](https://mordonez.github.io/ldev/workflows/dashboard)
 - [Structure migration](https://mordonez.github.io/ldev/workflows/resource-migration-pipeline)
 - [Worktrees](https://mordonez.github.io/ldev/advanced/worktrees)
 - [Agents and MCP](https://mordonez.github.io/ldev/agentic/)

@@ -14,6 +14,18 @@ bootstrap, safety invariants, worktree rules, and installed skills.
 5. matching task skill under `.agents/skills/`
 6. `.gemini/ldev-*.md` files for installed workspace rules
 
+## Agent Portability Contract
+
+Same prompt, same gate order. This file delegates to `AGENTS.md`; it does not
+define a Gemini-only workflow.
+
+Slash commands are aliases. If the user invokes `/project-issue-engineering`,
+`$project-issue-engineering`, names a skill, or pastes a skill body, resolve it
+to the matching file under `.agents/skills/` and follow that skill. For
+non-trivial code, resource, or runtime mutations, read `.agents/skills/project-issue-engineering/SKILL.md`
+when it exists, even if the current assistant does not implement slash commands
+natively.
+
 ## Gemini-specific note
 
 - Do not treat this file as an independent workflow.

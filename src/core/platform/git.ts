@@ -152,6 +152,15 @@ export async function hasStagedChanges(cwd: string): Promise<boolean> {
   return !result.ok;
 }
 
+export async function hasUncommittedChanges(cwd: string): Promise<boolean> {
+  const result = await runProcess('git', ['status', '--porcelain'], {cwd});
+  if (!result.ok) {
+    return true;
+  }
+
+  return result.stdout.trim() !== '';
+}
+
 export async function gitCommit(cwd: string, message: string): Promise<void> {
   await runGit(cwd, ['commit', '-m', message]);
 }

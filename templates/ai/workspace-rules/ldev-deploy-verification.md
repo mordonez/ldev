@@ -28,6 +28,9 @@ Use deploy commands only for deployable artifacts:
 - a broad deploy only when a human explicitly asks for a full deploy and
   the change cannot be proved with a narrower deploy
 
+For theme deploys, use the contract in
+[../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
+
 Prefer atomic deploys. Do not use a broad deploy as a default validation step.
 
 Do not use deploy commands for Journal templates, ADTs, fragments, or

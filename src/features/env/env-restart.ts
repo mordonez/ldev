@@ -13,18 +13,26 @@ export type EnvRestartResult = {
 
 export async function runEnvRestart(
   config: AppConfig,
-  options?: {wait?: boolean; timeoutSeconds?: number; processEnv?: NodeJS.ProcessEnv; printer?: Printer},
+  options?: {
+    wait?: boolean;
+    timeoutSeconds?: number;
+    processEnv?: NodeJS.ProcessEnv;
+    printer?: Printer;
+    signal?: AbortSignal;
+  },
 ): Promise<EnvRestartResult> {
   const context = resolveEnvContext(config);
   await runEnvStop(config, {
     processEnv: options?.processEnv,
     printer: options?.printer,
+    signal: options?.signal,
   });
   await runEnvStart(config, {
     wait: options?.wait ?? true,
     timeoutSeconds: options?.timeoutSeconds ?? 250,
     processEnv: options?.processEnv,
     printer: options?.printer,
+    signal: options?.signal,
   });
 
   return {

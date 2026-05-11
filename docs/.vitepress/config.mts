@@ -39,6 +39,7 @@ export default defineConfig({
       {
         text: 'Workflows',
         items: [
+          {text: 'Dashboard', link: '/workflows/dashboard'},
           {text: 'Export and Import Resources', link: '/workflows/export-import-resources'},
           {text: 'Resource Migration Pipeline', link: '/workflows/resource-migration-pipeline'},
           {text: 'Explore a Portal', link: '/workflows/explore-portal'},

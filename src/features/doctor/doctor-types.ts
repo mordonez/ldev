@@ -175,6 +175,7 @@ export type DoctorContext = {
   };
   activationKeyFile: string | null;
   activationKeyExists: boolean;
+  activationKeyInstalledFile: string | null;
   activationKeyValidName: boolean;
   httpPort: number | null;
   httpPortStatus: DoctorPortStatus;

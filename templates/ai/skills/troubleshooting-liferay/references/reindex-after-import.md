@@ -1,41 +1,42 @@
 # Reindex After Import
 
-Use this reference right after importing a DB or restoring an environment when search is not healthy yet.
+Use this reference after importing a DB or restoring an environment when search
+is not healthy yet.
 
-## Recommended flow
+## Hard Boundary
 
-1. Confirm the portal is healthy:
+`ldev` cannot force or start a Liferay reindex. The only supported way to force
+reindex is manual action in the Liferay UI by a human.
+
+Do not tell agents to run any reindex CLI command to start reindexing. `ldev`
+may be used only for surrounding health checks and logs.
+
+## Recommended Flow
+
+1. Confirm the portal and Elasticsearch are healthy:
 
 ```bash
 ldev status --json
+ldev doctor --portal --json
+ldev logs diagnose --since 10m --json
 ```
 
-2. Observe reindex:
+2. Ask the human to start the required reindex in the Liferay UI.
+
+Typical manual path: Control Panel -> Configuration -> Search -> Index Actions,
+then run the relevant reindex action for the affected content.
+
+3. After the manual UI action, observe behavior through the affected page,
+portal inventory, and logs:
 
 ```bash
-ldev portal reindex status --json
-ldev portal reindex tasks --json
-ldev portal reindex watch --json
-```
-
-3. Enable speedup only during a real reindex:
-
-```bash
-ldev portal reindex speedup-on
-ldev portal reindex speedup-off
-```
-
-## What to validate
-
-- A real reindex task exists
-- The index is progressing
-- Recent logs do not show new failures
-
-```bash
-ldev logs --since 10m --service liferay --no-follow
+ldev portal check --json
+ldev logs diagnose --since 10m --json
 ```
 
 ## Guardrails
 
-- Do not leave `speedup-on` enabled afterwards
-- Do not assume that clicking reindex means the reindex is actually running
+- Do not claim reindex was executed by `ldev`.
+- Do not assume that clicking reindex means indexing completed; verify the
+  affected search result or page behavior.
+- If the issue remains after manual reindex, continue search/runtime diagnosis.

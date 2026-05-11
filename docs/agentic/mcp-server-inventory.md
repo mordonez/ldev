@@ -72,7 +72,6 @@ operations, or need stricter guardrails.
 | `resource_export_fragments` | `resource export-fragments` | Same as template exports. |
 | `resource_import_*` | `resource import-*` | Expose check-only first. Mutating imports should require a separate `apply: true` input and should reject plural imports unless explicit. |
 | `resource_migration_init` | `resource migration-init` | OK as a file-generation tool if `output` is explicit. |
-| `resource_migration_run` | `resource migration-run` | Prefer check-only/dry-run first. Mutating mode should require explicit approval input. |
 | `resource_migration_pipeline` | `resource migration-pipeline` | Powerful but high-blast-radius; expose after import guardrails exist. |
 | `deploy_prepare` | `deploy prepare` | Writes build artifacts but does not touch runtime. Useful after explicit user intent. |
 | `deploy_module` / `deploy_theme` | `deploy module`, `deploy theme` | Mutating build/deploy flow; require exact target. |

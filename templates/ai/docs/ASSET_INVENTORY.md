@@ -16,6 +16,8 @@ existed in the original `tools/ai` tree.
 | `developing-liferay` | `templates/ai/skills/developing-liferay/` | Implement code/content/resource changes with `ldev` | Yes | Applies across compatible Liferay repos |
 | `deploying-liferay` | `templates/ai/skills/deploying-liferay/` | Build, deploy and verify runtime changes | Yes | Maps directly to `ldev deploy`, `ldev osgi`, `ldev logs` |
 | `troubleshooting-liferay` | `templates/ai/skills/troubleshooting-liferay/` | Diagnose runtime failures and recovery paths | Yes | General local runtime guidance |
+| `runtime-change-workflow` | `templates/ai/skills/runtime-change-workflow/` | Canonical Red -> Green gate order for mutating work | Yes | Keeps reusable agent gates out of project overlays |
+| `portal-resource-workflow` | `templates/ai/skills/portal-resource-workflow/` | Canonical workflow for structures, templates, ADTs, and fragments | Yes | Concentrates import vs migration, source-of-truth, and read-after-write rules |
 | `migrating-journal-structures` | `templates/ai/skills/migrating-journal-structures/` | Run Journal migration workflows safely | Yes | Based on stable `ldev portal/resource ...` flows |
 
 ## Workspace Rules

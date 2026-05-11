@@ -110,6 +110,8 @@ ldev resource import-structure --file liferay/resources/journal/structures/globa
 ldev resource import-template --file liferay/resources/journal/templates/global/MY_TEMPLATE.ftl
 ```
 
+When a singular template import points at a file inside `liferay/resources/journal/templates/<site>/...`, `ldev` infers that `<site>` folder automatically if you omit `--site`.
+
 Real output:
 
 ```json

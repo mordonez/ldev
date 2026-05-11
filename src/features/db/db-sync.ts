@@ -21,6 +21,7 @@ export async function runDbSync(
     skipPostImport?: boolean;
     force?: boolean;
     printer?: Printer;
+    signal?: AbortSignal;
   },
 ): Promise<DbSyncResult> {
   const download = await runDbDownload(config, {
@@ -28,6 +29,7 @@ export async function runDbSync(
     backupId: options?.backupId,
     project: options?.project,
     printer: options?.printer,
+    signal: options?.signal,
   });
 
   if (!download.databaseBackupFile) {
@@ -39,6 +41,7 @@ export async function runDbSync(
     skipPostImport: options?.skipPostImport,
     force: options?.force,
     printer: options?.printer,
+    signal: options?.signal,
   });
 
   return {

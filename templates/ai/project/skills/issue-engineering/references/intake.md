@@ -31,7 +31,7 @@ run the command for each one rather than picking a single "main" URL:
 
 ```bash
 ldev context --json
-ldev portal inventory page --url <issueUrl> --json
+ldev portal inventory page --url <issueUrl> --full --json
 ```
 
 If the issue URL is production, use it only as an identifier for discovery. Do
@@ -41,20 +41,18 @@ local/runtime URL from `ldev`.
 If a comment or reviewer drops an additional URL later in the thread, stop and
 inspect that URL too before assuming it is the same surface.
 
-The default output contains the fields needed for most intake tasks (page type,
-article identity, rendering templates, taxonomy, admin URLs). If you need
-content fields, raw template candidates, or the full page definition, add `--full`:
-
-```bash
-ldev portal inventory page --url <issueUrl> --json --full
-```
+Full output is the default for agents because it includes content fields, raw
+template candidates, display-page DDM templates, and export paths. Use
+`templateExportPath`, `displayPageDefaultTemplate`, and
+`displayPageDdmTemplates` to select active Journal templates; do not substitute
+a similarly named template found by `rg`.
 
 3. If there is no exact URL, traverse the site:
 
 ```bash
 ldev portal inventory sites --json
 ldev portal inventory pages --site /<site> --json
-ldev portal inventory page --url <fullUrl> --json
+ldev portal inventory page --url <fullUrl> --full --json
 ```
 
 4. If `displayStyle: ddmTemplate_<ID>` appears, resolve the owning ADT before
@@ -112,13 +110,21 @@ Patterns that require clarification:
 - **Behavioral reference without a field key**: "show/hide the date", "hide the field"
   → Confirm the exact DDM field name by exporting the structure first.
 
+- **Existing field becomes repeatable**: "make field X repeatable", "repeat
+  field pair X + Y", "preserve existing content"
+  -> Ask whether saved legacy values must migrate into the new repeated shape
+  or stay in legacy fields with additive extra fields.
+
 Do not assume. A wrong assumption at intake becomes scope creep at edit time.
 
 ## Reproduce the Symptom
 
-After confirming the local URL and surface, capture the failing state **before
-any code change**. This screenshot is the definition of the problem, not the
-issue description, not a hypothesis.
+For `ldev-native`, do this after creating or entering the isolated worktree and
+starting its runtime. Do not capture Red in the primary checkout first.
+
+After confirming the local URL and surface in the worktree runtime, capture the
+failing state **before any code change**. This screenshot is the definition of
+the problem, not the issue description, not a hypothesis.
 
 ```bash
 playwright-cli -s=issue-NUM open "<localUrl>"
@@ -138,4 +144,4 @@ If the symptom does not appear:
 - stop and report to the user before proceeding
 - do not infer the bug is present or already fixed without evidence
 
-Save `before.png` before creating a worktree or editing any file.
+Save `before.png` from the worktree runtime before editing any file.

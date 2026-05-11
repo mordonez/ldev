@@ -30,6 +30,7 @@ type DeployThemePayload = {
   hotDeployed: boolean;
   artifactsHotDeployed: number;
   runtimeRefreshed: boolean;
+  runtimeActionRequired: string | null;
   hotDeployReason?: string;
 };
 
@@ -169,6 +170,7 @@ describe('deploy integration', () => {
     expect(parsed.hotDeployed).toBe(true);
     expect(parsed.artifactsHotDeployed).toBe(1);
     expect(parsed.runtimeRefreshed).toBe(true);
+    expect(parsed.runtimeActionRequired).toBeNull();
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'ub-theme.war'))).toBe(true);
     expect(
       await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'ub-theme.war')),
@@ -199,6 +201,7 @@ describe('deploy integration', () => {
     expect(parsed.hotDeployed).toBe(false);
     expect(parsed.artifactsHotDeployed).toBe(1);
     expect(parsed.runtimeRefreshed).toBe(false);
+    expect(parsed.runtimeActionRequired).toBe('Run ldev env restart before treating the theme as live.');
     expect(parsed.hotDeployReason).toContain('1/2 artifacts failed to hot deploy');
     expect(parsed.hotDeployReason).toContain('legacy.war');
   }, 45000);

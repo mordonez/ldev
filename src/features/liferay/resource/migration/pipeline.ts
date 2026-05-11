@@ -80,6 +80,30 @@ export async function runLiferayResourceMigrationRun(
 ): Promise<LiferayResourceMigrationRunResult> {
   const descriptor = await readMigrationDescriptor(config, options.migrationFile);
   const stage = options.stage ?? 'introduce';
+
+  if (stage === 'cleanup') {
+    const result = await runCleanupStage(
+      config,
+      descriptor,
+      [],
+      {
+        checkOnly: options.checkOnly,
+        migrationDryRun: options.migrationDryRun,
+      },
+      dependencies,
+    );
+
+    return {
+      site: descriptor.site,
+      structureKey: descriptor.structureKey,
+      stage,
+      status: result.status,
+      id: result.id,
+      migrationApplied: Boolean(result.migration) && !result.migration?.dryRun,
+      migratedArticleKeys: result.migration?.articleKeys ?? [],
+    };
+  }
+
   const stageDescriptor = descriptor.introduce;
   const structureFile = await resolveMigrationStructureFile(config, descriptor, stageDescriptor);
 
@@ -96,7 +120,7 @@ export async function runLiferayResourceMigrationRun(
           checkOnly: Boolean(options.checkOnly),
           skipUpdate: Boolean(options.skipUpdate),
           migrationPlan: planFile,
-          migrationPhase: stage === 'cleanup' ? 'pre' : 'post',
+          migrationPhase: 'post',
           migrationDryRun: Boolean(options.checkOnly) || Boolean(options.migrationDryRun),
           cleanupMigration: stageDescriptor.cleanupMigration,
           printer: options.printer,
@@ -449,10 +473,12 @@ async function runCleanupStage(
     migrationDryRun?: boolean;
   },
   dependencies?: ResourceSyncDependencies,
-): Promise<void> {
+): Promise<Awaited<ReturnType<typeof runLiferayResourceSyncStructure>>> {
   const cleanupSources = cleanupSourceFields(descriptor.introduce.planNode);
   if (cleanupSources.length === 0) {
-    return;
+    throw LiferayErrors.resourceError(
+      'Cleanup stage skipped: descriptor introduce.mappings has no cleanupSource=true entries.',
+    );
   }
 
   const cleanupStructureFile = await writeDerivedCleanupStructureFile(
@@ -464,7 +490,7 @@ async function runCleanupStage(
   const cleanupPlanFile = await writeTempPlanFile(cleanupPlanNode);
 
   try {
-    await runLiferayResourceSyncStructure(
+    return await runLiferayResourceSyncStructure(
       config,
       {
         site: descriptor.site,

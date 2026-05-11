@@ -40,7 +40,7 @@ ldev osgi diag <bundle> --json
 If a portal resource applies:
 
 ```bash
-ldev portal inventory page --url <localUrl> --json
+ldev portal inventory page --url <localUrl> --full --json
 ldev resource structure --site /<site> --structure <STRUCTURE_KEY>
 ldev resource template --site /<site> --template <TEMPLATE_ID>
 ```

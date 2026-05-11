@@ -18,6 +18,9 @@ Quick rules:
 - Do not start with `snapshot` on pages that still redirect or re-render heavily.
 - Build `run-code` snippets into a shell variable with a shell-native multiline
   literal: `cat <<'EOF'` in bash/zsh, `@'...'@` in PowerShell.
+- On PowerShell, prefer writing non-trivial `run-code` functions to a `.tmp/<issue>/*.js`
+  file, then pass `Get-Content -Raw` to `run-code`. This avoids terminal wrappers
+  rewriting JavaScript operators such as `&&`, `||`, `?`, `:`, `<`, or `>`.
 - **Never chain `open` and `run-code` in the same terminal command** using `;`, `&&`,
   or any other combinator. Run `open` first as a standalone command and wait for it to
   complete before running `run-code` as a separate command. Chaining them races the
@@ -25,8 +28,9 @@ Quick rules:
 - **`run-code` transforms shell operators**: the shell intercepts `||`, `&&`, `>`,
   and `<` before JavaScript sees them. Use ternary expressions (`condition ? a : b`)
   or `if/else` blocks inside `run-code` functions instead of `||` or `&&`. Always
-  assign the code to a variable first (using `cat <<'EOF'` or `@'...'@`) so the
-  shell cannot split or reinterpret it.
+  assign the code to a variable first (using `cat <<'EOF'`, `@'...'@`, or preferably
+  `Get-Content -Raw` from a `.js` file on PowerShell) so the shell cannot split or
+  reinterpret it.
 - Keep one browser helper active at a time per session name. Do not run helpers in
   parallel against the same session — open first, then sequence snapshot / run-code /
   goto / screenshot.
@@ -35,7 +39,7 @@ Quick rules:
 - If local virtual host routing sends the browser to another site while `curl` reaches
   the expected page, record it as a browser-routing limitation and finish validation with
   HTTP + logs.
-- `ldev portal inventory page --url ... --json` may return `adminUrls.*` with a different
+- `ldev portal inventory page --url ... --full --json` may return `adminUrls.*` with a different
   host spelling. Normalize the host before opening.
 
 ## Project menu maps (optional)
@@ -110,13 +114,15 @@ PowerShell:
 
 ```powershell
 playwright-cli -s=mobile-<issue> open "<url>"
-$CODE = @'
+New-Item -ItemType Directory -Force .tmp/<issue> | Out-Null
+@'
 async function (page) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: "domcontentloaded" });
 }
-'@
-playwright-cli -s=mobile-<issue> run-code "$CODE"
+'@ | Set-Content -NoNewline .tmp/<issue>/mobile-viewport.js
+$CODE = Get-Content -Raw .tmp/<issue>/mobile-viewport.js
+playwright-cli -s=mobile-<issue> run-code $CODE
 playwright-cli -s=mobile-<issue> screenshot --filename=.tmp/<issue>/mobile.png
 playwright-cli -s=mobile-<issue> close
 ```
@@ -179,6 +185,64 @@ Navigate explicitly to the target site's admin URL afterwards.
 
 If a direct `adminUrls.translate` or `adminUrls.configure` URL falls back to a generic
 "Pàgines del lloc web" screen, treat that URL as a hint rather than a guaranteed deep-link.
+
+## Journal article edit and publish
+
+Use one path only:
+
+1. Resolve the page with `ldev portal inventory page --url <fullUrl> --full --json`.
+2. Open the Journal edit URL returned by inventory.
+3. Publish from the editor using structural selectors.
+4. Re-run `ldev portal inventory page --url <fullUrl> --full --json` and confirm
+   `lifecycle.dateModified` advanced.
+
+Do not rely on rendered control-menu actions on the public page. Do not use
+translated button text as the primary selector strategy.
+
+Example:
+
+```powershell
+$PortalUrl = (ldev context --json | ConvertFrom-Json).liferay.portalUrl
+playwright-cli -s=editor-<issue> open "$PortalUrl/c/portal/login"
+$LOGIN = @'
+async function (page) {
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_login").fill("<test-user-email>");
+  await page.locator("#_com_liferay_login_web_portlet_LoginPortlet_password").fill("<test-user-password>");
+  await page.locator("button[type=submit]").first().click();
+}
+'@
+playwright-cli -s=editor-<issue> run-code "$LOGIN"
+
+# Open the direct edit URL returned by ldev portal inventory page.
+playwright-cli -s=editor-<issue> open "<journalEditUrl>"
+
+$PUBLISH = @'
+async function (page) {
+  await page.locator('button[aria-haspopup="true"], button.btn.btn-primary').first().waitFor();
+
+  const publishTrigger = page.locator('button.btn.btn-primary.dropdown-toggle[aria-haspopup="true"]').first();
+  await publishTrigger.waitFor();
+  await publishTrigger.click();
+
+  const openMenu = page.locator('[role="menu"]:visible, .dropdown-menu.show:visible').last();
+  await openMenu.waitFor();
+  const publishAction = openMenu.locator('[role="menuitem"], button, a').first();
+  await publishAction.waitFor();
+  await publishAction.click();
+}
+'@
+playwright-cli -s=editor-<issue> run-code "$PUBLISH"
+
+# Re-run inventory and confirm lifecycle.dateModified advanced after the publish action.
+ldev portal inventory page --url <fullUrl> --full --json
+```
+
+Checks:
+
+- Wait for the editor toolbar and publish control to finish hydrating before the publish click; the first button instance can be replaced during load.
+- Treat the visible primary dropdown button, the open menu, and its first publish action as the publish path.
+- Success is not opening the publish menu and not waiting for a localized toast.
+- Success is `ldev portal inventory page --url <fullUrl> --full --json` showing an advanced `lifecycle.dateModified` after the publish action.
 
 ## Page layout mutations
 

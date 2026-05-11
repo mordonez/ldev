@@ -25,6 +25,11 @@ export type EnvStatusReport = {
   liferay: EnvServiceStatus | null;
 };
 
+export type EnvRuntimeSummary = {
+  portalUrl: string;
+  liferay: EnvServiceStatus | null;
+};
+
 export async function collectEnvStatus(
   context: EnvContext,
   options?: {processEnv?: NodeJS.ProcessEnv},
@@ -47,6 +52,19 @@ export async function collectEnvStatus(
     portalReachable,
     services: detailedServices,
     liferay,
+  };
+}
+
+export async function collectEnvRuntimeSummary(
+  context: EnvContext,
+  options?: {processEnv?: NodeJS.ProcessEnv},
+): Promise<EnvRuntimeSummary> {
+  const processOptions: RunProcessOptions | undefined = options?.processEnv ? {env: options.processEnv} : undefined;
+  const liferay = await inspectComposeService(context, 'liferay', processOptions);
+
+  return {
+    portalUrl: context.portalUrl,
+    liferay: liferay.containerId ? liferay : null,
   };
 }
 

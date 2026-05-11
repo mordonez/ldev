@@ -10,15 +10,26 @@ alwaysApply: true
 
 - Treat `AGENTS.md` as the bootstrap entrypoint.
 - `ldev` owns the full runtime contract in this project type.
+- Agent Portability Contract: Same prompt, same gate order. Slash commands are aliases. If the user invokes `/project-issue-engineering`, names a skill, or
+  pastes a skill body, resolve it to `.agents/skills/` and follow it. For
+  non-trivial code, resource, or runtime mutations, read `.agents/skills/project-issue-engineering/SKILL.md`
+  when it exists, even if the current assistant does not implement slash
+  commands natively.
 - If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
   mutates code, resources, or runtime state, run that workflow first for non-trivial
   work (bugs, features, migrations). For clearly trivial ad-hoc requests, confirm
   with the developer whether to follow the full intake or proceed directly.
+- For non-trivial mutating work, `runtime-change-workflow` owns the reusable
+  gate order. For Journal templates, ADTs, fragments, and structures,
+  `portal-resource-workflow` owns import and verification.
 - For non-trivial mutating tasks, the recommended default gate order is:
-  `Red-1` reproduction → worktree isolation/root lock → `Red-2` reproduction →
-  import/deploy verification → `Red → Green` visual validation.
+  worktree isolation/root lock → Red reproduction in the worktree runtime →
+  import/deploy verification → Green validation in that same worktree runtime.
+  Do not reproduce first in the primary checkout.
   For clearly trivial changes, assess the scope and ask the developer whether they
   want the full workflow or prefer to work directly in the current checkout.
+- If the session is already inside a worktree, ask whether to keep using that
+  active worktree before creating a new one for the task.
 - When isolation needs a runtime-backed worktree, ask the user whether the main environment needs to run in parallel. Default is `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped to conserve resources). Add `--restart-main-after-clone` only if the user confirms they need main running alongside the worktree.
 
 Preferred task-shaped entry points after bootstrap:
@@ -62,6 +73,9 @@ deployable Gradle units changed. For Journal templates, ADTs, fragments, and
 structures, use the runtime resource import workflow and validate the affected
 page with `playwright-cli`. If source config or properties changed, restart the
 environment before validation.
+
+For theme deploys, use the contract in
+[../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
 
 Hard rule after edits:
 

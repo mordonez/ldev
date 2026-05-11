@@ -1,0 +1,1333 @@
+import {EventEmitter} from 'node:events';
+import fs from 'node:fs';
+import type {AddressInfo} from 'node:net';
+import os from 'node:os';
+import path from 'node:path';
+
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
+
+const collectDashboardStatusMock = vi.fn();
+const loadConfigMock = vi.fn();
+const runDockerMock = vi.fn();
+const listGitWorktreeDetailsMock = vi.fn();
+const buildComposeEnvMock = vi.fn();
+const resolveEnvContextMock = vi.fn();
+const collectEnvStatusMock = vi.fn();
+const normalizeProcessEnvMock = vi.fn((env: NodeJS.ProcessEnv) => env);
+const resolveSpawnCommandMock = vi.fn((command: string) => command);
+const spawnPipedProcessMock = vi.fn();
+const runEnvStartMock = vi.fn();
+const runEnvStopMock = vi.fn();
+const runMcpDoctorMock = vi.fn();
+const runMcpSetupMock = vi.fn();
+const runOAuthInstallMock = vi.fn();
+const runWorktreeCleanMock = vi.fn();
+const runWorktreeSetupMock = vi.fn();
+const runWorktreeEnvMock = vi.fn();
+const runDbDownloadMock = vi.fn();
+const runDbSyncMock = vi.fn();
+const runDbImportMock = vi.fn();
+const runDbQueryMock = vi.fn();
+const runDoctorMock = vi.fn();
+const runDeployStatusMock = vi.fn();
+const runDeployCacheUpdateMock = vi.fn();
+const runEnvRestartMock = vi.fn();
+const runEnvRecreateMock = vi.fn();
+const runWorktreeGcMock = vi.fn();
+const runResourceExportTemplatesMock = vi.fn();
+const runResourceExportStructuresMock = vi.fn();
+const runResourceExportAdtsMock = vi.fn();
+const runResourceExportFragmentsMock = vi.fn();
+
+vi.mock('../../src/core/config/load-config.js', () => ({
+  loadConfig: loadConfigMock,
+}));
+
+vi.mock('../../src/core/platform/docker.js', () => ({
+  runDocker: runDockerMock,
+  runDockerCompose: vi.fn(),
+}));
+
+vi.mock('../../src/core/platform/process.js', () => {
+  return {
+    normalizeProcessEnv: normalizeProcessEnvMock,
+    resolveSpawnCommand: resolveSpawnCommandMock,
+    spawnPipedProcess: spawnPipedProcessMock,
+  };
+});
+
+vi.mock('../../src/core/platform/git.js', () => ({
+  listGitWorktreeDetails: listGitWorktreeDetailsMock,
+}));
+
+vi.mock('../../src/core/runtime/env-context.js', () => ({
+  buildComposeEnv: buildComposeEnvMock,
+  resolveEnvContext: resolveEnvContextMock,
+}));
+
+vi.mock('../../src/core/runtime/env-health.js', () => ({
+  collectEnvStatus: collectEnvStatusMock,
+}));
+
+vi.mock('../../src/features/env/env-start.js', () => ({
+  formatEnvStart: vi.fn(() => 'Environment started'),
+  runEnvStart: runEnvStartMock,
+}));
+
+vi.mock('../../src/features/env/env-stop.js', () => ({
+  runEnvStop: runEnvStopMock,
+}));
+
+vi.mock('../../src/features/worktree/worktree-clean.js', () => ({
+  runWorktreeClean: runWorktreeCleanMock,
+}));
+
+vi.mock('../../src/features/worktree/worktree-setup.js', () => ({
+  formatWorktreeSetup: vi.fn(() => 'Worktree setup OK'),
+  runWorktreeSetup: runWorktreeSetupMock,
+}));
+
+vi.mock('../../src/features/worktree/worktree-env.js', () => ({
+  runWorktreeEnv: runWorktreeEnvMock,
+}));
+
+vi.mock('../../src/features/db/db-download.js', () => ({
+  formatDbDownload: vi.fn(() => 'db-download OK'),
+  runDbDownload: runDbDownloadMock,
+}));
+
+vi.mock('../../src/features/db/db-sync.js', () => ({
+  formatDbSync: vi.fn(() => 'DB sync OK'),
+  runDbSync: runDbSyncMock,
+}));
+
+vi.mock('../../src/features/db/db-import.js', () => ({
+  formatDbImport: vi.fn(() => 'DB import OK'),
+  runDbImport: runDbImportMock,
+}));
+
+vi.mock('../../src/features/db/db-query.js', () => ({
+  formatDbQuery: vi.fn(() => 'id\n1'),
+  runDbQuery: runDbQueryMock,
+}));
+
+vi.mock('../../src/features/doctor/doctor.service.js', () => ({
+  formatDoctor: vi.fn(() => 'Doctor OK'),
+  runDoctor: runDoctorMock,
+}));
+
+vi.mock('../../src/features/deploy/deploy-status.js', () => ({
+  formatDeployStatus: vi.fn(() => 'Deploy status OK'),
+  runDeployStatus: runDeployStatusMock,
+}));
+
+vi.mock('../../src/features/deploy/deploy-cache-update.js', () => ({
+  formatDeployCacheUpdate: vi.fn(() => 'Deploy cache update OK'),
+  runDeployCacheUpdate: runDeployCacheUpdateMock,
+}));
+
+vi.mock('../../src/features/env/env-restart.js', () => ({
+  formatEnvRestart: vi.fn(() => 'Restart OK'),
+  runEnvRestart: runEnvRestartMock,
+}));
+
+vi.mock('../../src/features/env/env-recreate.js', () => ({
+  formatEnvRecreate: vi.fn(() => 'Recreate OK'),
+  runEnvRecreate: runEnvRecreateMock,
+}));
+
+vi.mock('../../src/features/worktree/worktree-gc.js', () => ({
+  formatWorktreeGc: vi.fn(() => 'GC removed: stale-1'),
+  runWorktreeGc: runWorktreeGcMock,
+}));
+
+vi.mock('../../src/features/liferay/resource/liferay-resource-export-templates.js', () => ({
+  formatLiferayResourceExportTemplates: vi.fn(() => 'templates OK'),
+  runLiferayResourceExportTemplates: runResourceExportTemplatesMock,
+}));
+
+vi.mock('../../src/features/liferay/resource/liferay-resource-export-structures.js', () => ({
+  formatLiferayResourceExportStructures: vi.fn(() => 'structures OK'),
+  runLiferayResourceExportStructures: runResourceExportStructuresMock,
+}));
+
+vi.mock('../../src/features/liferay/resource/liferay-resource-export-adts.js', () => ({
+  formatLiferayResourceExportAdts: vi.fn(() => 'adts OK'),
+  runLiferayResourceExportAdts: runResourceExportAdtsMock,
+}));
+
+vi.mock('../../src/features/liferay/resource/liferay-resource-export-fragments.js', () => ({
+  formatLiferayResourceExportFragments: vi.fn(() => 'fragments OK'),
+  runLiferayResourceExportFragments: runResourceExportFragmentsMock,
+}));
+
+vi.mock('../../src/features/mcp-server/mcp-server-doctor.js', () => ({
+  formatMcpDoctor: vi.fn(() => 'MCP doctor passed'),
+  runMcpDoctor: runMcpDoctorMock,
+}));
+
+vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
+  formatMcpSetup: vi.fn(() => 'Configured 3 MCP client configs'),
+  runMcpSetup: runMcpSetupMock,
+}));
+
+vi.mock('../../src/features/oauth/oauth-install.js', () => ({
+  formatOAuthInstall: vi.fn(() => 'OAuth install OK'),
+  runOAuthInstall: runOAuthInstallMock,
+}));
+
+vi.mock('../../src/features/dashboard/dashboard-data.js', () => ({
+  collectDashboardStatus: collectDashboardStatusMock,
+}));
+
+const {createDashboardServer} = await import('../../src/features/dashboard/dashboard-server.js');
+
+type CreateWorktreeOptions = {
+  cwd: string;
+  name: string;
+  baseRef?: string;
+  withEnv: boolean;
+  stopMainForClone: boolean;
+  restartMainAfterClone: boolean;
+  stopEnv: unknown;
+  startEnv: (config: unknown, options?: {wait?: boolean}) => Promise<unknown>;
+  printer: unknown;
+};
+
+type WorktreeEnvOptions = {
+  cwd: string;
+  printer: unknown;
+};
+
+type WorktreeCleanOptions = {
+  cwd: string;
+  deleteBranch: boolean;
+  force: boolean;
+  name: string;
+  printer?: unknown;
+};
+
+type DbOptions = {
+  backupId?: string;
+  environment?: string;
+  file?: string;
+  force?: boolean;
+  printer?: unknown;
+  processEnv?: NodeJS.ProcessEnv;
+  project?: string;
+  query?: string;
+};
+
+type WorktreeGcOptions = {
+  cwd: string;
+  days: number;
+  apply: boolean;
+  processEnv: NodeJS.ProcessEnv;
+  printer?: unknown;
+};
+
+function asCreateWorktreeOptions(value: unknown): CreateWorktreeOptions | undefined {
+  return value as CreateWorktreeOptions | undefined;
+}
+
+async function readJson<T>(response: Response): Promise<T> {
+  return (await response.json()) as T;
+}
+
+describe('createDashboardServer', () => {
+  let server: ReturnType<typeof createDashboardServer> | null = null;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    collectDashboardStatusMock.mockResolvedValue({
+      cwd: '/repo',
+      refreshedAt: new Date().toISOString(),
+      mcp: {targetDir: '/repo', clients: []},
+      worktrees: [],
+    });
+    listGitWorktreeDetailsMock.mockResolvedValue([]);
+  });
+
+  afterEach(async () => {
+    if (!server) {
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      server?.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+    server = null;
+  });
+
+  async function startServer(options?: {clientDistDirs?: string[]}): Promise<number> {
+    server = createDashboardServer({cwd: '/repo', port: 0, clientDistDirs: options?.clientDistDirs});
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+    return (server.address() as AddressInfo).port;
+  }
+
+  async function fetchPath(path: string, init?: RequestInit): Promise<Response> {
+    const address = server?.address() as AddressInfo | null;
+    if (!address) {
+      throw new Error('Dashboard test server is not listening');
+    }
+
+    return fetch(`http://127.0.0.1:${address.port}${path}`, init);
+  }
+
+  async function postJsonPath(path: string, body: Record<string, unknown>): Promise<Response> {
+    return fetchPath(path, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+  }
+
+  test('serves the built dashboard client shell and bundle assets', async () => {
+    const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));
+    fs.mkdirSync(path.join(distDir, 'assets'), {recursive: true});
+    fs.writeFileSync(
+      path.join(distDir, 'index.html'),
+      '<div id="dashboard-root"></div><script type="module" src="/assets/app.js"></script>',
+    );
+    fs.writeFileSync(path.join(distDir, 'assets', 'app.js'), "console.log('dashboard bundle');");
+    fs.writeFileSync(path.join(distDir, 'assets', 'style.css'), ':root { color-scheme: light; }');
+
+    await startServer({clientDistDirs: [distDir]});
+
+    const htmlResponse = await fetchPath(`/`);
+    expect(htmlResponse.status).toBe(200);
+    await expect(htmlResponse.text()).resolves.toContain('/assets/app.js');
+
+    const cssResponse = await fetchPath(`/assets/style.css`);
+    expect(cssResponse.status).toBe(200);
+    expect(cssResponse.headers.get('content-type')).toContain('text/css');
+    await expect(cssResponse.text()).resolves.toContain(':root');
+
+    const scriptResponse = await fetchPath(`/assets/app.js`);
+    expect(scriptResponse.status).toBe(200);
+    expect(scriptResponse.headers.get('content-type')).toContain('text/javascript');
+    await expect(scriptResponse.text()).resolves.toContain('dashboard bundle');
+
+    const sourceScriptResponse = await fetchPath(`/app.jsx`);
+    expect(sourceScriptResponse.status).toBe(404);
+  });
+
+  test('creates a new worktree from the dashboard API with issue-friendly defaults', async () => {
+    let resolveTask!: (value: {
+      ok: true;
+      worktreeName: string;
+      worktreeDir: string;
+      branch: string;
+      reused: boolean;
+      envPrepared: boolean;
+      mainEnvStoppedForClone: boolean;
+      mainEnvRestartedAfterClone: boolean;
+    }) => void;
+    loadConfigMock.mockReturnValue({
+      cwd: '/repo/.worktrees/issue-42',
+      repoRoot: '/repo/.worktrees/issue-42',
+      dockerDir: '/repo/.worktrees/issue-42/docker',
+      liferayDir: '/repo/.worktrees/issue-42/liferay',
+    });
+    runEnvStartMock.mockResolvedValue({
+      ok: true,
+      dockerDir: '/repo/.worktrees/issue-42/docker',
+      portalUrl: 'http://localhost:8080',
+      waitedForHealth: false,
+      activationKeyFile: null,
+    });
+    runWorktreeSetupMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTask = resolve;
+        }),
+    );
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {name: 'issue-42', baseRef: 'main'});
+
+    expect(response.status).toBe(202);
+    const body = await readJson<{ok: true; taskId: string; worktree: string; action: string}>(response);
+    expect(body).toMatchObject({ok: true, worktree: 'issue-42', action: 'create'});
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    expect(taskResponse.status).toBe(200);
+    const taskPayload = await readJson<{
+      tasks: Array<{id: string; label: string; status: string}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks).toHaveLength(1);
+    expect(taskPayload.tasks[0]).toMatchObject({
+      id: body.taskId,
+      label: 'Creating worktree issue-42',
+      status: 'running',
+    });
+
+    resolveTask({
+      ok: true,
+      worktreeName: 'issue-42',
+      worktreeDir: '/repo/.worktrees/issue-42',
+      branch: 'fix/issue-42',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: true,
+      mainEnvRestartedAfterClone: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const completedResponse = await fetchPath(`/api/tasks`);
+    const completedPayload = await readJson<{
+      tasks: Array<{status: string}>;
+    }>(completedResponse);
+    expect(completedPayload.tasks[0]).toMatchObject({status: 'succeeded'});
+    expect(runWorktreeSetupMock).toHaveBeenCalledTimes(1);
+
+    const options = asCreateWorktreeOptions(runWorktreeSetupMock.mock.calls[0]?.[0]);
+    expect(options).toBeDefined();
+    expect(options).toMatchObject({
+      cwd: '/repo',
+      name: 'issue-42',
+      baseRef: 'main',
+      withEnv: true,
+      stopMainForClone: true,
+      restartMainAfterClone: false,
+    });
+    expect(options?.stopEnv).toEqual(expect.any(Function));
+    expect(options?.startEnv).toEqual(expect.any(Function));
+    expect(options?.printer).toEqual(expect.anything());
+    expect(runMcpSetupMock).toHaveBeenCalledWith({
+      targetDir: '/repo/.worktrees/issue-42',
+      tool: 'all',
+    });
+    expect(loadConfigMock).toHaveBeenCalledWith({cwd: '/repo/.worktrees/issue-42', env: process.env});
+    expect(runEnvStartMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/issue-42'}),
+      expect.objectContaining({wait: false}),
+    );
+  });
+
+  test('can skip MCP setup when creating a worktree from the dashboard API', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-45',
+      worktreeDir: '/repo/.worktrees/issue-45',
+      branch: 'fix/issue-45',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: false,
+      mainEnvRestartedAfterClone: false,
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-45',
+      installMcp: false,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runWorktreeSetupMock).toHaveBeenCalledTimes(1);
+    expect(runMcpSetupMock).not.toHaveBeenCalled();
+  });
+
+  test('can skip auto-start when creating a worktree from the dashboard API', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-46',
+      worktreeDir: '/repo/.worktrees/issue-46',
+      branch: 'fix/issue-46',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: false,
+      mainEnvRestartedAfterClone: false,
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-46',
+      startAfterCreate: false,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runEnvStartMock).not.toHaveBeenCalled();
+  });
+
+  test('waits for main environment restart when requested from worktree creation', async () => {
+    runEnvStartMock.mockResolvedValue({ok: true});
+    runWorktreeSetupMock.mockImplementation(async (options: CreateWorktreeOptions) => {
+      await options.startEnv({repoRoot: '/repo'}, {wait: false});
+      return {
+        ok: true,
+        worktreeName: 'issue-43',
+        worktreeDir: '/repo/.worktrees/issue-43',
+        branch: 'fix/issue-43',
+        reused: false,
+        envPrepared: true,
+        mainEnvStoppedForClone: true,
+        mainEnvRestartedAfterClone: true,
+      };
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-43',
+      withEnv: true,
+      stopMainForClone: true,
+      restartMainAfterClone: true,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const setupOptions = runWorktreeSetupMock.mock.calls[0]?.[0] as CreateWorktreeOptions | undefined;
+    expect(setupOptions).toEqual(expect.objectContaining({restartMainAfterClone: true}));
+    expect(setupOptions?.startEnv).toEqual(expect.any(Function));
+    expect(runEnvStartMock).toHaveBeenCalledWith({repoRoot: '/repo'}, {wait: true});
+  });
+
+  test('fails the dashboard task when requested main restart does not complete', async () => {
+    runWorktreeSetupMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'issue-44',
+      worktreeDir: '/repo/.worktrees/issue-44',
+      branch: 'fix/issue-44',
+      reused: false,
+      envPrepared: true,
+      mainEnvStoppedForClone: true,
+      mainEnvRestartedAfterClone: false,
+      mainRestartError: 'docker unavailable',
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {
+      name: 'issue-44',
+      withEnv: true,
+      stopMainForClone: true,
+      restartMainAfterClone: true,
+    });
+
+    expect(response.status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    const taskPayload = await readJson<{
+      tasks: Array<{status: string; logs: Array<{level: string; message: string}>}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks[0]?.status).toBe('failed');
+    expect(taskPayload.tasks[0]?.logs).toEqual(
+      expect.arrayContaining([expect.objectContaining({level: 'error', message: 'docker unavailable'})]),
+    );
+  });
+
+  test('serves full dashboard status with git and runtime details enabled', async () => {
+    collectDashboardStatusMock.mockResolvedValueOnce({
+      cwd: '/repo',
+      refreshedAt: new Date().toISOString(),
+      mcp: {targetDir: '/repo', clients: []},
+      worktrees: [],
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/status`);
+
+    expect(response.status).toBe(200);
+    expect(collectDashboardStatusMock).toHaveBeenCalledWith('/repo', {
+      includeGit: true,
+      includeRuntimeDetails: true,
+    });
+  });
+
+  test('sanitizes internal dashboard status errors', async () => {
+    collectDashboardStatusMock.mockRejectedValueOnce(new Error('secret stack details'));
+
+    await startServer();
+
+    const response = await fetchPath(`/api/status`);
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({error: 'Could not load dashboard status'});
+  });
+
+  test('rejects worktree creation when the name is missing', async () => {
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees`, {withEnv: true});
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({error: 'Worktree name is required'});
+    expect(runWorktreeSetupMock).not.toHaveBeenCalled();
+  });
+
+  test('queues MCP doctor from the dashboard API', async () => {
+    runMcpDoctorMock.mockResolvedValue({
+      ok: true,
+      targetDir: '/repo',
+      checkedTools: ['claude-code', 'cursor', 'vscode'],
+      results: [],
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/mcp/doctor`, {tool: 'all'});
+
+    expect(response.status).toBe(202);
+    const body = await readJson<{ok: true; taskId: string; action: string; tool: string}>(response);
+    expect(body).toMatchObject({ok: true, action: 'mcp-doctor', tool: 'all'});
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runMcpDoctorMock).toHaveBeenCalledWith({
+      targetDir: '/repo',
+      tool: 'all',
+      handshake: true,
+      timeoutMs: 10000,
+    });
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    const taskPayload = await readJson<{
+      tasks: Array<{id: string; label: string; status: string}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks[0]).toMatchObject({
+      id: body.taskId,
+      label: 'Running MCP doctor (all)',
+      status: 'succeeded',
+    });
+  });
+
+  test('queues MCP setup from the dashboard API', async () => {
+    runMcpSetupMock.mockResolvedValue({
+      ok: true,
+      tool: 'all',
+      strategy: 'global',
+      results: [],
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/mcp/setup`, {tool: 'all'});
+
+    expect(response.status).toBe(202);
+    const body = await readJson<{ok: true; taskId: string; action: string; tool: string; strategy: null}>(response);
+    expect(body).toMatchObject({ok: true, action: 'mcp-setup', tool: 'all', strategy: null});
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runMcpSetupMock).toHaveBeenCalledWith({targetDir: '/repo', tool: 'all', strategy: undefined});
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    const taskPayload = await readJson<{
+      tasks: Array<{id: string; label: string; status: string}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks[0]).toMatchObject({
+      id: body.taskId,
+      label: 'Running MCP setup (all)',
+      status: 'succeeded',
+    });
+  });
+
+  test('queues worktree env initialization from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    runWorktreeEnvMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'pw-430',
+      worktreeDir: '/repo/.worktrees/pw-430',
+      dockerDir: '/repo/.worktrees/pw-430/docker',
+      envFile: '/repo/.worktrees/pw-430/docker/.env',
+      composeProjectName: 'liferay-pw-430',
+      portalUrl: 'http://127.0.0.1:8891',
+      dataRoot: '/repo/.worktrees/pw-430/docker/data/envs/pw-430',
+      ports: {
+        httpPort: '8891',
+        debugPort: '50091',
+        gogoPort: '11391',
+        postgresPort: '54391',
+        esHttpPort: '9201',
+      },
+      createdEnvFile: true,
+      clonedState: false,
+      btrfsEnabled: false,
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/pw-430/env/init`, {
+      method: 'POST',
+    });
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({ok: true, action: 'env-init', worktree: 'pw-430'});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const initOptions = runWorktreeEnvMock.mock.calls[0]?.[0] as WorktreeEnvOptions | undefined;
+    expect(initOptions?.cwd).toBe('/repo/.worktrees/pw-430');
+    expect(initOptions?.printer).toBeTruthy();
+  });
+
+  test('queues worktree deletion with optional local branch deletion', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    runWorktreeCleanMock.mockResolvedValue({
+      ok: true,
+      worktreeName: 'pw-430',
+      worktreeDir: '/repo/.worktrees/pw-430',
+      branchDeleted: true,
+      dataRootsDeleted: [],
+      dataRootsSkipped: [],
+      doclibVolumesRemoved: [],
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/pw-430?deleteBranch=true`, {
+      method: 'DELETE',
+    });
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      deleted: 'pw-430',
+      deleteBranch: true,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const cleanOptions = runWorktreeCleanMock.mock.calls[0]?.[0] as WorktreeCleanOptions | undefined;
+    expect(cleanOptions).toMatchObject({
+      cwd: '/repo',
+      name: 'pw-430',
+      force: true,
+      deleteBranch: true,
+    });
+    expect(cleanOptions?.printer).toBeTruthy();
+  });
+
+  test('deduplicates repeated start requests for the same worktree while the action is still running', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/testworktree', branch: 'fix/testworktree', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/testworktree',
+      dockerDir: '/repo/.worktrees/testworktree/docker',
+      liferayDir: '/repo/.worktrees/testworktree/liferay',
+    });
+
+    let resolveStart: (() => void) | undefined;
+    runEnvStartMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStart = () => {
+            resolve(undefined);
+          };
+        }),
+    );
+
+    await startServer();
+
+    const firstResponse = await fetchPath(`/api/worktrees/testworktree/start`, {method: 'POST'});
+    expect(firstResponse.status).toBe(202);
+    const firstBody = await readJson<{taskId: string; duplicate?: boolean}>(firstResponse);
+
+    const secondResponse = await fetchPath(`/api/worktrees/testworktree/start`, {method: 'POST'});
+    expect(secondResponse.status).toBe(202);
+    await expect(secondResponse.json()).resolves.toMatchObject({taskId: firstBody.taskId, duplicate: true});
+
+    expect(runEnvStartMock).toHaveBeenCalledTimes(1);
+
+    resolveStart?.();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  test('queues concurrent stops for different worktrees and returns task snapshots for reactive buttons', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/alpha', branch: 'fix/alpha', detached: false, prunable: false},
+      {path: '/repo/.worktrees/beta', branch: 'fix/beta', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockImplementation(({cwd}: {cwd: string}) => ({
+      repoRoot: cwd,
+      dockerDir: `${cwd}/docker`,
+      liferayDir: `${cwd}/liferay`,
+    }));
+
+    const resolveStops: Array<() => void> = [];
+    runEnvStopMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStops.push(() => {
+            resolve(undefined);
+          });
+        }),
+    );
+
+    await startServer();
+
+    const [alphaResponse, betaResponse] = await Promise.all([
+      fetchPath(`/api/worktrees/alpha/stop`, {method: 'POST'}),
+      fetchPath(`/api/worktrees/beta/stop`, {method: 'POST'}),
+    ]);
+
+    expect(alphaResponse.status).toBe(202);
+    expect(betaResponse.status).toBe(202);
+    const alphaBody = await readJson<{task: {kind: string; status: string; worktreeName: string}; taskId: string}>(
+      alphaResponse,
+    );
+    const betaBody = await readJson<{task: {kind: string; status: string; worktreeName: string}; taskId: string}>(
+      betaResponse,
+    );
+    expect(alphaBody.task).toMatchObject({kind: 'worktree-stop', status: 'running', worktreeName: 'alpha'});
+    expect(betaBody.task).toMatchObject({kind: 'worktree-stop', status: 'running', worktreeName: 'beta'});
+    expect(alphaBody.taskId).not.toBe(betaBody.taskId);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runEnvStopMock).toHaveBeenCalledTimes(2);
+
+    for (const resolveStop of resolveStops) {
+      resolveStop();
+    }
+  });
+
+  test('cancels a running dashboard task and aborts its operation signal', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/demo', branch: 'fix/demo', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/demo',
+      dockerDir: '/repo/.worktrees/demo/docker',
+      liferayDir: '/repo/.worktrees/demo/liferay',
+    });
+
+    let operationSignal: AbortSignal | undefined;
+    runEnvStopMock.mockImplementation(
+      (_config, options: {signal?: AbortSignal}) =>
+        new Promise((resolve) => {
+          operationSignal = options.signal;
+          operationSignal?.addEventListener('abort', () => {
+            resolve(undefined);
+          });
+        }),
+    );
+
+    await startServer();
+
+    const stopResponse = await fetchPath(`/api/worktrees/demo/stop`, {method: 'POST'});
+    expect(stopResponse.status).toBe(202);
+    const stopBody = await readJson<{taskId: string}>(stopResponse);
+
+    await vi.waitFor(() => {
+      expect(operationSignal).toBeDefined();
+    });
+
+    const cancelResponse = await fetchPath(`/api/tasks/${stopBody.taskId}/cancel`, {
+      method: 'POST',
+    });
+    expect(cancelResponse.status).toBe(202);
+    await expect(cancelResponse.json()).resolves.toMatchObject({
+      task: {id: stopBody.taskId, status: 'canceling'},
+    });
+    expect(operationSignal?.aborted).toBe(true);
+
+    await vi.waitFor(async () => {
+      const tasksResponse = await fetchPath(`/api/tasks`);
+      const payload = await readJson<{tasks: Array<{id: string; status: string}>}>(tasksResponse);
+      expect(payload.tasks[0]).toMatchObject({id: stopBody.taskId, status: 'canceled'});
+    });
+  });
+
+  test('blocks conflicting worktree actions while a db sync is running', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/demoub', branch: 'fix/demoub', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/demoub',
+      dockerDir: '/repo/.worktrees/demoub/docker',
+      liferayDir: '/repo/.worktrees/demoub/liferay',
+    });
+    runDbSyncMock.mockImplementation(() => new Promise(() => {}));
+
+    await startServer();
+
+    const syncResponse = await postJsonPath(`/api/worktrees/demoub/db/sync`, {environment: 'prd'});
+    expect(syncResponse.status).toBe(202);
+
+    const startResponse = await fetchPath(`/api/worktrees/demoub/start`, {method: 'POST'});
+    expect(startResponse.status).toBe(409);
+    const startBody = await readJson<{error: string; task: {kind: string; status: string; worktreeName: string}}>(
+      startResponse,
+    );
+    expect(startBody.error).toContain('DB sync for demoub');
+    expect(startBody.task).toMatchObject({kind: 'db-sync', status: 'running', worktreeName: 'demoub'});
+    expect(runEnvStartMock).not.toHaveBeenCalled();
+  });
+
+  test('queues guided db actions from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/pw-430',
+      dockerDir: '/repo/.worktrees/pw-430/docker',
+      liferayDir: '/repo/.worktrees/pw-430/liferay',
+    });
+    runDbDownloadMock.mockResolvedValue({ok: true});
+    runDbSyncMock.mockResolvedValue({ok: true});
+    runDbImportMock.mockResolvedValue({ok: true});
+    runDbQueryMock.mockResolvedValue({ok: true});
+
+    await startServer();
+
+    const downloadResponse = await postJsonPath(`/api/worktrees/pw-430/db/download`, {
+      backupId: 'backup-1',
+      environment: 'prd',
+      project: 'sample-project',
+    });
+    expect(downloadResponse.status).toBe(202);
+
+    const syncResponse = await postJsonPath(`/api/worktrees/pw-430/db/sync`, {
+      backupId: 'backup-2',
+      environment: 'uat',
+      force: true,
+      project: 'sample-project',
+    });
+    expect(syncResponse.status).toBe(202);
+
+    const importResponse = await postJsonPath(`/api/worktrees/pw-430/db/import`, {
+      file: 'C:/tmp/db.sql.gz',
+      force: true,
+    });
+    expect(importResponse.status).toBe(202);
+
+    const queryResponse = await postJsonPath(`/api/worktrees/pw-430/db/query`, {query: 'select 1'});
+    expect(queryResponse.status).toBe(202);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runDbDownloadMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
+    );
+    const downloadOptions = runDbDownloadMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(downloadOptions?.backupId).toBe('backup-1');
+    expect(downloadOptions?.environment).toBe('prd');
+    expect(downloadOptions?.printer).toBeTruthy();
+    expect(downloadOptions?.project).toBe('sample-project');
+
+    expect(runDbSyncMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
+    const syncOptions = runDbSyncMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(syncOptions?.backupId).toBe('backup-2');
+    expect(syncOptions?.environment).toBe('uat');
+    expect(syncOptions?.force).toBe(true);
+    expect(syncOptions?.printer).toBeTruthy();
+    expect(syncOptions?.project).toBe('sample-project');
+
+    expect(runDbImportMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
+    const importOptions = runDbImportMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(importOptions?.file).toBe('C:/tmp/db.sql.gz');
+    expect(importOptions?.force).toBe(true);
+    expect(importOptions?.printer).toBeTruthy();
+
+    expect(runDbQueryMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}));
+    const queryOptions = runDbQueryMock.mock.calls[0]?.[1] as DbOptions | undefined;
+    expect(queryOptions?.query).toBe('select 1');
+    expect(queryOptions?.processEnv).toBe(process.env);
+  });
+
+  test('queues resource exports for a specific worktree environment', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/pw-430',
+      dockerDir: '/repo/.worktrees/pw-430/docker',
+      liferayDir: '/repo/.worktrees/pw-430/liferay',
+    });
+    runResourceExportTemplatesMock.mockResolvedValue({
+      mode: 'all-sites',
+      scannedSites: 2,
+      exported: 4,
+      failed: 0,
+      outputDir: '/tmp/templates',
+      siteResults: [],
+    });
+    runResourceExportStructuresMock.mockResolvedValue({
+      mode: 'all-sites',
+      checkOnly: false,
+      scannedSites: 2,
+      processed: 3,
+      diffs: 0,
+      siteResults: [],
+    });
+    runResourceExportAdtsMock.mockResolvedValue({
+      mode: 'all-sites',
+      site: 'all-sites',
+      siteToken: 'all-sites',
+      exported: 2,
+      failed: 0,
+      outputDir: '/tmp/adts',
+      scannedSites: 2,
+      siteResults: [],
+    });
+    runResourceExportFragmentsMock.mockResolvedValue({
+      mode: 'all-sites',
+      site: 'all-sites',
+      siteToken: 'all-sites',
+      collectionCount: 2,
+      fragmentCount: 8,
+      outputDir: '/tmp/fragments',
+      scannedSites: 2,
+      siteResults: [],
+    });
+
+    await startServer();
+
+    const response = await postJsonPath(`/api/worktrees/pw-430/resource/export`, {
+      resources: ['templates', 'structures', 'adts', 'fragments'],
+    });
+
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({ok: true, worktree: 'pw-430', action: 'resource-export'});
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runResourceExportTemplatesMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
+      {allSites: true},
+    );
+    expect(runResourceExportStructuresMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
+      {allSites: true},
+    );
+    expect(runResourceExportAdtsMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
+      {allSites: true},
+    );
+    expect(runResourceExportFragmentsMock).toHaveBeenCalledWith(
+      expect.objectContaining({repoRoot: '/repo/.worktrees/pw-430'}),
+      {allSites: true},
+    );
+  });
+
+  test('queues global and worktree diagnosis from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
+    runDoctorMock.mockResolvedValue({ok: true});
+
+    await startServer();
+
+    const globalResponse = await fetchPath(`/api/doctor`, {method: 'POST'});
+    expect(globalResponse.status).toBe(202);
+
+    const worktreeResponse = await fetchPath(`/api/worktrees/pw-430/doctor`, {method: 'POST'});
+    expect(worktreeResponse.status).toBe(202);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runDoctorMock).toHaveBeenCalledTimes(2);
+  });
+
+  test('returns structured doctor previews from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
+    runDoctorMock
+      .mockResolvedValueOnce({
+        ok: true,
+        summary: {failed: 0, warned: 1},
+        checks: [],
+        readiness: {},
+        runtime: null,
+        portal: null,
+        osgi: null,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        summary: {failed: 1, warned: 0},
+        checks: [],
+        readiness: {},
+        runtime: null,
+        portal: null,
+        osgi: null,
+      });
+
+    await startServer();
+
+    const globalResponse = await fetchPath(`/api/doctor`);
+    expect(globalResponse.status).toBe(200);
+    await expect(globalResponse.json()).resolves.toMatchObject({ok: true, summary: {warned: 1}});
+
+    const worktreeResponse = await fetchPath(`/api/worktrees/pw-430/doctor`);
+    expect(worktreeResponse.status).toBe(200);
+    await expect(worktreeResponse.json()).resolves.toMatchObject({ok: false, summary: {failed: 1}});
+  });
+
+  test('queues repair and deploy actions from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/pw-430',
+      dockerDir: '/repo/.worktrees/pw-430/docker',
+      liferayDir: '/repo/.worktrees/pw-430/liferay',
+    });
+    runEnvRestartMock.mockResolvedValue({ok: true});
+    runEnvRecreateMock.mockResolvedValue({ok: true});
+    runDeployStatusMock.mockResolvedValue({ok: true});
+    runDeployCacheUpdateMock.mockResolvedValue({ok: true});
+
+    await startServer();
+
+    expect((await fetchPath(`/api/worktrees/pw-430/env/restart`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/env/recreate`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/deploy/status`, {method: 'POST'})).status).toBe(202);
+    expect((await fetchPath(`/api/worktrees/pw-430/deploy/cache-update`, {method: 'POST'})).status).toBe(202);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runEnvRestartMock).toHaveBeenCalled();
+    expect(runEnvRecreateMock).toHaveBeenCalled();
+    expect(runDeployStatusMock).toHaveBeenCalled();
+    expect(runDeployCacheUpdateMock).toHaveBeenCalled();
+  });
+
+  test('returns structured deploy status preview from the dashboard API', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/pw-430', branch: 'fix/pw-430', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/pw-430',
+      dockerDir: '/repo/.worktrees/pw-430/docker',
+      liferayDir: '/repo/.worktrees/pw-430/liferay',
+    });
+    runDeployStatusMock.mockResolvedValue({
+      ok: true,
+      buildDeployDir: '/repo/.worktrees/pw-430/build/docker/deploy',
+      cacheDir: '/repo/.worktrees/pw-430/.ldev/deploy-cache',
+      lastDeployCommit: 'abc123',
+      lastDeployAt: '2026-05-03T01:00:00.000Z',
+      modules: [
+        {name: 'foo', artifact: 'foo.jar', state: 'ACTIVE', source: 'build', deployedAt: '2026-05-03T01:00:00.000Z'},
+      ],
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/pw-430/deploy/status`);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      lastDeployCommit: 'abc123',
+      modules: [{name: 'foo'}],
+    });
+  });
+
+  test('returns maintenance preview and queues maintenance apply from the dashboard API', async () => {
+    runWorktreeGcMock
+      .mockResolvedValueOnce({ok: true, apply: false, candidates: ['stale-1', 'stale-2'], cleaned: []})
+      .mockResolvedValueOnce({ok: true, apply: true, candidates: ['stale-1'], cleaned: ['stale-1']});
+
+    await startServer();
+
+    const previewResponse = await fetchPath(`/api/maintenance/worktrees/gc?days=14`);
+    expect(previewResponse.status).toBe(200);
+    await expect(previewResponse.json()).resolves.toMatchObject({candidates: ['stale-1', 'stale-2']});
+
+    const applyResponse = await postJsonPath(`/api/maintenance/worktrees/gc`, {days: 14, apply: true});
+    expect(applyResponse.status).toBe(202);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runWorktreeGcMock).toHaveBeenNthCalledWith(1, {
+      cwd: '/repo',
+      days: 14,
+      apply: false,
+      processEnv: process.env,
+    });
+    const applyOptions = runWorktreeGcMock.mock.calls[1]?.[0] as WorktreeGcOptions | undefined;
+    expect(applyOptions?.cwd).toBe('/repo');
+    expect(applyOptions?.days).toBe(14);
+    expect(applyOptions?.apply).toBe(true);
+    expect(applyOptions?.processEnv).toBe(process.env);
+    expect(applyOptions?.printer).toBeTruthy();
+  });
+
+  test('returns an empty maintenance preview when worktree gc is unavailable for the current checkout', async () => {
+    runWorktreeGcMock.mockRejectedValueOnce(new Error('worktree gc must be run inside a valid git repository.'));
+
+    await startServer();
+
+    const response = await fetchPath(`/api/maintenance/worktrees/gc?days=7`);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      apply: false,
+      candidates: [],
+      cleaned: [],
+      unavailable: true,
+      message: 'Maintenance preview is unavailable outside a git repository',
+    });
+  });
+
+  test('queues OAuth install for a specific worktree', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/blueprints-575', branch: 'fix/blueprints-575', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({
+      repoRoot: '/repo/.worktrees/blueprints-575',
+      dockerDir: '/repo/.worktrees/blueprints-575/docker',
+      liferayDir: '/repo/.worktrees/blueprints-575/liferay',
+    });
+    runOAuthInstallMock.mockResolvedValue({
+      ok: true,
+      localProfileUpdated: true,
+      localProfileFile: '/repo/.worktrees/blueprints-575/.liferay-cli.local.yml',
+      command: 'osgi-config',
+      companyId: '20116',
+      companyWebId: 'liferay.com',
+      userId: '12345',
+      userEmail: 'test@example.com',
+      bundleFile: '/repo/.worktrees/blueprints-575/liferay/configs/local/deploy/oauth.jar',
+      scopeAliases: [],
+      readWrite: {clientId: 'id', clientSecret: 'secret'},
+      readOnly: null,
+      verification: {attempted: false, verified: true, sanitized: false, tokenType: null, expiresIn: null, error: null},
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/blueprints-575/oauth/install`, {method: 'POST'});
+
+    expect(response.status).toBe(202);
+    const body = await readJson<{ok: true; taskId: string; action: string; worktree: string}>(response);
+    expect(body).toMatchObject({ok: true, action: 'oauth-install', worktree: 'blueprints-575'});
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(runOAuthInstallMock).toHaveBeenCalledWith(
+      {
+        repoRoot: '/repo/.worktrees/blueprints-575',
+        dockerDir: '/repo/.worktrees/blueprints-575/docker',
+        liferayDir: '/repo/.worktrees/blueprints-575/liferay',
+      },
+      expect.objectContaining({writeEnv: true}),
+    );
+
+    const taskResponse = await fetchPath(`/api/tasks`);
+    const taskPayload = await readJson<{
+      tasks: Array<{id: string; label: string; status: string; worktreeName: string}>;
+    }>(taskResponse);
+    expect(taskPayload.tasks[0]).toMatchObject({
+      id: body.taskId,
+      label: 'Installing OAuth credentials for blueprints-575',
+      status: 'succeeded',
+      worktreeName: 'blueprints-575',
+    });
+  });
+
+  test('returns combined docker stdout and stderr logs for a worktree', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/blueprints-575', branch: 'fix/blueprints-575', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
+    resolveEnvContextMock.mockReturnValue({dockerDir: '/repo/docker'});
+    buildComposeEnvMock.mockReturnValue({});
+    collectEnvStatusMock.mockResolvedValue({
+      liferay: {containerId: 'container-123', state: 'running'},
+    });
+    runDockerMock.mockResolvedValue({
+      ok: true,
+      command: 'docker logs --tail 200 --timestamps container-123',
+      stdout: 'stdout-line\n',
+      stderr: 'stderr-line\n',
+      exitCode: 0,
+    });
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/blueprints-575/logs`);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      containerId: 'container-123',
+      running: true,
+      logs: 'stdout-line\nstderr-line\n',
+    });
+  });
+
+  test('streams docker logs as NDJSON events for a worktree', async () => {
+    listGitWorktreeDetailsMock.mockResolvedValue([
+      {path: '/repo', branch: 'main', detached: false, prunable: false},
+      {path: '/repo/.worktrees/blueprints-575', branch: 'fix/blueprints-575', detached: false, prunable: false},
+    ]);
+    loadConfigMock.mockReturnValue({repoRoot: '/repo', dockerDir: '/repo/docker', liferayDir: '/repo/liferay'});
+    resolveEnvContextMock.mockReturnValue({dockerDir: '/repo/docker'});
+    buildComposeEnvMock.mockReturnValue({PATH: '/docker/bin'});
+    collectEnvStatusMock.mockResolvedValue({
+      liferay: {containerId: 'container-123', state: 'running'},
+    });
+
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter;
+      stderr: EventEmitter;
+      kill: ReturnType<typeof vi.fn>;
+    };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn(() => true);
+    spawnPipedProcessMock.mockReturnValue(child);
+
+    await startServer();
+
+    const response = await fetchPath(`/api/worktrees/blueprints-575/logs/stream`);
+
+    await vi.waitFor(() => {
+      expect(spawnPipedProcessMock).toHaveBeenCalledTimes(1);
+    });
+
+    child.stdout.emit('data', 'stdout-line\n');
+    child.stderr.emit('data', 'stderr-line\n');
+    child.emit('close', 0, null);
+
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/x-ndjson');
+    expect(body).toContain(
+      JSON.stringify({type: 'meta', containerId: 'container-123', running: true, service: 'liferay'}),
+    );
+    expect(body).toContain(JSON.stringify({type: 'chunk', stream: 'stdout', chunk: 'stdout-line\n'}));
+    expect(body).toContain(JSON.stringify({type: 'chunk', stream: 'stderr', chunk: 'stderr-line\n'}));
+    expect(body).toContain(JSON.stringify({type: 'end', exitCode: 0, signal: null}));
+    expect(resolveSpawnCommandMock).toHaveBeenCalledWith('docker', {PATH: '/docker/bin'});
+    expect(normalizeProcessEnvMock).toHaveBeenCalledWith({PATH: '/docker/bin'});
+  });
+});
