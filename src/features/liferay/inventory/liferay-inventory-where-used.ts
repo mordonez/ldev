@@ -10,7 +10,11 @@ import {whereUsedResourceTypes} from './liferay-inventory-evidence-contract.js';
 import {extractPageEvidence} from './liferay-inventory-page-evidence.js';
 import {resolveInventoryPageRequest, runLiferayInventoryPage} from './liferay-inventory-page.js';
 import {createInventoryGateway} from './liferay-inventory-shared.js';
-import {runLiferayInventorySitesIncludingGlobal, type LiferayInventorySite} from './liferay-inventory-sites.js';
+import {
+  buildPagesCommand,
+  runLiferayInventorySitesIncludingGlobal,
+  type LiferayInventorySite,
+} from './liferay-inventory-sites.js';
 import {resolveWhereUsedQuery as resolveWhereUsedPortalResourceQuery} from './liferay-inventory-where-used-query-resolver.js';
 import {
   matchEvidenceAgainstResource,
@@ -427,7 +431,7 @@ export function selectWhereUsedSites(input: WhereUsedSiteSelectionInput): WhereU
           groupId: -1,
           siteFriendlyUrl: explicitSite.startsWith('/') ? explicitSite : `/${explicitSite}`,
           name: explicitSite,
-          pagesCommand: `inventory pages --site ${explicitSite}`,
+          pagesCommand: buildPagesCommand(explicitSite),
         }
       );
     });

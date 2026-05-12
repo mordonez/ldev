@@ -128,7 +128,7 @@ function normalizeSite(row: HeadlessSite): LiferayInventorySite {
   };
 }
 
-function buildPagesCommand(siteFriendlyUrl: string): string {
+export function buildPagesCommand(siteFriendlyUrl: string): string {
   return `inventory pages --site ${siteFriendlyUrl}`;
 }
 

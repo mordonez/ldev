@@ -1,8 +1,9 @@
 import {extractPageEvidence, type PageEvidence, type PageEvidenceKind} from './liferay-inventory-page-evidence.js';
+import type {WhereUsedResourceTypeValue} from './liferay-inventory-evidence-contract.js';
 import type {LiferayInventoryPageResult} from './liferay-inventory-page.js';
 import {normalizeWhereUsedEvidence} from './liferay-inventory-where-used-normalize.js';
 
-export type WhereUsedResourceType = 'fragment' | 'widget' | 'portlet' | 'structure' | 'template' | 'adt';
+export type WhereUsedResourceType = WhereUsedResourceTypeValue;
 
 export type WhereUsedQuery = {
   type: WhereUsedResourceType;

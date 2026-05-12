@@ -14,15 +14,6 @@ export type WhereUsedPageCandidate = FlatPage & {
   origin: WhereUsedPageCandidateOrigin;
 };
 
-type WhereUsedPageSource = {
-  collect: (
-    config: AppConfig,
-    site: LiferayInventorySite,
-    query: WhereUsedQuery,
-    context: WhereUsedPageCandidateContext,
-  ) => Promise<WhereUsedPageCandidate[]>;
-};
-
 export type WhereUsedPageCandidateContext = {
   layoutScopes: boolean[];
   maxDepth: number;
@@ -34,31 +25,21 @@ export type WhereUsedPageCandidateContext = {
   };
 };
 
-const WHERE_USED_PAGE_SOURCES: WhereUsedPageSource[] = [
-  {collect: collectLayoutPageCandidates},
-  {collect: collectStructuredContentDisplayPageCandidates},
-];
-
 export async function collectWhereUsedPageCandidates(
   config: AppConfig,
   site: LiferayInventorySite,
   query: WhereUsedQuery,
   context: WhereUsedPageCandidateContext,
 ): Promise<WhereUsedPageCandidate[]> {
-  const candidates: WhereUsedPageCandidate[] = [];
-
-  for (const source of WHERE_USED_PAGE_SOURCES) {
-    const sourceCandidates = await source.collect(config, site, query, context);
-    candidates.push(...sourceCandidates);
-  }
-
-  return dedupePageCandidates(candidates);
+  return dedupePageCandidates([
+    ...(await collectLayoutPageCandidates(config, site, context)),
+    ...(await collectStructuredContentDisplayPageCandidates(config, site, query, context)),
+  ]);
 }
 
 async function collectLayoutPageCandidates(
   config: AppConfig,
   site: LiferayInventorySite,
-  _query: WhereUsedQuery,
   context: WhereUsedPageCandidateContext,
 ): Promise<WhereUsedPageCandidate[]> {
   const candidates: WhereUsedPageCandidate[] = [];
