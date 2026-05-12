@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- TODO: pre-existing core→features coupling; types/logic should move to core/ (see architecture audit)
 import {resolveLiferayConfig} from '../../features/liferay/liferay-connection-config.js';
 import {appConfigSchema, type AppConfig} from './schema.js';
 import {resolveLiferayProfileFiles} from './liferay-profile.js';

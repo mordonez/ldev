@@ -1,10 +1,13 @@
 import type {AppConfig} from '../config/load-config.js';
 import type {RuntimeAdapter, RuntimeStartOptions, RuntimeStopOptions} from './runtime-adapter.js';
+// TODO: pre-existing core→features coupling; env functions and result types should be defined in core/runtime/ (see architecture audit)
+/* eslint-disable no-restricted-imports */
 import {runEnvLogs, type EnvLogsOptions, type EnvLogsResult} from '../../features/env/env-logs.js';
 import {runEnvStart, type EnvStartResult} from '../../features/env/env-start.js';
 import {runEnvStatus} from '../../features/env/env-status.js';
 import {runEnvStop, type EnvStopResult} from '../../features/env/env-stop.js';
 import type {EnvStatusReport} from '../../features/env/env-health.js';
+/* eslint-enable no-restricted-imports */
 
 export class LdevNativeRuntimeAdapter implements RuntimeAdapter {
   readonly kind = 'ldev-native';

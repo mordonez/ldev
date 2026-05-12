@@ -39,6 +39,17 @@ const cliLayerImportPatterns = [
     group: ['../cli/*', '../../cli/*', '../../../cli/*', '../../../../cli/*'],
     message: 'Core and feature modules must not depend on CLI-layer modules.',
   },
+  {
+    group: ['../commands/*', '../../commands/*', '../../../commands/*', '../../../../commands/*'],
+    message: 'Core and feature modules must not depend on the commands layer.',
+  },
+];
+
+const corePurityImportPatterns = [
+  {
+    group: ['../features/*', '../../features/*', '../../../features/*', '../../../../features/*'],
+    message: 'core/ must not import from features/.',
+  },
 ];
 
 const childProcessImportSelectors = [
@@ -111,11 +122,18 @@ export default tseslint.config(
       },
     },
   },
-  // Architecture: core and features must not depend on the CLI layer
+  // Architecture: core and features must not depend on the CLI or commands layer
   {
     files: SOURCE_FILES,
     rules: {
       'no-restricted-imports': ['error', {patterns: cliLayerImportPatterns}],
+    },
+  },
+  // Architecture: core/ must not import from features/ (dependency inversion — features depend on core, not vice versa)
+  {
+    files: ['src/core/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {patterns: corePurityImportPatterns}],
     },
   },
   // Architecture: features must not use raw Node.js platform modules — use core/platform/ wrappers.
@@ -150,5 +168,6 @@ export default tseslint.config(
       'max-lines': 'off',
     },
   },
+  // Architecture: entrypoints/ must not import cli/ or commands/ (rule to be added when src/entrypoints/ is created)
   {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/features/dashboard/client/**/*.{js,jsx}']},
 );
