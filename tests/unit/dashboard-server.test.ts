@@ -161,12 +161,12 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-export-fragments.j
   runLiferayResourceExportFragments: runResourceExportFragmentsMock,
 }));
 
-vi.mock('../../src/features/mcp-server/mcp-server-doctor.js', () => ({
+vi.mock('../../src/entrypoints/mcp-server/mcp-server-doctor.js', () => ({
   formatMcpDoctor: vi.fn(() => 'MCP doctor passed'),
   runMcpDoctor: runMcpDoctorMock,
 }));
 
-vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
+vi.mock('../../src/entrypoints/mcp-server/mcp-server-setup.js', () => ({
   formatMcpSetup: vi.fn(() => 'Configured 3 MCP client configs'),
   runMcpSetup: runMcpSetupMock,
 }));
