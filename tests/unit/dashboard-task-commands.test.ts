@@ -1,6 +1,9 @@
 import {describe, expect, test} from 'vitest';
 
-import {queueDashboardTaskOnce, serializeDashboardTask} from '../../src/entrypoints/dashboard/dashboard-task-commands.js';
+import {
+  queueDashboardTaskOnce,
+  serializeDashboardTask,
+} from '../../src/entrypoints/dashboard/dashboard-task-commands.js';
 import {createDashboardTaskManager} from '../../src/entrypoints/dashboard/dashboard-tasks.js';
 
 describe('dashboard task commands', () => {

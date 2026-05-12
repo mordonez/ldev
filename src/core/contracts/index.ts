@@ -135,11 +135,7 @@ export type {DeployStatusModuleContract, DeployStatusResultContract} from './dep
 // OSGi schemas (liferay_osgi_status, liferay_osgi_diag, liferay_osgi_thread_dump)
 export {osgiStatusResultSchema, osgiDiagResultSchema, osgiThreadDumpResultSchema} from './osgi.schema.js';
 
-export type {
-  OsgiStatusResultContract,
-  OsgiDiagResultContract,
-  OsgiThreadDumpResultContract,
-} from './osgi.schema.js';
+export type {OsgiStatusResultContract, OsgiDiagResultContract, OsgiThreadDumpResultContract} from './osgi.schema.js';
 
 // Dashboard schemas (dashboard HTTP API JSON responses)
 export {
