@@ -3,15 +3,12 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import type {EnvStopResult} from '../../core/runtime/env-types.js';
 
 import {EnvErrors} from './errors/env-error-factory.js';
 import {buildComposeEnv, resolveEnvContext} from './env-files.js';
 
-export type EnvStopResult = {
-  ok: true;
-  dockerDir: string;
-  stopped: boolean;
-};
+export type {EnvStopResult} from '../../core/runtime/env-types.js';
 
 export async function runEnvStop(
   config: AppConfig,

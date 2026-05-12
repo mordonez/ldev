@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/schema.js';
-import {createRuntimeAdapter} from '../../../core/runtime/runtime-adapter-factory.js';
+import {createRuntimeAdapter} from '../../../features/env/runtime-adapter-factory.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'ldev_status';

@@ -1,5 +1,4 @@
-// eslint-disable-next-line no-restricted-imports -- TODO: pre-existing core→features coupling; types/logic should move to core/ (see architecture audit)
-import {resolveLiferayConfig} from '../../features/liferay/liferay-connection-config.js';
+import {resolveLiferayConfig} from './liferay-connection-config.js';
 import {appConfigSchema, type AppConfig} from './schema.js';
 import {resolveLiferayProfileFiles} from './liferay-profile.js';
 import type {ProjectDetection} from './project-type.js';
@@ -13,11 +12,14 @@ export function buildAppConfig(options: {
   dockerEnv: Record<string, string>;
   localProfile: Record<string, string>;
   profile: Record<string, string>;
+  /** Default scope aliases string used when not configured via env or profile. Supplied by callers in features/. */
+  scopeAliasDefault?: string;
 }): AppConfig {
   const liferay = resolveLiferayConfig({
     processEnv: options.env,
     dockerEnv: options.dockerEnv,
     localProfile: options.localProfile,
+    scopeAliasDefault: options.scopeAliasDefault ?? '',
   });
   const detectedProfileFiles = resolveLiferayProfileFiles(
     options.repoPaths.repoRoot ?? options.projectDetection?.root ?? null,

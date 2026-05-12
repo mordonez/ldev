@@ -5,6 +5,7 @@ import {describe, expect, test} from 'vitest';
 
 import {resolveLiferayConfig} from '../../src/core/http/config.js';
 import {runLiferayConfigGet, runLiferayConfigSet} from '../../src/features/liferay/liferay-config.js';
+import {DEFAULT_OAUTH_SCOPE_ALIASES_STRING} from '../../src/features/oauth/oauth-scope-aliases.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 describe('liferay-config', () => {
@@ -58,6 +59,7 @@ describe('resolveLiferayConfig', () => {
         LIFERAY_HTTP_PORT: '8181',
       },
       localProfile: {},
+      scopeAliasDefault: DEFAULT_OAUTH_SCOPE_ALIASES_STRING,
     });
 
     expect(config.url).toBe('http://127.0.0.7:8181');
@@ -79,6 +81,7 @@ describe('resolveLiferayConfig', () => {
         LIFERAY_CLI_OAUTH2_CLIENT_ID: 'docker-id',
         LIFERAY_CLI_OAUTH2_CLIENT_SECRET: 'docker-secret',
       },
+      scopeAliasDefault: DEFAULT_OAUTH_SCOPE_ALIASES_STRING,
     });
 
     expect(config.url).toBe('http://localhost:8080');
@@ -104,6 +107,7 @@ describe('resolveLiferayConfig', () => {
         LIFERAY_CLI_OAUTH2_CLIENT_ID: 'docker-id',
         LIFERAY_CLI_OAUTH2_CLIENT_SECRET: 'docker-secret',
       },
+      scopeAliasDefault: DEFAULT_OAUTH_SCOPE_ALIASES_STRING,
     });
 
     expect(config.url).toBe('http://local-profile:8082');

@@ -1,23 +1,12 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import type {EnvLogsOptions, EnvLogsResult} from '../../core/runtime/env-types.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 
 import {resolveEnvContext} from './env-files.js';
 
-export type EnvLogsOptions = {
-  follow?: boolean;
-  since?: string;
-  service?: string;
-  processEnv?: NodeJS.ProcessEnv;
-};
-
-export type EnvLogsResult = {
-  ok: true;
-  service: string | null;
-  follow: boolean;
-  since: string | null;
-};
+export type {EnvLogsOptions, EnvLogsResult} from '../../core/runtime/env-types.js';
 
 export async function runEnvLogs(config: AppConfig, options?: EnvLogsOptions): Promise<EnvLogsResult> {
   const context = resolveEnvContext(config);

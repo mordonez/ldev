@@ -1,7 +1,7 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction, withCommandContext} from '../../cli/command-helpers.js';
-import {createRuntimeOperations} from '../../core/runtime/runtime-adapter-factory.js';
+import {createRuntimeOperations} from '../../features/env/runtime-adapter-factory.js';
 import {formatEnvLogsDiagnose, runEnvLogsDiagnose} from '../../features/env/env-logs-diagnose.js';
 import {runEnvShell} from '../../features/env/env-shell.js';
 import {formatEnvSetup, runEnvSetup} from '../../features/env/env-setup.js';
