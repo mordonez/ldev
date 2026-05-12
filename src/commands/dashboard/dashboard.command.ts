@@ -2,7 +2,7 @@ import {exec} from 'node:child_process';
 
 import {Command} from 'commander';
 
-import {createDashboardServer} from '../../features/dashboard/dashboard-server.js';
+import {createDashboardServer} from '../../entrypoints/dashboard/dashboard-server.js';
 
 export function createDashboardCommand(): Command {
   return new Command('dashboard')

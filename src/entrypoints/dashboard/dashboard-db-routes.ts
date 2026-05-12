@@ -2,10 +2,10 @@ import type http from 'node:http';
 
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
-import {formatDbDownload, runDbDownload} from '../db/db-download.js';
-import {formatDbImport, runDbImport} from '../db/db-import.js';
-import {formatDbQuery, runDbQuery} from '../db/db-query.js';
-import {formatDbSync, runDbSync} from '../db/db-sync.js';
+import {formatDbDownload, runDbDownload} from '../../features/db/db-download.js';
+import {formatDbImport, runDbImport} from '../../features/db/db-import.js';
+import {formatDbQuery, runDbQuery} from '../../features/db/db-query.js';
+import {formatDbSync, runDbSync} from '../../features/db/db-sync.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
 import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';

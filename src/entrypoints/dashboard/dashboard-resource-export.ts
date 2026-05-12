@@ -3,19 +3,19 @@ import type {Printer} from '../../core/output/printer.js';
 import {
   formatLiferayResourceExportAdts,
   runLiferayResourceExportAdts,
-} from '../liferay/resource/liferay-resource-export-adts.js';
+} from '../../features/liferay/resource/liferay-resource-export-adts.js';
 import {
   formatLiferayResourceExportFragments,
   runLiferayResourceExportFragments,
-} from '../liferay/resource/liferay-resource-export-fragments.js';
+} from '../../features/liferay/resource/liferay-resource-export-fragments.js';
 import {
   formatLiferayResourceExportStructures,
   runLiferayResourceExportStructures,
-} from '../liferay/resource/liferay-resource-export-structures.js';
+} from '../../features/liferay/resource/liferay-resource-export-structures.js';
 import {
   formatLiferayResourceExportTemplates,
   runLiferayResourceExportTemplates,
-} from '../liferay/resource/liferay-resource-export-templates.js';
+} from '../../features/liferay/resource/liferay-resource-export-templates.js';
 
 export const DASHBOARD_RESOURCE_EXPORT_KINDS = ['templates', 'structures', 'adts', 'fragments'] as const;
 

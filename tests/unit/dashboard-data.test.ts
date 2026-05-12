@@ -42,7 +42,7 @@ vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
   resolveMcpConfigPath: vi.fn(() => '/unused'),
 }));
 
-const {collectDashboardStatus} = await import('../../src/features/dashboard/dashboard-data.js');
+const {collectDashboardStatus} = await import('../../src/entrypoints/dashboard/dashboard-data.js');
 
 function normalizeForMatch(value: string): string {
   return value.replaceAll('\\', '/');

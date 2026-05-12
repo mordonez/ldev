@@ -79,7 +79,7 @@ const LARGE_FILE_EXCEPTIONS = [
   'src/features/ai/ai-install-project.ts',
   'src/features/ai/ai-install.ts',
   'src/features/db/db-files-download.ts',
-  'src/features/dashboard/dashboard-server.ts',
+  'src/entrypoints/dashboard/dashboard-server.ts',
   'src/features/doctor/doctor-collectors.ts',
   'src/features/liferay/content/liferay-content-stats.ts',
   'src/features/liferay/inventory/liferay-inventory-page-assemble.ts',
@@ -169,5 +169,5 @@ export default tseslint.config(
     },
   },
   // Architecture: entrypoints/ must not import cli/ or commands/ (rule to be added when src/entrypoints/ is created)
-  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/features/dashboard/client/**/*.{js,jsx}']},
+  {ignores: ['dist/', 'coverage/', 'templates/', '*.config.*', 'docs/', 'src/entrypoints/dashboard/client/**/*.{js,jsx}']},
 );

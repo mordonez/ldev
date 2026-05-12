@@ -1,7 +1,7 @@
 import type http from 'node:http';
 
 import type {Printer} from '../../core/output/printer.js';
-import {formatWorktreeGc, runWorktreeGc} from '../worktree/worktree-gc.js';
+import {formatWorktreeGc, runWorktreeGc} from '../../features/worktree/worktree-gc.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
 import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
 import type {createDashboardTaskManager} from './dashboard-tasks.js';

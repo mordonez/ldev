@@ -6,7 +6,7 @@ import {
   mergeTask,
   reconcileTaskViewState,
   shouldAutoCollapseTask,
-} from '../../src/features/dashboard/client/lib/tasks.js';
+} from '../../src/entrypoints/dashboard/client/lib/tasks.js';
 
 describe('dashboard client tasks', () => {
   test('detects newly queued running tasks as state changes', () => {

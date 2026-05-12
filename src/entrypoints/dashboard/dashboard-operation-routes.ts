@@ -1,16 +1,16 @@
 import path from 'node:path';
 
 import type {Printer} from '../../core/output/printer.js';
-import {formatDeployCacheUpdate, runDeployCacheUpdate} from '../deploy/deploy-cache-update.js';
-import {formatDeployStatus, runDeployStatus} from '../deploy/deploy-status.js';
-import {formatDoctor, runDoctor} from '../doctor/doctor.service.js';
-import {runEnvRecreate, formatEnvRecreate} from '../env/env-recreate.js';
-import {runEnvRestart, formatEnvRestart} from '../env/env-restart.js';
-import {runEnvStart} from '../env/env-start.js';
-import {runEnvStop} from '../env/env-stop.js';
-import {formatOAuthInstall, runOAuthInstall} from '../oauth/oauth-install.js';
-import {runWorktreeClean} from '../worktree/worktree-clean.js';
-import {runWorktreeEnv} from '../worktree/worktree-env.js';
+import {formatDeployCacheUpdate, runDeployCacheUpdate} from '../../features/deploy/deploy-cache-update.js';
+import {formatDeployStatus, runDeployStatus} from '../../features/deploy/deploy-status.js';
+import {formatDoctor, runDoctor} from '../../features/doctor/doctor.service.js';
+import {runEnvRecreate, formatEnvRecreate} from '../../features/env/env-recreate.js';
+import {runEnvRestart, formatEnvRestart} from '../../features/env/env-restart.js';
+import {runEnvStart} from '../../features/env/env-start.js';
+import {runEnvStop} from '../../features/env/env-stop.js';
+import {formatOAuthInstall, runOAuthInstall} from '../../features/oauth/oauth-install.js';
+import {runWorktreeClean} from '../../features/worktree/worktree-clean.js';
+import {runWorktreeEnv} from '../../features/worktree/worktree-env.js';
 import {
   DASHBOARD_WORKTREE_ACTIONS,
   worktreeActionPattern,

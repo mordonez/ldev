@@ -3,7 +3,7 @@ import {describe, expect, test} from 'vitest';
 import {
   matchDashboardOperation,
   matchQueuedDashboardOperation,
-} from '../../src/features/dashboard/dashboard-operation-dispatcher.js';
+} from '../../src/entrypoints/dashboard/dashboard-operation-dispatcher.js';
 
 describe('matchQueuedDashboardOperation', () => {
   test('normalizes repository diagnosis into a queued operation', () => {

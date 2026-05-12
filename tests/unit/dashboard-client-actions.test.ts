@@ -3,13 +3,13 @@ import {describe, expect, test} from 'vitest';
 import {
   buildDeleteWorktreeUrl,
   normalizeDeleteBranchCandidate,
-} from '../../src/features/dashboard/client/lib/dashboard-action-utils';
+} from '../../src/entrypoints/dashboard/client/lib/dashboard-action-utils';
 import {
   actionKind,
   actionUrl,
   previewUrl,
   primaryActionForWorktree,
-} from '../../src/features/dashboard/client/lib/actions.js';
+} from '../../src/entrypoints/dashboard/client/lib/actions.js';
 
 describe('dashboard client actions', () => {
   test('maps UI actions to running task kinds', () => {

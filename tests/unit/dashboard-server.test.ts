@@ -176,11 +176,11 @@ vi.mock('../../src/features/oauth/oauth-install.js', () => ({
   runOAuthInstall: runOAuthInstallMock,
 }));
 
-vi.mock('../../src/features/dashboard/dashboard-data.js', () => ({
+vi.mock('../../src/entrypoints/dashboard/dashboard-data.js', () => ({
   collectDashboardStatus: collectDashboardStatusMock,
 }));
 
-const {createDashboardServer} = await import('../../src/features/dashboard/dashboard-server.js');
+const {createDashboardServer} = await import('../../src/entrypoints/dashboard/dashboard-server.js');
 
 type CreateWorktreeOptions = {
   cwd: string;

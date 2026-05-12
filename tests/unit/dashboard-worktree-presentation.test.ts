@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {buildWorktreePresentation} from '../../src/features/dashboard/client/lib/worktree-presentation.js';
+import {buildWorktreePresentation} from '../../src/entrypoints/dashboard/client/lib/worktree-presentation.js';
 
 describe('buildWorktreePresentation', () => {
   test('derives badges, primary action, and busy state for a stopped dirty worktree', () => {
