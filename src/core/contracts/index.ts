@@ -140,3 +140,46 @@ export type {
   OsgiDiagResultContract,
   OsgiThreadDumpResultContract,
 } from './osgi.schema.js';
+
+// Dashboard schemas (dashboard HTTP API JSON responses)
+export {
+  dashboardTaskLevelSchema,
+  dashboardTaskStatusSchema,
+  dashboardTaskLogEntrySchema,
+  dashboardTaskSchema,
+  dashboardTaskListResponseSchema,
+  dashboardTaskAcceptedResponseSchema,
+  dashboardTaskBlockedResponseSchema,
+  dashboardTaskCancelResponseSchema,
+  dashboardGitCommitSchema,
+  dashboardAheadBehindSchema,
+  dashboardEnvSchema,
+  dashboardWorktreeSchema,
+  dashboardMcpClientStatusSchema,
+  dashboardMcpStatusSchema,
+  dashboardStatusResponseSchema,
+  dashboardLogsResponseSchema,
+  dashboardLogStreamEventSchema,
+  dashboardMaintenancePreviewResponseSchema,
+} from './dashboard.schema.js';
+
+export type {
+  DashboardTaskLevelContract,
+  DashboardTaskStatusContract,
+  DashboardTaskLogEntryContract,
+  DashboardTaskContract,
+  DashboardTaskListResponseContract,
+  DashboardTaskAcceptedResponseContract,
+  DashboardTaskBlockedResponseContract,
+  DashboardTaskCancelResponseContract,
+  DashboardGitCommitContract,
+  DashboardAheadBehindContract,
+  DashboardEnvContract,
+  DashboardWorktreeContract,
+  DashboardMcpClientStatusContract,
+  DashboardMcpStatusContract,
+  DashboardStatusResponseContract,
+  DashboardLogsResponseContract,
+  DashboardLogStreamEventContract,
+  DashboardMaintenancePreviewResponseContract,
+} from './dashboard.schema.js';
