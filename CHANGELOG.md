@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/mordonez/ldev/compare/ldev-v0.6.0...ldev-v0.7.0) (2026-05-12)
+
+
+### Features
+
+* add where-used portal inventory workflow ([#130](https://github.com/mordonez/ldev/issues/130)) ([7983a28](https://github.com/mordonez/ldev/commit/7983a287614ee618eadf42ddd7d79afbb4f17ce4))
+
 ## [0.6.0](https://github.com/mordonez/ldev/compare/ldev-v0.5.4...ldev-v0.6.0) (2026-05-11)
 
 
