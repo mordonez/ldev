@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type HttpApiClient} from '../../../core/http/client.js';
 import {expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
-import {createLiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
 import {LiferayErrors} from '../errors/index.js';
 import {type HeadlessPage} from '../portal/site-resolver.js';
@@ -84,6 +84,20 @@ export async function fetchPagedItems<T>(
 
 export function expectJsonSuccess<T>(response: HttpResponse<T>, label: string): HttpResponse<T> {
   return expectJsonSuccessShared(response, label, 'LIFERAY_INVENTORY_ERROR');
+}
+
+export async function safeGatewayGet<T>(
+  gateway: LiferayGateway,
+  requestPath: string,
+  label: string,
+  requestOptions?: {headers?: Record<string, string>},
+): Promise<{ok: boolean; data: T | null}> {
+  try {
+    const data = await gateway.getJson<T>(requestPath, label, requestOptions);
+    return {ok: true, data};
+  } catch {
+    return {ok: false, data: null};
+  }
 }
 
 export function createInventoryGateway(

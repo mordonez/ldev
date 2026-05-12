@@ -24,10 +24,11 @@ import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildSiteChain, fetchGroupInfo} from '../portal/site-resolution.js';
 import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
 import {matchesDdmTemplate} from '../liferay-identifiers.js';
-import {resolveSiteToken, tryResolveArtifactSiteDir} from '../portal/artifact-paths.js';
+import {resolveSiteToken} from '../portal/artifact-paths.js';
+import {tryResolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {type ArticleRef, fetchContentStructureById} from './liferay-inventory-page-fetch-article.js';
 import {resolveJournalArticleReference} from './liferay-inventory-journal-article-resolver.js';
-import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
+import {safeGatewayGet} from './liferay-inventory-shared.js';
 import type {HeadlessPageElementPayload} from '../page-layout/liferay-site-page-shared.js';
 
 type TemplateInfo = {

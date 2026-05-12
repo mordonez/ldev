@@ -1,8 +1,3 @@
-/**
- * Central export point for all Zod schemas and inferred types.
- * Organized by surface: shared, inventory, resource.
- */
-
 // Shared schemas (used by both inventory and resource)
 export {
   resolvedSiteSchema,
@@ -34,6 +29,17 @@ export {
   liferayInventorySitesSchema,
   liferayInventoryTemplatesSchema,
   liferayInventoryStructuresSchema,
+  whereUsedResourceTypes,
+  whereUsedMatchKinds,
+  pageEvidenceSourceValues,
+  whereUsedResourceTypeSchema,
+  whereUsedMatchKindSchema,
+  pageEvidenceSourceSchema,
+  whereUsedQuerySchema,
+  whereUsedMatchSchema,
+  whereUsedPageMatchSchema,
+  whereUsedResultSchema,
+  whereUsedPlanResultSchema,
 } from './inventory.schema.js';
 
 export type {
@@ -43,6 +49,19 @@ export type {
   LiferayInventorySites,
   LiferayInventoryTemplates,
   LiferayInventoryStructures,
+  WhereUsedResourceTypeValue,
+  WhereUsedMatchKindValue,
+  PageEvidenceSourceValue,
+  WhereUsedQuery,
+  WhereUsedResourceType,
+  WhereUsedMatchKind,
+  WhereUsedMatch,
+  WhereUsedPageMatch,
+  WhereUsedResultContract,
+  WhereUsedPlanResultContract,
+  WhereUsedResult,
+  WhereUsedPlanResult,
+  WhereUsedRunResult,
 } from './inventory.schema.js';
 
 // Resource schemas

@@ -1,4 +1,8 @@
-import type {WhereUsedPlanResult, WhereUsedResult, WhereUsedRunResult} from './liferay-inventory-where-used.js';
+import type {
+  WhereUsedPlanResult,
+  WhereUsedResult,
+  WhereUsedRunResult,
+} from '../../../core/contracts/inventory.schema.js';
 
 export function formatLiferayInventoryWhereUsed(result: WhereUsedRunResult): string {
   if (result.inventoryType === 'whereUsedPlan') {
