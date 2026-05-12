@@ -2,8 +2,6 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayInventoryStructures} from '../inventory/liferay-inventory-structures.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
@@ -11,11 +9,7 @@ import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
 import {resolveSiteToken} from './liferay-resource-paths.js';
 import {resolveArtifactSiteDir} from './artifact-paths.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-};
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceExportStructuresSiteResult = {
   site: string;

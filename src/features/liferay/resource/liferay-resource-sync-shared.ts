@@ -9,7 +9,7 @@ import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {ensureData} from '../liferay-http-shared.js';
 
-type ResourceDependencies = {
+export type ResourceDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };

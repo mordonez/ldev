@@ -1,11 +1,10 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {
   fetchAdtResourceClassNameId,
   listDdmTemplatesByClassName,
   resolveResourceSite,
 } from './liferay-resource-shared.js';
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export const ADT_CLASS_BY_WIDGET_TYPE: Record<string, string> = {
   'asset-entry': 'com.liferay.asset.kernel.model.AssetEntry',
@@ -20,11 +19,6 @@ export const ADT_CLASS_BY_WIDGET_TYPE: Record<string, string> = {
   searchbar: 'com.liferay.portal.search.web.internal.search.bar.portlet.SearchBarPortlet',
   'similar-results':
     'com.liferay.portal.search.similar.results.web.internal.display.context.SimilarResultsDocumentDisplayContext',
-};
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
 };
 
 export type LiferayResourceAdtRow = {

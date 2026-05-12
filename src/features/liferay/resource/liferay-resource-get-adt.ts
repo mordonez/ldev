@@ -1,18 +1,12 @@
 import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-};
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceAdtResult = {
   siteFriendlyUrl: string;

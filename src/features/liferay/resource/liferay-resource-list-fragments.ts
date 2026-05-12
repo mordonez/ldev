@@ -1,12 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-};
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceFragmentRow = {
   fragmentId: number;

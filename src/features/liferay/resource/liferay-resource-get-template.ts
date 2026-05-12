@@ -1,17 +1,11 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventoryTemplates} from '../inventory/liferay-inventory-templates.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import type {DdmTemplatePayload} from '../portal/template-queries.js';
 import {resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-};
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceTemplateResult = {
   siteId: number;

@@ -1,17 +1,11 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import type {HttpApiClient} from '../../../core/http/client.js';
 import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {normalizeLocalizedName} from '../portal/site-resolution.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
-
-type ResourceDependencies = {
-  apiClient?: HttpApiClient;
-  tokenClient?: OAuthTokenClient;
-};
+import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceStructureResult = {
   siteId: number;
