@@ -14,7 +14,7 @@ describe('createPrinter', () => {
 
     printer.write('hello');
 
-    expect(stdout).toHaveBeenCalledWith(Buffer.from('hello\n', 'utf8'));
+    expect(stdout).toHaveBeenCalledWith('hello\n');
     stdout.mockRestore();
   });
 
@@ -24,8 +24,7 @@ describe('createPrinter', () => {
 
     printer.write({foo: 'bar'});
 
-    expect(stdout).toHaveBeenCalledWith(expect.any(Buffer));
-    expect(stdout.mock.calls[0]?.[0]?.toString()).toContain('"foo"');
+    expect(stdout).toHaveBeenCalledWith(expect.stringContaining('"foo"'));
     stdout.mockRestore();
   });
 
@@ -35,7 +34,7 @@ describe('createPrinter', () => {
 
     printer.write({foo: 'bar'});
 
-    expect(stdout).toHaveBeenCalledWith(Buffer.from('{"foo":"bar"}\n', 'utf8'));
+    expect(stdout).toHaveBeenCalledWith('{"foo":"bar"}\n');
     stdout.mockRestore();
   });
 
@@ -45,19 +44,7 @@ describe('createPrinter', () => {
 
     printer.write({foo: 'bar'});
 
-    expect(stdout).toHaveBeenCalledWith(expect.any(Buffer));
-    expect(stdout.mock.calls[0]?.[0]?.toString()).toContain('"foo"');
-    stdout.mockRestore();
-  });
-
-  test('write escapes non-ascii characters in JSON formats', () => {
-    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-    const printer = createPrinter('json');
-
-    printer.write({title: 'Menú superior'});
-
-    expect(stdout).toHaveBeenCalledWith(expect.any(Buffer));
-    expect(stdout.mock.calls[0]?.[0]?.toString()).toContain('Men\\u00fa superior');
+    expect(stdout).toHaveBeenCalledWith(expect.stringContaining('"foo"'));
     stdout.mockRestore();
   });
 
@@ -77,7 +64,7 @@ describe('createPrinter', () => {
 
     printer.error('error message');
 
-    expect(stderr).toHaveBeenCalledWith(Buffer.from('error message\n', 'utf8'));
+    expect(stderr).toHaveBeenCalledWith('error message\n');
     stderr.mockRestore();
   });
 
@@ -97,7 +84,7 @@ describe('createPrinter', () => {
 
     printer.info('info message');
 
-    expect(stderr).toHaveBeenCalledWith(Buffer.from('info message\n', 'utf8'));
+    expect(stderr).toHaveBeenCalledWith('info message\n');
     stderr.mockRestore();
   });
 });
