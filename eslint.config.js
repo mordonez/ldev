@@ -92,7 +92,7 @@ const LARGE_FILE_EXCEPTIONS = [
   'src/features/liferay/resource/liferay-resource-sync-fragments-api.ts',
   'src/features/liferay/resource/liferay-resource-sync-structure-migration.ts',
   'src/features/liferay/resource/sync-strategies/structure-sync-strategy.ts',
-  'src/features/mcp/mcp.ts',
+  'src/features/liferay-mcp/liferay-mcp.ts',
   'src/features/oauth/oauth-install.ts',
   'src/features/worktree/worktree-env.ts',
   'src/features/worktree/worktree-state.ts',

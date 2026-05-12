@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runMcpCheck} from '../../mcp/mcp.js';
+import {runMcpCheck} from '../../liferay-mcp/liferay-mcp.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_mcp_check';
