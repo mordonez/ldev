@@ -1,7 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {Printer} from '../../../core/output/printer.js';
 import {resolveSite} from '../portal/site-resolution.js';
-import {resolveStructureFile} from './liferay-resource-paths.js';
+import {resolveStructureFile} from '../portal/artifact-paths.js';
 import type {MigrationStats} from './migration/index.js';
 import {syncArtifactDetailed} from './sync-engine.js';
 import {structureSyncStrategy, type StructureResourceDependencies} from './sync-strategies/structure-sync-strategy.js';

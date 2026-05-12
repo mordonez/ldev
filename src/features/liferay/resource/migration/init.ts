@@ -8,7 +8,7 @@ import {isRecord, readJsonUnknown, type JsonRecord} from '../../../../core/utils
 import {normalizeScalarString} from '../../../../core/utils/text.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
-import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from '../liferay-resource-paths.js';
+import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from '../../portal/artifact-paths.js';
 import type {StructureDefinitionPayload} from '../liferay-resource-sync-structure-diff.js';
 
 type ResourceDependencies = {

@@ -5,8 +5,7 @@ import type {HttpApiClient} from '../../../core/http/client.js';
 import {type FragmentEntryLink, type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
-import {resolveSiteToken} from '../portal/site-token.js';
-import {tryResolveFragmentsBaseDir} from '../portal/artifact-paths.js';
+import {resolveSiteToken, tryResolveFragmentsBaseDir} from '../portal/artifact-paths.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 
 export async function tryFetchFragmentEntryLinks(

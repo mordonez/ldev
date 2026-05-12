@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {createConcurrencyLimiter, mapConcurrent} from '../../../core/concurrency.js';
-import {CliError} from '../../../core/errors.js';
+import {isGatewayError, getGatewayStatus} from './liferay-content-journal-shared.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpApiClient} from '../../../core/http/client.js';
 import type {Printer} from '../../../core/output/printer.js';
@@ -488,18 +488,4 @@ function compareSites(left: ContentStatsSite, right: ContentStatsSite, sortBy: '
   }
 
   return compareSitesByVolume(left, right);
-}
-
-function isGatewayError(error: unknown): error is CliError {
-  return error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR';
-}
-
-function getGatewayStatus(error: CliError): number | undefined {
-  const match = /status=(\d+)/.exec(error.message);
-  if (!match) {
-    return undefined;
-  }
-
-  const value = Number(match[1]);
-  return Number.isFinite(value) ? value : undefined;
 }

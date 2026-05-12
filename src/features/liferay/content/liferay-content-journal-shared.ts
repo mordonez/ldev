@@ -197,15 +197,15 @@ function dedupeJournalRows(rows: JsonwsJournalArticleRow[]): JsonwsJournalArticl
   return [...unique.values()];
 }
 
-function isGatewayError(error: unknown): error is CliError {
+export function isGatewayError(error: unknown): error is CliError {
   return error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR';
 }
 
-function isGatewayStatus(error: unknown, status: number): boolean {
+export function isGatewayStatus(error: unknown, status: number): boolean {
   return isGatewayError(error) && error.message.includes(`status=${status}`);
 }
 
-function getGatewayStatus(error: CliError): number | undefined {
+export function getGatewayStatus(error: CliError): number | undefined {
   const match = /status=(\d+)/.exec(error.message);
   if (!match) {
     return undefined;
