@@ -230,9 +230,7 @@ export async function updateFragmentEntry(
   }
 
   const base = {
-    groupId: String(groupId),
     fragmentCollectionId: String(fragmentCollectionId),
-    fragmentEntryKey: fragment.slug,
     fragmentEntryId: String(fragmentEntryId),
     name: fragment.name,
     css: fragment.css,
@@ -240,20 +238,34 @@ export async function updateFragmentEntry(
     js: fragment.js,
     configuration: fragment.configuration,
     icon: fragment.icon,
-    type: String(fragment.type),
+    cacheable: 'false',
+    previewFileEntryId: '0',
+    readOnly: 'false',
+    typeOptions: '',
+    status: '0',
   };
 
   const response = await postFormCandidates<FragmentEntryPayload>(
     config,
     '/api/jsonws/fragment.fragmententry/update-fragment-entry',
     [
+      base,
       {
-        ...base,
+        groupId: String(groupId),
+        fragmentCollectionId: String(fragmentCollectionId),
+        fragmentEntryKey: fragment.slug,
+        fragmentEntryId: String(fragmentEntryId),
+        name: fragment.name,
+        css: fragment.css,
+        html: fragment.html,
+        js: fragment.js,
+        configuration: fragment.configuration,
+        icon: fragment.icon,
+        type: String(fragment.type),
         serviceContext: '{}',
         cacheable: 'false',
         readOnly: 'false',
       },
-      base,
     ],
     'fragment-entry-update',
     dependencies,

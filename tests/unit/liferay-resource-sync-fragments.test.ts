@@ -163,8 +163,27 @@ describe('liferay resource fragments-sync', () => {
           const form = new URLSearchParams(toTestRequestBody(init?.body));
           expect(form.get('fragmentEntryId')).toBe('601');
           expect(form.get('html')).toBe('<div>banner</div>');
-          expect(form.get('type')).toBe('1');
-          return new Response('{"fragmentEntryId":601}', {status: 200});
+          expect(form.get('groupId')).toBeNull();
+          expect(form.get('fragmentEntryKey')).toBeNull();
+          expect(form.get('previewFileEntryId')).toBe('0');
+          expect(form.get('readOnly')).toBe('false');
+          expect(form.get('typeOptions')).toBe('');
+          expect(form.get('status')).toBe('0');
+          return new Response(
+            JSON.stringify({
+              fragmentEntryId: 601,
+              fragmentEntryKey: 'hero-banner',
+              name: 'Hero Banner',
+              html: '<div>banner</div>',
+              css: '.banner{}',
+              js: 'console.log("banner");',
+              configuration:
+                '{"fieldSets":[{"fields":[{"dataType":"object","label":"text-color","name":"textColor","type":"colorPalette"}]}]}',
+              icon: 'square',
+              type: 1,
+            }),
+            {status: 200},
+          );
         }
 
         throw new Error(`Unexpected URL ${url}`);

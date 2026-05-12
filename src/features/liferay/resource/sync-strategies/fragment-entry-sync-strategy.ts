@@ -141,7 +141,11 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
 
     const runtimeHash = sha256(normalizeFragmentEntryForHash(remoteArtifact.data));
     if (runtimeHash !== localArtifact.contentHash) {
-      return Promise.reject(LiferayErrors.resourceError(`Hash mismatch fragment '${remoteArtifact.name}'`));
+      return Promise.reject(
+        LiferayErrors.resourceError(
+          `Fragment read-back mismatch after import for '${remoteArtifact.name}': runtime content does not match local fragment source. This is not a local checksum file, hidden ldev cache, or force-import problem; verify the active fragment source directory, fragment key, site, and Liferay-normalized html/css/js/configuration.`,
+        ),
+      );
     }
 
     return Promise.resolve();

@@ -425,7 +425,10 @@ describe('fragmentEntrySyncStrategy', () => {
 
       await expect(
         fragmentEntrySyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
-      ).rejects.toThrow();
+      ).rejects.toThrow('Fragment read-back mismatch after import');
+      await expect(
+        fragmentEntrySyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+      ).rejects.toThrow('not a local checksum file, hidden ldev cache, or force-import problem');
     });
 
     test('skips verify when remote fragment does not include content fields', async () => {
