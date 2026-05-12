@@ -7,7 +7,7 @@ import {
   type JournalArticlePayload,
   type StructuredContent,
 } from './liferay-inventory-page-assemble.js';
-import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
+import {safeGatewayGet} from './liferay-inventory-shared.js';
 
 export type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string; structuredContentId?: number};
 

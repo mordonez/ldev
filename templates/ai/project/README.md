@@ -16,7 +16,7 @@ Rules for this folder:
 - Optional project menu-map scaffolding (for localized admin navigation) is
   installed with `ldev ai install --project-context` or `ldev ai install --project`:
   `docs/ai/menu/README.md`, `docs/ai/menu/navigation.i18n.json`.
-- Project-owned skills and agents remain optional overlays installed only with
+- Project-owned skills remain optional overlays installed only with
   `ldev ai install --project`.
 - Project-owned overlays should stay focused on repository-specific process and
   context. Reusable `ldev` technical workflows belong in vendor-managed skills.

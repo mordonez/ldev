@@ -13,7 +13,7 @@ import {isRecord, type JsonRecord} from '../../../../core/utils/json.js';
 import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.js';
 import {LiferayErrors} from '../../errors/index.js';
 import type {ResolvedSite} from '../../portal/site-resolution.js';
-import {resolveStructureFile} from '../liferay-resource-paths.js';
+import {resolveStructureFile} from '../../portal/artifact-paths.js';
 import {
   buildTransitionPayload,
   collectDuplicateFieldIdentities,
@@ -26,9 +26,21 @@ import {
   structureShapeMatches,
 } from '../liferay-resource-sync-structure-diff.js';
 import {captureMigrationSourceSnapshots, runStructureMigration, type MigrationStats} from '../migration/index.js';
-import {normalizeMigrationPhase, shouldRunPostMigration} from '../liferay-resource-sync-structure-utils.js';
 import {ensureString, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
 import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+
+function normalizeMigrationPhase(phase?: string): '' | 'pre' | 'post' | 'both' {
+  const normalized = (phase ?? '').trim().toLowerCase();
+  if (normalized === 'pre' || normalized === 'post' || normalized === 'both') {
+    return normalized;
+  }
+  return '';
+}
+
+function shouldRunPostMigration(phase: '' | 'pre' | 'post' | 'both'): boolean {
+  return phase === '' || phase === 'post' || phase === 'both';
+}
 
 type StructureLocalData = {
   filePath: string;
@@ -464,20 +476,6 @@ async function pollStructureUpdateRecovery(
   }
 
   return null;
-}
-
-function isGatewayStatus(error: unknown, status: number): boolean {
-  return (
-    error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && error.message.includes(`status=${status}`)
-  );
-}
-
-function rethrowGatewayAsResourceError(error: unknown): never {
-  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
-    throw LiferayErrors.resourceError(error.message);
-  }
-
-  throw error;
 }
 
 function isRecoverableTimeoutError(error: unknown): boolean {

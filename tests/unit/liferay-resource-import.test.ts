@@ -40,12 +40,8 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-sync-structure.js'
   runLiferayResourceSyncStructure: syncStructureMock,
 }));
 
-const {runLiferayResourceImportAdts} =
-  await import('../../src/features/liferay/resource/liferay-resource-import-adts.js');
-const {runLiferayResourceImportTemplates} =
-  await import('../../src/features/liferay/resource/liferay-resource-import-templates.js');
-const {runLiferayResourceImportStructures} =
-  await import('../../src/features/liferay/resource/liferay-resource-import-structures.js');
+const {runLiferayResourceImportAdts, runLiferayResourceImportTemplates, runLiferayResourceImportStructures} =
+  await import('../../src/features/liferay/resource/liferay-resource-import-shared.js');
 
 const CONFIG = {
   cwd: '/tmp/repo',

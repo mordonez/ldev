@@ -12,8 +12,8 @@ import type {ResolvedSite} from '../../portal/site-resolution.js';
 import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetTemplate} from '../liferay-resource-get-template.js';
-import {fetchStructureByKey} from '../liferay-resource-sync-structure-shared.js';
-import {resolveTemplateFile, resolveSiteToken} from '../liferay-resource-paths.js';
+import {resolveTemplateFile, resolveSiteToken} from '../../portal/artifact-paths.js';
+import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
 import {
   fetchStructureTemplateClassIds,
   listDdmTemplates,
@@ -272,6 +272,19 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
   },
 };
 
+async function fetchStructureByKey(
+  config: AppConfig,
+  siteId: number,
+  key: string,
+  dependencies?: ResourceSyncDependencies,
+): Promise<Record<string, unknown>> {
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+  return gateway.getJson<Record<string, unknown>>(
+    `/o/data-engine/v2.0/sites/${siteId}/data-definitions/by-content-type/journal/by-data-definition-key/${encodeURIComponent(key)}`,
+    'structure-get',
+  );
+}
+
 /**
  * Helper: Try to fetch DDM template by key from server.
  * Returns null if not found (swallows 404-like errors).
@@ -293,18 +306,4 @@ async function tryGetDdmTemplateByKey(
     }
     rethrowGatewayAsResourceError(error);
   }
-}
-
-function isGatewayStatus(error: unknown, status: number): boolean {
-  return (
-    error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && error.message.includes(`status=${status}`)
-  );
-}
-
-function rethrowGatewayAsResourceError(error: unknown): never {
-  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
-    throw LiferayErrors.resourceError(error.message);
-  }
-
-  throw error;
 }

@@ -17,7 +17,6 @@ import {
   uniqueSorted,
   resolveSelectedSkills,
   buildNextSteps,
-  buildProjectOverlayWarnings,
   buildWorkspaceCoexistenceWarnings,
 } from '../../src/features/ai/ai-install-project.js';
 
@@ -234,36 +233,6 @@ describe('buildNextSteps', () => {
   test('includes project note when project flag is true', () => {
     const steps = buildNextSteps('/project', 'blade-workspace', false, false, true, false, []);
     expect(steps.some((s) => s.includes('project-owned'))).toBe(true);
-  });
-});
-
-describe('buildProjectOverlayWarnings', () => {
-  test('returns no warnings when no project agents installed', () => {
-    const warnings = buildProjectOverlayWarnings({
-      projectType: 'blade-workspace',
-      projectSkillsInstalled: [],
-      projectAgentsInstalled: [],
-    });
-    expect(warnings).toHaveLength(0);
-  });
-
-  test('warns when project agents installed without issue-engineering skill', () => {
-    const warnings = buildProjectOverlayWarnings({
-      projectType: 'blade-workspace',
-      projectSkillsInstalled: [],
-      projectAgentsInstalled: ['my-agent'],
-    });
-    expect(warnings.length).toBeGreaterThan(0);
-    expect(warnings[0]).toContain('issue-engineering');
-  });
-
-  test('no warning when project agents installed with issue-engineering skill', () => {
-    const warnings = buildProjectOverlayWarnings({
-      projectType: 'blade-workspace',
-      projectSkillsInstalled: ['project-issue-engineering'],
-      projectAgentsInstalled: ['my-agent'],
-    });
-    expect(warnings).toHaveLength(0);
   });
 });
 

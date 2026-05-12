@@ -11,7 +11,8 @@ import {createLiferayGateway, type LiferayGateway} from '../../liferay-gateway.j
 import type {ResolvedSite} from '../../portal/site-resolution.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
-import {resolveAdtFile} from '../liferay-resource-paths.js';
+import {resolveAdtFile} from '../../portal/artifact-paths.js';
+import {rethrowGatewayAsResourceError} from './shared.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
 import {ensureString, localizedMap, sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
 import {matchesAdtRow} from '../../liferay-identifiers.js';
@@ -235,12 +236,4 @@ async function postFormAsResource<T>(
   } catch (error) {
     rethrowGatewayAsResourceError(error);
   }
-}
-
-function rethrowGatewayAsResourceError(error: unknown): never {
-  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
-    throw LiferayErrors.resourceError(error.message);
-  }
-
-  throw error;
 }

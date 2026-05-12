@@ -49,7 +49,7 @@ Re-scope the managed vendor set during update:
 ldev ai update --target . --skill liferay-expert
 ```
 
-Install project-owned overlays (`project-*` skills and `.claude/agents` templates):
+Install project-owned overlays (`project-*` skills):
 
 ```bash
 ldev ai install --target . --project

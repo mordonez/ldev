@@ -152,7 +152,6 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     geminiInstalled: false,
     cursorrulesInstalled: false,
     projectSkillsInstalled: [],
-    projectAgentsInstalled: [],
     workspaceRulesInstalled: [],
     workspaceToolTargetsUpdated: [],
     rulesManifestPath: '/workspace/.ldev/ai/rules-manifest.json',

@@ -373,7 +373,6 @@ describe('ai integration', () => {
       expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', skill, 'SKILL.md'))).toBe(true);
     }
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(false);
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).not.toContain('## Project-Owned Skills Installed By `--project`');
@@ -396,8 +395,6 @@ describe('ai integration', () => {
       false,
     );
     expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'build-verifier.md'))).toBe(false);
   }, 30000);
 
   test('install --project in ldev-native installs the full project-owned issue workflow pack', async () => {
@@ -431,8 +428,6 @@ describe('ai integration', () => {
         path.join(targetDir, '.agents', 'skills', 'project-issue-engineering', 'scripts', 'png_to_evidence_svg.mjs'),
       ),
     ).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'issue-resolver.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'agents', 'build-verifier.md'))).toBe(true);
   }, 30000);
 
   test('install --project-context creates CLAUDE.md, project-context docs and copilot-instructions.md but does not overwrite existing ones', async () => {

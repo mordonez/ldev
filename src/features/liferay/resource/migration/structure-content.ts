@@ -367,23 +367,33 @@ async function listStructureContentsByArticleIds(
   return [...deduped.values()];
 }
 
-async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
+async function fetchPagedStructuredContents(
+  gateway: LiferayGateway,
+  baseUrl: string,
+  label: string,
+): Promise<StructuredContentRow[]> {
+  const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
   const rows: StructuredContentRow[] = [];
   let page = 1;
   let lastPage: number;
-  const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
-
   do {
     const response = await gateway.getJson<StructuredContentsPage>(
-      `/o/headless-delivery/v1.0/content-structures/${structureId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
-      'structure-migrate list',
+      `${baseUrl}?page=${page}&pageSize=200&fields=${fields}`,
+      label,
     );
     rows.push(...((response as StructuredContentsPage | null)?.items ?? []));
     lastPage = (response as StructuredContentsPage | null)?.lastPage ?? 1;
     page += 1;
   } while (page <= lastPage);
-
   return rows;
+}
+
+async function listStructureContents(gateway: LiferayGateway, structureId: string): Promise<StructuredContentRow[]> {
+  return fetchPagedStructuredContents(
+    gateway,
+    `/o/headless-delivery/v1.0/content-structures/${structureId}/structured-contents`,
+    'structure-migrate list',
+  );
 }
 
 async function listStructureContentsByFolders(
@@ -392,28 +402,22 @@ async function listStructureContentsByFolders(
   structureId: string,
 ): Promise<StructuredContentRow[]> {
   const deduped = new Map<number, StructuredContentRow>();
-  const fields = encodeURIComponent('id,key,contentStructureId,structuredContentFolderId,friendlyUrlPath,title');
 
   for (const folderId of folderIds.sort((left, right) => left - right)) {
-    let page = 1;
-    let lastPage: number;
-    do {
-      const response = await gateway.getJson<StructuredContentsPage>(
-        `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents?page=${page}&pageSize=200&fields=${fields}`,
-        'structure-migrate list-by-folder',
-      );
-      for (const item of (response as StructuredContentsPage | null)?.items ?? []) {
-        if (String(item.contentStructureId ?? '') !== structureId) {
-          continue;
-        }
-        const id = Number(item.id ?? -1);
-        if (id > 0 && !deduped.has(id)) {
-          deduped.set(id, item);
-        }
+    const items = await fetchPagedStructuredContents(
+      gateway,
+      `/o/headless-delivery/v1.0/structured-content-folders/${folderId}/structured-contents`,
+      'structure-migrate list-by-folder',
+    );
+    for (const item of items) {
+      if (String(item.contentStructureId ?? '') !== structureId) {
+        continue;
       }
-      lastPage = (response as {lastPage?: number} | null)?.lastPage ?? 1;
-      page += 1;
-    } while (page <= lastPage);
+      const id = Number(item.id ?? -1);
+      if (id > 0 && !deduped.has(id)) {
+        deduped.set(id, item);
+      }
+    }
   }
 
   return [...deduped.values()];

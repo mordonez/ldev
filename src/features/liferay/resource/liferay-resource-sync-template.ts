@@ -19,7 +19,7 @@ import {
   resolveTemplateFile,
   resolveTemplatesBaseDir,
   siteTokenToFriendlyUrl,
-} from './liferay-resource-paths.js';
+} from '../portal/artifact-paths.js';
 import {syncArtifact} from './sync-engine.js';
 import {templateSyncStrategy} from './sync-strategies/template-sync-strategy.js';
 
