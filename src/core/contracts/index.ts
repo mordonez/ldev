@@ -86,3 +86,57 @@ export type {
   LiferayResourceSyncStructureItemResult,
   LiferayResourceSyncTemplateItemResult,
 } from './resource.schema.js';
+
+// Environment schemas (ldev_status, ldev_logs_diagnose, ldev_context)
+export {
+  envServiceStatusSchema,
+  envStatusReportSchema,
+  diagnosedExceptionSchema,
+  envLogsDiagnoseResultSchema,
+  presenceSchema,
+  commandStatusSchema,
+  agentContextIssueSchema,
+  agentContextReportSchema,
+} from './environment.schema.js';
+
+export type {
+  EnvServiceStatusContract,
+  EnvStatusReportContract,
+  DiagnosedExceptionContract,
+  EnvLogsDiagnoseResultContract,
+  PresenceContract,
+  CommandStatusContract,
+  AgentContextIssueContract,
+  AgentContextReportContract,
+} from './environment.schema.js';
+
+// Health schemas (liferay_check, liferay_doctor, liferay_mcp_check)
+export {
+  liferayHealthResultSchema,
+  doctorCheckSchema,
+  doctorToolStatusSchema,
+  doctorReportSchema,
+  mcpCheckResultSchema,
+} from './health.schema.js';
+
+export type {
+  LiferayHealthResultContract,
+  DoctorCheckContract,
+  DoctorToolStatusContract,
+  DoctorReportContract,
+  McpCheckResultContract,
+} from './health.schema.js';
+
+// Deploy schemas (liferay_deploy_status)
+export {deployStatusModuleSchema, deployStatusResultSchema} from './deploy.schema.js';
+
+export type {DeployStatusModuleContract, DeployStatusResultContract} from './deploy.schema.js';
+
+// OSGi schemas (liferay_osgi_status, liferay_osgi_diag, liferay_osgi_thread_dump)
+export {osgiStatusResultSchema, osgiDiagResultSchema, osgiThreadDumpResultSchema} from './osgi.schema.js';
+
+export type {
+  OsgiStatusResultContract,
+  OsgiDiagResultContract,
+  OsgiThreadDumpResultContract,
+} from './osgi.schema.js';
