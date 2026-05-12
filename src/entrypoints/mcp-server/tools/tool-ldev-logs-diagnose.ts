@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runEnvLogsDiagnose} from '../../env/env-logs-diagnose.js';
+import {runEnvLogsDiagnose} from '../../../features/env/env-logs-diagnose.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'ldev_logs_diagnose';

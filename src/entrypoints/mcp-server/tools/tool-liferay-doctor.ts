@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runDoctor} from '../../doctor/doctor.service.js';
-import type {DoctorCheckScope} from '../../doctor/doctor-types.js';
+import {runDoctor} from '../../../features/doctor/doctor.service.js';
+import type {DoctorCheckScope} from '../../../features/doctor/doctor-types.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_doctor';

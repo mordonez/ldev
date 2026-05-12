@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runLiferayInventorySites} from '../../liferay/inventory/liferay-inventory-sites.js';
+import {runLiferayInventorySites} from '../../../features/liferay/inventory/liferay-inventory-sites.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_sites';

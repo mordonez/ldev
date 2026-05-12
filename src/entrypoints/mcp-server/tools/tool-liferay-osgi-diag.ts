@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runOsgiDiag} from '../../osgi/osgi-diag.js';
+import {runOsgiDiag} from '../../../features/osgi/osgi-diag.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_osgi_diag';

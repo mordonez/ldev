@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/schema.js';
 import {
   projectLiferayInventoryPageJson,
   runLiferayInventoryPage,
-} from '../../liferay/inventory/liferay-inventory-page.js';
+} from '../../../features/liferay/inventory/liferay-inventory-page.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_page';

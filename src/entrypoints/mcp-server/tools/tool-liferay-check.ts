@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runLiferayHealth} from '../../liferay/liferay-health.js';
+import {runLiferayHealth} from '../../../features/liferay/liferay-health.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_check';

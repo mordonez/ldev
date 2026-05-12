@@ -1,5 +1,5 @@
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runDeployStatus} from '../../deploy/deploy-status.js';
+import {runDeployStatus} from '../../../features/deploy/deploy-status.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_deploy_status';

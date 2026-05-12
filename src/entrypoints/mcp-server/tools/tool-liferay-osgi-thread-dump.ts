@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import type {AppConfig} from '../../../core/config/schema.js';
-import {runOsgiThreadDump} from '../../osgi/osgi-thread-dump.js';
+import {runOsgiThreadDump} from '../../../features/osgi/osgi-thread-dump.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_osgi_thread_dump';

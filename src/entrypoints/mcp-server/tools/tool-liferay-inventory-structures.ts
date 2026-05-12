@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/schema.js';
 import {
   runLiferayInventoryStructures,
   runLiferayInventoryStructuresAllSites,
-} from '../../liferay/inventory/liferay-inventory-structures.js';
+} from '../../../features/liferay/inventory/liferay-inventory-structures.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_structures';

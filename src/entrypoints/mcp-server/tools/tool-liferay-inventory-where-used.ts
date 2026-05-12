@@ -3,7 +3,7 @@ import type {AppConfig} from '../../../core/config/schema.js';
 import {
   runLiferayInventoryWhereUsed,
   type WhereUsedResourceType,
-} from '../../liferay/inventory/liferay-inventory-where-used.js';
+} from '../../../features/liferay/inventory/liferay-inventory-where-used.js';
 import {runJsonTool} from './tool-result.js';
 
 export const TOOL_NAME = 'liferay_inventory_where_used';

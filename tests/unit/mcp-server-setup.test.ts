@@ -3,8 +3,8 @@ import path from 'node:path';
 
 import {describe, expect, test, vi} from 'vitest';
 
-import {runMcpDoctor} from '../../src/features/mcp-server/mcp-server-doctor.js';
-import {runMcpSetup} from '../../src/features/mcp-server/mcp-server-setup.js';
+import {runMcpDoctor} from '../../src/entrypoints/mcp-server/mcp-server-doctor.js';
+import {runMcpSetup} from '../../src/entrypoints/mcp-server/mcp-server-setup.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 vi.mock('../../src/core/platform/process.js', () => ({

@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest';
 
-import {ALL_TOOLS} from '../../src/features/mcp-server/mcp-server-tools.js';
-import {jsonToolResult} from '../../src/features/mcp-server/tools/tool-result.js';
+import {ALL_TOOLS} from '../../src/entrypoints/mcp-server/mcp-server-tools.js';
+import {jsonToolResult} from '../../src/entrypoints/mcp-server/tools/tool-result.js';
 
 describe('mcp server tools', () => {
   test('registers the primary agent-facing tools', () => {

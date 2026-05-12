@@ -3,7 +3,7 @@ import type http from 'node:http';
 import {loadConfig} from '../../core/config/load-config.js';
 import {formatEnvStart, runEnvStart} from '../../features/env/env-start.js';
 import {runEnvStop} from '../../features/env/env-stop.js';
-import {formatMcpSetup, runMcpSetup} from '../../features/mcp-server/mcp-server-setup.js';
+import {formatMcpSetup, runMcpSetup} from '../mcp-server/mcp-server-setup.js';
 import {formatWorktreeSetup, runWorktreeSetup} from '../../features/worktree/worktree-setup.js';
 import {readJsonBody, writeDashboardError} from './dashboard-http.js';
 import {queueDashboardTaskResponse} from './dashboard-task-commands.js';
