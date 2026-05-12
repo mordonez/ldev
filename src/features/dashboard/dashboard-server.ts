@@ -163,7 +163,7 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
   server.listen(port, '127.0.0.1', () => {
     const address = server.address();
     const resolvedPort = typeof address === 'object' && address ? address.port : port;
-    options.onReady?.(`http://localhost:${resolvedPort}`);
+    options.onReady?.(`http://127.0.0.1:${resolvedPort}`);
   });
 
   return server;

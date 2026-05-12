@@ -293,6 +293,26 @@ describe('createDashboardServer', () => {
     });
   }
 
+  test('reports the IPv4 loopback URL that the dashboard listens on', async () => {
+    let readyUrl: string | undefined;
+    server = createDashboardServer({
+      cwd: '/repo',
+      port: 0,
+      onReady: (url) => {
+        readyUrl = url;
+      },
+    });
+
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+
+    const address = server.address() as AddressInfo;
+    expect(readyUrl).toBe(`http://127.0.0.1:${address.port}`);
+  });
+
   test('serves the built dashboard client shell and bundle assets', async () => {
     const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));
     fs.mkdirSync(path.join(distDir, 'assets'), {recursive: true});
