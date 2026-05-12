@@ -50,6 +50,7 @@ Use these terms consistently in code, docs, tests, and architecture discussions.
 - **Worktree**: An isolated branch checkout, usually under `.worktrees/<name>`, optionally with its own local runtime state.
 - **Preflight**: A cached check that validates the API surfaces and credentials needed before longer portal or resource workflows.
 - **Inventory**: Structured discovery of portal state, such as sites, pages, structures, and templates.
+- **Page evidence**: Normalized searchable references found while inspecting a Page, such as Fragment, Widget, Portlet, Structure, Template, Journal article, or Display Page article evidence.
 - **Portal resource**: A Liferay content artifact managed as a stable CLI workflow: structures, templates, ADTs, and fragments.
 - **Resource workflow**: A file-based `ldev resource` operation for reading, exporting, importing, or syncing portal resources.
 - **Resource migration**: A structured workflow for changing journal structures while preserving or cleaning up existing content.
@@ -82,12 +83,12 @@ ldev resource migration-init --site /global --structure BASIC
 
 Every command should fit one phase of the operational loop:
 
-| Phase | Purpose | Representative commands |
-| --- | --- | --- |
-| Understand | Resolve project, runtime, and portal state. | `ldev context`, `ldev status`, `ldev portal inventory ...` |
-| Diagnose | Localize a failure. | `ldev doctor`, `ldev logs diagnose`, `ldev osgi diag <bundle>` |
-| Fix | Apply the smallest safe local change. | `ldev deploy module`, `ldev resource import-* --check-only`, then a deliberate mutation |
-| Verify | Prove the result with fresh evidence. | `ldev portal check`, `ldev portal inventory ... --json`, `ldev resource structure/template/adt`, `ldev logs diagnose --since 5m` |
+| Phase      | Purpose                                     | Representative commands                                                                                                          |
+| ---------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Understand | Resolve project, runtime, and portal state. | `ldev context`, `ldev status`, `ldev portal inventory ...`                                                                       |
+| Diagnose   | Localize a failure.                         | `ldev doctor`, `ldev logs diagnose`, `ldev osgi diag <bundle>`                                                                   |
+| Fix        | Apply the smallest safe local change.       | `ldev deploy module`, `ldev resource import-* --check-only`, then a deliberate mutation                                          |
+| Verify     | Prove the result with fresh evidence.       | `ldev portal check`, `ldev portal inventory ... --json`, `ldev resource structure/template/adt`, `ldev logs diagnose --since 5m` |
 
 Resource verification must be read-after-write. Do not treat log output as sufficient proof that a portal resource changed correctly.
 

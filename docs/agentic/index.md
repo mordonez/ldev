@@ -122,10 +122,17 @@ ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ldev portal inventory structures --site /global --with-templates --json
+ldev portal inventory where-used --type structure --key BASIC --site /global --json
 ```
 
 For structure/template work, `inventory structures --with-templates` is the
 right first call.
+
+For impact analysis, use `inventory where-used` after the resource key is known.
+It gives agents a task-shaped answer to “which Pages use this fragment, widget,
+Structure, Template, or ADT?” before a mutation is proposed.
+
+Prefer the scoped form with `--site` whenever the Site is already known.
 
 ## Decision route
 

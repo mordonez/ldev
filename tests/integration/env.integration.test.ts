@@ -1,13 +1,14 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {describe, expect, test} from 'vitest';
+import {describe, expect, test, vi} from 'vitest';
 
 import {loadConfig} from '../../src/core/config/load-config.js';
 import {runEnvInit} from '../../src/features/env/env-init.js';
 import {runEnvRecreate} from '../../src/features/env/env-recreate.js';
 import {runEnvRestore} from '../../src/features/env/env-restore.js';
 import {runEnvSetup} from '../../src/features/env/env-setup.js';
+import {runEnvStart} from '../../src/features/env/env-start.js';
 import {runProcess} from '../../src/core/platform/process.js';
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
@@ -98,6 +99,38 @@ describe('env integration', () => {
       ]),
     );
   }, 45000);
+
+  test('env start abort rolls back docker compose when canceled during compose up', async () => {
+    const repoRoot = await createEnvRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {
+      ...process.env,
+      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_DELAY_COMPOSE_UP_MS: '250',
+    };
+    const config = loadConfig({cwd: repoRoot, env: process.env});
+    const controller = new AbortController();
+
+    const startPromise = runEnvStart(config, {
+      wait: false,
+      processEnv,
+      signal: controller.signal,
+    });
+
+    await vi.waitFor(
+      async () => {
+        const calls = await readFakeDockerCalls(fakeBinDir);
+        expect(calls).toContain('compose up -d');
+      },
+      {timeout: 5_000},
+    );
+    controller.abort();
+
+    await expect(startPromise).rejects.toThrow();
+
+    const calls = await readFakeDockerCalls(fakeBinDir);
+    expect(calls).toEqual(expect.arrayContaining(['compose up -d', 'compose stop', 'compose down']));
+  }, 30000);
 
   test('env start respects DOCLIB_PATH and does not remount doclib to the default bind path', async () => {
     const repoRoot = await createEnvRepoFixture();

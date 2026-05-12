@@ -17,6 +17,7 @@ describe('mcp server tools', () => {
       'liferay_inventory_structures',
       'liferay_inventory_pages',
       'liferay_inventory_page',
+      'liferay_inventory_where_used',
       'liferay_doctor',
       'liferay_inventory_templates',
       'liferay_deploy_status',

@@ -1,4 +1,5 @@
 import {LiferayErrors} from '../errors/index.js';
+import {extractDisplayPageUrlTitle} from './liferay-inventory-display-page-url.js';
 
 export type InventoryPageOptions = {
   url?: string;
@@ -173,12 +174,4 @@ function normalizeLocale(locale: string): string {
     return locale; // already full locale like es_ES
   }
   return LOCALE_MAP[locale] ?? locale;
-}
-
-function extractDisplayPageUrlTitle(friendlyUrl: string): string | null {
-  const candidate = friendlyUrl.startsWith('/') ? friendlyUrl.slice(1) : friendlyUrl;
-  if (!candidate.startsWith('w/') || candidate.length <= 2) {
-    return null;
-  }
-  return candidate.slice(2);
 }

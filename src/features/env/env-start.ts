@@ -13,6 +13,7 @@ import {ensureActivationKeyPrepared} from './env-activation-key.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
 import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
+import {runEnvStop} from './env-stop.js';
 
 export type EnvStartResult = {
   ok: true;
@@ -53,19 +54,37 @@ export async function runEnvStart(
   await ensureDoclibVolume(context, {processEnv: options?.processEnv});
   const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
   const signal = options?.signal;
+  const rollbackStartedEnvironment = async () => {
+    await runEnvStop(config, {
+      processEnv: options?.processEnv,
+    });
+  };
 
-  if (options?.printer) {
-    await withProgress(options.printer, 'Starting Docker services', async () => {
+  try {
+    if (options?.printer) {
+      await withProgress(options.printer, 'Starting Docker services', async () => {
+        await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
+          env: composeEnv,
+          signal,
+        });
+      });
+    } else {
       await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
         env: composeEnv,
         signal,
       });
-    });
-  } else {
-    await runDockerComposeOrThrow(context.dockerDir, ['up', '-d'], {
-      env: composeEnv,
-      signal,
-    });
+    }
+  } catch (error) {
+    if (signal?.aborted) {
+      await rollbackStartedEnvironment();
+    }
+
+    throw error;
+  }
+
+  if (signal?.aborted) {
+    await rollbackStartedEnvironment();
+    throw new Error('Environment start was canceled.');
   }
 
   if (waitForHealth) {

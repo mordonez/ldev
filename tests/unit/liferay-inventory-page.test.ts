@@ -8,6 +8,7 @@ import {
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
+import {matchPageAgainstResource} from '../../src/features/liferay/inventory/liferay-inventory-where-used.js';
 import {
   isRegularPageRequest,
   isSiteRootRequest,
@@ -26,10 +27,6 @@ function layoutsResp(layouts: unknown[]) {
 
 function pageDefinitionResp(pageElements: unknown[] = []) {
   return new Response(JSON.stringify({pageDefinition: {pageElement: {type: 'Root', pageElements}}}), {status: 200});
-}
-
-function fragmentEntryLinksResp(items: unknown[] = []) {
-  return new Response(JSON.stringify(items), {status: 200});
 }
 
 function classNameIdResp(classNameId = 20006) {
@@ -188,6 +185,15 @@ describe('liferay inventory page', () => {
     });
   });
 
+  test('decodes percent-encoded display page url titles', () => {
+    expect(resolveInventoryPageRequest({url: '/web/ub/w/%C3%88xit-de-les-seleccions'})).toMatchObject({
+      kind: 'webContentDisplayPage',
+      site: 'ub',
+      friendlyUrl: '/w/%C3%88xit-de-les-seleccions',
+      urlTitle: 'Èxit-de-les-seleccions',
+    });
+  });
+
   test('ignores absolute URL origin and keeps configured portal URL', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network disabled for test'));
 
@@ -255,10 +261,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/inici?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -338,58 +340,6 @@ describe('liferay inventory page', () => {
           );
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp([
-            {
-              portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
-              editableValues: JSON.stringify({
-                journal_content: {
-                  portletPreferencesMap: {
-                    articleId: ['ART-001'],
-                    groupId: ['20121'],
-                    ddmTemplateKey: ['TPL-1'],
-                  },
-                },
-              }),
-            },
-          ]);
-        }
-
-        if (url.includes('/journal.journalarticle/get-latest-article')) {
-          return new Response(
-            JSON.stringify({
-              id: 41001,
-              articleId: 'ART-001',
-              titleCurrentValue: 'Home article',
-              ddmStructureKey: 'BASIC',
-            }),
-            {status: 200},
-          );
-        }
-
-        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
-          return new Response(
-            JSON.stringify({
-              id: 41001,
-              contentStructureId: 301,
-              priority: 0,
-              contentFields: [
-                {
-                  label: 'Headline',
-                  name: 'headline',
-                  dataType: 'string',
-                  contentFieldValue: {data: 'Hello'},
-                },
-              ],
-            }),
-            {status: 200},
-          );
-        }
-
-        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
-          return new Response(JSON.stringify({id: 301, name: 'Basic Web Content'}), {status: 200});
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -447,37 +397,379 @@ describe('liferay inventory page', () => {
       {
         type: 'widget',
         widgetName: 'com_liferay_journal_content_web_portlet_JournalContentPortlet',
-        portletId: 'com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_abc',
       },
     ]);
-    expect(result.journalArticles).toEqual([
-      {
-        groupId: 20121,
-        articleId: 'ART-001',
-        title: 'Home article',
-        ddmStructureKey: 'BASIC',
-        ddmTemplateKey: 'TPL-1',
-        contentStructureId: 301,
-        contentFields: [
-          {
-            path: 'Headline',
-            label: 'Headline',
-            name: 'headline',
-            type: 'string',
-            value: 'Hello',
-          },
-        ],
-      },
-    ]);
-    expect(result.contentStructures).toEqual([
-      {
-        contentStructureId: 301,
-        key: 'BASIC',
-        name: 'Basic Web Content',
-      },
-    ]);
+    expect(result.journalArticles).toEqual([]);
+    expect(result.contentStructures).toEqual([]);
     expect(formatLiferayInventoryPage(result)).toContain('REGULAR PAGE');
-    expect(formatLiferayInventoryPage(result)).toContain('contentField Headline=Hello');
+  });
+
+  test('accepts widget ADT evidence in validated page results', () => {
+    const result = {
+      pageType: 'regularPage',
+      pageSubtype: 'content',
+      pageUiType: 'Content Page',
+      siteName: 'UB',
+      siteFriendlyUrl: '/ub',
+      groupId: 20121,
+      url: '/web/ub/rss',
+      friendlyUrl: '/rss',
+      pageName: 'RSS',
+      privateLayout: false,
+      layout: {
+        layoutId: 11,
+        plid: 1011,
+        friendlyUrl: '/rss',
+        type: 'content',
+        hidden: false,
+      },
+      layoutDetails: {},
+      adminUrls: {
+        view: '',
+        edit: '',
+        configureGeneral: '',
+        configureDesign: '',
+        configureSeo: '',
+        configureOpenGraph: '',
+        configureCustomMetaTags: '',
+        translate: '',
+      },
+      evidence: [
+        {
+          resourceType: 'adt',
+          key: 'ddmTemplate_40801',
+          kind: 'widgetAdt',
+          detail: 'widgetName=asset-publisher index=0 displayStyle=ddmTemplate_40801',
+          source: 'fragmentEntryLink',
+        },
+      ],
+    };
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+  });
+
+  test('includes static journal-content template evidence from rendered widget-page HTML', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url === 'http://localhost:8080/web/guest/home') {
+          return new Response(
+            '<div class="portlet-boundary portlet-journal-content" id="p_p_id_com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_menusuperior_">' +
+              '<section class="portlet" id="portlet_com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_menusuperior">' +
+              '<div class="journal-content-article " data-analytics-asset-id="ART-HEADER" data-analytics-asset-title="No editar - Men&uacute; superior"></div>' +
+              '</section>' +
+              '</div>',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return siteResp(20121, '/guest', 'Guest');
+        }
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return siteResp(20122, '/global', 'Global');
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return groupResp(10157, '/guest', 'Guest');
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return layoutsResp([
+            {
+              layoutId: 11,
+              plid: 1011,
+              type: 'portlet',
+              nameCurrentValue: 'Home',
+              friendlyURL: '/home',
+              hidden: false,
+              typeSettings:
+                'layout-template-id=home\ncolumn-top=com_liferay_asset_publisher_web_portlet_AssetPublisherPortlet_INSTANCE_top\n',
+            },
+          ]);
+        }
+
+        if (url.includes('parentLayoutId=11')) {
+          return layoutsResp([]);
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/journal.journalarticle/get-latest-article?groupId=20121&articleId=ART-HEADER&status=0',
+          )
+        ) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              resourcePrimKey: 41001,
+              articleId: 'ART-HEADER',
+              titleCurrentValue: 'No editar - Menú superior',
+              ddmStructureKey: 'HEADER_MENU',
+              ddmTemplateKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+              contentStructureId: 301,
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              key: 'ART-HEADER',
+              title: 'No editar - Menú superior',
+              contentStructureId: 301,
+              contentFields: [],
+            }),
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/HEADER_MENU',
+          )
+        ) {
+          return new Response('{"id":301,"dataDefinitionKey":"HEADER_MENU","name":{"en_US":"Header menu"}}', {
+            status: 200,
+          });
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
+          return new Response('{"id":301,"dataDefinitionKey":"HEADER_MENU","name":"Header menu"}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
+          return new Response('{"classNameId":1001}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return classNameIdResp();
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=1001&resourceClassNameId=1002&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":"40801","templateKey":"UB_TPL_ENLACES_MENU_SUPERIOR","nameCurrentValue":"Menu superior","classPK":301}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayInventoryPage(
+      CONFIG,
+      {url: '/web/guest/home'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+    if (result.pageType !== 'regularPage') {
+      throw new Error('Expected regular page');
+    }
+
+    expect(result.journalArticles).toMatchObject([
+      {
+        articleId: 'ART-HEADER',
+        title: 'No editar - Menú superior',
+        ddmTemplateKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+      },
+    ]);
+    expect(matchPageAgainstResource(result, {type: 'template', keys: ['UB_TPL_ENLACES_MENU_SUPERIOR']})).toEqual([
+      {
+        resourceType: 'template',
+        matchedKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+        matchKind: 'journalArticleTemplate',
+        label: 'Journal article template (static Journal Content rendered in HTML)',
+        detail: 'articleId=ART-HEADER title=No editar - Menú superior',
+        source: 'renderedHtmlJournalContent',
+      },
+    ]);
+  });
+
+  test('includes static journal-content template evidence from rendered content-page HTML', async () => {
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url === 'http://localhost:8080/web/guest/home') {
+          return new Response(
+            '<div class="portlet-boundary portlet-journal-content" id="p_p_id_com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_menusuperior_">' +
+              '<section class="portlet" id="portlet_com_liferay_journal_content_web_portlet_JournalContentPortlet_INSTANCE_menusuperior">' +
+              '<div class="journal-content-article " data-analytics-asset-id="ART-HEADER" data-analytics-asset-title="No editar - Men&uacute; superior"></div>' +
+              '</section>' +
+              '</div>',
+            {status: 200},
+          );
+        }
+
+        if (url.includes('/by-friendly-url-path/guest')) {
+          return siteResp(20121, '/guest', 'Guest');
+        }
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return siteResp(20122, '/global', 'Global');
+        }
+
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return groupResp(10157, '/guest', 'Guest');
+        }
+
+        if (url.includes('parentLayoutId=0')) {
+          return layoutsResp([
+            {
+              layoutId: 11,
+              plid: 1011,
+              type: 'content',
+              nameCurrentValue: 'Home',
+              friendlyURL: '/home',
+              hidden: false,
+            },
+          ]);
+        }
+
+        if (url.includes('parentLayoutId=11')) {
+          return layoutsResp([]);
+        }
+
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/site-pages/home?fields=pageDefinition')) {
+          return new Response(
+            JSON.stringify({
+              pageDefinition: {
+                pageElement: {
+                  type: 'Root',
+                  pageElements: [
+                    {
+                      type: 'Fragment',
+                      definition: {
+                        fragment: {key: 'banner'},
+                      },
+                    },
+                  ],
+                },
+              },
+            }),
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/journal.journalarticle/get-latest-article?groupId=20121&articleId=ART-HEADER&status=0',
+          )
+        ) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              resourcePrimKey: 41001,
+              articleId: 'ART-HEADER',
+              titleCurrentValue: 'No editar - Menú superior',
+              ddmStructureKey: 'HEADER_MENU',
+              ddmTemplateKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+              contentStructureId: 301,
+            }),
+            {status: 200},
+          );
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/structured-contents/41001')) {
+          return new Response(
+            JSON.stringify({
+              id: 41001,
+              key: 'ART-HEADER',
+              title: 'No editar - Menú superior',
+              contentStructureId: 301,
+              contentFields: [],
+            }),
+            {status: 200},
+          );
+        }
+
+        if (
+          url.includes(
+            '/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/HEADER_MENU',
+          )
+        ) {
+          return new Response('{"id":301,"dataDefinitionKey":"HEADER_MENU","name":{"en_US":"Header menu"}}', {
+            status: 200,
+          });
+        }
+
+        if (url.endsWith('/o/headless-delivery/v1.0/content-structures/301')) {
+          return new Response('{"id":301,"dataDefinitionKey":"HEADER_MENU","name":"Header menu"}', {status: 200});
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure',
+          )
+        ) {
+          return new Response('{"classNameId":1001}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":1002}', {status: 200});
+        }
+
+        if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
+          return classNameIdResp();
+        }
+
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-templates?companyId=10157&groupId=20121&classNameId=1001&resourceClassNameId=1002&status=0',
+          )
+        ) {
+          return new Response(
+            '[{"templateId":"40801","templateKey":"UB_TPL_ENLACES_MENU_SUPERIOR","nameCurrentValue":"Menu superior","classPK":301}]',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayInventoryPage(
+      CONFIG,
+      {url: '/web/guest/home'},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(() => validateLiferayInventoryPageResultV2(result)).not.toThrow();
+    if (result.pageType !== 'regularPage') {
+      throw new Error('Expected regular page');
+    }
+
+    expect(result.journalArticles).toMatchObject([
+      {
+        articleId: 'ART-HEADER',
+        title: 'No editar - Menú superior',
+        ddmTemplateKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+        discoverySource: 'renderedHtmlJournalContent',
+      },
+    ]);
+    expect(matchPageAgainstResource(result, {type: 'template', keys: ['UB_TPL_ENLACES_MENU_SUPERIOR']})).toEqual([
+      {
+        resourceType: 'template',
+        matchedKey: 'UB_TPL_ENLACES_MENU_SUPERIOR',
+        matchKind: 'journalArticleTemplate',
+        label: 'Journal article template (static Journal Content rendered in HTML)',
+        detail: 'articleId=ART-HEADER title=No editar - Menú superior',
+        source: 'renderedHtmlJournalContent',
+      },
+    ]);
   });
 
   test('skips local fragment export path enrichment outside a repo', async () => {
@@ -516,10 +808,6 @@ describe('liferay inventory page', () => {
             }),
             {status: 200},
           );
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -654,10 +942,6 @@ describe('liferay inventory page', () => {
           return pageDefinitionResp();
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -714,10 +998,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/apren?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -785,10 +1065,6 @@ describe('liferay inventory page', () => {
           return pageDefinitionResp();
         }
 
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
-        }
-
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
           return classNameIdResp();
         }
@@ -844,10 +1120,6 @@ describe('liferay inventory page', () => {
 
         if (url.includes('/site-pages/home?fields=pageDefinition')) {
           return pageDefinitionResp();
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         if (url.includes('/api/jsonws/classname/fetch-class-name?value=com.liferay.portal.kernel.model.Layout')) {
@@ -916,6 +1188,19 @@ describe('liferay inventory page', () => {
                               },
                             },
                           },
+                          {
+                            id: 'mapped-title',
+                            value: {
+                              html: {
+                                mapping: {
+                                  fieldKey: 'ddmTemplate_NEWS_TEMPLATE_DETAIL',
+                                  itemReference: {
+                                    contextSource: 'DisplayPageItem',
+                                  },
+                                },
+                              },
+                            },
+                          },
                         ],
                       },
                     },
@@ -925,10 +1210,6 @@ describe('liferay inventory page', () => {
             }),
             {status: 200},
           );
-        }
-
-        if (url.includes('/fragment.fragmententrylink/get-fragment-entry-links')) {
-          return fragmentEntryLinksResp();
         }
 
         throw new Error(`Unexpected URL ${url}`);
@@ -954,6 +1235,7 @@ describe('liferay inventory page', () => {
           {id: 'image', value: 'Demo image'},
           {id: 'intro-paragraph', value: 'Intro'},
         ],
+        mappedTemplateKeys: ['NEWS_TEMPLATE_DETAIL'],
       },
     ]);
     expect(formatLiferayInventoryPage(result)).toContain('[image] Demo image');

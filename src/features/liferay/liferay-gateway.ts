@@ -1,4 +1,5 @@
 import type {AppConfig} from '../../core/config/load-config.js';
+import {CliError} from '../../core/errors.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
 import type {HttpRequestOptions, HttpResponse, HttpApiClient} from '../../core/http/client.js';
@@ -101,7 +102,7 @@ export class LiferayGateway {
       });
     });
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -114,7 +115,7 @@ export class LiferayGateway {
       this.apiClient.postJson<T>(this.config.liferay.url, path, payload, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -127,7 +128,7 @@ export class LiferayGateway {
       this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -140,7 +141,7 @@ export class LiferayGateway {
       this.apiClient.postMultipart<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -161,7 +162,7 @@ export class LiferayGateway {
       });
     });
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -195,7 +196,7 @@ export class LiferayGateway {
       this.apiClient.delete<T>(this.config.liferay.url, path, buildAuthOptions(this.config, accessToken)),
     );
 
-    const success = expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+    const success = expectGatewayJsonSuccess(response, label, path);
     return (success.data ?? null) as T;
   }
 
@@ -222,4 +223,15 @@ export function createLiferayGateway(
   tokenClient?: OAuthTokenClient,
 ): LiferayGateway {
   return new LiferayGateway(config, apiClient ?? createLiferayApiClient(), tokenClient ?? createOAuthTokenClient());
+}
+
+function expectGatewayJsonSuccess<T>(response: HttpResponse<T>, label: string, path: string): HttpResponse<T> {
+  try {
+    return expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
+  } catch (error) {
+    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && !error.message.includes(' path=')) {
+      error.message = `${error.message} path=${path}`;
+    }
+    throw error;
+  }
 }

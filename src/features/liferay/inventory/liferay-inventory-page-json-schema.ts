@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {pageEvidenceSchema} from './liferay-inventory-evidence-contract.js';
+
 const siteRootJsonSchema = z.object({
   page: z.object({
     type: z.literal('siteRoot'),
@@ -71,6 +73,8 @@ const regularPageJsonSchema = z.object({
             fragmentExportPath: z.string().optional(),
             configuration: z.record(z.string(), z.string()).optional(),
             contentSummary: z.string().optional(),
+            mappedTemplateKeys: z.array(z.string()).optional(),
+            mappedStructureKeys: z.array(z.string()).optional(),
           }),
         )
         .optional(),
@@ -102,6 +106,7 @@ const regularPageJsonSchema = z.object({
       z.object({
         articleId: z.string(),
         title: z.string(),
+        discoverySource: z.enum(['journalArticle', 'renderedHtmlJournalContent']).optional(),
         groupId: z.number().optional(),
         siteId: z.number().optional(),
         siteFriendlyUrl: z.string().optional(),
@@ -118,6 +123,7 @@ const regularPageJsonSchema = z.object({
       }),
     )
     .optional(),
+  evidence: z.array(pageEvidenceSchema).optional(),
   capabilities: z.object({componentInspectionSupported: z.boolean()}).optional(),
   full: z
     .object({
@@ -158,6 +164,7 @@ const displayPageJsonSchema = z.object({
     title: z.string(),
     friendlyUrlPath: z.string(),
     contentStructureId: z.number(),
+    discoverySource: z.enum(['journalArticle', 'renderedHtmlJournalContent']).optional(),
     groupId: z.number().optional(),
     siteId: z.number().optional(),
     siteFriendlyUrl: z.string().optional(),
@@ -202,6 +209,7 @@ const displayPageJsonSchema = z.object({
       neverExpire: z.boolean().optional(),
     })
     .optional(),
+  evidence: z.array(pageEvidenceSchema).optional(),
   full: z
     .object({
       articleDetails: z

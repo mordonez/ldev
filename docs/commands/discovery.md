@@ -146,6 +146,43 @@ List web content templates for a site.
 ldev portal inventory templates --site /global --json
 ```
 
+## `ldev portal inventory where-used`
+
+Reverse lookup for portal resources. Use it when you already know the fragment,
+widget, Structure, Template, or ADT key and need to answer the practical
+question: which Pages use it?
+
+```bash
+ldev portal inventory where-used --type fragment --key card-hero --site /guest
+ldev portal inventory where-used --type widget --key com_liferay_journal_content_web_portlet_JournalContentPortlet --site /guest
+ldev portal inventory where-used --type structure --key BASIC --site /facultat-farmacia-alimentacio
+ldev portal inventory where-used --type adt --key UB_ADT_STUDIES_SEARCH --site /global
+ldev portal inventory where-used --type template --key NEWS_TEMPLATE --site /global --include-private --json
+```
+
+Use `where-used` after discovery has identified the resource you care about.
+It scans candidate Pages, extracts normalized Page evidence, and returns only
+the Pages whose evidence matches the requested resource.
+
+Prefer `--site` whenever you already know the owning Site. Without it,
+`where-used` scans every accessible Site and can take much longer.
+
+Options:
+
+- `--type <fragment|widget|structure|template|adt>` — resource type to trace
+- `--key <value>` — resource key to look up; repeatable
+- `--site <friendlyUrl>` — limit the scan to one Site instead of all accessible Sites
+- `--widget-type <value>` — required when an ADT key is ambiguous across widget types
+- `--class-name <value>` — optional ADT disambiguator for the owning class
+- `--include-private` — include private layouts in addition to public Pages
+- `--max-depth <n>` — recursion depth for page hierarchy scans
+- `--concurrency <n>` — concurrent page inspections
+- `--page-size <n>` — page size for candidate collection APIs
+
+This is especially useful before changing a shared portal resource: it gives you
+read-before-write impact analysis without opening the UI or guessing where a
+resource might be referenced.
+
 ## `ldev portal audit`
 
 Minimal runtime audit of accessible site metadata and API reachability. Defaults to JSON.

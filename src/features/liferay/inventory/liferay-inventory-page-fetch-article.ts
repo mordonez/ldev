@@ -9,7 +9,7 @@ import {
 } from './liferay-inventory-page-assemble.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 
-export type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string};
+export type ArticleRef = {articleId: string; groupId: number; ddmTemplateKey?: string; structuredContentId?: number};
 
 export async function resolveDisplayPageArticle(
   gateway: LiferayGateway,

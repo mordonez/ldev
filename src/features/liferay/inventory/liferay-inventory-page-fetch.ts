@@ -18,6 +18,11 @@ import {
   type PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
 import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
+import {
+  buildDisplayPageEvidence,
+  buildRegularPageEvidence,
+  type PageEvidence,
+} from './liferay-inventory-page-evidence.js';
 import type {
   LiferayInventoryPageResult,
   PagePortletSummary,
@@ -25,6 +30,7 @@ import type {
 } from './liferay-inventory-page.js';
 import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
 import {classNameIdLookupCache} from '../lookup-cache.js';
+import {buildDisplayPageFriendlyUrl, buildDisplayPageUrl} from './liferay-inventory-display-page-url.js';
 import {resolveDisplayPageArticle, resolveStructuredContentData} from './liferay-inventory-page-fetch-article.js';
 import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
 import {fetchComponentPageData} from './liferay-inventory-page-fetch-components.js';
@@ -114,8 +120,10 @@ export async function fetchDisplayPageInventory(
     siteName: site.name,
     siteFriendlyUrl: site.friendlyUrlPath,
     groupId: site.id,
-    url: buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
-    friendlyUrl: `/w/${urlTitle}`,
+    url:
+      buildDisplayPageUrl(site.friendlyUrlPath, urlTitle) ??
+      buildPageUrl(site.friendlyUrlPath, `/w/${urlTitle}`, false),
+    friendlyUrl: buildDisplayPageFriendlyUrl(urlTitle) ?? `/w/${urlTitle}`,
     article: {
       id: article.id ?? -1,
       key: article.key ?? '',
@@ -124,6 +132,11 @@ export async function fetchDisplayPageInventory(
       contentStructureId: Number(article.contentStructureId ?? -1),
     },
     ...(articleAdminUrls ? {adminUrls: articleAdminUrls} : {}),
+    evidence: buildDisplayPageEvidence({
+      article: {key: article.key ?? '', contentStructureId: Number(article.contentStructureId ?? -1)},
+      journalArticles: [journalArticle],
+      contentStructures,
+    }),
     journalArticles: [journalArticle],
     contentStructures,
   };
@@ -158,6 +171,7 @@ export async function fetchRegularPageInventory(
   let widgets: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}> = [];
   let journalArticles: JournalArticleSummary[] = [];
   let contentStructures: ContentStructureSummary[] = [];
+  let inheritedEvidence: PageEvidence[] = [];
 
   if (componentInspectionSupported) {
     const {
@@ -177,8 +191,40 @@ export async function fetchRegularPageInventory(
         ...(entry.portletId ? {portletId: entry.portletId} : {}),
         ...(entry.configuration ? {configuration: entry.configuration} : {}),
       }));
-    journalArticles = await collectLayoutJournalArticles(gateway, config, apiClient, site.id, rawFragmentLinks);
+    journalArticles = await collectLayoutJournalArticles(
+      gateway,
+      config,
+      apiClient,
+      site.id,
+      pageElement,
+      rawFragmentLinks,
+    );
     contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
+    inheritedEvidence = await collectMasterLayoutEvidence(
+      config,
+      gateway,
+      apiClient,
+      site.id,
+      site.friendlyUrlPath,
+      privateLayout,
+      Number(layout.masterLayoutPlid ?? 0),
+      matchedLocale ?? undefined,
+    );
+  }
+
+  if (['content', 'portlet'].includes(String(layout.type ?? '').toLowerCase())) {
+    const renderedJournalArticles = await collectRenderedJournalContentArticles(
+      config,
+      gateway,
+      apiClient,
+      site.id,
+      pageUrl,
+    );
+
+    if (renderedJournalArticles.length > 0) {
+      journalArticles = mergeJournalArticles(journalArticles, renderedJournalArticles);
+      contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
+    }
   }
 
   function buildRegularPageSummary(
@@ -323,6 +369,10 @@ export async function fetchRegularPageInventory(
     layoutDetails,
     configurationTabs,
     componentInspectionSupported,
+    evidence: [
+      ...buildRegularPageEvidence({fragmentEntryLinks, portlets, journalArticles, contentStructures}),
+      ...inheritedEvidence,
+    ],
     portlets,
     fragmentEntryLinks,
     widgets,
@@ -334,6 +384,175 @@ export async function fetchRegularPageInventory(
       ...(pageMetadata ? {sitePageMetadata: buildConfigurationRawSitePage(pageMetadata)} : {}),
     },
   };
+}
+
+async function collectMasterLayoutEvidence(
+  config: AppConfig,
+  gateway: LiferayGateway,
+  apiClient: HttpApiClient,
+  siteId: number,
+  siteFriendlyUrl: string,
+  privateLayout: boolean,
+  masterLayoutPlid: number,
+  localeHint?: string,
+): Promise<PageEvidence[]> {
+  if (masterLayoutPlid <= 0) {
+    return [];
+  }
+
+  const masterLayout = await findLayoutByPlidRecursive(gateway, siteId, privateLayout, 0, masterLayoutPlid);
+  if (!masterLayout) {
+    return [];
+  }
+
+  const masterFriendlyUrl = String(masterLayout.friendlyURL ?? '').trim();
+  if (masterFriendlyUrl === '') {
+    return [];
+  }
+
+  const {pageElement, rawFragmentLinks} = await fetchComponentPageData(
+    gateway,
+    siteId,
+    masterFriendlyUrl,
+    Number(masterLayout.plid ?? -1),
+  );
+  const masterFragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, localeHint ?? null);
+  const masterJournalArticles = await collectLayoutJournalArticles(
+    gateway,
+    config,
+    apiClient,
+    siteId,
+    pageElement,
+    rawFragmentLinks,
+  );
+  const masterContentStructures = await collectLayoutContentStructures(
+    gateway,
+    config,
+    apiClient,
+    masterJournalArticles,
+  );
+
+  await enrichFragmentEntryExportPaths(config, gateway, siteFriendlyUrl, masterFragmentEntryLinks, apiClient);
+
+  return buildRegularPageEvidence({
+    fragmentEntryLinks: masterFragmentEntryLinks,
+    journalArticles: masterJournalArticles,
+    contentStructures: masterContentStructures,
+  });
+}
+
+async function collectRenderedJournalContentArticles(
+  config: AppConfig,
+  gateway: LiferayGateway,
+  apiClient: HttpApiClient,
+  siteId: number,
+  pageUrl: string,
+): Promise<JournalArticleSummary[]> {
+  const html = await fetchRenderedPageHtml(config, apiClient, pageUrl);
+  if (html === '') {
+    return [];
+  }
+
+  const refs = extractRenderedJournalArticleRefs(html);
+  const results: JournalArticleSummary[] = [];
+
+  for (const ref of refs) {
+    results.push({
+      ...(await buildJournalArticleSummary(
+        gateway,
+        config,
+        apiClient,
+        {articleId: ref.articleId, groupId: siteId},
+        {
+          fallbackTitle: ref.title ?? ref.articleId,
+          includeHeadlessInventoryFields: true,
+        },
+      )),
+      discoverySource: 'renderedHtmlJournalContent',
+    });
+  }
+
+  return results;
+}
+
+async function fetchRenderedPageHtml(config: AppConfig, apiClient: HttpApiClient, pageUrl: string): Promise<string> {
+  try {
+    const response = await apiClient.get<string>(config.liferay.url, pageUrl, {
+      headers: {Accept: 'text/html,application/xhtml+xml'},
+      timeoutSeconds: config.liferay.timeoutSeconds,
+    });
+    return response.ok ? response.body : '';
+  } catch {
+    return '';
+  }
+}
+
+function extractRenderedJournalArticleRefs(html: string): Array<{articleId: string; title?: string}> {
+  const refs = new Map<string, {articleId: string; title?: string}>();
+  const tagPattern = /<div\b[^>]*class=["'][^"']*\bjournal-content-article\b[^"']*["'][^>]*>/gi;
+
+  for (const match of html.matchAll(tagPattern)) {
+    const tag = match[0];
+    const articleId = extractHtmlAttribute(tag, 'data-analytics-asset-id')?.trim();
+    if (!articleId) {
+      continue;
+    }
+
+    const title = extractHtmlAttribute(tag, 'data-analytics-asset-title');
+    refs.set(articleId, {
+      articleId,
+      ...(title ? {title: decodeRenderedHtmlEntities(title)} : {}),
+    });
+  }
+
+  return [...refs.values()];
+}
+
+function extractHtmlAttribute(tag: string, attribute: string): string | undefined {
+  const pattern = new RegExp(`${attribute}=["']([^"']*)["']`, 'i');
+  const match = tag.match(pattern);
+  return match?.[1];
+}
+
+function decodeRenderedHtmlEntities(value: string): string {
+  const entityMap: Record<string, string> = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&uacute;': 'ú',
+  };
+
+  return value
+    .replace(/&(nbsp|amp|lt|gt|quot|#39|uacute);/g, (entity) => entityMap[entity] ?? entity)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mergeJournalArticles(
+  existing: JournalArticleSummary[],
+  discovered: JournalArticleSummary[],
+): JournalArticleSummary[] {
+  const merged = new Map<string, JournalArticleSummary>();
+
+  for (const article of existing) {
+    merged.set(buildJournalArticleIdentity(article), article);
+  }
+
+  for (const article of discovered) {
+    const key = buildJournalArticleIdentity(article);
+    if (!merged.has(key)) {
+      merged.set(key, article);
+    }
+  }
+
+  return [...merged.values()];
+}
+
+function buildJournalArticleIdentity(article: JournalArticleSummary): string {
+  return `${article.groupId ?? -1}:${article.articleId}`;
 }
 
 function resolveRegularPageUiType(layoutType: string | undefined): string {

@@ -29,6 +29,8 @@ ldev portal inventory sites --json
 ldev portal inventory pages --site /global --json
 ldev portal inventory page --url /home --json
 ldev portal inventory structures --site /global --with-templates --json
+ldev portal inventory templates --site /global --json
+ldev portal inventory where-used --type structure --key BASIC --site /global --json
 ```
 
 Each one consolidates information that the Headless API only returns in
@@ -42,6 +44,17 @@ fragments. Highlights:
 - `inventory structures --with-templates` — structures enriched with their
   associated templates in one call, the right starting point for
   structure/template work
+- `inventory templates` — template inventory when you already know the site and
+  need template-specific identifiers
+- `inventory where-used` — impact analysis for a known fragment, widget,
+  structure, template, or ADT before proposing a mutation
+
+For structure/template incidents, prefer `inventory structures --with-templates`
+as the first step: it returns both in one call, so you can route directly to
+the matching `resource export-*` or `resource import-*` command.
+
+When possible, add `--site` so the scan stays scoped to one Site instead of all
+accessible Sites.
 
 ## Preflight: fail fast before long flows
 

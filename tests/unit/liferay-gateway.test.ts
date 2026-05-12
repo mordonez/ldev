@@ -139,6 +139,20 @@ describe('LiferayGateway', () => {
       await expect(gateway.getJson('/api/test', 'fetch')).rejects.toThrow(/status=503/);
     });
 
+    test('includes request path in error message', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      const response = mockHttpResponse(false, 404, null);
+
+      vi.mocked(apiClient.get).mockResolvedValue(response);
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+
+      await expect(
+        gateway.getJson('/o/headless-delivery/v1.0/sites/20121/structured-contents', 'fetch'),
+      ).rejects.toThrow(/path=\/o\/headless-delivery\/v1\.0\/sites\/20121\/structured-contents/);
+    });
+
     test('returns null data as null', async () => {
       const apiClient = createMockApiClient();
       const tokenClient = createMockTokenClient();
