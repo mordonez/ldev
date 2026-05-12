@@ -82,6 +82,10 @@ function fail(message) {
   process.exit(1);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function decodeEscapes(text) {
   return text
     .replace(/\\\\n/g, '\\n')
@@ -108,6 +112,9 @@ if (
   args[0] === 'compose' &&
   ['pull', 'up', 'stop', 'down', 'restart', 'logs', 'rm'].includes(args[1] ?? '')
 ) {
+  if (args[1] === 'up' && process.env.FAKE_DOCKER_DELAY_COMPOSE_UP_MS) {
+    await sleep(Number(process.env.FAKE_DOCKER_DELAY_COMPOSE_UP_MS));
+  }
   if (args[1] === 'logs' && process.env.FAKE_DOCKER_LOGS_OUTPUT) {
     print(decodeEscapes(process.env.FAKE_DOCKER_LOGS_OUTPUT));
   }
