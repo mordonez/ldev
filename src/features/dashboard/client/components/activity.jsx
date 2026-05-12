@@ -88,51 +88,55 @@ export function Activity({
             {hiddenCount ? 'All visible activity is hidden right now.' : 'Long-running actions will stream here.'}
           </div>
         ) : (
-          tasks.map((task) => {
-            const collapsedTask = taskCollapsed(task);
-            const lastEntry = task.logs?.[task.logs.length - 1] ?? null;
-            const leaving = leavingTaskIds.includes(task.id);
-            return (
-              <div class={classNames('task-card', task.status, collapsedTask && 'is-collapsed', leaving && 'is-leaving')} key={task.id}>
-                <div class="task-head">
-                  <div class="task-head-copy">
-                    <div class="task-title">{task.label}</div>
-                    <div class="task-sub">
-                      {taskTime(task.startedAt)}
-                      {task.endedAt ? ` - ${taskTime(task.endedAt)}` : ''}
+          <div class="activity-list">
+            {tasks.map((task) => {
+              const collapsedTask = taskCollapsed(task);
+              const lastEntry = task.logs?.[task.logs.length - 1] ?? null;
+              const leaving = leavingTaskIds.includes(task.id);
+              return (
+                <article class={classNames('task-card', task.status, collapsedTask && 'is-collapsed', leaving && 'is-leaving')} key={task.id}>
+                  <div class="task-head">
+                    <div class="task-head-copy">
+                      <div class="task-title-row">
+                        <div class="task-title">{task.label}</div>
+                        <span class={classNames('task-status', task.status)}>
+                          {task.status === 'succeeded' ? 'done' : task.status}
+                        </span>
+                      </div>
+                      <div class="task-sub">
+                        {taskTime(task.startedAt)}
+                        {task.endedAt ? ` - ${taskTime(task.endedAt)}` : ''}
+                      </div>
+                      {collapsedTask && lastEntry?.message ? <div class="task-preview">{lastEntry.message}</div> : null}
                     </div>
-                    {collapsedTask && lastEntry?.message ? <div class="task-preview">{lastEntry.message}</div> : null}
-                  </div>
-                  <div class="task-head-actions">
-                    <button class="task-toggle" type="button" onClick={() => onToggleTask(task.id)}>
-                      {collapsedTask ? 'Expand' : 'Collapse'}
-                    </button>
-                    {task.status === 'running' ? (
-                      <button class="task-cancel" type="button" onClick={() => onCancel(task.id)}>
-                        Cancel
+                    <div class="task-head-actions">
+                      <button class="task-toggle" type="button" onClick={() => onToggleTask(task.id)}>
+                        {collapsedTask ? 'Expand' : 'Collapse'}
                       </button>
-                    ) : null}
-                    {!isActiveTask(task) ? (
-                      <button class="task-dismiss" type="button" onClick={() => handleDismiss(task.id)}>
-                        Dismiss
-                      </button>
-                    ) : null}
-                    <span class={classNames('task-status', task.status)}>
-                      {task.status === 'succeeded' ? 'done' : task.status}
-                    </span>
-                  </div>
-                </div>
-                <div class="task-log">
-                  {(task.logs || []).map((entry) => (
-                    <div class={classNames('task-line', entry.level)} key={entry.id}>
-                      <span class="task-time">{taskTime(entry.timestamp)}</span>
-                      <span class="task-msg">{entry.message}</span>
+                      {task.status === 'running' ? (
+                        <button class="task-cancel" type="button" onClick={() => onCancel(task.id)}>
+                          Cancel
+                        </button>
+                      ) : null}
+                      {!isActiveTask(task) ? (
+                        <button class="task-dismiss" type="button" onClick={() => handleDismiss(task.id)}>
+                          Dismiss
+                        </button>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })
+                  </div>
+                  <div class="task-log">
+                    {(task.logs || []).map((entry) => (
+                      <div class={classNames('task-line', entry.level)} key={entry.id}>
+                        <span class="task-time">{taskTime(entry.timestamp)}</span>
+                        <span class="task-msg">{entry.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
       </div>
     </aside>
