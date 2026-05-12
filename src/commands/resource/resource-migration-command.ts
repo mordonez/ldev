@@ -1,6 +1,6 @@
 import type {Command} from 'commander';
 
-import {registerResourceWorkflow, type ResourceCommandOptionBag} from './resource-workflow.js';
+import {registerResourceWorkflow, type ResourceCommandOptionBag} from './resource.command.js';
 import {
   formatLiferayResourceMigrationInit,
   formatLiferayResourceMigrationPipeline,

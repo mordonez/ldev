@@ -1,6 +1,6 @@
 import type {Command} from 'commander';
 
-import {registerResourceWorkflow, requireResourceValue, type ResourceCommandOptionBag} from './resource-workflow.js';
+import {o, registerResourceWorkflow, requireResourceValue, type ResourceCommandOptionBag} from './resource.command.js';
 import {
   formatLiferayResourceAdt,
   runLiferayResourceGetAdt,
@@ -87,14 +87,15 @@ export function registerResourceReadCommands(resource: Command): void {
     name: 'adts',
     description: 'List application display templates for a site',
     configure: (command) =>
-      command
-        .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
-        .option('--widget-type <widgetType>', 'Optional widget type filter')
-        .option(
-          '--class-name <className>',
-          'Explicit Java class name to query when the widget type is not in the built-in map',
-        )
-        .option('--include-script', 'Include template script in JSON output'),
+      o.site()(
+        command
+          .option('--widget-type <widgetType>', 'Optional widget type filter')
+          .option(
+            '--class-name <className>',
+            'Explicit Java class name to query when the widget type is not in the built-in map',
+          )
+          .option('--include-script', 'Include template script in JSON output'),
+      ),
     run: async (context, options) =>
       runLiferayResourceListAdts(context.config, {
         site: options.site,
@@ -108,7 +109,7 @@ export function registerResourceReadCommands(resource: Command): void {
   registerResourceWorkflow(resource, {
     name: 'fragments',
     description: 'List fragment collections and fragment entries for a site',
-    configure: (command) => command.option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
+    configure: o.site(),
     run: async (context, options) =>
       runLiferayResourceListFragments(context.config, {
         site: options.site,

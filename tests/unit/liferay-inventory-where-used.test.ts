@@ -9,6 +9,7 @@ import {
 } from '../../src/features/liferay/inventory/liferay-inventory-where-used-display-pages.js';
 import {buildPageMatch} from '../../src/features/liferay/inventory/liferay-inventory-where-used-pages.js';
 import {collectWhereUsedPageCandidates} from '../../src/features/liferay/inventory/liferay-inventory-where-used-page-candidates.js';
+import {whereUsedPlanResultSchema, whereUsedResultSchema} from '../../src/core/contracts/inventory.schema.js';
 import {
   buildWhereUsedAdtKeys,
   collectWhereUsedFragmentKeys,
@@ -18,8 +19,6 @@ import {
   isSkippableWhereUsedCandidateError,
   matchPageAgainstResource,
   selectWhereUsedSites,
-  validateWhereUsedPlanResult,
-  validateWhereUsedResult,
   validateWhereUsedQuery,
   validateWhereUsedScopeOptions,
   type WhereUsedResult,
@@ -484,7 +483,7 @@ describe('matchPageAgainstResource - structures and templates', () => {
   });
 
   test('formats where-used plans and validates the dedicated plan contract', () => {
-    const result = validateWhereUsedPlanResult({
+    const result = whereUsedPlanResultSchema.parse({
       inventoryType: 'whereUsedPlan',
       query: {type: 'template', keys: ['UB_TPL_DESTACATS_MULTIMEDIA']},
       scope: {
@@ -521,7 +520,7 @@ describe('matchPageAgainstResource - structures and templates', () => {
   });
 
   test('includes skipped ranking sites in real where-used results and formatter output', () => {
-    const result = validateWhereUsedResult({
+    const result = whereUsedResultSchema.parse({
       inventoryType: 'whereUsed',
       query: {type: 'template', keys: ['UB_TPL_DESTACATS_MULTIMEDIA']},
       scope: {
@@ -1034,9 +1033,9 @@ describe('formatLiferayInventoryWhereUsed', () => {
   });
 });
 
-describe('validateWhereUsedResult', () => {
+describe('whereUsedResultSchema', () => {
   test('coerces numeric portal groupId values returned as strings', () => {
-    const result = validateWhereUsedResult({
+    const result = whereUsedResultSchema.parse({
       inventoryType: 'whereUsed',
       query: {type: 'template', keys: ['TPL']},
       scope: {sites: ['/actualitat'], includePrivate: false, concurrency: 4, maxDepth: 12},
@@ -1063,7 +1062,7 @@ describe('validateWhereUsedResult', () => {
   });
 
   test('accepts adt query and match kind in the result schema', () => {
-    const result = validateWhereUsedResult({
+    const result = whereUsedResultSchema.parse({
       inventoryType: 'whereUsed',
       query: {type: 'adt', keys: ['ddmTemplate_40801']},
       scope: {sites: ['/global'], includePrivate: false, concurrency: 4, maxDepth: 12},

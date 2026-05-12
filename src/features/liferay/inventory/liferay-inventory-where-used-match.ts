@@ -1,5 +1,5 @@
 import {extractPageEvidence, type PageEvidence, type PageEvidenceKind} from './liferay-inventory-page-evidence.js';
-import type {WhereUsedResourceTypeValue} from './liferay-inventory-evidence-contract.js';
+import type {WhereUsedResourceTypeValue} from '../../../core/contracts/inventory.schema.js';
 import type {LiferayInventoryPageResult} from './liferay-inventory-page.js';
 import {normalizeWhereUsedEvidence} from './liferay-inventory-where-used-normalize.js';
 

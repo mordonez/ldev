@@ -1,6 +1,6 @@
 import type {Command} from 'commander';
 
-import {buildResourceCommand} from '../resource/resource-command-builder.js';
+import {buildResourceCommand} from '../resource/resource.command.js';
 
 export function createResourceCommands(parent: Command): void {
   parent.addCommand(

@@ -1,5 +1,7 @@
 import {z} from 'zod';
 
+import {pageEvidenceSourceSchema} from '../../../core/contracts/inventory.schema.js';
+
 export type PageEvidenceContext = {
   articleId?: string;
   articleTitle?: string;
@@ -31,41 +33,11 @@ export const pageEvidenceKinds = [
   'displayPageArticle',
 ] as const;
 
-export const whereUsedResourceTypes = ['fragment', 'widget', 'portlet', 'structure', 'template', 'adt'] as const;
-
-export const whereUsedMatchKinds = [
-  'fragmentEntry',
-  'widgetEntry',
-  'widgetAdt',
-  'portlet',
-  'journalArticleStructure',
-  'journalArticleTemplate',
-  'fragmentMappedStructure',
-  'fragmentMappedTemplate',
-  'contentStructure',
-  'displayPageArticle',
-] as const;
-
-export const pageEvidenceSourceValues = [
-  'fragmentEntryLink',
-  'portletLayout',
-  'journalArticle',
-  'renderedHtmlJournalContent',
-  'contentStructure',
-  'displayPageArticle',
-] as const;
+export const pageEvidenceResourceTypeSchema = z.enum(pageEvidenceResourceTypes);
+export const pageEvidenceKindSchema = z.enum(pageEvidenceKinds);
 
 export type PageEvidenceResourceTypeValue = (typeof pageEvidenceResourceTypes)[number];
 export type PageEvidenceKindValue = (typeof pageEvidenceKinds)[number];
-export type WhereUsedResourceTypeValue = (typeof whereUsedResourceTypes)[number];
-export type WhereUsedMatchKindValue = (typeof whereUsedMatchKinds)[number];
-export type PageEvidenceSourceValue = (typeof pageEvidenceSourceValues)[number];
-
-export const pageEvidenceResourceTypeSchema = z.enum(pageEvidenceResourceTypes);
-export const pageEvidenceKindSchema = z.enum(pageEvidenceKinds);
-export const whereUsedResourceTypeSchema = z.enum(whereUsedResourceTypes);
-export const whereUsedMatchKindSchema = z.enum(whereUsedMatchKinds);
-export const pageEvidenceSourceSchema = z.enum(pageEvidenceSourceValues);
 
 export const pageEvidenceContextSchema = z
   .object({

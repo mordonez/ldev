@@ -1,8 +1,8 @@
+import type {PageEvidenceSourceValue} from '../../../core/contracts/inventory.schema.js';
 import type {
   PageEvidenceContext as PageEvidenceContextContract,
   PageEvidenceKindValue,
   PageEvidenceResourceTypeValue,
-  PageEvidenceSourceValue,
 } from './liferay-inventory-evidence-contract.js';
 import type {
   ContentStructureSummary,

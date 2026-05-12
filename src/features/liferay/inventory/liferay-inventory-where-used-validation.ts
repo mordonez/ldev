@@ -1,6 +1,6 @@
 import {CliError} from '../../../core/errors.js';
 import {normalizeFriendlyUrl} from '../portal/site-resolution.js';
-import {whereUsedResourceTypes} from './liferay-inventory-evidence-contract.js';
+import {whereUsedResourceTypes} from '../../../core/contracts/inventory.schema.js';
 import type {WhereUsedQuery, WhereUsedResourceType} from './liferay-inventory-where-used-match.js';
 
 export const whereUsedSiteOrderValues = ['site', 'name', 'content'] as const;

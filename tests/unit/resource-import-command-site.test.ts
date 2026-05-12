@@ -39,7 +39,7 @@ describe('resource import-template command', () => {
     );
     await fs.writeFile(path.join(templateDir, 'BASIC.ftl'), 'hello');
 
-    const {buildResourceCommand} = await import('../../src/commands/resource/resource-command-builder.js');
+    const {buildResourceCommand} = await import('../../src/commands/resource/resource.command.js');
 
     const cli = buildResourceCommand({description: 'test', helpText: ''});
 

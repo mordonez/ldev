@@ -6,7 +6,11 @@ import {mapConcurrent} from '../../../core/concurrency.js';
 import {CliError} from '../../../core/errors.js';
 import {runContentStats, type ContentStatsSite} from '../content/liferay-content-stats.js';
 import {normalizeFriendlyUrl} from '../portal/site-resolution.js';
-import {whereUsedResourceTypes} from './liferay-inventory-evidence-contract.js';
+import {
+  whereUsedResourceTypes,
+  whereUsedResultSchema,
+  whereUsedPlanResultSchema,
+} from '../../../core/contracts/inventory.schema.js';
 import {extractPageEvidence} from './liferay-inventory-page-evidence.js';
 import {resolveInventoryPageRequest, runLiferayInventoryPage} from './liferay-inventory-page.js';
 import {createInventoryGateway} from './liferay-inventory-shared.js';
@@ -21,13 +25,17 @@ import {
   type WhereUsedQuery,
   type WhereUsedResourceType,
 } from './liferay-inventory-where-used-match.js';
-import {validateWhereUsedPlanResult, validateWhereUsedResult} from './liferay-inventory-where-used-schema.js';
 import {buildPageMatch, type WhereUsedPageMatch} from './liferay-inventory-where-used-pages.js';
 import {collectWhereUsedPageCandidates} from './liferay-inventory-where-used-page-candidates.js';
 
 export {matchEvidenceAgainstResource, matchPageAgainstResource} from './liferay-inventory-where-used-match.js';
 export {formatLiferayInventoryWhereUsed} from './liferay-inventory-where-used-format.js';
-export {validateWhereUsedPlanResult, validateWhereUsedResult} from './liferay-inventory-where-used-schema.js';
+export {
+  whereUsedResultSchema,
+  whereUsedPlanResultSchema,
+  type WhereUsedResultContract,
+  type WhereUsedPlanResultContract,
+} from '../../../core/contracts/inventory.schema.js';
 export {
   buildWhereUsedAdtKeys,
   collectWhereUsedAdtKeys,
@@ -242,7 +250,7 @@ export async function runLiferayInventoryWhereUsed(
   const layoutScopes: boolean[] = includePrivate ? [false, true] : [false];
 
   if (scopeOptions.plan) {
-    return validateWhereUsedPlanResult({
+    return whereUsedPlanResultSchema.parse({
       inventoryType: 'whereUsedPlan',
       query,
       scope: {
@@ -279,7 +287,7 @@ export async function runLiferayInventoryWhereUsed(
     );
   }
 
-  return validateWhereUsedResult({
+  return whereUsedResultSchema.parse({
     inventoryType: 'whereUsed',
     query,
     scope: {
