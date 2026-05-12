@@ -6,8 +6,8 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {runLiferayInventoryStructures} from '../inventory/liferay-inventory-structures.js';
 import {runLiferayResourceGetStructure} from './liferay-resource-get-structure.js';
 import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
-import {resolveSiteToken} from './liferay-resource-paths.js';
-import {resolveArtifactSiteDir} from './artifact-paths.js';
+import {resolveSiteToken} from '../portal/artifact-paths.js';
+import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
 import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 

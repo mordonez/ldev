@@ -1,3 +1,0 @@
-build-verifier
-issue-resolver
-runtime-verifier

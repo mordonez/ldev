@@ -5,9 +5,9 @@ import type {HttpApiClient} from '../../../core/http/client.js';
 import {type FragmentEntryLink, type PageFragmentEntry} from './liferay-inventory-page-assemble.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
-import {resolveSiteToken} from '../portal/site-token.js';
+import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {tryResolveFragmentsBaseDir} from '../portal/artifact-paths.js';
-import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
+import {safeGatewayGet} from './liferay-inventory-shared.js';
 
 export async function tryFetchFragmentEntryLinks(
   gateway: LiferayGateway,
@@ -131,4 +131,81 @@ async function findFragmentDir(root: string, fragmentKey: string): Promise<strin
     }
   }
   return null;
+}
+
+// ── Fragment content summary enrichment ───────────────────────────────────────
+
+export function enrichFragmentEntrySummaries(entries: PageFragmentEntry[]): void {
+  for (const entry of entries) {
+    if (entry.type !== 'fragment' || !entry.fragmentKey) {
+      continue;
+    }
+    const editableFields = new Map((entry.editableFields ?? []).map((field) => [field.id, field.value]));
+    const fields = [...editableFields.entries()]
+      .map(([id, value]) => ({id: id.trim(), value: String(value).trim()}))
+      .filter((field) => field.id !== '' && field.value !== '');
+    const field = (id: string): string => String(editableFields.get(id) ?? '').trim();
+    const firstFieldValue = (patterns: RegExp[]): string | undefined => {
+      for (const pattern of patterns) {
+        const match = fields.find((candidate) => pattern.test(candidate.id));
+        if (match) return match.value;
+      }
+      return undefined;
+    };
+    const listFieldValues = (patterns: RegExp[]): string[] =>
+      fields
+        .filter((candidate) => patterns.some((pattern) => pattern.test(candidate.id)))
+        .sort((left, right) => left.id.localeCompare(right.id, undefined, {numeric: true}))
+        .map((candidate) => candidate.value)
+        .filter(Boolean);
+    const stripHtml = (value: string): string =>
+      value
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const truncate = (value: string, maxLength: number): string =>
+      value.length > maxLength ? `${value.slice(0, maxLength - 1).trimEnd()}…` : value;
+
+    const title = firstFieldValue([/^title$/i, /(?:^|[._-])(title|heading|header|label|name)(?:[._-]|$)/i]);
+
+    let cardCount: number | undefined;
+
+    const heroSource =
+      (firstFieldValue([
+        /^summary$/i,
+        /^description$/i,
+        /(?:^|[._-])(intro|intro-paragraph|paragraph|text|body|content|summary|description)(?:[._-]|$)/i,
+      ]) ??
+        field('paragraph')) ||
+      field('text');
+    const heroText = truncate(stripHtml(heroSource), 160) || undefined;
+
+    const navigationItems =
+      listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i]).length > 0
+        ? listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i])
+        : undefined;
+
+    const totalLinks = Number(entry.configuration?.totalLinks ?? Number.NaN);
+    if (Number.isFinite(totalLinks) && totalLinks > 0) {
+      cardCount = totalLinks;
+    } else {
+      const cardLikeFields = fields.filter((candidate) =>
+        /(?:^|[._-])(card|item|link)-\d+(?:[._-]|$)/i.test(candidate.id),
+      );
+      if (cardLikeFields.length > 0) {
+        cardCount = cardLikeFields.length;
+      }
+    }
+
+    const summaryParts = [title ? `title=${title}` : '', heroText ? `heroText=${heroText}` : '']
+      .filter(Boolean)
+      .concat(navigationItems && navigationItems.length > 0 ? [`navigationItems=${navigationItems.join(' | ')}`] : [])
+      .concat(typeof cardCount === 'number' ? [`cardCount=${cardCount}`] : []);
+
+    if (title) entry.title = title;
+    if (heroText) entry.heroText = heroText;
+    if (navigationItems && navigationItems.length > 0) entry.navigationItems = navigationItems;
+    if (typeof cardCount === 'number') entry.cardCount = cardCount;
+    if (summaryParts.length > 0) entry.contentSummary = summaryParts.join(' · ');
+  }
 }

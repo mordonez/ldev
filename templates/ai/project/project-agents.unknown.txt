@@ -1,1 +1,0 @@
-# Generic repositories intentionally receive no project Claude agents by default.

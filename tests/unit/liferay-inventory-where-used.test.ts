@@ -3,26 +3,29 @@ import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {CliError} from '../../src/core/errors.js';
 import type {LiferayInventoryPageResult} from '../../src/features/liferay/inventory/liferay-inventory-page.js';
 import {
-  collectDisplayPageCandidatesFromSources,
-  resetDisplayPageSourceSupportCache,
-  type DisplayPageSource,
-} from '../../src/features/liferay/inventory/liferay-inventory-where-used-display-pages.js';
-import {buildPageMatch} from '../../src/features/liferay/inventory/liferay-inventory-where-used-pages.js';
-import {collectWhereUsedPageCandidates} from '../../src/features/liferay/inventory/liferay-inventory-where-used-page-candidates.js';
-import {whereUsedPlanResultSchema, whereUsedResultSchema} from '../../src/core/contracts/inventory.schema.js';
+  whereUsedPlanResultSchema,
+  whereUsedResultSchema,
+  type WhereUsedResult,
+} from '../../src/core/contracts/inventory.schema.js';
+import {formatLiferayInventoryWhereUsed} from '../../src/features/liferay/inventory/liferay-inventory-where-used-format.js';
 import {
   buildWhereUsedAdtKeys,
+  collectWhereUsedAdtKeys,
   collectWhereUsedFragmentKeys,
   collectWhereUsedTemplateKeys,
-  collectWhereUsedAdtKeys,
-  formatLiferayInventoryWhereUsed,
-  isSkippableWhereUsedCandidateError,
-  matchPageAgainstResource,
   selectWhereUsedSites,
   validateWhereUsedQuery,
   validateWhereUsedScopeOptions,
-  type WhereUsedResult,
-} from '../../src/features/liferay/inventory/liferay-inventory-where-used.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-where-used-query.js';
+import {
+  buildPageMatch,
+  collectDisplayPageCandidatesFromSources,
+  collectWhereUsedPageCandidates,
+  isSkippableWhereUsedCandidateError,
+  matchPageAgainstResource,
+  resetDisplayPageSourceSupportCache,
+  type DisplayPageSource,
+} from '../../src/features/liferay/inventory/liferay-inventory-where-used-scan.js';
 import {buildPortalAbsoluteUrl} from '../../src/features/liferay/inventory/liferay-inventory-url.js';
 
 const REGULAR_PAGE_BASE: Extract<LiferayInventoryPageResult, {pageType: 'regularPage'}> = {

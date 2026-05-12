@@ -9,20 +9,12 @@ import {
   requireResourceValue,
 } from './resource.command.js';
 import {
-  formatLiferayResourceImportAdts,
-  getLiferayResourceImportAdtsExitCode,
+  formatLiferayResourceImportResult,
+  getLiferayResourceImportExitCode,
   runLiferayResourceImportAdts,
-} from '../../features/liferay/resource/liferay-resource-import-adts.js';
-import {
-  formatLiferayResourceImportStructures,
-  getLiferayResourceImportStructuresExitCode,
   runLiferayResourceImportStructures,
-} from '../../features/liferay/resource/liferay-resource-import-structures.js';
-import {
-  formatLiferayResourceImportTemplates,
-  getLiferayResourceImportTemplatesExitCode,
   runLiferayResourceImportTemplates,
-} from '../../features/liferay/resource/liferay-resource-import-templates.js';
+} from '../../features/liferay/resource/liferay-resource-import-shared.js';
 import {
   formatLiferayResourceSyncAdt,
   runLiferayResourceSyncAdt,
@@ -217,7 +209,7 @@ export function registerResourceImportCommands(resource: Command): void {
         allowBreakingChange: Boolean(options.allowBreakingChange),
         continueOnError: Boolean(options.continueOnError),
       }),
-    render: {text: formatLiferayResourceImportStructures, exitCode: getLiferayResourceImportStructuresExitCode},
+    render: {text: formatLiferayResourceImportResult, exitCode: getLiferayResourceImportExitCode},
   });
 
   registerResourceWorkflow(resource, {
@@ -251,7 +243,7 @@ export function registerResourceImportCommands(resource: Command): void {
         structureKey: options.structure as string | undefined,
         continueOnError: Boolean(options.continueOnError),
       }),
-    render: {text: formatLiferayResourceImportTemplates, exitCode: getLiferayResourceImportTemplatesExitCode},
+    render: {text: formatLiferayResourceImportResult, exitCode: getLiferayResourceImportExitCode},
   });
 
   registerResourceWorkflow(resource, {
@@ -287,6 +279,6 @@ export function registerResourceImportCommands(resource: Command): void {
         createMissing: Boolean(options.createMissing),
         continueOnError: Boolean(options.continueOnError),
       }),
-    render: {text: formatLiferayResourceImportAdts, exitCode: getLiferayResourceImportAdtsExitCode},
+    render: {text: formatLiferayResourceImportResult, exitCode: getLiferayResourceImportExitCode},
   });
 }

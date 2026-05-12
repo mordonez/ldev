@@ -1,3 +1,0 @@
-# Workspace-specific project agent pack intentionally starts empty.
-# The shared issue-engineering skill is installed, but these helper agents stay
-# off by default until they add real repository-specific value in Workspace too.

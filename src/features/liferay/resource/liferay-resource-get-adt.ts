@@ -2,7 +2,7 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
-import {ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
+import {ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';

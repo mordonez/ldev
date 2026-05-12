@@ -24,13 +24,11 @@ import {
 } from './ai-install-rules.js';
 import {
   buildNextSteps,
-  buildProjectOverlayWarnings,
   buildWorkspaceCoexistenceWarnings,
   collectExistingProjectSkills,
   collectLocalSkills,
   installAgentsFile,
   installClaudeSkillCommands,
-  installProjectAgents,
   installProjectFile,
   installProjectOwnedSkills,
   resolveSelectedSkills,
@@ -55,7 +53,6 @@ export type AiCommandResult = {
   geminiInstalled: boolean;
   cursorrulesInstalled: boolean;
   projectSkillsInstalled: string[];
-  projectAgentsInstalled: string[];
   workspaceRulesInstalled: string[];
   workspaceToolTargetsUpdated: string[];
   rulesManifestPath: string;
@@ -140,11 +137,6 @@ export function formatAiResult(result: AiCommandResult): string {
   if (result.projectSkillsInstalled.length > 0) {
     lines.push(
       `Installed project skills: ${result.projectSkillsInstalled.length} (${result.projectSkillsInstalled.join(', ')})`,
-    );
-  }
-  if (result.projectAgentsInstalled.length > 0) {
-    lines.push(
-      `Installed project agents: ${result.projectAgentsInstalled.length} (${result.projectAgentsInstalled.join(', ')})`,
     );
   }
   if (result.claudeSkillCommandsInstalled.length > 0) {
@@ -240,18 +232,9 @@ async function applyAiInstall(options: {
   );
 
   let projectSkillsInstalled: string[] = [];
-  let projectAgentsInstalled: string[] = [];
   const warnings: string[] = [];
   if (options.project) {
     projectSkillsInstalled = await installProjectOwnedSkills(options.targetDir, options.assets, options.projectType);
-    projectAgentsInstalled = await installProjectAgents(options.targetDir, options.assets, options.projectType);
-    warnings.push(
-      ...buildProjectOverlayWarnings({
-        projectType: options.projectType,
-        projectSkillsInstalled,
-        projectAgentsInstalled,
-      }),
-    );
   }
 
   warnings.push(...buildWorkspaceCoexistenceWarnings(options.projectType, officialWorkspaceFilesDetected));
@@ -346,7 +329,6 @@ async function applyAiInstall(options: {
     geminiInstalled,
     cursorrulesInstalled,
     projectSkillsInstalled,
-    projectAgentsInstalled,
     workspaceRulesInstalled: workspaceRuleResult.installedRules,
     workspaceToolTargetsUpdated: workspaceRuleResult.touchedTargets,
     rulesManifestPath: aiRulesManifestPath,

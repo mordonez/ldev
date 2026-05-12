@@ -1,11 +1,11 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import path from 'node:path';
-import {resolveSiteToken} from './liferay-resource-paths.js';
+import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js';
 import fs from 'fs-extra';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
-import {resolveArtifactSiteDir} from './artifact-paths.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
+import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export async function runLiferayResourceExportTemplate(
   config: AppConfig,

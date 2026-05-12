@@ -1,6 +1,6 @@
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {LiferayErrors} from '../errors/index.js';
-import {getGatewayStatus, isGatewayError, isGatewayStatus} from './liferay-content-prune-context.js';
+import {getGatewayStatus, isGatewayError, isGatewayStatus} from './liferay-content-journal-shared.js';
 
 export type HeadlessFolder = {
   id?: number;

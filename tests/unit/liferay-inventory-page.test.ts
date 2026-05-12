@@ -8,7 +8,7 @@ import {
   resolveInventoryPageRequest,
   runLiferayInventoryPage,
 } from '../../src/features/liferay/inventory/liferay-inventory-page.js';
-import {matchPageAgainstResource} from '../../src/features/liferay/inventory/liferay-inventory-where-used.js';
+import {matchPageAgainstResource} from '../../src/features/liferay/inventory/liferay-inventory-where-used-scan.js';
 import {
   isRegularPageRequest,
   isSiteRootRequest,

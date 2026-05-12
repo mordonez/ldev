@@ -35,6 +35,9 @@ export {
   whereUsedResourceTypeSchema,
   whereUsedMatchKindSchema,
   pageEvidenceSourceSchema,
+  whereUsedQuerySchema,
+  whereUsedMatchSchema,
+  whereUsedPageMatchSchema,
   whereUsedResultSchema,
   whereUsedPlanResultSchema,
 } from './inventory.schema.js';
@@ -49,8 +52,16 @@ export type {
   WhereUsedResourceTypeValue,
   WhereUsedMatchKindValue,
   PageEvidenceSourceValue,
+  WhereUsedQuery,
+  WhereUsedResourceType,
+  WhereUsedMatchKind,
+  WhereUsedMatch,
+  WhereUsedPageMatch,
   WhereUsedResultContract,
   WhereUsedPlanResultContract,
+  WhereUsedResult,
+  WhereUsedPlanResult,
+  WhereUsedRunResult,
 } from './inventory.schema.js';
 
 // Resource schemas

@@ -3,7 +3,7 @@ import type {Printer} from '../../../core/output/printer.js';
 import {runStep} from '../../../core/output/run-step.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
-import {getGatewayStatus, isGatewayError, isGatewayStatus} from './liferay-content-prune-context.js';
+import {getGatewayStatus, isGatewayError, isGatewayStatus} from './liferay-content-journal-shared.js';
 import type {PruneContext} from './liferay-content-prune-context.js';
 import {
   computeRemovableFolderIds,

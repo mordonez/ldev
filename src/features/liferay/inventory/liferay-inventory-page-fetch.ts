@@ -3,12 +3,7 @@ import type {HttpApiClient} from '../../../core/http/client.js';
 import {toBooleanOrFalse} from '../../../core/utils/coerce.js';
 import {LiferayErrors} from '../errors/index.js';
 import type {ResolvedSite} from '../portal/site-resolution.js';
-import {
-  buildLayoutDetails,
-  buildPageUrl,
-  fetchLayoutsByParent,
-  type Layout,
-} from '../page-layout/liferay-layout-shared.js';
+import {buildLayoutDetails, buildPageUrl, fetchLayoutsByParent} from '../page-layout/liferay-layout-shared.js';
 import type {LiferayGateway} from '../liferay-gateway.js';
 import {buildJournalArticleAdminUrls, buildLayoutAdminUrls} from '../page-layout/liferay-page-admin-urls.js';
 import {
@@ -17,7 +12,6 @@ import {
   type JournalArticleSummary,
   type PageFragmentEntry,
 } from './liferay-inventory-page-assemble.js';
-import {KNOWN_LOCALES} from './liferay-inventory-page-url.js';
 import {
   buildDisplayPageEvidence,
   buildRegularPageEvidence,
@@ -28,13 +22,23 @@ import type {
   PagePortletSummary,
   ResolvedRegularLayoutPage,
 } from './liferay-inventory-page.js';
-import type {HeadlessSitePagePayload} from '../page-layout/liferay-site-page-shared.js';
-import {classNameIdLookupCache} from '../lookup-cache.js';
+import {
+  fetchHeadlessSitePageElement,
+  fetchHeadlessSitePageMetadata,
+  type HeadlessSitePagePayload,
+} from '../page-layout/liferay-site-page-shared.js';
 import {buildDisplayPageFriendlyUrl, buildDisplayPageUrl} from './liferay-inventory-display-page-url.js';
 import {resolveDisplayPageArticle, resolveStructuredContentData} from './liferay-inventory-page-fetch-article.js';
-import {safeGatewayGet} from './liferay-inventory-page-fetch-http.js';
-import {fetchComponentPageData} from './liferay-inventory-page-fetch-components.js';
-import {enrichFragmentEntryExportPaths} from './liferay-inventory-page-fetch-fragments.js';
+import {
+  resolveClassNameId,
+  findLayoutByFriendlyUrl,
+  findLayoutByPlidRecursive,
+} from './liferay-inventory-page-fetch-layout.js';
+import {
+  enrichFragmentEntryExportPaths,
+  enrichFragmentEntrySummaries,
+  tryFetchFragmentEntryLinks,
+} from './liferay-inventory-page-fetch-fragments.js';
 import {
   buildJournalArticleSummary,
   collectLayoutContentStructures,
@@ -46,8 +50,6 @@ import {
   buildRegularPageConfigurationTabs,
   parseTypeSettingsMap,
 } from './liferay-inventory-page-fetch-config.js';
-
-type LayoutMatch = {layout: Layout; locale: string | null};
 
 const CLASS_NAME_LAYOUT = 'com.liferay.portal.kernel.model.Layout';
 const CLASS_NAME_JOURNAL_ARTICLE = 'com.liferay.journal.model.JournalArticle';
@@ -174,15 +176,12 @@ export async function fetchRegularPageInventory(
   let inheritedEvidence: PageEvidence[] = [];
 
   if (componentInspectionSupported) {
-    const {
-      pageElement,
-      pageMetadata: fetchedMetadata,
-      rawFragmentLinks,
-    } = await fetchComponentPageData(gateway, site.id, canonicalFriendlyUrl, layout.plid ?? -1);
-    pageMetadata = fetchedMetadata;
+    const pageElement = await fetchHeadlessSitePageElement(gateway, site.id, canonicalFriendlyUrl);
+    pageMetadata = await fetchHeadlessSitePageMetadata(gateway, site.id, canonicalFriendlyUrl);
+    const rawFragmentLinks = await tryFetchFragmentEntryLinks(gateway, site.id, layout.plid ?? -1);
     configurationTabs = buildRegularPageConfigurationTabs(layout, layoutDetails, privateLayout, pageMetadata);
     fragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, matchedLocale);
-    enrichRegularPageFragmentSummaries(fragmentEntryLinks);
+    enrichFragmentEntrySummaries(fragmentEntryLinks);
     await enrichFragmentEntryExportPaths(config, gateway, site.friendlyUrlPath, fragmentEntryLinks, apiClient);
     widgets = fragmentEntryLinks
       .filter((entry) => entry.type === 'widget' && entry.widgetName)
@@ -224,116 +223,6 @@ export async function fetchRegularPageInventory(
     if (renderedJournalArticles.length > 0) {
       journalArticles = mergeJournalArticles(journalArticles, renderedJournalArticles);
       contentStructures = await collectLayoutContentStructures(gateway, config, apiClient, journalArticles);
-    }
-  }
-
-  function buildRegularPageSummary(
-    layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
-    fragmentEntryLinks?: PageFragmentEntry[],
-    widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>,
-    portlets?: PagePortletSummary[],
-  ): {
-    layoutTemplateId?: string;
-    targetUrl?: string;
-    fragmentCount: number;
-    widgetCount: number;
-  } {
-    const headlessWidgetCount = widgets?.length ?? 0;
-    const fragmentWidgetCount = fragmentEntryLinks?.filter((entry) => entry.type === 'widget').length ?? 0;
-    const classicPortletCount = portlets?.length ?? 0;
-
-    return {
-      ...(layoutDetails.layoutTemplateId ? {layoutTemplateId: layoutDetails.layoutTemplateId} : {}),
-      ...(layoutDetails.targetUrl ? {targetUrl: layoutDetails.targetUrl} : {}),
-      fragmentCount: fragmentEntryLinks?.filter((entry) => entry.type === 'fragment').length ?? 0,
-      widgetCount: Math.max(headlessWidgetCount, fragmentWidgetCount, classicPortletCount),
-    };
-  }
-
-  function enrichRegularPageFragmentSummaries(entries: PageFragmentEntry[]): void {
-    for (const entry of entries) {
-      if (entry.type !== 'fragment' || !entry.fragmentKey) {
-        continue;
-      }
-      const editableFields = new Map((entry.editableFields ?? []).map((field) => [field.id, field.value]));
-      const fields = [...editableFields.entries()]
-        .map(([id, value]) => ({id: id.trim(), value: String(value).trim()}))
-        .filter((field) => field.id !== '' && field.value !== '');
-      const field = (id: string): string => String(editableFields.get(id) ?? '').trim();
-      const firstFieldValue = (patterns: RegExp[]): string | undefined => {
-        for (const pattern of patterns) {
-          const match = fields.find((candidate) => pattern.test(candidate.id));
-          if (match) {
-            return match.value;
-          }
-        }
-        return undefined;
-      };
-      const listFieldValues = (patterns: RegExp[]): string[] =>
-        fields
-          .filter((candidate) => patterns.some((pattern) => pattern.test(candidate.id)))
-          .sort((left, right) => left.id.localeCompare(right.id, undefined, {numeric: true}))
-          .map((candidate) => candidate.value)
-          .filter(Boolean);
-      const stripHtml = (value: string): string =>
-        value
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim();
-      const truncate = (value: string, maxLength: number): string =>
-        value.length > maxLength ? `${value.slice(0, maxLength - 1).trimEnd()}…` : value;
-
-      const title = firstFieldValue([/^title$/i, /(?:^|[._-])(title|heading|header|label|name)(?:[._-]|$)/i]);
-
-      let cardCount: number | undefined;
-
-      const heroSource =
-        (firstFieldValue([
-          /^summary$/i,
-          /^description$/i,
-          /(?:^|[._-])(intro|intro-paragraph|paragraph|text|body|content|summary|description)(?:[._-]|$)/i,
-        ]) ??
-          field('paragraph')) ||
-        field('text');
-      const heroText = truncate(stripHtml(heroSource), 160) || undefined;
-
-      const navigationItems =
-        listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i]).length > 0
-          ? listFieldValues([/^(?:item|link|menu)-\d+$/i, /(?:^|[._-])(item|link|menu)-\d+(?:[._-]|$)/i])
-          : undefined;
-
-      const totalLinks = Number(entry.configuration?.totalLinks ?? Number.NaN);
-      if (Number.isFinite(totalLinks) && totalLinks > 0) {
-        cardCount = totalLinks;
-      } else {
-        const cardLikeFields = fields.filter((candidate) =>
-          /(?:^|[._-])(card|item|link)-\d+(?:[._-]|$)/i.test(candidate.id),
-        );
-        if (cardLikeFields.length > 0) {
-          cardCount = cardLikeFields.length;
-        }
-      }
-
-      const summaryParts = [title ? `title=${title}` : '', heroText ? `heroText=${heroText}` : '']
-        .filter(Boolean)
-        .concat(navigationItems && navigationItems.length > 0 ? [`navigationItems=${navigationItems.join(' | ')}`] : [])
-        .concat(typeof cardCount === 'number' ? [`cardCount=${cardCount}`] : []);
-
-      if (title) {
-        entry.title = title;
-      }
-      if (heroText) {
-        entry.heroText = heroText;
-      }
-      if (navigationItems && navigationItems.length > 0) {
-        entry.navigationItems = navigationItems;
-      }
-      if (typeof cardCount === 'number') {
-        entry.cardCount = cardCount;
-      }
-      if (summaryParts.length > 0) {
-        entry.contentSummary = summaryParts.join(' · ');
-      }
     }
   }
 
@@ -410,12 +299,8 @@ async function collectMasterLayoutEvidence(
     return [];
   }
 
-  const {pageElement, rawFragmentLinks} = await fetchComponentPageData(
-    gateway,
-    siteId,
-    masterFriendlyUrl,
-    Number(masterLayout.plid ?? -1),
-  );
+  const pageElement = await fetchHeadlessSitePageElement(gateway, siteId, masterFriendlyUrl);
+  const rawFragmentLinks = await tryFetchFragmentEntryLinks(gateway, siteId, Number(masterLayout.plid ?? -1));
   const masterFragmentEntryLinks = collectPageElements(pageElement, rawFragmentLinks, localeHint ?? null);
   const masterJournalArticles = await collectLayoutJournalArticles(
     gateway,
@@ -555,6 +440,24 @@ function buildJournalArticleIdentity(article: JournalArticleSummary): string {
   return `${article.groupId ?? -1}:${article.articleId}`;
 }
 
+function buildRegularPageSummary(
+  layoutDetails: {layoutTemplateId?: string; targetUrl?: string},
+  fragmentEntryLinks?: PageFragmentEntry[],
+  widgets?: Array<{widgetName: string; portletId?: string; configuration?: Record<string, string>}>,
+  portlets?: PagePortletSummary[],
+): {layoutTemplateId?: string; targetUrl?: string; fragmentCount: number; widgetCount: number} {
+  const headlessWidgetCount = widgets?.length ?? 0;
+  const fragmentWidgetCount = fragmentEntryLinks?.filter((entry) => entry.type === 'widget').length ?? 0;
+  const classicPortletCount = portlets?.length ?? 0;
+
+  return {
+    ...(layoutDetails.layoutTemplateId ? {layoutTemplateId: layoutDetails.layoutTemplateId} : {}),
+    ...(layoutDetails.targetUrl ? {targetUrl: layoutDetails.targetUrl} : {}),
+    fragmentCount: fragmentEntryLinks?.filter((entry) => entry.type === 'fragment').length ?? 0,
+    widgetCount: Math.max(headlessWidgetCount, fragmentWidgetCount, classicPortletCount),
+  };
+}
+
 function resolveRegularPageUiType(layoutType: string | undefined): string {
   const normalized = String(layoutType ?? '')
     .trim()
@@ -671,176 +574,4 @@ export async function resolveRegularLayoutPageData(
       privateLayout,
     ),
   };
-}
-
-async function resolveClassNameId(config: AppConfig, gateway: LiferayGateway, className: string): Promise<number> {
-  const cacheKey = `${config.liferay.url}|${className}`;
-  const cached = classNameIdLookupCache.get(cacheKey);
-  if (cached && cached > 0) {
-    return cached;
-  }
-
-  const response = await safeGatewayGet<Record<string, unknown>>(
-    gateway,
-    `/api/jsonws/classname/fetch-class-name?value=${encodeURIComponent(className)}`,
-    'fetch-class-name',
-  );
-  const resolved = Number(response.data?.classNameId ?? -1);
-  if (!response.ok || resolved <= 0) {
-    throw LiferayErrors.inventoryError(
-      `Unable to resolve classNameId for ${className}. Verify JSONWS access to /api/jsonws/classname/fetch-class-name and portal credentials/permissions.`,
-    );
-  }
-
-  classNameIdLookupCache.set(cacheKey, resolved);
-  return resolved;
-}
-
-async function findLayoutByFriendlyUrl(
-  gateway: LiferayGateway,
-  groupId: number,
-  friendlyUrl: string,
-  privateLayout: boolean,
-  localeHint?: string,
-): Promise<LayoutMatch | null> {
-  // 1. Try exact match via recursive tree search (canonical URL, fast)
-  const canonical = await findLayoutByFriendlyUrlRecursive(gateway, groupId, friendlyUrl, privateLayout, 0);
-  if (canonical) {
-    return {layout: canonical, locale: null};
-  }
-
-  // 2. If a locale hint is available (from URL prefix like /es/web/...), use targeted JSONWS lookup
-  if (localeHint) {
-    const localeCandidates = [localeHint, ...KNOWN_LOCALES.filter((candidate) => candidate !== localeHint)];
-    for (const candidateLocale of localeCandidates) {
-      const match = await findLayoutByLocaleFriendlyUrl(gateway, groupId, friendlyUrl, privateLayout, candidateLocale);
-      if (match) {
-        return match;
-      }
-    }
-  }
-
-  // 3. Last resort for localized friendly URLs without a locale prefix.
-  // Try common locales and map the localized URL back to the canonical layout.
-  for (const candidateLocale of KNOWN_LOCALES) {
-    const match = await findLayoutByLocaleFriendlyUrl(gateway, groupId, friendlyUrl, privateLayout, candidateLocale);
-    if (match) {
-      return match;
-    }
-  }
-
-  return null;
-}
-
-async function findLayoutByLocaleFriendlyUrl(
-  gateway: LiferayGateway,
-  groupId: number,
-  friendlyUrl: string,
-  privateLayout: boolean,
-  languageId: string,
-): Promise<LayoutMatch | null> {
-  if (privateLayout) {
-    return null;
-  }
-
-  const plid = await findLocalizedPagePlid(gateway, groupId, friendlyUrl, languageId);
-  if (plid <= 0) {
-    return null;
-  }
-  const layout = await findLayoutByPlidRecursive(gateway, groupId, privateLayout, 0, plid);
-  return layout ? {layout, locale: languageId} : null;
-}
-
-async function findLocalizedPagePlid(
-  gateway: LiferayGateway,
-  groupId: number,
-  friendlyUrl: string,
-  languageId: string,
-): Promise<number> {
-  let page = 1;
-  let lastPage = 1;
-  const acceptLanguage = languageId.replace('_', '-');
-
-  while (page <= lastPage) {
-    const response = await safeGatewayGet<{
-      items?: Array<{id?: number; friendlyUrlPath?: string}>;
-      lastPage?: number;
-    }>(
-      gateway,
-      `/o/headless-delivery/v1.0/sites/${groupId}/site-pages?page=${page}&pageSize=100`,
-      `list-site-pages-${page}`,
-      {headers: {'Accept-Language': acceptLanguage}},
-    );
-
-    if (!response.ok || !response.data) {
-      return -1;
-    }
-
-    const items = Array.isArray(response.data.items) ? response.data.items : [];
-    const match = items.find((item) => String(item.friendlyUrlPath ?? '').trim() === friendlyUrl);
-    if (match?.id) {
-      return Number(match.id);
-    }
-
-    lastPage = Number(response.data.lastPage ?? 1) || 1;
-    page += 1;
-  }
-
-  return -1;
-}
-
-async function findLayoutByFriendlyUrlRecursive(
-  gateway: LiferayGateway,
-  groupId: number,
-  friendlyUrl: string,
-  privateLayout: boolean,
-  parentLayoutId: number,
-): Promise<Layout | null> {
-  const layouts = await fetchLayoutsByParent(gateway, groupId, privateLayout, parentLayoutId);
-
-  for (const layout of layouts) {
-    if ((layout.friendlyURL ?? '') === friendlyUrl) {
-      return layout;
-    }
-  }
-
-  for (const layout of layouts) {
-    const child = await findLayoutByFriendlyUrlRecursive(
-      gateway,
-      groupId,
-      friendlyUrl,
-      privateLayout,
-      layout.layoutId ?? 0,
-    );
-    if (child) {
-      return child;
-    }
-  }
-
-  return null;
-}
-
-async function findLayoutByPlidRecursive(
-  gateway: LiferayGateway,
-  groupId: number,
-  privateLayout: boolean,
-  parentLayoutId: number,
-  plid: number,
-): Promise<Layout | null> {
-  const layouts = await fetchLayoutsByParent(gateway, groupId, privateLayout, parentLayoutId);
-
-  for (const layout of layouts) {
-    if (Number(layout.plid ?? -1) === plid) {
-      return layout;
-    }
-  }
-
-  for (const layout of layouts) {
-    const child = await findLayoutByPlidRecursive(gateway, groupId, privateLayout, Number(layout.layoutId ?? 0), plid);
-    if (child) {
-      return child;
-    }
-  }
-
-  return null;
 }

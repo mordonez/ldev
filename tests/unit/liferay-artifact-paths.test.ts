@@ -14,7 +14,7 @@ import {
   tryResolveArtifactSiteDir,
   tryResolveFragmentsBaseDir,
   type ArtifactType,
-} from '../../src/features/liferay/resource/artifact-paths.js';
+} from '../../src/features/liferay/portal/artifact-paths.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 // ---------------------------------------------------------------------------

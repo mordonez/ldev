@@ -5,9 +5,14 @@ import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LIFERAY_RESOURCE_PATH_DEFAULTS} from '../../../core/config/liferay-resource-path-defaults.js';
 import {LiferayErrors} from '../errors/index.js';
-import {resolveSiteToken, siteTokenToFriendlyUrl} from './site-token.js';
+export function resolveSiteToken(siteFriendlyUrl: string): string {
+  const token = siteFriendlyUrl.replace(/^\//, '').trim();
+  return token === '' ? 'global' : token;
+}
 
-export {resolveSiteToken, siteTokenToFriendlyUrl};
+export function siteTokenToFriendlyUrl(token: string): string {
+  return token === 'global' ? '/global' : `/${token}`;
+}
 
 export type ArtifactType = 'template' | 'structure' | 'adt' | 'fragment';
 
@@ -147,6 +152,28 @@ export async function resolveArtifactFile(config: AppConfig, options: ResolveArt
     case 'adt':
       return resolveAdtArtifactFile(config, options.key, options.widgetType);
   }
+}
+
+export async function resolveStructureFile(config: AppConfig, key: string, file?: string): Promise<string> {
+  return resolveArtifactFile(config, {type: 'structure', key, fileOverride: file});
+}
+
+export async function resolveTemplateFile(
+  config: AppConfig,
+  siteToken: string,
+  name: string,
+  file?: string,
+): Promise<string> {
+  return resolveArtifactFile(config, {type: 'template', key: name, siteToken, fileOverride: file});
+}
+
+export async function resolveAdtFile(
+  config: AppConfig,
+  name: string,
+  widgetType: string,
+  file?: string,
+): Promise<string> {
+  return resolveArtifactFile(config, {type: 'adt', key: name, widgetType, fileOverride: file});
 }
 
 export function resolveArtifactSiteDir(

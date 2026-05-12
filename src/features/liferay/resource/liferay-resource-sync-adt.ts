@@ -9,7 +9,7 @@ import {
   normalizeAdtWidgetType,
   runLiferayResourceListAdts,
 } from './liferay-resource-list-adts.js';
-import {resolveAdtFile, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
+import {resolveAdtFile, ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
 import {syncArtifact} from './sync-engine.js';
 import {adtSyncStrategy} from './sync-strategies/adt-sync-strategy.js';
 import {matchesAdtRow} from '../liferay-identifiers.js';

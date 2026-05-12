@@ -5,7 +5,7 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {isRecord, parseJsonRecord, parseJsonUnknown, type JsonRecord} from '../../../core/utils/json.js';
 import {normalizeScalarString} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
-import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from './artifact-paths.js';
+import {resolveFragmentProjectDir as resolveArtifactFragmentProjectDir} from '../portal/artifact-paths.js';
 import type {
   LocalFragment,
   LocalFragmentCollection,
@@ -76,7 +76,7 @@ export async function readLocalFragmentsProject(
   };
 }
 
-export {sanitizeArtifactToken as sanitizeFileToken} from './artifact-paths.js';
+export {sanitizeArtifactToken as sanitizeFileToken} from '../portal/artifact-paths.js';
 
 export function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

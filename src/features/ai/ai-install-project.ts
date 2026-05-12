@@ -261,59 +261,6 @@ export async function installClaudeSkillCommands(
   return installed;
 }
 
-export async function installProjectAgents(
-  targetDir: string,
-  assets: AiAssets,
-  projectType: ProjectType,
-): Promise<string[]> {
-  const agentsDir = path.join(assets.projectDir, '.claude', 'agents');
-  if (!(await fs.pathExists(agentsDir))) {
-    return [];
-  }
-
-  const allowedAgents = await resolveProjectAgentNames(assets.projectDir, projectType);
-  if (allowedAgents.length === 0) {
-    return [];
-  }
-
-  const destinationDir = path.join(targetDir, '.claude', 'agents');
-  await fs.ensureDir(destinationDir);
-
-  const entries = await fs.readdir(agentsDir, {withFileTypes: true});
-  const agentFiles = entries.filter(
-    (e) => e.isFile() && e.name.endsWith('.md') && allowedAgents.includes(e.name.replace('.md', '')),
-  );
-  const installed: string[] = [];
-
-  for (const entry of agentFiles) {
-    const destination = path.join(destinationDir, entry.name);
-    if (await fs.pathExists(destination)) {
-      continue;
-    }
-    await copyAiTemplatePath(path.join(agentsDir, entry.name), destination);
-    installed.push(entry.name.replace('.md', ''));
-  }
-
-  return installed;
-}
-
-export function buildProjectOverlayWarnings(options: {
-  projectType: ProjectType;
-  projectSkillsInstalled: string[];
-  projectAgentsInstalled: string[];
-}): string[] {
-  const warnings: string[] = [];
-
-  if (
-    options.projectAgentsInstalled.length > 0 &&
-    !options.projectSkillsInstalled.includes('project-issue-engineering')
-  ) {
-    warnings.push('Some project Claude agents were installed without the expected project issue-engineering skill.');
-  }
-
-  return warnings;
-}
-
 export function buildWorkspaceCoexistenceWarnings(
   projectType: ProjectType,
   officialWorkspaceFilesDetected: string[],
@@ -345,24 +292,6 @@ export function resolveProjectSkillsManifest(projectDir: string, projectType: Pr
     return genericSafe;
   }
   return path.join(projectDir, 'project-skills.txt');
-}
-
-export async function resolveProjectAgentNames(projectDir: string, projectType: ProjectType): Promise<string[]> {
-  const manifestPath = path.join(projectDir, `project-agents.${projectType}.txt`);
-  if (!(await fs.pathExists(manifestPath))) {
-    if (projectType === 'unknown') {
-      const unknownManifestPath = path.join(projectDir, 'project-agents.unknown.txt');
-      if (await fs.pathExists(unknownManifestPath)) {
-        return readSimpleManifest(unknownManifestPath);
-      }
-    }
-    if (projectType === 'ldev-native') {
-      return [];
-    }
-    return [];
-  }
-
-  return readSimpleManifest(manifestPath);
 }
 
 export async function readSimpleManifest(manifestPath: string): Promise<string[]> {

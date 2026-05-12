@@ -76,7 +76,12 @@ export type PageEvidenceSourceValue = (typeof pageEvidenceSourceValues)[number];
 
 const whereUsedSiteOrderSchema = z.enum(['site', 'name', 'content']);
 
-const whereUsedMatchSchema = z.object({
+export const whereUsedQuerySchema = z.object({
+  type: whereUsedResourceTypeSchema,
+  keys: z.array(z.string()),
+});
+
+export const whereUsedMatchSchema = z.object({
   resourceType: whereUsedResourceTypeSchema,
   matchedKey: z.string(),
   matchKind: whereUsedMatchKindSchema,
@@ -85,7 +90,7 @@ const whereUsedMatchSchema = z.object({
   source: pageEvidenceSourceSchema,
 });
 
-const whereUsedPageMatchSchema = z.object({
+export const whereUsedPageMatchSchema = z.object({
   pageType: z.enum(['regularPage', 'displayPage']),
   pageName: z.string(),
   friendlyUrl: z.string(),
@@ -179,3 +184,13 @@ export const whereUsedPlanResultSchema = z.object({
 
 export type WhereUsedResultContract = z.infer<typeof whereUsedResultSchema>;
 export type WhereUsedPlanResultContract = z.infer<typeof whereUsedPlanResultSchema>;
+
+// ── Where-used: derived public types ────────────────────────────────────────────
+export type WhereUsedQuery = z.infer<typeof whereUsedQuerySchema>;
+export type WhereUsedResourceType = WhereUsedResourceTypeValue;
+export type WhereUsedMatchKind = WhereUsedMatchKindValue;
+export type WhereUsedMatch = z.infer<typeof whereUsedMatchSchema>;
+export type WhereUsedPageMatch = z.infer<typeof whereUsedPageMatchSchema>;
+export type WhereUsedResult = WhereUsedResultContract;
+export type WhereUsedPlanResult = WhereUsedPlanResultContract;
+export type WhereUsedRunResult = WhereUsedResult | WhereUsedPlanResult;

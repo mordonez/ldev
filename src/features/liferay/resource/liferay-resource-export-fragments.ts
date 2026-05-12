@@ -5,9 +5,9 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {isRecord, parseJsonUnknown} from '../../../core/utils/json.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-import {resolveSiteToken} from './liferay-resource-paths.js';
-import {resolveArtifactBaseDir, resolveArtifactSiteDir, sanitizeArtifactToken} from './artifact-paths.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import {resolveSiteToken} from '../portal/artifact-paths.js';
+import {resolveArtifactBaseDir, resolveArtifactSiteDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
+import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
 
 export type LiferayResourceExportFragmentsResult = {
   mode?: 'all-sites';

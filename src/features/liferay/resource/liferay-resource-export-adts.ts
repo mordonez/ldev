@@ -4,8 +4,8 @@ import path from 'node:path';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inventory-sites.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
-import {resolveSiteToken, ADT_WIDGET_DIR_BY_TYPE} from './liferay-resource-paths.js';
-import {resolveArtifactBaseDir, sanitizeArtifactToken} from './artifact-paths.js';
+import {resolveSiteToken, ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
+import {resolveArtifactBaseDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
 
