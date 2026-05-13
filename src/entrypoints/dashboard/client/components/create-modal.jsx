@@ -1,6 +1,8 @@
 import {h} from 'preact';
 import {useEffect, useState} from 'preact/hooks';
 
+import {IconX} from '../lib/icons.jsx';
+
 export function CreateModal({data, isOpen, onClose, onSubmit}) {
   const mainBranch = data?.worktrees?.find((wt) => wt.isMain)?.branch || '';
   const [form, setForm] = useState({
@@ -36,8 +38,8 @@ export function CreateModal({data, isOpen, onClose, onSubmit}) {
       <div class="modal" style={{maxWidth: '560px', maxHeight: 'none', alignSelf: 'center'}}>
         <div class="modal-header">
           <span class="modal-title">New worktree</span>
-          <button class="modal-close" type="button" onClick={onClose}>
-            x
+          <button aria-label="Close" class="modal-close" type="button" onClick={onClose}>
+            <IconX size={16} />
           </button>
         </div>
         <div class="modal-body">

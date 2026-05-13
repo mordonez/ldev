@@ -8,7 +8,7 @@ export function Toolbar({activeFilter, counts, onFilter, onSearch, query, total,
       <div class="toolbar-group">
         {FILTERS.map(([key, label]) => (
           <button class={classNames('filter-chip', activeFilter === key && 'active')} key={key} type="button" onClick={() => onFilter(key)}>
-            {label} {counts[key] || 0}
+            {label} <span class="chip-count">{counts[key] || 0}</span>
           </button>
         ))}
       </div>
