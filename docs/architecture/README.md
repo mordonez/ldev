@@ -10,6 +10,9 @@ ADRs (Architecture Decision Records) capture decisions whose reasoning is non-ob
 - [ADR 0002 — Introduce `entrypoints/` layer for long-lived server processes](../adr/0002-entrypoints-layer.md)
 - [ADR 0003 — Zod schemas in `core/contracts/` as the source of truth for tool outputs](../adr/0003-zod-contracts-in-core.md)
 - [ADR 0004 — Enforce architectural boundaries with ESLint, not package walls](../adr/0004-eslint-boundary-enforcement.md)
+- [ADR 0005 — LiferayGateway as the single HTTP abstraction for all Liferay API calls](../adr/0005-liferay-gateway.md)
+- [ADR 0006 — Domain error factories: typed, coded, and secret-sanitized throws](../adr/0006-domain-error-factories.md)
+- [ADR 0007 — SyncEngine/SyncStrategy: typed strategy pattern for resource sync](../adr/0007-sync-engine-strategy.md)
 
 ## Conventions
 

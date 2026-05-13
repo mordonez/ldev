@@ -98,38 +98,83 @@ The codebase is layered:
 
 ```text
 src/
-  cli/       CLI framework: context, helpers, output rendering, error normalization
-  commands/  Commander registration and option mapping only
-  features/  domain workflows and business logic
-  core/      shared config, HTTP, output, platform, runtime, contracts, and utilities
-  testing/   test helpers only
+  cli/          CLI framework: context, helpers, output rendering, error normalization
+  commands/     Commander registration and option mapping only (thin)
+  entrypoints/  Long-lived server processes: dashboard (HTTP) and mcp-server (stdio)
+  features/     Reusable domain workflows and business logic (no process ownership)
+  core/         Zero-dependency infrastructure: config, HTTP, output, contracts, platform, utils
+  testing/      Test helpers only
 ```
 
 Dependency direction:
 
 ```text
-commands -> features -> core
-commands -> core
+cli → commands → [entrypoints] → features → core
 ```
 
-Rules:
+Rules (enforced by ESLint `no-restricted-imports`):
 
-- `core/` must not import from `features/` or `commands/`.
+- `core/` must not import from `features/`, `commands/`, or `entrypoints/`.
+- `features/` must not import from `entrypoints/`.
+- `commands/` must not import from `features/` directly (only via entrypoint or through the command's feature call).
 - `commands/` should stay thin: parse options, call one feature workflow, render the result.
+- `entrypoints/` aggregate features into a running surface; they never own business logic.
 - Feature modules should accept dependencies as parameters where tests need fakes.
 - Shared behavior belongs in `core/` only when it is genuinely cross-domain.
-- A seam is only worth keeping when there are real adapters or meaningful behavior hidden behind it.
+
+See [ADR 0001–0004](docs/adr/) for the rationale behind this layout.
+
+## Architectural Patterns
+
+### LiferayGateway — single typed HTTP client for all Liferay API calls
+
+`src/features/liferay/liferay-gateway.ts`. All features call `gateway.getJson<T>()`, `postJson<T>()`, etc. The gateway owns OAuth token caching, 401-retry, and error conversion. No direct `fetch()` calls against Liferay endpoints anywhere else. See [ADR 0005](docs/adr/0005-liferay-gateway.md).
+
+### Domain error factories — typed, coded, secret-sanitized throws
+
+Each domain has exactly one factory: `LiferayErrors`, `EnvErrors`, `DeployErrors`, `WorktreeErrors`, `OAuthErrors`, `DbErrors`. Every factory method returns a `CliError` with a stable `.code` (e.g., `LIFERAY_SITE_NOT_FOUND`) and a message scrubbed of secrets via `src/core/errors-sanitize.ts`. `throw new Error()` inside a feature is a code-review rejection. See [ADR 0006](docs/adr/0006-domain-error-factories.md).
+
+### SyncEngine/SyncStrategy — typed lifecycle for Liferay resource sync
+
+`src/features/liferay/resource/sync-engine.ts`. All resource sync operations (structures, templates, ADTs, fragments) implement `SyncStrategy<Local, Remote>` with four required steps: `resolveLocal → findRemote → upsert → verify`. The engine runs the loop and handles progress/errors. See [ADR 0007](docs/adr/0007-sync-engine-strategy.md).
+
+### Zod contracts — source of truth for MCP tool outputs and dashboard routes
+
+`src/core/contracts/`. All MCP tool outputs and dashboard API responses have explicit Zod schemas. TypeScript types are derived from schemas with `z.infer<>`. Import from `src/core/contracts/index.ts`. See [ADR 0003](docs/adr/0003-zod-contracts-in-core.md).
+
+### MCP tool handlers — thin delegates to features
+
+`src/entrypoints/mcp-server/tools/tool-*.ts`. Each tool: validates input with Zod, calls one or more feature functions, wraps the result with `runJsonTool()`. No business logic in tool handlers.
 
 ## Important Modules
 
 - `src/cli/command-helpers.ts`: formatted command actions and output rendering.
 - `src/cli/command-context.ts`: command-time config, printer, cwd, and project context.
+- `src/core/config/schema.ts`: `AppConfig` type — the single config object passed to all features.
 - `src/core/config/project-context.ts`: detected repo, project type, profiles, env, inventory, and config.
-- `src/core/contracts/`: Zod schemas for shared, inventory, and resource surfaces.
-- `src/core/runtime/`: runtime adapter seam for lifecycle behavior.
+- `src/core/contracts/index.ts`: all Zod schemas for MCP outputs and dashboard routes.
+- `src/features/liferay/liferay-gateway.ts`: typed HTTP client for all Liferay API calls.
+- `src/features/liferay/errors/liferay-error-factory.ts`: `LiferayErrors` factory (template for other factories).
+- `src/features/liferay/resource/sync-engine.ts`: `SyncEngine` + `SyncStrategy` interfaces.
 - `src/features/liferay/`: portal, inventory, resource, page layout, auth, and Liferay-specific operations.
 - `src/commands/resource/`: resource command registration split by workflow group.
-- `src/features/ai/` and `templates/ai/`: agent-facing install, status, bootstrap assets, skills, and workspace rules.
+- `src/entrypoints/dashboard/`: HTTP server, route handlers, Preact client.
+- `src/entrypoints/mcp-server/`: stdio MCP server, tool handlers.
+- `src/features/ai/` and `templates/ai/`: agent-facing install, bootstrap assets, skills, workspace rules.
+
+## ADR Index
+
+Architecture Decision Records in `docs/adr/`. Read before changing the patterns above.
+
+| ADR | Decision |
+|---|---|
+| [0001](docs/adr/0001-monorepo-vs-single-package.md) | Stay single-package; use directories + lint instead of `packages/` |
+| [0002](docs/adr/0002-entrypoints-layer.md) | Introduce `entrypoints/` for long-lived server processes |
+| [0003](docs/adr/0003-zod-contracts-in-core.md) | Zod schemas in `core/contracts/` as contract source of truth |
+| [0004](docs/adr/0004-eslint-boundary-enforcement.md) | ESLint `no-restricted-imports` to enforce layer boundaries |
+| [0005](docs/adr/0005-liferay-gateway.md) | LiferayGateway as the single Liferay HTTP abstraction |
+| [0006](docs/adr/0006-domain-error-factories.md) | Domain error factories: typed, coded, secret-sanitized |
+| [0007](docs/adr/0007-sync-engine-strategy.md) | SyncEngine/SyncStrategy for resource sync |
 
 ## Output And Error Contracts
 
@@ -185,9 +230,11 @@ Use the narrowest lane that can prove the behavior. Real Docker lifecycle belong
 
 For new contributors and agents:
 
-1. `README.md` for the product story.
-2. `docs/getting-started/introduction.md` and `docs/core-concepts/operations.md` for the operating model.
-3. `CONTEXT.md` for domain language and architecture.
-4. `CONTRIBUTING.md` for workflow, conventions, and test taxonomy.
-5. `src/cli/command-groups.ts` for namespace registration.
-6. The relevant `src/commands/<domain>/` and `src/features/<domain>/` pair.
+1. `README.md` — product story.
+2. `CONTEXT.md` — domain language, architecture, and key patterns (this file).
+3. `CONTRIBUTING.md` — workflow, conventions, architectural principles, and test taxonomy.
+4. `docs/adr/` — rationale behind the key structural decisions.
+5. `docs/architecture/layers.md` — formal layer model with full rules.
+6. `docs/architecture/contracts.md` — how to write and evolve contract schemas.
+7. `src/cli/command-groups.ts` — namespace registration for the CLI.
+8. The relevant `src/commands/<domain>/` and `src/features/<domain>/` pair for the area you are working in.
