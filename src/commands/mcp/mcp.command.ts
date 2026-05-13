@@ -8,9 +8,9 @@ import {
   runMcpCheck,
   runMcpOpenApis,
   runMcpProbe,
-} from '../../features/mcp/mcp.js';
-import {formatMcpDoctor, runMcpDoctor} from '../../features/mcp-server/mcp-server-doctor.js';
-import type {McpTool} from '../../features/mcp-server/mcp-server-setup.js';
+} from '../../features/liferay-mcp/liferay-mcp.js';
+import {formatMcpDoctor, runMcpDoctor} from '../../entrypoints/mcp-server/mcp-server-doctor.js';
+import type {McpTool} from '../../entrypoints/mcp-server/mcp-server-setup.js';
 
 type McpAuthCommandOptions = {
   authorizationHeader?: string;

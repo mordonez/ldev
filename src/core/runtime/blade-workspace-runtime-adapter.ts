@@ -8,10 +8,8 @@ import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../config/load-config.js';
 import {runProcess} from '../platform/process.js';
 import type {RuntimeAdapter, RuntimeStartOptions, RuntimeStopOptions} from './runtime-adapter.js';
-import type {EnvLogsOptions, EnvLogsResult} from '../../features/env/env-logs.js';
-import type {EnvStartResult} from '../../features/env/env-start.js';
-import type {EnvStatusReport} from '../../features/env/env-health.js';
-import type {EnvStopResult} from '../../features/env/env-stop.js';
+import type {EnvLogsOptions, EnvLogsResult, EnvStartResult, EnvStopResult} from './env-types.js';
+import type {EnvStatusReport} from './env-health.js';
 
 type BladeWorkspaceRuntimeAdapterDependencies = {
   fileExists?: (filePath: string) => boolean;

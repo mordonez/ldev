@@ -1,7 +1,10 @@
 import {describe, expect, test} from 'vitest';
 
-import {queueDashboardTaskOnce, serializeDashboardTask} from '../../src/features/dashboard/dashboard-task-commands.js';
-import {createDashboardTaskManager} from '../../src/features/dashboard/dashboard-tasks.js';
+import {
+  queueDashboardTaskOnce,
+  serializeDashboardTask,
+} from '../../src/entrypoints/dashboard/dashboard-task-commands.js';
+import {createDashboardTaskManager} from '../../src/entrypoints/dashboard/dashboard-tasks.js';
 
 describe('dashboard task commands', () => {
   test('deduplicates the same active task kind for the same worktree', () => {

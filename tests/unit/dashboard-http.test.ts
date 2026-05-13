@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {getContentType} from '../../src/features/dashboard/dashboard-http.js';
+import {getContentType} from '../../src/entrypoints/dashboard/dashboard-http.js';
 
 describe('dashboard http', () => {
   test('serves SVG assets with the browser-friendly favicon MIME type', () => {

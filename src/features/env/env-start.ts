@@ -5,6 +5,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import type {EnvStartResult} from '../../core/runtime/env-types.js';
 import {restoreArtifactsFromDeployCache, resolveDeployContext} from '../deploy/deploy-shared.js';
 import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
@@ -15,13 +16,7 @@ import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
 import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
 import {runEnvStop} from './env-stop.js';
 
-export type EnvStartResult = {
-  ok: true;
-  dockerDir: string;
-  portalUrl: string;
-  waitedForHealth: boolean;
-  activationKeyFile: string | null;
-};
+export type {EnvStartResult} from '../../core/runtime/env-types.js';
 
 export async function runEnvStart(
   config: AppConfig,

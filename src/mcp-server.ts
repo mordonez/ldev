@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {readMcpPackageVersion, startMcpServer} from './features/mcp-server/mcp-server.js';
+import {readMcpPackageVersion, startMcpServer} from './entrypoints/mcp-server/mcp-server.js';
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   process.stdout.write(`${readMcpPackageVersion()}\n`);

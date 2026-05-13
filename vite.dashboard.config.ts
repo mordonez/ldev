@@ -2,7 +2,7 @@ import {resolve} from 'node:path';
 
 import {defineConfig} from 'vite';
 
-const dashboardClientRoot = resolve(import.meta.dirname, 'src/features/dashboard/client');
+const dashboardClientRoot = resolve(import.meta.dirname, 'src/entrypoints/dashboard/client');
 
 export default defineConfig({
   root: dashboardClientRoot,

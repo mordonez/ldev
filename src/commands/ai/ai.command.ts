@@ -10,7 +10,7 @@ import {
   runMcpSetup,
   type McpStrategy,
   type McpTool,
-} from '../../features/mcp-server/mcp-server-setup.js';
+} from '../../entrypoints/mcp-server/mcp-server-setup.js';
 
 function collectSkillOption(value: string, previous: string[]): string[] {
   const skill = value.trim();

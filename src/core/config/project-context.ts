@@ -57,6 +57,8 @@ export type ProjectContext = {
 type ResolveProjectContextOptions = {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
+  /** Default scope aliases string for OAuth; supplied by features/ callers. Core defaults to ''. */
+  scopeAliasDefault?: string;
   dependencies?: {
     detectRepoPaths?: typeof detectRepoPaths;
     detectProject?: typeof detectProject;
@@ -115,6 +117,7 @@ export function resolveProjectContext(options?: ResolveProjectContextOptions): P
     dockerEnv,
     localProfile,
     profile,
+    scopeAliasDefault: options?.scopeAliasDefault,
   });
   const resolvedPaths = {
     structures: config.paths?.structures ?? 'liferay/resources/journal/structures',

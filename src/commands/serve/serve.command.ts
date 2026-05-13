@@ -1,5 +1,5 @@
 import {Command} from 'commander';
-import {startMcpServer} from '../../features/mcp-server/mcp-server.js';
+import {startMcpServer} from '../../entrypoints/mcp-server/mcp-server.js';
 
 export function createServeCommand(): Command {
   return new Command('serve')

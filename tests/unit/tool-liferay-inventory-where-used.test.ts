@@ -7,7 +7,7 @@ vi.mock('../../src/features/liferay/inventory/liferay-inventory-where-used.js', 
   runLiferayInventoryWhereUsed: vi.fn(),
 }));
 
-const {handleTool} = await import('../../src/features/mcp-server/tools/tool-liferay-inventory-where-used.js');
+const {handleTool} = await import('../../src/entrypoints/mcp-server/tools/tool-liferay-inventory-where-used.js');
 
 describe('liferay_inventory_where_used MCP tool', () => {
   beforeEach(() => {

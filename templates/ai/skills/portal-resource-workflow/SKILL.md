@@ -64,6 +64,13 @@ ldev resource import-adt --site /<site> --file <path>
 ldev resource import-fragment --site /<site> --fragment <KEY>
 ```
 
+For fragments, a read-back/hash mismatch is not a request to update a checksum
+file. It means the runtime content returned after import differs from the local
+fragment source; verify the active source directory, key, site, and normalized
+html/css/js/configuration before changing anything else. Do not search hidden
+ldev/editor caches or `fragment.json` for a hash, and do not look for a force
+flag.
+
 ## 5. Prove Green
 
 - Read back the changed resource with `ldev resource structure/template/adt` or

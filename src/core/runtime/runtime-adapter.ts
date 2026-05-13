@@ -1,8 +1,6 @@
 import type {Printer} from '../output/printer.js';
-import type {EnvLogsOptions, EnvLogsResult} from '../../features/env/env-logs.js';
-import type {EnvStartResult} from '../../features/env/env-start.js';
-import type {EnvStatusReport} from '../../features/env/env-health.js';
-import type {EnvStopResult} from '../../features/env/env-stop.js';
+import type {EnvLogsOptions, EnvLogsResult, EnvStartResult, EnvStopResult} from './env-types.js';
+import type {EnvStatusReport} from './env-health.js';
 
 export type RuntimeStartOptions = {
   wait?: boolean;

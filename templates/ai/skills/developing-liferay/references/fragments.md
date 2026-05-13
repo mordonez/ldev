@@ -35,7 +35,21 @@ If several fragments changed, repeat the singular import command per fragment.
 Do not use plural fragment imports unless a human explicitly asks for a bulk
 operation and accepts the risk.
 
+If `import-fragment` reports a fragment read-back/hash mismatch, do not search
+for a generated checksum file. `ldev` has already imported and then compared
+the runtime read-back with local `html/css/js/configuration`. First verify the
+active fragment source directory, fragment key, site, and any Liferay
+normalization of those fields. Do not hunt through `.ldev`, editor
+`workspaceStorage`, hidden files, or `fragment.json` for a hash, and do not look
+for a force flag. If one untouched fragment imports cleanly, the CLI path is
+working; export or read back the changed fragment and compare the normalized
+runtime fields with the edited source.
+
 ## Validation
+
+When fixing editable IDs, validate the exact attribute pattern, not every
+FreeMarker assignment. Remaining `[#assign ...]` blocks are only relevant if
+they still build `data-lfr-editable-id` or another edited runtime contract.
 
 ```bash
 ldev logs --since 2m --service liferay --no-follow

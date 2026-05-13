@@ -4,6 +4,7 @@ import {CliError} from '../core/errors.js';
 import {resolveOutputFormatFromArgv} from './errors.js';
 import {outputFormatSchema, type OutputFormat} from '../core/output/formats.js';
 import {createPrinter, type Printer} from '../core/output/printer.js';
+import {DEFAULT_OAUTH_SCOPE_ALIASES_STRING} from '../features/oauth/oauth-scope-aliases.js';
 
 export type CommandContext = {
   cwd: string;
@@ -38,7 +39,7 @@ type LiferayConnectionOverrides = {
 
 export function createCommandContext(options?: CommandContextOptions): CommandContext {
   const cwd = resolveCommandRoot(options, process.argv, process.env);
-  const project = resolveProjectContext({cwd, env: process.env});
+  const project = resolveProjectContext({cwd, env: process.env, scopeAliasDefault: DEFAULT_OAUTH_SCOPE_ALIASES_STRING});
   const overrides = resolveLiferayConnectionOverrides(options, process.argv, process.env);
   const config = applyLiferayConnectionOverrides(project.config, overrides);
   const resolvedFormat = resolveOutputFormatOption(options);

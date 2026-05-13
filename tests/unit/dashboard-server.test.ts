@@ -161,12 +161,12 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-export-fragments.j
   runLiferayResourceExportFragments: runResourceExportFragmentsMock,
 }));
 
-vi.mock('../../src/features/mcp-server/mcp-server-doctor.js', () => ({
+vi.mock('../../src/entrypoints/mcp-server/mcp-server-doctor.js', () => ({
   formatMcpDoctor: vi.fn(() => 'MCP doctor passed'),
   runMcpDoctor: runMcpDoctorMock,
 }));
 
-vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
+vi.mock('../../src/entrypoints/mcp-server/mcp-server-setup.js', () => ({
   formatMcpSetup: vi.fn(() => 'Configured 3 MCP client configs'),
   runMcpSetup: runMcpSetupMock,
 }));
@@ -176,11 +176,11 @@ vi.mock('../../src/features/oauth/oauth-install.js', () => ({
   runOAuthInstall: runOAuthInstallMock,
 }));
 
-vi.mock('../../src/features/dashboard/dashboard-data.js', () => ({
+vi.mock('../../src/entrypoints/dashboard/dashboard-data.js', () => ({
   collectDashboardStatus: collectDashboardStatusMock,
 }));
 
-const {createDashboardServer} = await import('../../src/features/dashboard/dashboard-server.js');
+const {createDashboardServer} = await import('../../src/entrypoints/dashboard/dashboard-server.js');
 
 type CreateWorktreeOptions = {
   cwd: string;
@@ -292,6 +292,26 @@ describe('createDashboardServer', () => {
       body: JSON.stringify(body),
     });
   }
+
+  test('reports the IPv4 loopback URL that the dashboard listens on', async () => {
+    let readyUrl: string | undefined;
+    server = createDashboardServer({
+      cwd: '/repo',
+      port: 0,
+      onReady: (url) => {
+        readyUrl = url;
+      },
+    });
+
+    await new Promise<void>((resolve) =>
+      server?.once('listening', () => {
+        resolve();
+      }),
+    );
+
+    const address = server.address() as AddressInfo;
+    expect(readyUrl).toBe(`http://127.0.0.1:${address.port}`);
+  });
 
   test('serves the built dashboard client shell and bundle assets', async () => {
     const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-dashboard-client-'));

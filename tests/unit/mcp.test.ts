@@ -4,7 +4,7 @@ import path from 'node:path';
 import {afterEach, describe, expect, test, vi} from 'vitest';
 
 import {LiferayErrorCode} from '../../src/features/liferay/errors/index.js';
-import {runMcpCheck, runMcpOpenApis, runMcpProbe} from '../../src/features/mcp/mcp.js';
+import {runMcpCheck, runMcpOpenApis, runMcpProbe} from '../../src/features/liferay-mcp/liferay-mcp.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 describe('mcp', () => {

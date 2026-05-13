@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {createRuntimeAdapter, createRuntimeOperations} from '../../src/core/runtime/runtime-adapter-factory.js';
+import {createRuntimeAdapter, createRuntimeOperations} from '../../src/features/env/runtime-adapter-factory.js';
 import {loadConfig} from '../../src/core/config/load-config.js';
 import {createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
 
