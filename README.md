@@ -78,13 +78,38 @@ do for you:
 - **OAuth in one command** — `oauth install --write-env` deploys the installer
   bundle, creates the OAuth app via Gogo, verifies the token and writes
   credentials locally.
-- **An MCP server with 15 tools** — the same workflows exposed to MCP-capable
+- **An MCP server with 16 tools** — the same workflows exposed to MCP-capable
   editors, so agents can run them without a custom integration.
 
 `ldev` also includes convenience wrappers — `logs diagnose` groups exceptions
 from recent Docker Compose logs by regex, `doctor` runs environment readiness
 checks, `osgi status|diag` wraps Gogo Shell. They are useful, but they are not
 the headline.
+
+## Output you can pipe
+
+Every command that returns data supports `--json` (and `--ndjson` for
+streaming). Same shape for humans, scripts, and MCP-driven agents:
+
+```bash
+ldev portal inventory sites --json
+```
+
+```json
+[
+  {
+    "groupId": 20120,
+    "siteFriendlyUrl": "/global",
+    "name": "Global",
+    "pagesCommand": "inventory pages --site /global"
+  }
+]
+```
+
+Errors normalise to a stable envelope, so `jq` plus `--strict` is enough to
+fail a CI pipeline on a regression. See
+[Structured Output](https://mordonez.github.io/ldev/core-concepts/structured-output)
+for the full contract.
 
 ## Honest limits
 
@@ -99,8 +124,9 @@ A few things to know up front:
 
 ## Quick install
 
+Verify the install (from the command at the top):
+
 ```bash
-npm install -g @mordonezdev/ldev
 ldev --help
 ```
 
