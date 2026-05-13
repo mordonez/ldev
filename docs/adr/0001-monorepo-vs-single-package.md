@@ -3,7 +3,7 @@
 - **Status:** Accepted (proposed)
 - **Date:** 2026-05-12
 - **Audience:** maintainers of `ldev`
-- **Related:** [Architecture Audit 2026-05](../architecture/audit-2026-05.md)
+- **Related:** [ADR 0002](./0002-entrypoints-layer.md), [ADR 0004](./0004-eslint-boundary-enforcement.md)
 
 ## Context
 
