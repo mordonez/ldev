@@ -1,5 +1,7 @@
 import {h} from 'preact';
 
+import {IconX} from '../lib/icons.jsx';
+
 export function Modal({children, footer, isOpen, onClose, onRefresh, subtitle, title}) {
   if (!isOpen) return null;
   return (
@@ -8,8 +10,8 @@ export function Modal({children, footer, isOpen, onClose, onRefresh, subtitle, t
         <div class="modal-header">
           <span class="modal-title">{title}</span>
           <span class="modal-subtitle">{subtitle || ''}</span>
-          <button class="modal-close" type="button" onClick={onClose}>
-            x
+          <button aria-label="Close" class="modal-close" type="button" onClick={onClose}>
+            <IconX size={16} />
           </button>
         </div>
         <div class="modal-body">{children}</div>

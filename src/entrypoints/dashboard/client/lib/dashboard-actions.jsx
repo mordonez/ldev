@@ -94,14 +94,8 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
     }
   };
 
-  const copyPath = (path, button) => {
-    navigator.clipboard.writeText(path).then(() => {
-      button.textContent = 'copied';
-      showToast(`Copied: cd ${path}`);
-      setTimeout(() => {
-        button.textContent = 'copy';
-      }, 2000);
-    });
+  const copyPath = (path) => {
+    showToast(`Copied: cd ${path}`);
   };
 
   const deleteWorktree = (name, branch) => {

@@ -1,10 +1,11 @@
 import {actionKind, primaryActionForWorktree, worktreeButton} from './actions.ts';
-import {isDirty, isRunning, needsAttention} from './dashboard-state.js';
+import {attentionReasons, isDirty, isRunning, needsAttention} from './dashboard-state.js';
 import {buildSections} from '../components/worktree-sections.jsx';
 
 export function buildWorktreePresentation(wt, tasks, activeSection) {
   const running = isRunning(wt);
   const stopped = wt.env && !running;
+  const cardStatus = needsAttention(wt) ? 'attention' : running ? 'running' : wt.isMain ? 'main' : null;
   const sections = buildSections(wt);
   const selected = sections.find((section) => section.key === activeSection) || sections[0];
   const primary = primaryActionForWorktree(wt, running, stopped);
@@ -25,6 +26,7 @@ export function buildWorktreePresentation(wt, tasks, activeSection) {
       activeWorktreeTask,
     ),
     badges: worktreeBadges(wt, running),
+    cardStatus,
     busy: (action) =>
       tasks.some(
         (task) => task.status === 'running' && task.kind === actionKind(action) && task.worktreeName === wt.name,
@@ -113,6 +115,6 @@ function worktreeBadges(wt, running) {
         ? {label: 'stopped', tone: 'gray'}
         : {label: 'no env', tone: 'gray'},
   );
-  if (needsAttention(wt)) badges.push({label: 'attention', tone: 'red'});
+  if (needsAttention(wt)) badges.push({label: 'attention', tone: 'red', title: attentionReasons(wt).join(', ')});
   return badges;
 }

@@ -1,14 +1,50 @@
 import {Fragment, h} from 'preact';
-import {useEffect, useRef} from 'preact/hooks';
+import {useEffect, useRef, useState} from 'preact/hooks';
 
 import {classNames} from '../lib/dashboard-state.js';
+import {
+  IconBarChart2,
+  IconCheck,
+  IconCopy,
+  IconDatabase,
+  IconKey,
+  IconMoreHorizontal,
+  IconPackage,
+  IconPlay,
+  IconRotateCcw,
+  IconSearch,
+  IconSquare,
+  IconTerminal,
+  IconTrash2,
+} from '../lib/icons.jsx';
 import {buildWorktreePresentation} from '../lib/worktree-presentation.js';
+
+const ACTION_ICON_MAP = {
+  'deploy-cache-update': <IconRotateCcw size={12} />,
+  'deploy-status': <IconBarChart2 size={12} />,
+  'init-env': <IconPlay size={12} />,
+  'oauth-install': <IconKey size={12} />,
+  doctor: <IconSearch size={12} />,
+  recreate: <IconRotateCcw size={12} />,
+  restart: <IconPlay size={12} />,
+  start: <IconPlay size={12} />,
+  stop: <IconSquare size={12} />,
+};
+
+function getActionIcon(action) {
+  if (action.target === 'logs') return <IconTerminal size={12} />;
+  if (action.target === 'db') return <IconDatabase size={12} />;
+  if (action.target === 'delete') return <IconTrash2 size={12} />;
+  if (action.target === 'resource') return <IconPackage size={12} />;
+  if (action.action) return ACTION_ICON_MAP[action.action] ?? null;
+  return null;
+}
 
 export function WorktreeCard({activeSection, onAction, onCopy, onDelete, onDb, onLogs, onResource, onSection, tasks, wt}) {
   const presentation = buildWorktreePresentation(wt, tasks, activeSection);
 
   return (
-    <div class="card">
+    <div class={classNames('card', presentation.cardStatus && `card--${presentation.cardStatus}`)}>
       <CardHeader badges={presentation.badges} wt={wt} />
       <PathRow onCopy={onCopy} path={wt.path} />
       <PortalRow env={wt.env} />
@@ -32,15 +68,15 @@ function CardHeader({badges, wt}) {
       <div class="card-badges">
         <div class="card-badge-row">
           {badges.map((badge) => (
-            <span class={classNames('badge', `badge-${badge.tone}`)} key={`${badge.tone}-${badge.label}`}>
+            <span class={classNames('badge', `badge-${badge.tone}`)} key={`${badge.tone}-${badge.label}`} title={badge.title}>
               {badge.label}
             </span>
           ))}
         </div>
         {wt.aheadBehind ? (
           <div class="ahead-behind">
-            {wt.aheadBehind.ahead ? <span class="ahead">up {wt.aheadBehind.ahead}</span> : null}
-            {wt.aheadBehind.behind ? <span class="behind">down {wt.aheadBehind.behind}</span> : null}
+            {wt.aheadBehind.ahead ? <span class="ahead">↑{wt.aheadBehind.ahead}</span> : null}
+            {wt.aheadBehind.behind ? <span class="behind">↓{wt.aheadBehind.behind}</span> : null}
             <span>{wt.aheadBehind.base}</span>
           </div>
         ) : null}
@@ -55,10 +91,35 @@ function PathRow({onCopy, path}) {
       <span class="path-text" title={path}>
         {path}
       </span>
-      <button class="btn-copy" type="button" onClick={(event) => onCopy(path, event.currentTarget)}>
-        copy
-      </button>
+      <CopyButton onCopy={onCopy} path={path} />
     </div>
+  );
+}
+
+function CopyButton({onCopy, path}) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  const handleClick = () => {
+    navigator.clipboard.writeText(path).then(() => {
+      setCopied(true);
+      onCopy(path);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  useEffect(() => () => timerRef.current && clearTimeout(timerRef.current), []);
+
+  return (
+    <button
+      class={classNames('btn-copy', copied && 'copied')}
+      title={copied ? 'Copied!' : 'Copy path'}
+      type="button"
+      onClick={handleClick}
+    >
+      {copied ? <IconCheck size={11} /> : <IconCopy size={11} />}
+    </button>
   );
 }
 
@@ -130,7 +191,10 @@ function ActionsMore({actions, onAction, onDb, onDelete, onLogs, onResource, wt}
 
   return (
     <details class="actions-more" ref={detailsRef}>
-      <summary>More</summary>
+      <summary>
+        <IconMoreHorizontal size={12} />
+        More
+      </summary>
       <div class="actions-more-menu">
         {actions.map((action) => (
           <ActionButton action={action} key={`${action.target}-${action.action || action.label}`} onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} wt={wt} />
@@ -141,6 +205,7 @@ function ActionsMore({actions, onAction, onDb, onDelete, onLogs, onResource, wt}
 }
 
 function ActionButton({action, onAction, onDb, onDelete, onLogs, onResource, wt}) {
+  const icon = getActionIcon(action);
   return (
     <button
       class={classNames(action.target === 'delete' ? null : 'action', action.className)}
@@ -155,6 +220,7 @@ function ActionButton({action, onAction, onDb, onDelete, onLogs, onResource, wt}
         if (action.target === 'delete') onDelete(wt.name, wt.branch);
       }}
     >
+      {icon}
       {action.label}
     </button>
   );

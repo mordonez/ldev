@@ -42,12 +42,22 @@ export function isBehind(wt) {
   return (wt.aheadBehind?.behind || 0) > 0;
 }
 
+export function attentionReasons(wt) {
+  const reasons = [];
+  if (isDirty(wt)) reasons.push(`${wt.changedFiles} changed file(s)`);
+  if (isBehind(wt)) reasons.push(`${wt.aheadBehind.behind} commit(s) behind ${wt.aheadBehind.base}`);
+  if (wt.env?.status === 'error') reasons.push(`env error: ${wt.env.error || 'unknown'}`);
+  if (isRunning(wt)) {
+    if (wt.env?.portalReachable === false) reasons.push('portal not reachable');
+    for (const service of wt.env?.services || []) {
+      if (serviceTone(service) === 'red') reasons.push(`service ${serviceName(service)}: ${serviceStatusLabel(service)}`);
+    }
+  }
+  return reasons;
+}
+
 export function needsAttention(wt) {
-  if (isDirty(wt) || isBehind(wt)) return true;
-  if (!wt.env) return false;
-  if (wt.env.status === 'error') return true;
-  if (wt.env.portalReachable === false) return true;
-  return (wt.env.services || []).some((service) => serviceTone(service) === 'red');
+  return attentionReasons(wt).length > 0;
 }
 
 export function matchesFilter(wt, filter) {
