@@ -13,6 +13,11 @@ import {
   tryResolveArtifactBaseDir,
   tryResolveArtifactSiteDir,
   tryResolveFragmentsBaseDir,
+  resolveStructuresBaseDir,
+  resolveTemplatesBaseDir,
+  resolveAdtsBaseDir,
+  resolveFragmentsBaseDir,
+  resolveMigrationsBaseDir,
   type ArtifactType,
 } from '../../src/features/liferay/portal/artifact-paths.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
@@ -462,5 +467,103 @@ describe('resolveFragmentProjectDir', () => {
     config.cwd = repoRoot;
 
     expect(resolveFragmentProjectDir(config, 'guest', 'custom-fragments')).toBe(siteDir);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// No-repo mode: repoRoot is null, cwd is used as fallback base
+// ---------------------------------------------------------------------------
+
+const CWD = path.resolve('/work');
+
+function makeConfigNoRepo(cwd = CWD) {
+  return {
+    repoRoot: null,
+    cwd,
+    paths: {
+      templates: 'liferay/resources/journal/templates',
+      structures: 'liferay/resources/journal/structures',
+      adts: 'liferay/resources/templates/application_display',
+      fragments: 'liferay/fragments',
+      migrations: 'liferay/resources/journal/migrations',
+    },
+  } as Parameters<typeof resolveArtifactBaseDir>[0];
+}
+
+describe('no-repo fallback: base dir functions use cwd when repoRoot is null', () => {
+  const cfg = makeConfigNoRepo();
+
+  test('resolveStructuresBaseDir falls back to cwd', () => {
+    expect(resolveStructuresBaseDir(cfg)).toBe(path.join(CWD, 'liferay/resources/journal/structures'));
+  });
+
+  test('resolveTemplatesBaseDir falls back to cwd', () => {
+    expect(resolveTemplatesBaseDir(cfg)).toBe(path.join(CWD, 'liferay/resources/journal/templates'));
+  });
+
+  test('resolveAdtsBaseDir falls back to cwd', () => {
+    expect(resolveAdtsBaseDir(cfg)).toBe(path.join(CWD, 'liferay/resources/templates/application_display'));
+  });
+
+  test('resolveFragmentsBaseDir falls back to cwd', () => {
+    expect(resolveFragmentsBaseDir(cfg)).toBe(path.join(CWD, 'liferay/fragments'));
+  });
+
+  test('resolveMigrationsBaseDir falls back to cwd', () => {
+    expect(resolveMigrationsBaseDir(cfg)).toBe(path.join(CWD, 'liferay/resources/journal/migrations'));
+  });
+});
+
+describe('no-repo fallback: resolveArtifactBaseDir uses cwd when repoRoot is null', () => {
+  const cfg = makeConfigNoRepo();
+
+  test.each(['template', 'structure', 'adt', 'fragment'] as ArtifactType[])(
+    '%s: default dir is resolved against cwd',
+    (type) => {
+      const result = resolveArtifactBaseDir(cfg, type);
+      expect(result.startsWith(CWD)).toBe(true);
+    },
+  );
+
+  test.each(['template', 'structure', 'adt', 'fragment'] as ArtifactType[])(
+    '%s: relative dirOverride resolved against cwd',
+    (type) => {
+      expect(resolveArtifactBaseDir(cfg, type, 'out/resources')).toBe(path.join(CWD, 'out/resources'));
+    },
+  );
+
+  test.each(['template', 'structure', 'adt', 'fragment'] as ArtifactType[])(
+    '%s: absolute dirOverride still used as-is',
+    (type) => {
+      const override = path.resolve('/absolute/dir');
+      expect(resolveArtifactBaseDir(cfg, type, override)).toBe(override);
+    },
+  );
+});
+
+describe('no-repo fallback: resolveArtifactFile with fileOverride resolves against cwd', () => {
+  test('absolute fileOverride is found without a repo', async () => {
+    const cwd = createTempDir('artifact-paths-no-repo-abs-');
+    const filePath = path.join(cwd, 'NEWS.json');
+    await fs.writeFile(filePath, '{}');
+
+    const cfg = makeConfigNoRepo(cwd);
+
+    await expect(resolveArtifactFile(cfg, {type: 'structure', key: 'NEWS', fileOverride: filePath})).resolves.toBe(
+      filePath,
+    );
+  });
+
+  test('relative fileOverride is resolved against cwd when repoRoot is null', async () => {
+    const cwd = createTempDir('artifact-paths-no-repo-rel-');
+    const filePath = path.join(cwd, 'custom', 'NEWS.json');
+    await fs.ensureDir(path.dirname(filePath));
+    await fs.writeFile(filePath, '{}');
+
+    const cfg = makeConfigNoRepo(cwd);
+
+    await expect(
+      resolveArtifactFile(cfg, {type: 'structure', key: 'NEWS', fileOverride: 'custom/NEWS.json'}),
+    ).resolves.toBe(filePath);
   });
 });

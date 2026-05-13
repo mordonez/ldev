@@ -43,6 +43,15 @@ export function resolveRepoPath(config: AppConfig, relativePath: string): string
   return path.resolve(requireRepoRoot(config), relativePath);
 }
 
+/**
+ * Resolves a path relative to the repo root when available, falling back to cwd.
+ * Use this instead of resolveRepoPath for resource file paths that should work
+ * even when ldev is invoked outside a project repository (remote portal mode).
+ */
+export function resolveBasePath(config: AppConfig, relativePath: string): string {
+  return path.resolve(config.repoRoot ?? config.cwd, relativePath);
+}
+
 export function tryResolveRepoPath(config: AppConfig, relativePath: string): string | undefined {
   if (!config.repoRoot) {
     return undefined;
@@ -52,19 +61,19 @@ export function tryResolveRepoPath(config: AppConfig, relativePath: string): str
 }
 
 export function resolveStructuresBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
+  return resolveBasePath(config, config.paths?.structures ?? LIFERAY_RESOURCE_PATH_DEFAULTS.structures);
 }
 
 export function resolveTemplatesBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
+  return resolveBasePath(config, config.paths?.templates ?? LIFERAY_RESOURCE_PATH_DEFAULTS.templates);
 }
 
 export function resolveAdtsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
+  return resolveBasePath(config, config.paths?.adts ?? LIFERAY_RESOURCE_PATH_DEFAULTS.adts);
 }
 
 export function resolveFragmentsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
+  return resolveBasePath(config, config.paths?.fragments ?? LIFERAY_RESOURCE_PATH_DEFAULTS.fragments);
 }
 
 export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefined {
@@ -72,7 +81,7 @@ export function tryResolveFragmentsBaseDir(config: AppConfig): string | undefine
 }
 
 export function resolveMigrationsBaseDir(config: AppConfig): string {
-  return resolveRepoPath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
+  return resolveBasePath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
 }
 
 type ResolveArtifactFileOptions =
@@ -104,7 +113,7 @@ export function sanitizeArtifactToken(value: string): string {
 
 export function resolveArtifactBaseDir(config: AppConfig, type: ArtifactType, dirOverride?: string): string {
   if (dirOverride?.trim()) {
-    return path.resolve(resolveRepoPath(config, dirOverride));
+    return path.resolve(resolveBasePath(config, dirOverride));
   }
   switch (type) {
     case 'template':
@@ -184,7 +193,7 @@ export function resolveArtifactSiteDir(
 ): string {
   if (type === 'fragment') {
     if (dirOverride?.trim()) {
-      return path.resolve(resolveRepoPath(config, dirOverride));
+      return path.resolve(resolveBasePath(config, dirOverride));
     }
     return path.join(resolveFragmentsBaseDir(config), 'sites', siteToken);
   }
@@ -216,7 +225,7 @@ export function resolveFragmentProjectDir(config: AppConfig, siteToken: string, 
   }
 
   const configuredDir = (dirOverride ?? '').trim();
-  const configured = path.resolve(resolveRepoPath(config, configuredDir));
+  const configured = path.resolve(resolveBasePath(config, configuredDir));
   const detectedFromConfigured = detectFragmentsProjectRoot(configured);
   if (detectedFromConfigured) {
     return detectedFromConfigured;
@@ -324,15 +333,14 @@ async function resolveAdtArtifactFile(config: AppConfig, key: string, widgetType
 }
 
 async function resolveExistingArtifactFile(config: AppConfig, fileOverride: string): Promise<string> {
-  const repoRoot = requireRepoRoot(config);
   const direct = path.resolve(fileOverride);
   if (await fs.pathExists(direct)) {
     return direct;
   }
 
-  const relativeToRepo = path.resolve(repoRoot, fileOverride);
-  if (await fs.pathExists(relativeToRepo)) {
-    return relativeToRepo;
+  const relativeToBase = path.resolve(config.repoRoot ?? config.cwd, fileOverride);
+  if (await fs.pathExists(relativeToBase)) {
+    return relativeToBase;
   }
 
   for (const baseDir of [

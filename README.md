@@ -152,6 +152,19 @@ ldev oauth install --write-env
 To use it on top of an existing Liferay Workspace, just run `ldev` from the
 workspace root — it detects Blade workspaces and adapts.
 
+To query a remote portal without a local repo, set three environment variables
+and run from any directory:
+
+```bash
+export LIFERAY_CLI_URL=https://remote.portal.com
+export LIFERAY_CLI_OAUTH2_CLIENT_ID=<client-id>
+export LIFERAY_CLI_OAUTH2_CLIENT_SECRET=<client-secret>
+
+ldev portal inventory sites
+ldev resource structure --site /global --structure BASIC
+ldev resource export-structure --site /global --structure BASIC --file /tmp/BASIC.json
+```
+
 ## Dashboard
 
 `ldev dashboard` gives you a local control surface for the operational loop:
