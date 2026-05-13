@@ -21,7 +21,7 @@ describe('buildWorktreePresentation', () => {
     expect(presentation.badges).toEqual([
       {label: '2 changed', tone: 'yellow'},
       {label: 'stopped', tone: 'gray'},
-      {label: 'attention', tone: 'red'},
+      {label: 'attention', tone: 'red', title: '2 changed file(s)'},
     ]);
     expect(presentation.primary).toEqual(['start', 'btn-start', 'Start']);
     expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('...');
@@ -46,7 +46,7 @@ describe('buildWorktreePresentation', () => {
 
     expect(presentation.badges).toEqual([
       {label: 'running', tone: 'green'},
-      {label: 'attention', tone: 'red'},
+      {label: 'attention', tone: 'red', title: 'portal not reachable'},
     ]);
     expect(presentation.primary).toEqual(['restart', 'btn-start', 'Restart']);
     expect(presentation.actions.map((action: {label: string}) => action.label)).toEqual([
