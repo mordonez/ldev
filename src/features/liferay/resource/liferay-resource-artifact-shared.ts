@@ -9,7 +9,7 @@ import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {ensureData} from '../liferay-http-shared.js';
 
-export type ResourceImportDependencies = {
+export type ResourceDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
@@ -25,7 +25,7 @@ async function postFormCandidateResponse<T>(
   config: AppConfig,
   path: string,
   form: Record<string, string>,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<HttpResponse<T>> {
   const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   return gateway.postFormRaw<T>(path, form);
@@ -36,7 +36,7 @@ export async function postFormCandidates<T>(
   apiPath: string,
   candidates: Record<string, string>[],
   operation: string,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<T> {
   const errors: string[] = [];
 

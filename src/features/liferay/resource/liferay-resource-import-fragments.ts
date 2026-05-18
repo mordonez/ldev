@@ -12,7 +12,7 @@ import {
   toErrorMessage,
 } from './liferay-resource-import-fragments-local.js';
 import {createFragmentSyncRuntimeState} from './liferay-resource-import-fragments-api.js';
-import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import type {
   LiferayResourceImportFragmentItemResult,
   LiferayResourceImportFragmentsAllSitesResult,
@@ -41,7 +41,7 @@ export async function runLiferayResourceImportFragments(
     dir?: string;
     fragment?: string;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsResult> {
   if (options?.allSites && (options.fragment?.trim() ?? '') !== '') {
     throw LiferayErrors.resourceError('--fragment requires --site or --site-id');
@@ -74,7 +74,7 @@ export function getLiferayResourceImportFragmentsExitCode(result: LiferayResourc
 async function runAllSitesImport(
   config: AppConfig,
   dir: string | undefined,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsAllSitesResult> {
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
   const siteResults: LiferayResourceImportFragmentsSingleResult[] = [];
@@ -115,7 +115,7 @@ async function runFragmentsImport(
   siteFriendlyUrl: string,
   projectDir: string,
   fragmentFilter: string,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsSingleResult> {
   const project = await readLocalFragmentsProject(projectDir, fragmentFilter);
   const site = toResolvedSite(groupId, siteFriendlyUrl);
@@ -193,7 +193,7 @@ async function syncFragmentCollection(
   site: ResolvedSite,
   collection: LocalFragmentCollection,
   runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<number> {
   const result = await runImportArtifact(
     config,
@@ -215,7 +215,7 @@ async function syncFragmentEntry(
   collectionId: number,
   fragment: LocalFragment,
   runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<number> {
   const result = await runImportArtifact(
     config,

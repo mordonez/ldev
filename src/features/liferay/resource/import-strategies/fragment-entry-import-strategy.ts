@@ -13,7 +13,7 @@ import {
   normalizeFragmentEntryForHash,
 } from '../liferay-resource-import-fragments-hash.js';
 import type {LocalFragment} from '../liferay-resource-import-fragments-types.js';
-import {sha256, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import {sha256, type ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type FragmentEntryLocalData = {
@@ -56,7 +56,7 @@ export const fragmentEntryImportStrategy: ImportStrategy<FragmentEntryLocalData,
     _site: ResolvedSite,
     localArtifact: LocalArtifact<FragmentEntryLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<FragmentEntryRemoteData> | null> {
     const opts = options as FragmentEntryImportOptions;
     const runtimeFragment = await findRuntimeFragment(
@@ -87,7 +87,7 @@ export const fragmentEntryImportStrategy: ImportStrategy<FragmentEntryLocalData,
     localArtifact: LocalArtifact<FragmentEntryLocalData>,
     remoteArtifact: RemoteArtifact<FragmentEntryRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<FragmentEntryRemoteData>> {
     const opts = options as FragmentEntryImportOptions;
 

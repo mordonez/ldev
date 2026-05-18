@@ -5,7 +5,7 @@ import {normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from '../portal/artifact-paths.js';
-import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import {runLiferayResourceImportAdt} from './liferay-resource-import-adt.js';
 import {runLiferayResourceImportStructure} from './liferay-resource-import-structure.js';
 import {runLiferayResourceImportTemplate} from './liferay-resource-import-template.js';
@@ -224,7 +224,7 @@ export async function runLiferayResourceImportStructures(
     allowBreakingChange?: boolean;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const structureKeys = normalizeImportKeys(options?.structureKeys);
   if (!options?.allSites && !options?.apply && structureKeys.length === 0) {
@@ -288,7 +288,7 @@ export async function runLiferayResourceImportTemplates(
     structureKey?: string;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const templateKeys = normalizeImportKeys(options?.templateKeys);
   if (!options?.allSites && !options?.apply && templateKeys.length === 0) {
@@ -348,7 +348,7 @@ export async function runLiferayResourceImportAdts(
     className?: string;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const adtKeys = normalizeImportKeys(options?.adtKeys);
   const hasScopedFilter =

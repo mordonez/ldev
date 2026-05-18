@@ -10,7 +10,7 @@ import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactBaseDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
-import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportTemplatesSiteResult = {
   site: string;
@@ -37,7 +37,7 @@ export type LiferayResourceExportTemplatesResult = {
 export async function runLiferayResourceExportTemplates(
   config: AppConfig,
   options?: {site?: string; dir?: string; allSites?: boolean; continueOnError?: boolean; debug?: boolean},
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportTemplatesResult> {
   const baseDir = resolveArtifactBaseDir(config, 'template', options?.dir);
 
@@ -125,7 +125,7 @@ async function exportTemplatesForSite(
   baseDir: string,
   continueOnError: boolean,
   debugEnabled: boolean,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceExportTemplatesSiteResult> {
   const site = await resolveResourceSite(config, siteFriendlyUrl, dependencies);
   const siteToken = resolveSiteToken(site.friendlyUrlPath);
@@ -172,7 +172,7 @@ async function exportTemplatesForSite(
 async function listTemplatesForExport(
   config: AppConfig,
   site: Awaited<ReturnType<typeof resolveResourceSite>>,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<{
   templates: LiferayInventoryTemplate[];
   debug: NonNullable<LiferayResourceExportTemplatesSiteResult['debug']>;

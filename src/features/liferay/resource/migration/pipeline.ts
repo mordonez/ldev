@@ -13,7 +13,7 @@ import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.
 import {resolveStructureFile} from '../../portal/artifact-paths.js';
 import {runLiferayResourceImportStructure} from '../liferay-resource-import-structure.js';
 import {runLiferayResourceImportTemplate} from '../liferay-resource-import-template.js';
-import type {ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 
 type MigrationStage = 'introduce' | 'cleanup';
 
@@ -76,7 +76,7 @@ export async function runLiferayResourceMigrationRun(
     skipUpdate?: boolean;
     printer?: Printer;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceMigrationRunResult> {
   const descriptor = await readMigrationDescriptor(config, options.migrationFile);
   const stage = options.stage ?? 'introduce';
@@ -166,7 +166,7 @@ export async function runLiferayResourceMigrationPipeline(
     createMissingTemplates?: boolean;
     printer?: Printer;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceMigrationPipelineResult> {
   const descriptor = await readMigrationDescriptor(config, options.migrationFile);
   options.printer?.info(
@@ -472,7 +472,7 @@ async function runCleanupStage(
     checkOnly?: boolean;
     migrationDryRun?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<Awaited<ReturnType<typeof runLiferayResourceImportStructure>>> {
   const cleanupSources = cleanupSourceFields(descriptor.introduce.planNode);
   if (cleanupSources.length === 0) {
@@ -799,7 +799,7 @@ function removeLegacyLayoutColumns(columns: unknown, cleanupSources: Set<string>
 async function resolvePipelineTemplates(
   config: AppConfig,
   descriptor: MigrationDescriptor,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<string[]> {
   if (!descriptor.templates) {
     return [];

@@ -15,7 +15,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {ResolvedSite} from '../portal/site-resolution.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResourceImportDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 
 /**
  * Local artifact representation after reading.
@@ -69,7 +69,7 @@ export type ImportStrategy<Local = never, Remote = never> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<Local>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<Remote> | null>;
 
   /**
@@ -82,7 +82,7 @@ export type ImportStrategy<Local = never, Remote = never> = {
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<Remote>>;
 
   /**
@@ -96,7 +96,7 @@ export type ImportStrategy<Local = never, Remote = never> = {
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<Remote>>;
 
   /**
@@ -108,7 +108,7 @@ export type ImportStrategy<Local = never, Remote = never> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<void>;
 };
 
@@ -145,7 +145,7 @@ export async function runImportArtifact<Local = never, Remote = never>(
   site: ResolvedSite,
   strategy: ImportStrategy<Local, Remote>,
   options: ImportEngineOptions,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<ImportEngineResult> {
   return (await runImportArtifactDetailed(config, site, strategy, options, dependencies)).result;
 }
@@ -159,7 +159,7 @@ export async function runImportArtifactDetailed<Local = never, Remote = never>(
   site: ResolvedSite,
   strategy: ImportStrategy<Local, Remote>,
   options: ImportEngineOptions,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<ImportArtifactOutcome<Local, Remote>> {
   const strategyOpts = options.strategyOptions ?? {};
 

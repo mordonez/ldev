@@ -9,7 +9,7 @@ import {
 } from '../liferay-resource-import-fragments-api.js';
 import {normalizeFragmentCollectionForHash} from '../liferay-resource-import-fragments-hash.js';
 import type {LocalFragmentCollection} from '../liferay-resource-import-fragments-types.js';
-import {sha256, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import {sha256, type ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type FragmentCollectionLocalData = {
@@ -48,7 +48,7 @@ export const fragmentCollectionImportStrategy: ImportStrategy<
     site: ResolvedSite,
     localArtifact: LocalArtifact<FragmentCollectionLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<FragmentCollectionRemoteData> | null> {
     const opts = options as FragmentCollectionImportOptions;
     const runtimeCollection = await findRuntimeCollection(
@@ -76,7 +76,7 @@ export const fragmentCollectionImportStrategy: ImportStrategy<
     localArtifact: LocalArtifact<FragmentCollectionLocalData>,
     remoteArtifact: RemoteArtifact<FragmentCollectionRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<FragmentCollectionRemoteData>> {
     const opts = options as FragmentCollectionImportOptions;
 

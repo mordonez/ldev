@@ -8,7 +8,7 @@ import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
 import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from '../../portal/artifact-paths.js';
 import type {StructureDefinitionPayload} from '../liferay-resource-import-structure-diff.js';
-import type {ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 
 export type LiferayResourceMigrationInitResult = {
   site: string;
@@ -32,7 +32,7 @@ export async function runLiferayResourceMigrationInit(
     templates?: boolean;
     overwrite?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceMigrationInitResult> {
   const structure = await runLiferayResourceGetStructure(
     config,

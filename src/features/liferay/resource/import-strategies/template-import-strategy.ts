@@ -24,7 +24,7 @@ import {
   ensureString,
   localizedMap,
   sha256,
-  type ResourceImportDependencies,
+  type ResourceDependencies,
   postFormCandidates,
 } from '../liferay-resource-artifact-shared.js';
 import {matchesInventoryTemplate} from '../../liferay-identifiers.js';
@@ -84,7 +84,7 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
     site: ResolvedSite,
     localArtifact: LocalArtifact<TemplateLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<TemplateRemoteData> | null> {
     const opts = options as TemplateImportOptions;
     const inventoryTemplates = await runLiferayInventoryTemplates(config, {site: site.friendlyUrlPath}, dependencies);
@@ -174,7 +174,7 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
     localArtifact: LocalArtifact<TemplateLocalData>,
     remoteArtifact: RemoteArtifact<TemplateRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<TemplateRemoteData>> {
     const opts = options as TemplateImportOptions;
 
@@ -253,7 +253,7 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
     site: ResolvedSite,
     localArtifact: LocalArtifact<TemplateLocalData>,
     remoteArtifact: RemoteArtifact<TemplateRemoteData>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<void> {
     // Get runtime template from API
     const runtime = await runLiferayResourceGetTemplate(
@@ -276,7 +276,7 @@ async function fetchStructureByKey(
   config: AppConfig,
   siteId: number,
   key: string,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<Record<string, unknown>> {
   const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   return gateway.getJson<Record<string, unknown>>(

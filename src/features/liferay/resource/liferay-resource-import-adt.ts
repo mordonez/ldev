@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResourceImportDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {
   ADT_CLASS_BY_WIDGET_TYPE,
@@ -32,7 +32,7 @@ export async function runLiferayResourceImportAdt(
     checkOnly?: boolean;
     createMissing?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportAdtResult> {
   // Resolve widget type and class name
   const resolvedWidget = normalizeAdtWidgetType(options.widgetType ?? inferAdtWidgetType(options.file ?? ''));
@@ -145,7 +145,7 @@ async function findAdtInSite(
   widgetType: string,
   className: string,
   name: string,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ) {
   const adts = await runLiferayResourceListAdts(
     config,

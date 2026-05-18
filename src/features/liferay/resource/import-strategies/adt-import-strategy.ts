@@ -14,12 +14,7 @@ import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
 import {resolveAdtFile} from '../../portal/artifact-paths.js';
 import {rethrowGatewayAsResourceError} from './shared.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
-import {
-  ensureString,
-  localizedMap,
-  sha256,
-  type ResourceImportDependencies,
-} from '../liferay-resource-artifact-shared.js';
+import {ensureString, localizedMap, sha256, type ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 import {matchesAdtRow} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
@@ -79,7 +74,7 @@ export const adtImportStrategy: ImportStrategy<AdtLocalData, AdtRemoteData> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<AdtLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<AdtRemoteData> | null> {
     const opts = options as AdtImportOptions;
 
@@ -122,7 +117,7 @@ export const adtImportStrategy: ImportStrategy<AdtLocalData, AdtRemoteData> = {
     localArtifact: LocalArtifact<AdtLocalData>,
     remoteArtifact: RemoteArtifact<AdtRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<RemoteArtifact<AdtRemoteData>> {
     const opts = options as AdtImportOptions;
     const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
@@ -197,7 +192,7 @@ export const adtImportStrategy: ImportStrategy<AdtLocalData, AdtRemoteData> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<AdtLocalData>,
     remoteArtifact: RemoteArtifact<AdtRemoteData>,
-    dependencies?: ResourceImportDependencies,
+    dependencies?: ResourceDependencies,
   ): Promise<void> {
     // Re-list ADTs to verify the runtime script matches local
     const adts = await runLiferayResourceListAdts(

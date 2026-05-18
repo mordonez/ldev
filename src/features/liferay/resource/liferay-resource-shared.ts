@@ -31,7 +31,7 @@ export {
 };
 export type {DdmTemplatePayload, ResolvedResourceSite};
 
-type ResourceImportDependencies = SiteResolutionDependencies;
+type ResourceDependencies = SiteResolutionDependencies;
 
 function expectResourceJsonSuccess<T>(response: HttpResponse<T>, label: string): HttpResponse<T> {
   return expectJsonSuccessShared(response, label, 'LIFERAY_RESOURCE_ERROR');
@@ -40,7 +40,7 @@ function expectResourceJsonSuccess<T>(response: HttpResponse<T>, label: string):
 function createResourceReadGateway(
   config: AppConfig,
   apiClient: HttpApiClient,
-  dependencies?: Pick<ResourceImportDependencies, 'gateway' | 'tokenClient' | 'accessToken'>,
+  dependencies?: Pick<ResourceDependencies, 'gateway' | 'tokenClient' | 'accessToken'>,
 ) {
   if (dependencies?.gateway) {
     return dependencies.gateway;
@@ -58,7 +58,7 @@ function createResourceReadGateway(
 export async function listFragmentCollections(
   config: AppConfig,
   siteId: number,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<FragmentCollectionPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createResourceReadGateway(config, apiClient, dependencies);
@@ -72,7 +72,7 @@ export async function listFragmentCollections(
 export async function listFragments(
   config: AppConfig,
   collectionId: number,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<FragmentEntryPayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createResourceReadGateway(config, apiClient, dependencies);

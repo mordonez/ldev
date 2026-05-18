@@ -26,7 +26,7 @@ import {
   structureShapeMatches,
 } from '../liferay-resource-import-structure-diff.js';
 import {captureMigrationSourceSnapshots, runStructureMigration, type MigrationStats} from '../migration/index.js';
-import {ensureString, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import {ensureString, type ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
 import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
@@ -70,7 +70,7 @@ type StructureImportOptions = {
   printer?: Printer;
 };
 
-export type StructureResourceDependencies = ResourceImportDependencies & {
+export type StructureResourceDependencies = ResourceDependencies & {
   sleep?: (ms: number) => Promise<void>;
 };
 

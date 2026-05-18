@@ -5,7 +5,7 @@ import {normalizeLocalizedName} from '../portal/site-resolution.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import type {DataDefinitionPayload} from './liferay-resource-payloads.js';
-import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceStructureResult = {
   siteId: number;
@@ -20,7 +20,7 @@ export type LiferayResourceStructureResult = {
 export async function runLiferayResourceGetStructure(
   config: AppConfig,
   options: {site?: string; key?: string; id?: string},
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceStructureResult> {
   const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   let site = await resolveResourceSite(config, options.site ?? '/global', dependencies);

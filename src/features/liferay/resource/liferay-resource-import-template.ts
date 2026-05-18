@@ -12,7 +12,7 @@
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {ResourceImportDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {
   resolveSiteToken,
@@ -47,7 +47,7 @@ export async function runLiferayResourceImportTemplate(
     checkOnly?: boolean;
     createMissing?: boolean;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportTemplateResult> {
   const site = await resolveResourceSite(config, inferTemplateSite(config, options) ?? '/global', dependencies);
 

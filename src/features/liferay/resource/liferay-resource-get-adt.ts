@@ -6,7 +6,7 @@ import {ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
-import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceAdtResult = {
   siteFriendlyUrl: string;
@@ -33,7 +33,7 @@ export async function runLiferayResourceGetAdt(
     widgetType?: string;
     className?: string;
   },
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceAdtResult> {
   const identifier = normalizeAdtIdentifier(options);
 
@@ -167,7 +167,7 @@ export function formatLiferayResourceAdt(result: LiferayResourceAdtResult): stri
 
 async function collectSearchSites(
   config: AppConfig,
-  dependencies?: ResourceImportDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<Array<{siteId: number; siteFriendlyUrl: string; siteName: string}>> {
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
   return sites.map((site) => ({
