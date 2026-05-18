@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.1](https://github.com/mordonez/ldev/compare/ldev-v0.7.0...ldev-v0.7.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **dashboard:** visual redesign, icon system, and .gitignore cleanupFix/dashboard styles ([#140](https://github.com/mordonez/ldev/issues/140)) ([f902b4c](https://github.com/mordonez/ldev/commit/f902b4cf399147b9830e529c25d18d15150865a1))
+* **mcp:** improve MCP server tooling contracts ([#144](https://github.com/mordonez/ldev/issues/144)) ([d7a1bad](https://github.com/mordonez/ldev/commit/d7a1bad4da424a478c6fdff51a546be5af22776a))
+* **resource:** fall back to cwd for file paths when no repo root ([#141](https://github.com/mordonez/ldev/issues/141)) ([bcfcb2c](https://github.com/mordonez/ldev/commit/bcfcb2c105727710e55b927fb4514d5fad50a5b7))
+* update agent and skill documentation to handle vanilla sandbox requests ([8951699](https://github.com/mordonez/ldev/commit/8951699bc73edf16dfca320b7a71955fc9ac6e96))
+* use 127.0.0.1 loopback in dashboard and harden architecture boundaries ([#138](https://github.com/mordonez/ldev/issues/138)) ([498a00b](https://github.com/mordonez/ldev/commit/498a00b5d99a6b2e784654d8fe6f6248f0108fd7))
+* **worktree:** add inspection commands for registered worktrees and their statuses ([#142](https://github.com/mordonez/ldev/issues/142)) ([ec91cea](https://github.com/mordonez/ldev/commit/ec91ceace19a8a60719f0d58ad7f745903b5be50))
+
 ## [0.7.0](https://github.com/mordonez/ldev/compare/ldev-v0.6.0...ldev-v0.7.0) (2026-05-12)
 
 
