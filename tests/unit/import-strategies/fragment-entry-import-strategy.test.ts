@@ -1,10 +1,10 @@
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import {fragmentEntrySyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/fragment-entry-sync-strategy.js';
+import {fragmentEntryImportStrategy} from '../../../src/features/liferay/resource/import-strategies/fragment-entry-import-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/portal/site-resolution.js';
-import type {LocalFragment} from '../../../src/features/liferay/resource/liferay-resource-sync-fragments-types.js';
-import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
+import type {LocalFragment} from '../../../src/features/liferay/resource/liferay-resource-import-fragments-types.js';
+import {mockApiClient, mockTokenClient} from './import-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -33,7 +33,7 @@ const mockSite: ResolvedSite = {
   friendlyUrlPath: '/test-site',
 };
 
-describe('fragmentEntrySyncStrategy', () => {
+describe('fragmentEntryImportStrategy', () => {
   describe('resolveLocal', () => {
     test('returns LocalArtifact from fragment', async () => {
       const fragment: LocalFragment = {
@@ -57,7 +57,7 @@ describe('fragmentEntrySyncStrategy', () => {
         fragmentsByCollectionId: new Map(),
       };
 
-      const artifact = await fragmentEntrySyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact = await fragmentEntryImportStrategy.resolveLocal(mockConfig, mockSite, {
         collectionId: 100,
         fragment,
         runtimeState,
@@ -109,13 +109,13 @@ describe('fragmentEntrySyncStrategy', () => {
         fragmentsByCollectionId: new Map(),
       };
 
-      const artifact1 = await fragmentEntrySyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact1 = await fragmentEntryImportStrategy.resolveLocal(mockConfig, mockSite, {
         collectionId: 100,
         fragment: fragment1,
         runtimeState,
       });
 
-      const artifact2 = await fragmentEntrySyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact2 = await fragmentEntryImportStrategy.resolveLocal(mockConfig, mockSite, {
         collectionId: 100,
         fragment: fragment2,
         runtimeState,
@@ -169,7 +169,7 @@ describe('fragmentEntrySyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentEntrySyncStrategy.findRemote(
+      const result = await fragmentEntryImportStrategy.findRemote(
         mockConfig,
         mockSite,
         localArtifact,
@@ -221,7 +221,7 @@ describe('fragmentEntrySyncStrategy', () => {
         data: {collectionId: 100, fragment},
       };
 
-      const result = await fragmentEntrySyncStrategy.findRemote(mockConfig, mockSite, localArtifact, {
+      const result = await fragmentEntryImportStrategy.findRemote(mockConfig, mockSite, localArtifact, {
         collectionId: 100,
         fragment,
         runtimeState,
@@ -290,7 +290,7 @@ describe('fragmentEntrySyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentEntrySyncStrategy.upsert(
+      const result = await fragmentEntryImportStrategy.upsert(
         mockConfig,
         mockSite,
         localArtifact,
@@ -365,7 +365,7 @@ describe('fragmentEntrySyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentEntrySyncStrategy.upsert(
+      const result = await fragmentEntryImportStrategy.upsert(
         mockConfig,
         mockSite,
         localArtifact,
@@ -424,10 +424,10 @@ describe('fragmentEntrySyncStrategy', () => {
       };
 
       await expect(
-        fragmentEntrySyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+        fragmentEntryImportStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
       ).rejects.toThrow('Fragment read-back mismatch after import');
       await expect(
-        fragmentEntrySyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+        fragmentEntryImportStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
       ).rejects.toThrow('not a local checksum file, hidden ldev cache, or force-import problem');
     });
 
@@ -472,7 +472,7 @@ describe('fragmentEntrySyncStrategy', () => {
 
       // Should not throw because verify is skipped when content fields are missing
       await expect(
-        fragmentEntrySyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+        fragmentEntryImportStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
       ).resolves.not.toThrow();
     });
   });

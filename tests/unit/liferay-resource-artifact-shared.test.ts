@@ -3,7 +3,7 @@ import {describe, expect, test, vi} from 'vitest';
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {OAuthTokenClient, TokenResponse} from '../../src/core/http/auth.js';
 import type {HttpResponse, HttpApiClient} from '../../src/core/http/client.js';
-import {postFormCandidates} from '../../src/features/liferay/resource/liferay-resource-sync-shared.js';
+import {postFormCandidates} from '../../src/features/liferay/resource/liferay-resource-artifact-shared.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',

@@ -4,7 +4,7 @@ import {
   listDdmTemplatesByClassName,
   resolveResourceSite,
 } from './liferay-resource-shared.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
 
 export const ADT_CLASS_BY_WIDGET_TYPE: Record<string, string> = {
   'asset-entry': 'com.liferay.asset.kernel.model.AssetEntry',
@@ -35,7 +35,7 @@ export type LiferayResourceAdtRow = {
 export async function runLiferayResourceListAdts(
   config: AppConfig,
   options?: {site?: string; widgetType?: string; className?: string; includeScript?: boolean},
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceAdtRow[]> {
   const site = await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const filter = normalizeAdtWidgetType(options?.widgetType ?? '');

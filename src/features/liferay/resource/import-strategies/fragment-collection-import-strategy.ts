@@ -6,11 +6,11 @@ import {
   findRuntimeCollection,
   updateFragmentCollection,
   type FragmentSyncRuntimeState,
-} from '../liferay-resource-sync-fragments-api.js';
-import {normalizeFragmentCollectionForHash} from '../liferay-resource-sync-fragments-hash.js';
-import type {LocalFragmentCollection} from '../liferay-resource-sync-fragments-types.js';
-import {sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
-import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+} from '../liferay-resource-import-fragments-api.js';
+import {normalizeFragmentCollectionForHash} from '../liferay-resource-import-fragments-hash.js';
+import type {LocalFragmentCollection} from '../liferay-resource-import-fragments-types.js';
+import {sha256, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type FragmentCollectionLocalData = {
   collection: LocalFragmentCollection;
@@ -18,18 +18,21 @@ type FragmentCollectionLocalData = {
 
 type FragmentCollectionRemoteData = FragmentCollectionPayload;
 
-type FragmentCollectionSyncOptions = {
+type FragmentCollectionImportOptions = {
   collection: LocalFragmentCollection;
   runtimeState: FragmentSyncRuntimeState;
 };
 
-export const fragmentCollectionSyncStrategy: SyncStrategy<FragmentCollectionLocalData, FragmentCollectionRemoteData> = {
+export const fragmentCollectionImportStrategy: ImportStrategy<
+  FragmentCollectionLocalData,
+  FragmentCollectionRemoteData
+> = {
   resolveLocal(
     _config: AppConfig,
     _site: ResolvedSite,
     options: Record<string, unknown>,
   ): Promise<LocalArtifact<FragmentCollectionLocalData>> {
-    const opts = options as FragmentCollectionSyncOptions;
+    const opts = options as FragmentCollectionImportOptions;
     const normalizedContent = normalizeFragmentCollectionForHash(opts.collection);
 
     return Promise.resolve({
@@ -45,9 +48,9 @@ export const fragmentCollectionSyncStrategy: SyncStrategy<FragmentCollectionLoca
     site: ResolvedSite,
     localArtifact: LocalArtifact<FragmentCollectionLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<FragmentCollectionRemoteData> | null> {
-    const opts = options as FragmentCollectionSyncOptions;
+    const opts = options as FragmentCollectionImportOptions;
     const runtimeCollection = await findRuntimeCollection(
       config,
       site.id,
@@ -73,9 +76,9 @@ export const fragmentCollectionSyncStrategy: SyncStrategy<FragmentCollectionLoca
     localArtifact: LocalArtifact<FragmentCollectionLocalData>,
     remoteArtifact: RemoteArtifact<FragmentCollectionRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<FragmentCollectionRemoteData>> {
-    const opts = options as FragmentCollectionSyncOptions;
+    const opts = options as FragmentCollectionImportOptions;
 
     if (!remoteArtifact) {
       const created = await createFragmentCollection(

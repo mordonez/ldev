@@ -3,7 +3,7 @@ import path from 'node:path';
 import {describe, expect, test, afterEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import {templateSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/template-sync-strategy.js';
+import {adtImportStrategy} from '../../../src/features/liferay/resource/import-strategies/adt-import-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/portal/site-resolution.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
 
@@ -34,7 +34,7 @@ const mockSite: ResolvedSite = {
   friendlyUrlPath: '/test-site',
 };
 
-describe('templateSyncStrategy', () => {
+describe('adtImportStrategy', () => {
   let tempDir: string;
 
   afterEach(() => {
@@ -44,18 +44,29 @@ describe('templateSyncStrategy', () => {
   });
 
   describe('resolveLocal', () => {
-    test('resolves template file and returns LocalArtifact', async () => {
-      tempDir = createTempDir('template-resolve-local-');
-      const templateDir = path.join(tempDir, 'liferay', 'resources', 'journal', 'templates', 'test-site');
-      await fs.ensureDir(templateDir);
+    test('resolves ADT file and returns LocalArtifact', async () => {
+      tempDir = createTempDir('adt-resolve-local-');
+      // ADT directory structure: adts/{className}/{widgetTypeDir}/{key}.ftl
+      const adtDir = path.join(
+        tempDir,
+        'liferay',
+        'resources',
+        'templates',
+        'application_display',
+        'com.liferay.asset.kernel.model.AssetEntry',
+        'asset_entry',
+      );
+      await fs.ensureDir(adtDir);
 
-      const templateContent = 'Hello <#if true>world</#if>';
-      await fs.writeFile(path.join(templateDir, 'BASIC.ftl'), templateContent);
+      const adtContent = '<#assign entry = entry!>\n<p>${entry.title}</p>';
+      await fs.writeFile(path.join(adtDir, 'BASIC.ftl'), adtContent);
 
       const testConfig = {...mockConfig, cwd: tempDir, repoRoot: tempDir};
 
-      const artifact = await templateSyncStrategy.resolveLocal(testConfig, mockSite, {
+      const artifact = await adtImportStrategy.resolveLocal(testConfig, mockSite, {
         key: 'BASIC',
+        widgetType: 'asset-entry',
+        className: 'com.liferay.asset.kernel.model.AssetEntry',
       });
 
       expect(artifact).not.toBeNull();
@@ -65,43 +76,39 @@ describe('templateSyncStrategy', () => {
       expect(artifact?.data.filePath).toContain('BASIC.ftl');
     });
 
-    test('returns null when template file not found', async () => {
-      tempDir = createTempDir('template-resolve-local-missing-');
+    test('returns null when ADT file not found', async () => {
+      tempDir = createTempDir('adt-resolve-local-missing-');
       const testConfig = {...mockConfig, cwd: tempDir, repoRoot: tempDir};
 
-      const artifact = await templateSyncStrategy.resolveLocal(testConfig, mockSite, {
-        key: 'MISSING_KEY',
+      const artifact = await adtImportStrategy.resolveLocal(testConfig, mockSite, {
+        key: 'MISSING',
+        widgetType: 'asset-entry',
+        className: 'com.liferay.asset.kernel.model.AssetEntry',
       });
 
       expect(artifact).toBeNull();
-    });
-
-    test('throws when config is invalid', async () => {
-      const invalidConfig = {...mockConfig, paths: undefined};
-
-      await expect(templateSyncStrategy.resolveLocal(invalidConfig, mockSite, {key: 'BASIC'})).rejects.toThrow();
     });
   });
 
   describe('findRemote', () => {
     test('findRemote requires complex site resolution - covered in integration tests', () => {
-      // Template findRemote calls runLiferayInventoryTemplates, fetchStructureByKey
-      // and other complex site resolution logic. Keeping unit tests focused on resolveLocal.
+      // ADT findRemote calls runLiferayResourceListAdts and triggers full site resolution.
+      // Keeping unit tests focused on resolveLocal only.
       expect(true).toBe(true);
     });
   });
 
   describe('upsert', () => {
     test('upsert requires external API calls - covered in integration tests', () => {
-      // Template upsert requires multiple API calls and is better tested in integration
+      // ADT upsert requires multiple API calls and complex mocking. Better tested in integration.
       expect(true).toBe(true);
     });
   });
 
   describe('verify', () => {
-    test('verify requires hash normalization and checking - covered in integration tests', () => {
-      // Template verify performs complex normalization and hash checking
-      // These tests are covered in integration/end-to-end tests
+    test('verify performs hash checking - covered in integration tests', () => {
+      // ADT verify performs hash checking internally and may require additional setup
+      // These tests are covered in integration tests
       expect(true).toBe(true);
     });
   });

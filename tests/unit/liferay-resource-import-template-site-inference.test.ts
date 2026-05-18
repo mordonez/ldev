@@ -3,7 +3,7 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
-import {runLiferayResourceSyncTemplate} from '../../src/features/liferay/resource/liferay-resource-sync-template.js';
+import {runLiferayResourceImportTemplate} from '../../src/features/liferay/resource/liferay-resource-import-template.js';
 import {createStaticTokenClient, createTestFetchImpl} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -77,7 +77,7 @@ describe('liferay resource template-sync site inference', () => {
     });
 
     await expect(
-      runLiferayResourceSyncTemplate(
+      runLiferayResourceImportTemplate(
         config,
         {key: 'MISSING', file: templateFile},
         {apiClient, tokenClient: TOKEN_CLIENT},

@@ -27,7 +27,7 @@ export type LocalFragmentsProject = {
   collections: LocalFragmentCollection[];
 };
 
-export type LiferayResourceSyncFragmentItemResult = {
+export type LiferayResourceImportFragmentItemResult = {
   collection: string;
   fragment: string;
   status: 'imported' | 'error';
@@ -35,7 +35,7 @@ export type LiferayResourceSyncFragmentItemResult = {
   error?: string;
 };
 
-export type LiferayResourceSyncFragmentsSingleResult = {
+export type LiferayResourceImportFragmentsSingleResult = {
   mode: 'oauth-jsonws-import';
   site: string;
   siteId: number;
@@ -46,18 +46,18 @@ export type LiferayResourceSyncFragmentsSingleResult = {
     pageTemplateResults: number;
     errors: number;
   };
-  fragmentResults: LiferayResourceSyncFragmentItemResult[];
+  fragmentResults: LiferayResourceImportFragmentItemResult[];
   pageTemplateResults: unknown[];
 };
 
-export type LiferayResourceSyncFragmentsAllSitesResult = {
+export type LiferayResourceImportFragmentsAllSitesResult = {
   mode: 'all-sites';
   sites: number;
   imported: number;
   errors: number;
-  siteResults: LiferayResourceSyncFragmentsSingleResult[];
+  siteResults: LiferayResourceImportFragmentsSingleResult[];
 };
 
-export type LiferayResourceSyncFragmentsResult =
-  | LiferayResourceSyncFragmentsSingleResult
-  | LiferayResourceSyncFragmentsAllSitesResult;
+export type LiferayResourceImportFragmentsResult =
+  | LiferayResourceImportFragmentsSingleResult
+  | LiferayResourceImportFragmentsAllSitesResult;

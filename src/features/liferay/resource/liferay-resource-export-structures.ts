@@ -9,7 +9,7 @@ import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
 import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportStructuresSiteResult = {
   site: string;
@@ -31,7 +31,7 @@ export type LiferayResourceExportStructuresResult = {
 export async function runLiferayResourceExportStructures(
   config: AppConfig,
   options?: {site?: string; dir?: string; allSites?: boolean; checkOnly?: boolean},
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceExportStructuresResult> {
   if (options?.allSites) {
     const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
@@ -98,7 +98,7 @@ async function exportStructuresForSite(
   site: string,
   dir: string | undefined,
   checkOnly: boolean,
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceExportStructuresSiteResult> {
   const inventory = await runLiferayInventoryStructures(config, {site}, dependencies);
   const rows = inventory.sites[0]?.structures ?? [];

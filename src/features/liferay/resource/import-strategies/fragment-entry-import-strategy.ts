@@ -7,11 +7,14 @@ import {
   findRuntimeFragment,
   updateFragmentEntry,
   type FragmentSyncRuntimeState,
-} from '../liferay-resource-sync-fragments-api.js';
-import {canVerifyFragmentEntryContent, normalizeFragmentEntryForHash} from '../liferay-resource-sync-fragments-hash.js';
-import type {LocalFragment} from '../liferay-resource-sync-fragments-types.js';
-import {sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
-import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+} from '../liferay-resource-import-fragments-api.js';
+import {
+  canVerifyFragmentEntryContent,
+  normalizeFragmentEntryForHash,
+} from '../liferay-resource-import-fragments-hash.js';
+import type {LocalFragment} from '../liferay-resource-import-fragments-types.js';
+import {sha256, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
+import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type FragmentEntryLocalData = {
   collectionId: number;
@@ -22,19 +25,19 @@ type FragmentEntryRemoteData = FragmentEntryPayload & {
   collectionId: number;
 };
 
-type FragmentEntrySyncOptions = {
+type FragmentEntryImportOptions = {
   collectionId: number;
   fragment: LocalFragment;
   runtimeState: FragmentSyncRuntimeState;
 };
 
-export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, FragmentEntryRemoteData> = {
+export const fragmentEntryImportStrategy: ImportStrategy<FragmentEntryLocalData, FragmentEntryRemoteData> = {
   resolveLocal(
     _config: AppConfig,
     _site: ResolvedSite,
     options: Record<string, unknown>,
   ): Promise<LocalArtifact<FragmentEntryLocalData>> {
-    const opts = options as FragmentEntrySyncOptions;
+    const opts = options as FragmentEntryImportOptions;
     const normalizedContent = normalizeFragmentEntryForHash(opts.fragment);
 
     return Promise.resolve({
@@ -53,9 +56,9 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
     _site: ResolvedSite,
     localArtifact: LocalArtifact<FragmentEntryLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<FragmentEntryRemoteData> | null> {
-    const opts = options as FragmentEntrySyncOptions;
+    const opts = options as FragmentEntryImportOptions;
     const runtimeFragment = await findRuntimeFragment(
       config,
       opts.collectionId,
@@ -84,9 +87,9 @@ export const fragmentEntrySyncStrategy: SyncStrategy<FragmentEntryLocalData, Fra
     localArtifact: LocalArtifact<FragmentEntryLocalData>,
     remoteArtifact: RemoteArtifact<FragmentEntryRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<FragmentEntryRemoteData>> {
-    const opts = options as FragmentEntrySyncOptions;
+    const opts = options as FragmentEntryImportOptions;
 
     if (!remoteArtifact) {
       const created = await createFragmentEntry(

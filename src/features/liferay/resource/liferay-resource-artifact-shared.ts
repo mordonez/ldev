@@ -9,14 +9,12 @@ import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {ensureData} from '../liferay-http-shared.js';
 
-export type ResourceDependencies = {
+export type ResourceImportDependencies = {
   apiClient?: HttpApiClient;
   tokenClient?: OAuthTokenClient;
 };
 
-export type ResourceSyncDependencies = ResourceDependencies;
-
-export type ResourceSyncResult = {
+export type ImportArtifactResult = {
   status: 'created' | 'updated' | 'checked' | 'checked_missing';
   id: string;
   name: string;
@@ -27,7 +25,7 @@ async function postFormCandidateResponse<T>(
   config: AppConfig,
   path: string,
   form: Record<string, string>,
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<HttpResponse<T>> {
   const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   return gateway.postFormRaw<T>(path, form);
@@ -38,7 +36,7 @@ export async function postFormCandidates<T>(
   apiPath: string,
   candidates: Record<string, string>[],
   operation: string,
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<T> {
   const errors: string[] = [];
 
@@ -83,10 +81,6 @@ export function serializeLocalizedMap(map: LocalizedMap): string {
 /** Backward-compatible wrapper: builds and immediately serializes a localized map. */
 export function localizedMap(text: string): string {
   return serializeLocalizedMap(makeLocalizedMap(text));
-}
-
-export function normalizeSyncStatus(checkOnly: boolean): 'checked' | 'updated' {
-  return checkOnly ? 'checked' : 'updated';
 }
 
 export function ensureString(value: unknown, label: string): string {

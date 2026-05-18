@@ -1,6 +1,6 @@
 /**
- * Sync strategy for Liferay templates.
- * Implements artifact-specific logic for template synchronization.
+ * Import strategy for Liferay templates.
+ * Implements artifact-specific logic for template import.
  */
 
 import fs from 'fs-extra';
@@ -24,11 +24,11 @@ import {
   ensureString,
   localizedMap,
   sha256,
-  type ResourceSyncDependencies,
+  type ResourceImportDependencies,
   postFormCandidates,
-} from '../liferay-resource-sync-shared.js';
+} from '../liferay-resource-artifact-shared.js';
 import {matchesInventoryTemplate} from '../../liferay-identifiers.js';
-import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type TemplateLocalData = {
   filePath: string;
@@ -42,22 +42,22 @@ type TemplateRemoteData = {
   script?: string;
 };
 
-type TemplateSyncOptions = {
+type TemplateImportOptions = {
   key: string;
   file?: string;
   structureKey?: string;
 };
 
 /**
- * Template sync strategy implementation.
+ * Template import strategy implementation.
  */
-export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemoteData> = {
+export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateRemoteData> = {
   async resolveLocal(
     config: AppConfig,
     site: ResolvedSite,
     options: Record<string, unknown>,
   ): Promise<LocalArtifact<TemplateLocalData> | null> {
-    const opts = options as TemplateSyncOptions;
+    const opts = options as TemplateImportOptions;
     const siteToken = resolveSiteToken(site.friendlyUrlPath);
 
     try {
@@ -84,9 +84,9 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     site: ResolvedSite,
     localArtifact: LocalArtifact<TemplateLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<TemplateRemoteData> | null> {
-    const opts = options as TemplateSyncOptions;
+    const opts = options as TemplateImportOptions;
     const inventoryTemplates = await runLiferayInventoryTemplates(config, {site: site.friendlyUrlPath}, dependencies);
 
     let structureIdFilter = '';
@@ -174,9 +174,9 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     localArtifact: LocalArtifact<TemplateLocalData>,
     remoteArtifact: RemoteArtifact<TemplateRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<TemplateRemoteData>> {
-    const opts = options as TemplateSyncOptions;
+    const opts = options as TemplateImportOptions;
 
     if (!remoteArtifact) {
       // Create new template
@@ -253,7 +253,7 @@ export const templateSyncStrategy: SyncStrategy<TemplateLocalData, TemplateRemot
     site: ResolvedSite,
     localArtifact: LocalArtifact<TemplateLocalData>,
     remoteArtifact: RemoteArtifact<TemplateRemoteData>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<void> {
     // Get runtime template from API
     const runtime = await runLiferayResourceGetTemplate(
@@ -276,7 +276,7 @@ async function fetchStructureByKey(
   config: AppConfig,
   siteId: number,
   key: string,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<Record<string, unknown>> {
   const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
   return gateway.getJson<Record<string, unknown>>(

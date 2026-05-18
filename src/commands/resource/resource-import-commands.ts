@@ -16,22 +16,22 @@ import {
   runLiferayResourceImportTemplates,
 } from '../../features/liferay/resource/liferay-resource-import-shared.js';
 import {
-  formatLiferayResourceSyncAdt,
-  runLiferayResourceSyncAdt,
-} from '../../features/liferay/resource/liferay-resource-sync-adt.js';
+  formatLiferayResourceImportAdt,
+  runLiferayResourceImportAdt,
+} from '../../features/liferay/resource/liferay-resource-import-adt.js';
 import {
-  formatLiferayResourceSyncFragments,
-  getLiferayResourceSyncFragmentsExitCode,
-  runLiferayResourceSyncFragments,
-} from '../../features/liferay/resource/liferay-resource-sync-fragments.js';
+  formatLiferayResourceImportFragments,
+  getLiferayResourceImportFragmentsExitCode,
+  runLiferayResourceImportFragments,
+} from '../../features/liferay/resource/liferay-resource-import-fragments.js';
 import {
-  formatLiferayResourceSyncStructure,
-  runLiferayResourceSyncStructure,
-} from '../../features/liferay/resource/liferay-resource-sync-structure.js';
+  formatLiferayResourceImportStructure,
+  runLiferayResourceImportStructure,
+} from '../../features/liferay/resource/liferay-resource-import-structure.js';
 import {
-  formatLiferayResourceSyncTemplate,
-  runLiferayResourceSyncTemplate,
-} from '../../features/liferay/resource/liferay-resource-sync-template.js';
+  formatLiferayResourceImportTemplate,
+  runLiferayResourceImportTemplate,
+} from '../../features/liferay/resource/liferay-resource-import-template.js';
 
 export function registerResourceImportCommands(resource: Command): void {
   registerResourceWorkflow(resource, {
@@ -50,7 +50,7 @@ export function registerResourceImportCommands(resource: Command): void {
         .option('--allow-breaking-change', 'Allow field removals without a migration plan'),
     ),
     run: async (context, options) =>
-      runLiferayResourceSyncStructure(context.config, {
+      runLiferayResourceImportStructure(context.config, {
         site: options.site,
         key: requireResourceValue(options.structure as string | undefined, 'import-structure requires --structure'),
         file: options.file,
@@ -63,7 +63,7 @@ export function registerResourceImportCommands(resource: Command): void {
         cleanupMigration: Boolean(options.cleanupMigration),
         allowBreakingChange: Boolean(options.allowBreakingChange),
       }),
-    render: {text: formatLiferayResourceSyncStructure},
+    render: {text: formatLiferayResourceImportStructure},
   });
 
   registerResourceWorkflow(resource, {
@@ -79,7 +79,7 @@ export function registerResourceImportCommands(resource: Command): void {
           .option('--create-missing', 'Create the template when it does not exist'),
       ),
     run: async (context, options) =>
-      runLiferayResourceSyncTemplate(context.config, {
+      runLiferayResourceImportTemplate(context.config, {
         site: options.site,
         key: requireResourceValue(options.template as string | undefined, 'import-template requires --template'),
         file: options.file,
@@ -87,7 +87,7 @@ export function registerResourceImportCommands(resource: Command): void {
         checkOnly: Boolean(options.checkOnly),
         createMissing: Boolean(options.createMissing),
       }),
-    render: {text: formatLiferayResourceSyncTemplate},
+    render: {text: formatLiferayResourceImportTemplate},
   });
 
   registerResourceWorkflow(resource, {
@@ -105,7 +105,7 @@ export function registerResourceImportCommands(resource: Command): void {
         .option('--create-missing', 'Create the ADT when it does not exist'),
     ),
     run: async (context, options) =>
-      runLiferayResourceSyncAdt(context.config, {
+      runLiferayResourceImportAdt(context.config, {
         site: options.site,
         key: Array.isArray(options.adt) ? options.adt[0] : options.adt,
         widgetType: options.widgetType,
@@ -114,7 +114,7 @@ export function registerResourceImportCommands(resource: Command): void {
         checkOnly: Boolean(options.checkOnly),
         createMissing: Boolean(options.createMissing),
       }),
-    render: {text: formatLiferayResourceSyncAdt},
+    render: {text: formatLiferayResourceImportAdt},
   });
 
   registerResourceWorkflow(resource, {
@@ -128,15 +128,15 @@ export function registerResourceImportCommands(resource: Command): void {
           .option('--dir <dir>', 'Fragments project directory, or parent directory for per-site projects'),
       ),
     run: async (context, options) =>
-      runLiferayResourceSyncFragments(context.config, {
+      runLiferayResourceImportFragments(context.config, {
         site: options.site,
         groupId: options.siteId,
         dir: options.dir,
         fragment: options.fragment,
       }),
     render: {
-      text: formatLiferayResourceSyncFragments,
-      exitCode: getLiferayResourceSyncFragmentsExitCode,
+      text: formatLiferayResourceImportFragments,
+      exitCode: getLiferayResourceImportFragmentsExitCode,
     },
   });
 
@@ -153,7 +153,7 @@ export function registerResourceImportCommands(resource: Command): void {
           .option('--fragment <fragment>', 'Single fragment slug, name or collection/fragments/slug to import'),
     ),
     run: async (context, options) =>
-      runLiferayResourceSyncFragments(context.config, {
+      runLiferayResourceImportFragments(context.config, {
         site: options.site,
         groupId: options.siteId,
         allSites: Boolean(options.allSites),
@@ -161,8 +161,8 @@ export function registerResourceImportCommands(resource: Command): void {
         fragment: options.fragment,
       }),
     render: {
-      text: formatLiferayResourceSyncFragments,
-      exitCode: getLiferayResourceSyncFragmentsExitCode,
+      text: formatLiferayResourceImportFragments,
+      exitCode: getLiferayResourceImportFragmentsExitCode,
     },
   });
 

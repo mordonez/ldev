@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {
   ADT_CLASS_BY_WIDGET_TYPE,
@@ -10,18 +10,18 @@ import {
   runLiferayResourceListAdts,
 } from './liferay-resource-list-adts.js';
 import {resolveAdtFile, ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
-import {syncArtifact} from './sync-engine.js';
-import {adtSyncStrategy} from './sync-strategies/adt-sync-strategy.js';
+import {runImportArtifact} from './import-engine.js';
+import {adtImportStrategy} from './import-strategies/adt-import-strategy.js';
 import {matchesAdtRow} from '../liferay-identifiers.js';
 
-export type LiferayResourceSyncAdtResult = ResourceSyncResult & {
+export type LiferayResourceImportAdtResult = ImportArtifactResult & {
   adtFile: string;
   widgetType: string;
   siteId: number;
   siteFriendlyUrl: string;
 };
 
-export async function runLiferayResourceSyncAdt(
+export async function runLiferayResourceImportAdt(
   config: AppConfig,
   options: {
     site?: string;
@@ -32,8 +32,8 @@ export async function runLiferayResourceSyncAdt(
     checkOnly?: boolean;
     createMissing?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
-): Promise<LiferayResourceSyncAdtResult> {
+  dependencies?: ResourceImportDependencies,
+): Promise<LiferayResourceImportAdtResult> {
   // Resolve widget type and class name
   const resolvedWidget = normalizeAdtWidgetType(options.widgetType ?? inferAdtWidgetType(options.file ?? ''));
   const resolvedClassName = options.className?.trim() || ADT_CLASS_BY_WIDGET_TYPE[resolvedWidget];
@@ -71,11 +71,11 @@ export async function runLiferayResourceSyncAdt(
     }
   }
 
-  // Use SyncEngine with ADT strategy
-  const engineResult = await syncArtifact(
+  // Use ImportEngine with ADT import strategy
+  const engineResult = await runImportArtifact(
     config,
     site,
-    adtSyncStrategy,
+    adtImportStrategy,
     {
       checkOnly: options.checkOnly,
       createMissing: options.createMissing,
@@ -103,7 +103,7 @@ export async function runLiferayResourceSyncAdt(
   };
 }
 
-export function formatLiferayResourceSyncAdt(result: LiferayResourceSyncAdtResult): string {
+export function formatLiferayResourceImportAdt(result: LiferayResourceImportAdtResult): string {
   return [
     `${result.status}\t${result.widgetType}\t${result.name}\t${result.id}`,
     `site=${result.siteFriendlyUrl} (${result.siteId})`,
@@ -145,7 +145,7 @@ async function findAdtInSite(
   widgetType: string,
   className: string,
   name: string,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceImportDependencies,
 ) {
   const adts = await runLiferayResourceListAdts(
     config,

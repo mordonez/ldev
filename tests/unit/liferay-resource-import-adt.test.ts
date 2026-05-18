@@ -4,9 +4,9 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
-  formatLiferayResourceSyncAdt,
-  runLiferayResourceSyncAdt,
-} from '../../src/features/liferay/resource/liferay-resource-sync-adt.js';
+  formatLiferayResourceImportAdt,
+  runLiferayResourceImportAdt,
+} from '../../src/features/liferay/resource/liferay-resource-import-adt.js';
 import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -95,7 +95,7 @@ describe('liferay resource adt-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncAdt(config, {site: '/global', file: adtFile}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceImportAdt(config, {site: '/global', file: adtFile}, {apiClient, tokenClient: TOKEN_CLIENT}),
     ).rejects.toThrow('does not exist and create-missing is not enabled');
   });
 
@@ -139,7 +139,7 @@ describe('liferay resource adt-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncAdt(
+    const result = await runLiferayResourceImportAdt(
       config,
       {site: '/global', file: adtFile, createMissing: true},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -148,7 +148,7 @@ describe('liferay resource adt-sync', () => {
     expect(result.status).toBe('created');
     expect(result.id).toBe('UB_ADT');
     expect(result.widgetType).toBe('search-result-summary');
-    expect(formatLiferayResourceSyncAdt(result)).toContain('created\tsearch-result-summary\tUB_ADT\tUB_ADT');
+    expect(formatLiferayResourceImportAdt(result)).toContain('created\tsearch-result-summary\tUB_ADT\tUB_ADT');
   });
 
   test('falls back to global when an ADT is missing in the requested site', async () => {
@@ -205,7 +205,7 @@ describe('liferay resource adt-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncAdt(
+    const result = await runLiferayResourceImportAdt(
       config,
       {site: '/guest', file: adtFile},
       {apiClient, tokenClient: TOKEN_CLIENT},

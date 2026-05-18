@@ -1,5 +1,5 @@
 import type {FragmentCollectionPayload, FragmentEntryPayload} from './liferay-resource-payloads.js';
-import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-sync-fragments-types.js';
+import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-import-fragments-types.js';
 
 export function normalizeFragmentCollectionForHash(
   collection: Pick<LocalFragmentCollection, 'slug' | 'name' | 'description'> | FragmentCollectionPayload,

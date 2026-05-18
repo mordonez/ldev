@@ -1,10 +1,10 @@
 import {describe, expect, test, vi} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import {fragmentCollectionSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/fragment-collection-sync-strategy.js';
+import {fragmentCollectionImportStrategy} from '../../../src/features/liferay/resource/import-strategies/fragment-collection-import-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/portal/site-resolution.js';
-import type {LocalFragmentCollection} from '../../../src/features/liferay/resource/liferay-resource-sync-fragments-types.js';
-import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
+import type {LocalFragmentCollection} from '../../../src/features/liferay/resource/liferay-resource-import-fragments-types.js';
+import {mockApiClient, mockTokenClient} from './import-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -33,7 +33,7 @@ const mockSite: ResolvedSite = {
   friendlyUrlPath: '/test-site',
 };
 
-describe('fragmentCollectionSyncStrategy', () => {
+describe('fragmentCollectionImportStrategy', () => {
   describe('resolveLocal', () => {
     test('returns LocalArtifact from collection', async () => {
       const collection: LocalFragmentCollection = {
@@ -49,7 +49,7 @@ describe('fragmentCollectionSyncStrategy', () => {
         fragmentsByCollectionId: new Map(),
       };
 
-      const artifact = await fragmentCollectionSyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact = await fragmentCollectionImportStrategy.resolveLocal(mockConfig, mockSite, {
         collection,
         runtimeState,
       });
@@ -83,12 +83,12 @@ describe('fragmentCollectionSyncStrategy', () => {
         fragmentsByCollectionId: new Map(),
       };
 
-      const artifact1 = await fragmentCollectionSyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact1 = await fragmentCollectionImportStrategy.resolveLocal(mockConfig, mockSite, {
         collection: collection1,
         runtimeState,
       });
 
-      const artifact2 = await fragmentCollectionSyncStrategy.resolveLocal(mockConfig, mockSite, {
+      const artifact2 = await fragmentCollectionImportStrategy.resolveLocal(mockConfig, mockSite, {
         collection: collection2,
         runtimeState,
       });
@@ -133,7 +133,7 @@ describe('fragmentCollectionSyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentCollectionSyncStrategy.findRemote(
+      const result = await fragmentCollectionImportStrategy.findRemote(
         mockConfig,
         mockSite,
         localArtifact,
@@ -172,7 +172,7 @@ describe('fragmentCollectionSyncStrategy', () => {
         data: {collection},
       };
 
-      const result = await fragmentCollectionSyncStrategy.findRemote(mockConfig, mockSite, localArtifact, {
+      const result = await fragmentCollectionImportStrategy.findRemote(mockConfig, mockSite, localArtifact, {
         collection,
         runtimeState,
       });
@@ -227,7 +227,7 @@ describe('fragmentCollectionSyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentCollectionSyncStrategy.upsert(
+      const result = await fragmentCollectionImportStrategy.upsert(
         mockConfig,
         mockSite,
         localArtifact,
@@ -288,7 +288,7 @@ describe('fragmentCollectionSyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await fragmentCollectionSyncStrategy.upsert(
+      const result = await fragmentCollectionImportStrategy.upsert(
         mockConfig,
         mockSite,
         localArtifact,
@@ -334,7 +334,7 @@ describe('fragmentCollectionSyncStrategy', () => {
 
       // Fragment collection verify is no-op (best-effort legacy compat)
       await expect(
-        fragmentCollectionSyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+        fragmentCollectionImportStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
       ).resolves.not.toThrow();
     });
   });

@@ -3,12 +3,15 @@ import type {Printer} from '../../../core/output/printer.js';
 import {resolveSite} from '../portal/site-resolution.js';
 import {resolveStructureFile} from '../portal/artifact-paths.js';
 import type {MigrationStats} from './migration/index.js';
-import {syncArtifactDetailed} from './sync-engine.js';
-import {structureSyncStrategy, type StructureResourceDependencies} from './sync-strategies/structure-sync-strategy.js';
+import {runImportArtifactDetailed} from './import-engine.js';
+import {
+  structureImportStrategy,
+  type StructureResourceDependencies,
+} from './import-strategies/structure-import-strategy.js';
 
-export type ResourceDependencies = StructureResourceDependencies;
+export type {StructureResourceDependencies};
 
-export type LiferayResourceSyncStructureResult = {
+export type LiferayResourceImportStructureResult = {
   status: 'created' | 'updated' | 'checked' | 'checked_missing';
   id: string;
   key: string;
@@ -20,7 +23,7 @@ export type LiferayResourceSyncStructureResult = {
   migration?: MigrationStats;
 };
 
-export async function runLiferayResourceSyncStructure(
+export async function runLiferayResourceImportStructure(
   config: AppConfig,
   options: {
     site?: string;
@@ -36,8 +39,8 @@ export async function runLiferayResourceSyncStructure(
     allowBreakingChange?: boolean;
     printer?: Printer;
   },
-  dependencies?: ResourceDependencies,
-): Promise<LiferayResourceSyncStructureResult> {
+  dependencies?: StructureResourceDependencies,
+): Promise<LiferayResourceImportStructureResult> {
   // Resolve site (resolveSite returns { id, friendlyUrlPath } compatible with ResolvedSite)
   const site = await resolveSite(config, options.site ?? '/global', dependencies);
   const structureFile = await resolveStructureFile(config, options.key, options.file);
@@ -57,10 +60,10 @@ export async function runLiferayResourceSyncStructure(
     printer: options.printer,
   };
 
-  const outcome = await syncArtifactDetailed(
+  const outcome = await runImportArtifactDetailed(
     config,
     site,
-    structureSyncStrategy,
+    structureImportStrategy,
     {
       checkOnly: options.checkOnly,
       createMissing: options.createMissing,
@@ -84,7 +87,7 @@ export async function runLiferayResourceSyncStructure(
   };
 }
 
-export function formatLiferayResourceSyncStructure(result: LiferayResourceSyncStructureResult): string {
+export function formatLiferayResourceImportStructure(result: LiferayResourceImportStructureResult): string {
   const lines = [
     `${result.status}\t${result.key}\t${result.id}`,
     `site=${result.siteFriendlyUrl} (${result.siteId})`,

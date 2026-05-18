@@ -7,7 +7,7 @@ import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {resolveSiteToken, ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
 import {resolveArtifactBaseDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportAdtsResult = {
   mode?: 'all-sites';
@@ -32,7 +32,7 @@ export async function runLiferayResourceExportAdts(
     continueOnError?: boolean;
     allSites?: boolean;
   },
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceExportAdtsResult> {
   const baseDir = resolveArtifactBaseDir(config, 'adt', options?.dir);
 

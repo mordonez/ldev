@@ -1,7 +1,7 @@
 /**
- * Generic sync engine for artifact synchronization.
+ * Generic import engine for artifact import.
  *
- * Extracts common sync flow:
+ * Extracts common import flow:
  * 1. resolveSite - locate target site
  * 2. resolveLocalArtifact - find local file/resource
  * 3. readLocal - read and normalize local content
@@ -15,7 +15,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {ResolvedSite} from '../portal/site-resolution.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 
 /**
  * Local artifact representation after reading.
@@ -46,10 +46,10 @@ export type RemoteArtifact<T = Record<string, unknown>> = {
 };
 
 /**
- * Strategy for syncing a specific artifact type.
+ * Strategy for importing a specific artifact type.
  * Implement for templates, ADTs, structures, etc.
  */
-export type SyncStrategy<Local = never, Remote = never> = {
+export type ImportStrategy<Local = never, Remote = never> = {
   /**
    * Resolve local artifact from filesystem or config.
    * @returns LocalArtifact or null if not found
@@ -69,7 +69,7 @@ export type SyncStrategy<Local = never, Remote = never> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<Local>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<Remote> | null>;
 
   /**
@@ -82,7 +82,7 @@ export type SyncStrategy<Local = never, Remote = never> = {
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<Remote>>;
 
   /**
@@ -96,7 +96,7 @@ export type SyncStrategy<Local = never, Remote = never> = {
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<Remote>>;
 
   /**
@@ -108,14 +108,14 @@ export type SyncStrategy<Local = never, Remote = never> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<Local>,
     remoteArtifact: RemoteArtifact<Remote>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<void>;
 };
 
 /**
- * Options passed to SyncEngine.
+ * Options passed to ImportEngine.
  */
-export type SyncEngineOptions = {
+export type ImportEngineOptions = {
   /** Dry-run mode: check without creating/updating */
   checkOnly?: boolean;
   /** Create artifact if it doesn't exist remotely */
@@ -125,12 +125,12 @@ export type SyncEngineOptions = {
 };
 
 /**
- * Generic sync engine result.
+ * Generic import engine result.
  */
-export type SyncEngineResult = ResourceSyncResult;
+export type ImportEngineResult = ImportArtifactResult;
 
-export type SyncArtifactOutcome<Local = never, Remote = never> = {
-  result: SyncEngineResult;
+export type ImportArtifactOutcome<Local = never, Remote = never> = {
+  result: ImportEngineResult;
   localArtifact: LocalArtifact<Local>;
   initialRemoteArtifact: RemoteArtifact<Remote> | null;
   changedRemoteArtifact: RemoteArtifact<Remote> | null;
@@ -140,27 +140,27 @@ export type SyncArtifactOutcome<Local = never, Remote = never> = {
 /**
  * Orchestrate artifact synchronization using a strategy.
  */
-export async function syncArtifact<Local = never, Remote = never>(
+export async function runImportArtifact<Local = never, Remote = never>(
   config: AppConfig,
   site: ResolvedSite,
-  strategy: SyncStrategy<Local, Remote>,
-  options: SyncEngineOptions,
-  dependencies?: ResourceSyncDependencies,
-): Promise<SyncEngineResult> {
-  return (await syncArtifactDetailed(config, site, strategy, options, dependencies)).result;
+  strategy: ImportStrategy<Local, Remote>,
+  options: ImportEngineOptions,
+  dependencies?: ResourceImportDependencies,
+): Promise<ImportEngineResult> {
+  return (await runImportArtifactDetailed(config, site, strategy, options, dependencies)).result;
 }
 
 /**
  * Orchestrate artifact synchronization and expose lifecycle artifacts to callers
  * that need artifact-specific result fields.
  */
-export async function syncArtifactDetailed<Local = never, Remote = never>(
+export async function runImportArtifactDetailed<Local = never, Remote = never>(
   config: AppConfig,
   site: ResolvedSite,
-  strategy: SyncStrategy<Local, Remote>,
-  options: SyncEngineOptions,
-  dependencies?: ResourceSyncDependencies,
-): Promise<SyncArtifactOutcome<Local, Remote>> {
+  strategy: ImportStrategy<Local, Remote>,
+  options: ImportEngineOptions,
+  dependencies?: ResourceImportDependencies,
+): Promise<ImportArtifactOutcome<Local, Remote>> {
   const strategyOpts = options.strategyOptions ?? {};
 
   // 1. Resolve local artifact
@@ -172,7 +172,7 @@ export async function syncArtifactDetailed<Local = never, Remote = never>(
   // 2. Find remote artifact
   const remoteArtifact = await strategy.findRemote(config, site, localArtifact, strategyOpts, dependencies);
 
-  // 3. If missing and not allowed, preserve legacy sync semantics.
+  // 3. If missing and not allowed, preserve legacy import semantics.
   if (!remoteArtifact && !options.createMissing) {
     throw LiferayErrors.resourceError(
       `Artifact '${localArtifact.id}' does not exist and create-missing is not enabled.`,

@@ -6,7 +6,7 @@ import {z} from 'zod';
  */
 
 /**
- * LiferayResourceSyncFragmentItemResult: result of syncing a single fragment.
+ * LiferayResourceImportFragmentItemResult: result of syncing a single fragment.
  * Status is 'imported' or 'error'; fragmentEntryId populated on success; error on failure.
  */
 export const liferayResourceSyncFragmentItemResultSchema = z.object({
@@ -17,10 +17,10 @@ export const liferayResourceSyncFragmentItemResultSchema = z.object({
   error: z.string().optional(),
 });
 
-export type LiferayResourceSyncFragmentItemResult = z.infer<typeof liferayResourceSyncFragmentItemResultSchema>;
+export type LiferayResourceImportFragmentItemResult = z.infer<typeof liferayResourceSyncFragmentItemResultSchema>;
 
 /**
- * LiferayResourceSyncFragmentsSingleResult: aggregate result for a single-site fragment sync.
+ * LiferayResourceImportFragmentsSingleResult: aggregate result for a single-site fragment sync.
  * Includes mode (import strategy), site info, project directory, and detailed results.
  */
 export const liferayResourceSyncFragmentsSingleResultSchema = z.object({
@@ -38,10 +38,10 @@ export const liferayResourceSyncFragmentsSingleResultSchema = z.object({
   pageTemplateResults: z.array(z.unknown()),
 });
 
-export type LiferayResourceSyncFragmentsSingleResult = z.infer<typeof liferayResourceSyncFragmentsSingleResultSchema>;
+export type LiferayResourceImportFragmentsSingleResult = z.infer<typeof liferayResourceSyncFragmentsSingleResultSchema>;
 
 /**
- * LiferayResourceSyncFragmentsAllSitesResult: aggregate result for multi-site fragment sync.
+ * LiferayResourceImportFragmentsAllSitesResult: aggregate result for multi-site fragment sync.
  */
 export const liferayResourceSyncFragmentsAllSitesResultSchema = z.object({
   mode: z.literal('all-sites'),
@@ -51,19 +51,19 @@ export const liferayResourceSyncFragmentsAllSitesResultSchema = z.object({
   siteResults: z.array(liferayResourceSyncFragmentsSingleResultSchema),
 });
 
-export type LiferayResourceSyncFragmentsAllSitesResult = z.infer<
+export type LiferayResourceImportFragmentsAllSitesResult = z.infer<
   typeof liferayResourceSyncFragmentsAllSitesResultSchema
 >;
 
 /**
- * LiferayResourceSyncFragmentsResult: discriminated union of single-site vs all-sites results.
+ * LiferayResourceImportFragmentsResult: discriminated union of single-site vs all-sites results.
  */
 export const liferayResourceSyncFragmentsResultSchema = z.discriminatedUnion('mode', [
   liferayResourceSyncFragmentsSingleResultSchema,
   liferayResourceSyncFragmentsAllSitesResultSchema,
 ]);
 
-export type LiferayResourceSyncFragmentsResult = z.infer<typeof liferayResourceSyncFragmentsResultSchema>;
+export type LiferayResourceImportFragmentsResult = z.infer<typeof liferayResourceSyncFragmentsResultSchema>;
 
 /**
  * LiferayResourceImportFailure: result of a failed import.
@@ -76,9 +76,9 @@ export const liferayResourceImportFailureSchema = z.object({
 export type LiferayResourceImportFailure = z.infer<typeof liferayResourceImportFailureSchema>;
 
 /**
- * LiferayResourceSyncAdtItemResult: result of syncing a single ADT.
+ * LiferayResourceImportAdtItemResult: result of importing a single ADT.
  */
-export const liferayResourceSyncAdtItemResultSchema = z.object({
+export const liferayResourceImportAdtItemResultSchema = z.object({
   widgetType: z.string(),
   key: z.string(),
   status: z.enum(['created', 'updated', 'unchanged', 'error']),
@@ -86,24 +86,24 @@ export const liferayResourceSyncAdtItemResultSchema = z.object({
   error: z.string().optional(),
 });
 
-export type LiferayResourceSyncAdtItemResult = z.infer<typeof liferayResourceSyncAdtItemResultSchema>;
+export type LiferayResourceImportAdtItemResult = z.infer<typeof liferayResourceImportAdtItemResultSchema>;
 
 /**
- * LiferayResourceSyncStructureItemResult: result of syncing a single structure.
+ * LiferayResourceImportStructureItemResult: result of importing a single structure.
  */
-export const liferayResourceSyncStructureItemResultSchema = z.object({
+export const liferayResourceImportStructureItemResultSchema = z.object({
   key: z.string(),
   status: z.enum(['created', 'updated', 'unchanged', 'error']),
   structureId: z.number().int().optional(),
   error: z.string().optional(),
 });
 
-export type LiferayResourceSyncStructureItemResult = z.infer<typeof liferayResourceSyncStructureItemResultSchema>;
+export type LiferayResourceImportStructureItemResult = z.infer<typeof liferayResourceImportStructureItemResultSchema>;
 
 /**
- * LiferayResourceSyncTemplateItemResult: result of syncing a single template.
+ * LiferayResourceImportTemplateItemResult: result of importing a single template.
  */
-export const liferayResourceSyncTemplateItemResultSchema = z.object({
+export const liferayResourceImportTemplateItemResultSchema = z.object({
   key: z.string(),
   structureKey: z.string(),
   status: z.enum(['created', 'updated', 'unchanged', 'error']),
@@ -111,4 +111,4 @@ export const liferayResourceSyncTemplateItemResultSchema = z.object({
   error: z.string().optional(),
 });
 
-export type LiferayResourceSyncTemplateItemResult = z.infer<typeof liferayResourceSyncTemplateItemResultSchema>;
+export type LiferayResourceImportTemplateItemResult = z.infer<typeof liferayResourceImportTemplateItemResultSchema>;

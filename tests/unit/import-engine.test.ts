@@ -3,12 +3,12 @@ import {describe, expect, test, vi} from 'vitest';
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {ResolvedSite} from '../../src/features/liferay/portal/site-resolution.js';
 import {
-  syncArtifact,
-  syncArtifactDetailed,
+  runImportArtifact,
+  runImportArtifactDetailed,
   type LocalArtifact,
   type RemoteArtifact,
-} from '../../src/features/liferay/resource/sync-engine.js';
-import {mockApiClient, mockTokenClient} from './sync-strategies/sync-strategy-test-helpers.js';
+} from '../../src/features/liferay/resource/import-engine.js';
+import {mockApiClient, mockTokenClient} from './import-strategies/import-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -77,7 +77,7 @@ const createMockStrategy = (
   }),
 });
 
-describe('syncArtifact', () => {
+describe('runImportArtifact', () => {
   describe('core orchestration', () => {
     test('resolves local artifact, finds remote, upserts, and verifies', async () => {
       const localArtifact: LocalArtifact<TestLocalData> = {
@@ -96,7 +96,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
       });
@@ -122,7 +122,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, null);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
       });
@@ -149,7 +149,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: true,
       });
@@ -180,7 +180,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact, false, false, previewArtifact);
 
-      const outcome = await syncArtifactDetailed(mockConfig, mockSite, strategy, {
+      const outcome = await runImportArtifactDetailed(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: true,
       });
@@ -201,7 +201,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, null);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: true,
       });
@@ -223,7 +223,7 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(localArtifact, null);
 
       await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {
+        runImportArtifact(mockConfig, mockSite, strategy, {
           createMissing: false,
           checkOnly: false,
         }),
@@ -240,7 +240,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, null);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
       });
@@ -256,7 +256,7 @@ describe('syncArtifact', () => {
       vi.mocked(strategy.resolveLocal).mockRejectedValue(new Error('File not found'));
 
       await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
+        runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
       ).rejects.toThrow('File not found');
     });
 
@@ -264,8 +264,8 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(null);
 
       try {
-        await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
-        throw new Error('Expected syncArtifact to throw');
+        await runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
+        throw new Error('Expected runImportArtifact to throw');
       } catch (error) {
         const code = error instanceof Error && 'code' in error ? String(error.code) : '';
         expect(code).toContain('FILE_NOT_FOUND');
@@ -284,7 +284,7 @@ describe('syncArtifact', () => {
       vi.mocked(strategy.findRemote).mockRejectedValue(new Error('API error'));
 
       await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
+        runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
       ).rejects.toThrow('API error');
     });
 
@@ -299,7 +299,7 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(localArtifact, null, true);
 
       await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
+        runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
       ).rejects.toThrow('Upsert failed');
     });
 
@@ -320,7 +320,7 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(localArtifact, remoteArtifact, false, true);
 
       await expect(
-        syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
+        runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}),
       ).rejects.toThrow('Verify failed');
     });
   });
@@ -342,7 +342,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
       });
@@ -365,7 +365,7 @@ describe('syncArtifact', () => {
 
       const strategy = createMockStrategy(localArtifact, null);
 
-      const result = await syncArtifact(mockConfig, mockSite, strategy, {
+      const result = await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
       });
@@ -392,7 +392,7 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
       const customOptions = {customKey: 'customValue'};
 
-      await syncArtifact(mockConfig, mockSite, strategy, {
+      await runImportArtifact(mockConfig, mockSite, strategy, {
         createMissing: true,
         checkOnly: false,
         strategyOptions: customOptions,
@@ -429,7 +429,13 @@ describe('syncArtifact', () => {
       const strategy = createMockStrategy(localArtifact, remoteArtifact);
       const mockDependencies = {apiClient: mockApiClient({}), tokenClient: mockTokenClient()};
 
-      await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false}, mockDependencies);
+      await runImportArtifact(
+        mockConfig,
+        mockSite,
+        strategy,
+        {createMissing: true, checkOnly: false},
+        mockDependencies,
+      );
 
       expect(strategy.findRemote).toHaveBeenCalledWith(mockConfig, mockSite, localArtifact, {}, mockDependencies);
       expect(strategy.upsert).toHaveBeenCalledWith(
@@ -482,7 +488,7 @@ describe('syncArtifact', () => {
         expect(upsertCalled).toBe(true); // upsert should have been called first
       });
 
-      await syncArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
+      await runImportArtifact(mockConfig, mockSite, strategy, {createMissing: true, checkOnly: false});
 
       expect(upsertCalled).toBe(true);
       expect(verifyCalled).toBe(true);

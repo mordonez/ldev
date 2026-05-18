@@ -1,6 +1,6 @@
 /**
- * Sync strategy for Liferay structures.
- * Implements artifact-specific logic for structure synchronization with multi-phase migration support.
+ * Import strategy for Liferay structures.
+ * Implements artifact-specific logic for structure import with multi-phase migration support.
  */
 
 import fs from 'fs-extra';
@@ -24,11 +24,11 @@ import {
   setDifference,
   type StructureDefinitionPayload,
   structureShapeMatches,
-} from '../liferay-resource-sync-structure-diff.js';
+} from '../liferay-resource-import-structure-diff.js';
 import {captureMigrationSourceSnapshots, runStructureMigration, type MigrationStats} from '../migration/index.js';
-import {ensureString, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {ensureString, type ResourceImportDependencies} from '../liferay-resource-artifact-shared.js';
 import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
-import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 function normalizeMigrationPhase(phase?: string): '' | 'pre' | 'post' | 'both' {
   const normalized = (phase ?? '').trim().toLowerCase();
@@ -56,7 +56,7 @@ type StructureRemoteData = {
   recoveredAfterTimeout: boolean;
 };
 
-type StructureSyncOptions = {
+type StructureImportOptions = {
   key: string;
   file?: string;
   checkOnly?: boolean;
@@ -70,21 +70,21 @@ type StructureSyncOptions = {
   printer?: Printer;
 };
 
-export type StructureResourceDependencies = ResourceSyncDependencies & {
+export type StructureResourceDependencies = ResourceImportDependencies & {
   sleep?: (ms: number) => Promise<void>;
 };
 
 /**
- * Structure sync strategy implementation.
+ * Structure import strategy implementation.
  * Handles structure creation, update, and multi-phase migration.
  */
-export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRemoteData> = {
+export const structureImportStrategy: ImportStrategy<StructureLocalData, StructureRemoteData> = {
   async resolveLocal(
     config: AppConfig,
     site: ResolvedSite,
     options: Record<string, unknown>,
   ): Promise<LocalArtifact<StructureLocalData> | null> {
-    const opts = options as StructureSyncOptions;
+    const opts = options as StructureImportOptions;
 
     try {
       const filePath = await resolveStructureFile(config, opts.key, opts.file);
@@ -118,7 +118,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     options: Record<string, unknown>,
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData> | null> {
-    const opts = options as StructureSyncOptions;
+    const opts = options as StructureImportOptions;
     const {gateway} = createStructureTransport(config, dependencies);
 
     const existing = await fetchStructureByKeyViaGateway(gateway, site.id, opts.key);
@@ -149,7 +149,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     options: Record<string, unknown>,
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData>> {
-    const opts = options as StructureSyncOptions;
+    const opts = options as StructureImportOptions;
     const {gateway} = createStructureTransport(config, dependencies);
 
     const payload = await readJsonRecord(localArtifact.data.filePath);
@@ -313,7 +313,7 @@ export const structureSyncStrategy: SyncStrategy<StructureLocalData, StructureRe
     options: Record<string, unknown>,
     dependencies?: StructureResourceDependencies,
   ): Promise<RemoteArtifact<StructureRemoteData>> {
-    return structureSyncStrategy.upsert(config, site, localArtifact, remoteArtifact, options, dependencies);
+    return structureImportStrategy.upsert(config, site, localArtifact, remoteArtifact, options, dependencies);
   },
 
   async verify(

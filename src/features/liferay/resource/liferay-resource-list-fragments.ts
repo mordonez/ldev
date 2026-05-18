@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceFragmentRow = {
   fragmentId: number;
@@ -17,7 +17,7 @@ export type LiferayResourceFragmentRow = {
 export async function runLiferayResourceListFragments(
   config: AppConfig,
   options?: {site?: string},
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceFragmentRow[]> {
   const site = await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const collections = await listFragmentCollections(config, site.id, dependencies);

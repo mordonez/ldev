@@ -1,6 +1,6 @@
 /**
- * Sync strategy for Liferay ADTs (Application Display Templates).
- * Implements artifact-specific logic for ADT synchronization.
+ * Import strategy for Liferay ADTs (Application Display Templates).
+ * Implements artifact-specific logic for ADT import.
  */
 
 import fs from 'fs-extra';
@@ -14,9 +14,14 @@ import {runLiferayResourceListAdts} from '../liferay-resource-list-adts.js';
 import {resolveAdtFile} from '../../portal/artifact-paths.js';
 import {rethrowGatewayAsResourceError} from './shared.js';
 import {fetchAdtResourceClassNameId, fetchClassNameIdForValue} from '../liferay-resource-shared.js';
-import {ensureString, localizedMap, sha256, type ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {
+  ensureString,
+  localizedMap,
+  sha256,
+  type ResourceImportDependencies,
+} from '../liferay-resource-artifact-shared.js';
 import {matchesAdtRow} from '../../liferay-identifiers.js';
-import type {LocalArtifact, RemoteArtifact, SyncStrategy} from '../sync-engine.js';
+import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type AdtLocalData = {
   filePath: string;
@@ -29,7 +34,7 @@ type AdtRemoteData = {
   className: string;
 };
 
-type AdtSyncOptions = {
+type AdtImportOptions = {
   key: string;
   widgetType: string;
   className: string;
@@ -37,17 +42,17 @@ type AdtSyncOptions = {
 };
 
 /**
- * ADT sync strategy implementation.
+ * ADT import strategy implementation.
  * Note: Global-site fallback is handled by the facade before calling the engine.
  * This strategy operates on a single pre-determined site.
  */
-export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
+export const adtImportStrategy: ImportStrategy<AdtLocalData, AdtRemoteData> = {
   async resolveLocal(
     config: AppConfig,
     site: ResolvedSite,
     options: Record<string, unknown>,
   ): Promise<LocalArtifact<AdtLocalData> | null> {
-    const opts = options as AdtSyncOptions;
+    const opts = options as AdtImportOptions;
 
     try {
       const filePath = await resolveAdtFile(config, opts.key, opts.widgetType, opts.file);
@@ -74,9 +79,9 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<AdtLocalData>,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<AdtRemoteData> | null> {
-    const opts = options as AdtSyncOptions;
+    const opts = options as AdtImportOptions;
 
     // List ADTs for this site, widget type, and class name
     const adts = await runLiferayResourceListAdts(
@@ -117,9 +122,9 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     localArtifact: LocalArtifact<AdtLocalData>,
     remoteArtifact: RemoteArtifact<AdtRemoteData> | null,
     options: Record<string, unknown>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<RemoteArtifact<AdtRemoteData>> {
-    const opts = options as AdtSyncOptions;
+    const opts = options as AdtImportOptions;
     const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
 
     if (!remoteArtifact) {
@@ -192,7 +197,7 @@ export const adtSyncStrategy: SyncStrategy<AdtLocalData, AdtRemoteData> = {
     site: ResolvedSite,
     localArtifact: LocalArtifact<AdtLocalData>,
     remoteArtifact: RemoteArtifact<AdtRemoteData>,
-    dependencies?: ResourceSyncDependencies,
+    dependencies?: ResourceImportDependencies,
   ): Promise<void> {
     // Re-list ADTs to verify the runtime script matches local
     const adts = await runLiferayResourceListAdts(

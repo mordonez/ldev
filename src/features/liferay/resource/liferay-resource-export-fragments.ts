@@ -7,7 +7,7 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
 import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactBaseDir, resolveArtifactSiteDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
-import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceImportDependencies as ResourceImportDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportFragmentsResult = {
   mode?: 'all-sites';
@@ -23,7 +23,7 @@ export type LiferayResourceExportFragmentsResult = {
 export async function runLiferayResourceExportFragments(
   config: AppConfig,
   options?: {site?: string; dir?: string; allSites?: boolean; collection?: string; fragment?: string},
-  dependencies?: ResourceDependencies,
+  dependencies?: ResourceImportDependencies,
 ): Promise<LiferayResourceExportFragmentsResult> {
   if (options?.allSites) {
     const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
