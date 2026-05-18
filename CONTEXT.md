@@ -197,6 +197,29 @@ All errors should flow through CLI error normalization. Domain error factories p
 
 Do not put plaintext OAuth secrets or passwords in versioned project files.
 
+### Remote portal (no local repo)
+
+`ldev` can operate against a remote Liferay instance without a local project repository. Set the three required environment variables and run from any directory:
+
+```bash
+export LIFERAY_CLI_URL=https://remote.portal.com
+export LIFERAY_CLI_OAUTH2_CLIENT_ID=<client-id>
+export LIFERAY_CLI_OAUTH2_CLIENT_SECRET=<client-secret>
+
+ldev portal inventory sites
+ldev portal inventory structures --site /global
+ldev resource structure --site /global --structure BASIC
+ldev resource template --site /global --template NEWS_TEMPLATE
+ldev resource adt --site /global --adt SEARCH_RESULTS --widget-type search-result-summary
+```
+
+For resource commands that read from or write to local files (export, import, sync), pass an absolute path with `--file` or `--dir`. When no `--file` is given, relative paths are resolved against `cwd` instead of a repo root:
+
+```bash
+ldev resource export-structure --site /global --structure BASIC --file /tmp/BASIC.json
+ldev resource import-structure --site /global --structure BASIC --file /tmp/BASIC.json
+```
+
 ## Safety Invariants
 
 - Always discover the target project and portal before mutating state.
