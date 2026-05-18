@@ -27,7 +27,7 @@ you cleanly. These are the reason to install it.
 | Local environment bootstrap | `project init` / `setup` / `start`. Working Docker-based Liferay from zero. |
 | Branch-isolated runtime | `worktree setup --with-env`. Each branch with its own Postgres / Liferay / OSGi state. |
 | OAuth bring-up | `oauth install --write-env`. Bundle deploy + Gogo + token verification + write to local config. |
-| MCP execution layer | `ldev-mcp-server` exposes 15 ldev tools so agents can run real workflows. |
+| MCP execution layer | `ldev-mcp-server` exposes 18 ldev tools so agents can run real workflows. |
 
 ## The shape layer
 

@@ -25,6 +25,15 @@ export const liferayInventoryStructureSchema = z.object({
   id: z.number().int(),
   key: z.string(),
   name: z.string(),
+  templates: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        externalReferenceCode: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type LiferayInventoryStructure = z.infer<typeof liferayInventoryStructureSchema>;
@@ -37,6 +46,23 @@ export type LiferayInventoryTemplates = z.infer<typeof liferayInventoryTemplates
 
 export const liferayInventoryStructuresSchema = z.array(liferayInventoryStructureSchema);
 export type LiferayInventoryStructures = z.infer<typeof liferayInventoryStructuresSchema>;
+
+export const liferayInventoryStructuresResultSchema = z.object({
+  sites: z.array(
+    z.object({
+      siteGroupId: z.number().int(),
+      siteFriendlyUrl: z.string(),
+      siteName: z.string(),
+      structures: liferayInventoryStructuresSchema,
+    }),
+  ),
+  summary: z.object({
+    totalSites: z.number().int().nonnegative(),
+    totalStructures: z.number().int().nonnegative(),
+  }),
+});
+
+export type LiferayInventoryStructuresResult = z.infer<typeof liferayInventoryStructuresResultSchema>;
 
 // ── Where-used: enum types (shared with page evidence) ────────────────────────
 

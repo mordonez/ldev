@@ -96,7 +96,7 @@ both can run the pipeline.
 ### A single surface for humans, scripts and agents
 
 Every command that returns data supports `--json`. Every error has a
-stable code. The same surface is exposed over MCP via 15 tools that wrap
+stable code. The same surface is exposed over MCP via 18 tools that wrap
 the same `ldev` workflows.
 
 A developer reads the output. A CI pipeline pipes it to `jq`. An agent

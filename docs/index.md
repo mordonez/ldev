@@ -28,7 +28,7 @@ features:
     details: Migrate journal articles when a structure changes. A workflow Liferay does not provide.
   - icon: "🤖"
     title: Made for agents
-    details: An MCP server with 15 tools, structured JSON everywhere, project bootstrap. So an AI agent can actually operate Liferay.
+    details: An MCP server with 18 tools, structured JSON everywhere, project bootstrap. So an AI agent can actually operate Liferay.
 ---
 
 <div class="home-shell">
@@ -96,7 +96,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 <div class="agent-strip">
   <span class="agent-label">Built for agents</span>
-  <p>JSON outputs, project bootstrap and an MCP server with 15 tools — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
+  <p>JSON outputs, project bootstrap and an MCP server with 18 tools — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
   <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
 </div>
 

@@ -50,10 +50,12 @@ The local `ldev` MCP server follows the current MCP shape for CLI projects:
 | Intent | Prefer MCP tool | CLI fallback |
 | --- | --- | --- |
 | Project snapshot | `ldev_context` | `ldev context --json` |
+| Intent bootstrap | `ldev_ai_bootstrap` | `ldev ai bootstrap --intent <intent> --json` |
 | Portal auth/reachability | `liferay_check` | `ldev portal check --json` |
 | Runtime status | `ldev_status` | `ldev status --json` |
 | Log diagnosis | `ldev_logs_diagnose` | `ldev logs diagnose --since 10m --json` |
 | Site discovery | `liferay_inventory_sites` | `ldev portal inventory sites --json` |
+| API surface readiness | `liferay_inventory_preflight` | `ldev portal inventory preflight --json` |
 | Page tree | `liferay_inventory_pages` | `ldev portal inventory pages --site /<site> --json` |
 | Page inspection | `liferay_inventory_page` | `ldev portal inventory page --url <url> --json` |
 | Structures | `liferay_inventory_structures` | `ldev portal inventory structures --site /<site> --json` |

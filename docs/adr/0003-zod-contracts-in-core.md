@@ -9,7 +9,7 @@
 
 `ldev` exposes two machine-facing surfaces:
 
-1. **MCP tools** — 20+ tools called by AI agents (Claude Code, Cursor, VS Code). Each tool returns a JSON blob that the agent parses to produce its next action.
+1. **MCP tools** — structured tools called by AI agents (Claude Code, Cursor, VS Code). Each tool returns a JSON blob that the agent parses to produce its next action.
 2. **Dashboard HTTP API** — a set of JSON routes consumed by the Preact dashboard client and potentially by CI scripts or external agents.
 
 Until 2026-05 the shape of these outputs existed only as TypeScript types inferred from the functions that produced them. There was no single, explicit document of what a tool *promises* to return.
@@ -43,7 +43,7 @@ Schemas live in `core/` because:
 Rules:
 
 1. **Schemas are the source of truth.** TypeScript types for tool outputs are derived from schemas via `z.infer<>`, not the other way around.
-2. **All MCP tool handlers validate their return value against the schema before returning.** (Progressive: tooling may enforce this via `runJsonTool`.)
+2. **MCP tool outputs are validated against the schema at the server boundary before returning to the client.** The current implementation attaches schemas through `TOOL_CATALOG` and validates in `mcp-server.ts`.
 3. **Schemas are versioned by date.** A breaking change creates a new schema and a new ADR superseding this one for that tool, or adds a discriminated union variant.
 4. **Schema fields are `camelCase`, not `snake_case`.** Zod produces the JSON; MCP tool names use `snake_case` because that is the MCP protocol convention, but the payload uses `camelCase` consistently.
 

@@ -178,3 +178,17 @@ export const mcpCheckResultSchema = z.object({
 });
 
 export type McpCheckResultContract = z.infer<typeof mcpCheckResultSchema>;
+
+const liferayPreflightSurfaceStatusSchema = z.enum(['ok', 'forbidden', 'unavailable', 'unknown']);
+
+/**
+ * LiferayPreflightResultContract: API surface availability returned by liferay_inventory_preflight.
+ */
+export const liferayPreflightResultSchema = z.object({
+  adminSite: liferayPreflightSurfaceStatusSchema,
+  adminUser: liferayPreflightSurfaceStatusSchema,
+  jsonws: liferayPreflightSurfaceStatusSchema,
+  expectedFallback: z.enum(['headless', 'admin-user', 'jsonws', 'none']),
+});
+
+export type LiferayPreflightResultContract = z.infer<typeof liferayPreflightResultSchema>;
