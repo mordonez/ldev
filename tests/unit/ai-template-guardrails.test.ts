@@ -110,6 +110,19 @@ describe('AI template guardrails', () => {
     expect(executionFlow).toContain('single Red -> Green loop inside that worktree');
   });
 
+  test('vanilla sandbox requests bypass worktree setup', async () => {
+    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
+    const worktrees = await readTemplate('templates/ai/skills/isolating-worktrees/SKILL.md');
+    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const nativeWorkflow = await readTemplate('templates/ai/workspace-rules/ldev-native-agent-workflow.md');
+
+    for (const content of [runtime, worktrees, agents, nativeWorkflow]) {
+      expect(content).toContain('vanilla sandbox');
+      expect(content).toContain('ldev project init');
+      expect(content).toContain('activation key');
+    }
+  });
+
   test('agent entrypoints document safe PowerShell ldev invocation', async () => {
     const entrypoints = ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md'];
 

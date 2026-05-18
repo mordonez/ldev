@@ -28,6 +28,10 @@ alwaysApply: true
   Do not reproduce first in the primary checkout.
   For clearly trivial changes, assess the scope and ask the developer whether they
   want the full workflow or prefer to work directly in the current checkout.
+- If the user asks for a vanilla sandbox, clean sandbox, or fresh Liferay
+  sandbox, do not create a worktree from the current repository. Create a
+  fresh `ldev` project with `ldev project init`, treat that directory as the
+  locked root, and require an activation key before `ldev start`.
 - If the session is already inside a worktree, ask whether to keep using that
   active worktree before creating a new one for the task.
 - When isolation needs a runtime-backed worktree, ask the user whether the main environment needs to run in parallel. Default is `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped to conserve resources). Add `--restart-main-after-clone` only if the user confirms they need main running alongside the worktree.

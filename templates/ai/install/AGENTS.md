@@ -117,6 +117,11 @@ $data = $json | ConvertFrom-Json
 - If an `ldev-native` task needs isolated runtime state or a confirmed edit
   boundary, use `isolating-worktrees` for the canonical setup, recovery, and
   cleanup flow. For runtime-backed worktrees, ask the user whether main needs to run in parallel with the worktree. Default: `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped). Add `--restart-main-after-clone` only if the user confirms they need main running alongside.
+- If the user asks for a vanilla sandbox, clean sandbox, or fresh Liferay
+  sandbox, do not use `isolating-worktrees` and do not clone the current
+  repository into a worktree. Create a fresh `ldev` project with
+  `ldev project init`, lock that root, and require an activation key before
+  `ldev start`.
 - If the current session is already inside a worktree, ask whether the user wants
   to keep working in that same worktree before creating another one. Do not
   silently switch away from the active worktree.

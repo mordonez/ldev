@@ -19,12 +19,15 @@ git rev-parse --show-toplevel
 ```
 
 2. For `ldev-native` non-trivial work, use `isolating-worktrees` unless the
-   user explicitly chooses a lighter path. Start the worktree runtime before
-   Red reproduction; do not reproduce first in the primary checkout.
+   user explicitly chooses a lighter path.
+   Exception: if the user asks for a vanilla sandbox, clean sandbox, or fresh
+   Liferay sandbox, do not create a worktree. Create a fresh `ldev` project
+   with `ldev project init`, lock that root, require an activation key before
+   `ldev start`, and treat it as a separate runtime. Start the worktree runtime before Red reproduction. For vanilla sandboxes, start the sandbox runtime before Red reproduction. do not reproduce first in the primary checkout.
 
-3. Reproduce Red in the active worktree before edits. Production screenshots
-   are context, not Red. If a URL is provided, resolve it in the worktree
-   runtime first with the full page inventory contract in
+3. Reproduce Red in the active isolated runtime before edits. Production
+   screenshots are context, not Red. If a URL is provided, resolve it in the
+   worktree or sandbox runtime first with the full page inventory contract in
    [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md).
 
 4. Lock scope before the first edit:

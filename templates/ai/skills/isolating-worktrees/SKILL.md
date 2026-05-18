@@ -25,8 +25,15 @@ Do not use this skill when:
 
 - the repository is a `blade-workspace` with no `ldev-native` worktree flow
 - the task can stay on the main checkout without runtime-state isolation
+- the user asked for a vanilla sandbox, clean sandbox, or fresh Liferay
+  sandbox; in that case create a fresh `ldev` project with `ldev project init`
+  instead of cloning the current codebase into a worktree
 
 ## Quick flow
+
+If the user asked for a vanilla sandbox, stop here and route away from this
+skill. The correct setup is a fresh `ldev project init` directory plus an
+explicit activation key before `ldev start`.
 
 1. Decide whether the task needs a runtime-backed worktree or a git-only worktree.
 2. Resolve the current root first. If you are already inside a worktree, ask the user whether to keep working in that same worktree or create a new one. Do not silently switch away from the active worktree.
