@@ -93,9 +93,15 @@ logs confirm startup completion.
 
 ```bash
 ldev context --json
+ldev worktree list --json
+ldev worktree status --json
 ldev logs --since 5m --no-follow
 ldev worktree env --json
 ```
+
+Use `ldev worktree list/status` for ownership and port inspection. They report
+the configured Compose project and running containers for that worktree; do not
+use generic port scans to decide which worktree owns a runtime.
 
 If read-only discovery must target the main runtime while you stay inside the
 worktree, prefix commands with `ldev --repo-root <main-root>` instead of

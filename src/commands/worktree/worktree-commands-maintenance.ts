@@ -11,6 +11,12 @@ import {
 } from '../../features/worktree/worktree-btrfs-refresh-base.js';
 import {formatWorktreeClean, runWorktreeClean} from '../../features/worktree/worktree-clean.js';
 import {formatWorktreeGc, runWorktreeGc} from '../../features/worktree/worktree-gc.js';
+import {
+  formatWorktreeList,
+  formatWorktreeStatus,
+  runWorktreeList,
+  runWorktreeStatus,
+} from '../../features/worktree/worktree-inspect.js';
 
 type WorktreeCleanCommandOptions = {
   force?: boolean;
@@ -23,6 +29,40 @@ type WorktreeGcCommandOptions = {
 };
 
 export function registerWorktreeMaintenanceCommands(command: Command): void {
+  addOutputFormatOption(
+    command
+      .command('list')
+      .helpGroup('Inspection commands:')
+      .description('List registered worktrees with runtime ownership and port summary'),
+  ).action(
+    createFormattedAction(
+      async (context) =>
+        runWorktreeList({
+          cwd: context.cwd,
+          processEnv: process.env,
+        }),
+      {text: formatWorktreeList},
+    ),
+  );
+
+  addOutputFormatOption(
+    command
+      .command('status')
+      .helpGroup('Inspection commands:')
+      .description('Show runtime ownership and ports for one registered worktree')
+      .argument('[name]', 'Worktree name; optional when running inside the target worktree'),
+  ).action(
+    createFormattedArgumentAction(
+      async (context, name: string | undefined) =>
+        runWorktreeStatus({
+          cwd: context.cwd,
+          name,
+          processEnv: process.env,
+        }),
+      {text: formatWorktreeStatus},
+    ),
+  );
+
   addOutputFormatOption(
     command
       .command('clean')

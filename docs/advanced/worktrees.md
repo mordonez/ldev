@@ -20,6 +20,17 @@ cd .worktrees/incident-123
 ldev start
 ```
 
+Inspect registered worktrees without guessing from port scans:
+
+```bash
+ldev worktree list
+ldev worktree status incident-123
+```
+
+`list` and `status` report the configured ports, Compose project name, portal
+URL and whether Docker currently has running containers for that worktree's
+`com.docker.compose.project` label.
+
 If you already created a linked git worktree manually outside `.worktrees/`, run
 `ldev worktree setup` from inside that checkout to wire its local environment in
 place:

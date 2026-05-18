@@ -18,7 +18,11 @@ Typical flow:
   cd .worktrees/issue-123
   ldev start
 
-Destructive commands:
+Inspection commands:
+  list            Show registered worktrees, ports, and runtime ownership
+  status          Inspect one registered worktree
+
+Maintenance commands:
   clean           Remove runtime data and the git worktree; requires --force
   gc --apply      Remove stale worktrees selected by age
 `,
