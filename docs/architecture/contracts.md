@@ -149,9 +149,9 @@ export async function runExampleAction(config: AppConfig): Promise<ExampleResult
 }
 ```
 
-### Step 4 — Use the schema in the MCP tool
+### Step 4 — Add the schema to the MCP tool catalog
 
-MCP tool files use `runJsonTool` which wraps the feature call. The return value is automatically serialised to JSON. You do not need to call `exampleResultSchema.parse()` in the tool — the TypeScript type system ensures alignment. Use `parse` only in tests or when validating actual API responses.
+MCP tool files use `runJsonTool` which wraps the feature call. The return value is automatically serialised to JSON. Do not call `exampleResultSchema.parse()` inside the tool handler; instead, attach the schema to the tool catalog so the MCP server validates the output at the external boundary.
 
 ```typescript
 // src/entrypoints/mcp-server/tools/tool-example.ts
@@ -171,6 +171,22 @@ export const description = 'Run the example action and return a structured resul
 export async function handleTool(input: {filter?: string}, config: AppConfig) {
   return runJsonTool(() => runExampleAction(config));
 }
+```
+
+```typescript
+// src/entrypoints/mcp-server/mcp-server-tools.ts
+import {exampleResultSchema} from '../../core/contracts/index.js';
+import * as exampleTool from './tools/tool-example.js';
+
+export const TOOL_CATALOG = [
+  {
+    module: exampleTool,
+    outputSchema: exampleResultSchema,
+    risk: 'read',
+    writesFiles: false,
+    fallbackCli: 'ldev example action --json',
+  },
+];
 ```
 
 ---
@@ -223,7 +239,8 @@ handleTool(input, config) → runJsonTool(() => runFeatureFunction(config, input
 
 1. `runJsonTool` catches exceptions and wraps them as `{isError: true, content: [{text: message}]}`.
 2. On success, `jsonToolResult(value)` serialises the feature result to JSON and also populates `structuredContent` if the value is a plain object (not an array). This allows MCP clients that support structured content to receive typed responses.
-3. The Zod schema in `core/contracts/` defines the type guarantee. The tool file does not need to validate the output — TypeScript type-checks it at compile time.
+3. `mcp-server.ts` validates successful tool output against the `outputSchema` declared in `TOOL_CATALOG`. If validation fails, the call is returned as an MCP tool error instead of leaking a malformed payload to the agent.
+4. The Zod schema in `core/contracts/` is the runtime contract. TypeScript return types should align with it, but TypeScript alone is not enough for MCP outputs.
 
 Example — `tool-liferay-inventory-sites.ts`:
 
@@ -245,6 +262,18 @@ export async function handleTool(input: {pageSize?: number}, config: AppConfig) 
 ```
 
 The `runLiferayInventorySites` function returns `LiferayInventorySite[]`, which is defined by `liferayInventorySitesSchema` in `src/core/contracts/inventory.schema.ts`. The MCP client receives a JSON array matching that schema.
+
+The catalog entry connects the tool to that schema:
+
+```typescript
+{
+  module: sitesTool,
+  outputSchema: liferayInventorySitesSchema,
+  risk: 'read',
+  writesFiles: false,
+  fallbackCli: 'ldev portal inventory sites --json',
+}
+```
 
 ---
 

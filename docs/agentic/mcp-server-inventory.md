@@ -10,17 +10,20 @@ the local MCP server.
 
 ## Current MCP Surface
 
-The current server registers 15 tools:
+The current server registers 18 tools:
 
 | Tool | Source command area | Fit |
 | --- | --- | --- |
 | `ldev_context` | `context --json` | Strong |
+| `ldev_ai_bootstrap` | `ai bootstrap --intent ... --json` | Strong |
 | `liferay_check` | `portal check --json` | Strong |
 | `ldev_status` | `status --json` | Strong |
 | `ldev_logs_diagnose` | `logs diagnose --json` | Strong |
 | `liferay_inventory_sites` | `portal inventory sites` | Strong |
+| `liferay_inventory_preflight` | `portal inventory preflight` | Strong |
 | `liferay_inventory_pages` | `portal inventory pages` | Strong |
 | `liferay_inventory_page` | `portal inventory page` | Strong |
+| `liferay_inventory_where_used` | `portal inventory where-used` | Strong |
 | `liferay_inventory_structures` | `portal inventory structures` | Strong |
 | `liferay_inventory_templates` | `portal inventory templates` | Strong |
 | `liferay_doctor` | `doctor` | Strong |
@@ -43,8 +46,6 @@ anything.
 
 | Priority | MCP tool | Backing command/function | Why |
 | --- | --- | --- | --- |
-| P0 | `ldev_ai_bootstrap` | `ai bootstrap --intent ... --json` / `runAiBootstrap` | Higher-level context plus targeted doctor checks. Useful for discover/develop/deploy/troubleshoot intents. |
-| P0 | `liferay_inventory_preflight` | `portal inventory preflight` / `runLiferayPreflight` | Explicit API-surface readiness for inventory/resource workflows. |
 | P1 | `reindex_status` | `portal reindex status` / `runReindexStatus` | Common runtime diagnostic after imports or content shrink work. |
 | P1 | `reindex_tasks` | `portal reindex tasks` / `runReindexTasks` | Complements `reindex_status` with active task detail. |
 | P1 | `liferay_search_indices` | `portal search indices` / `runLiferaySearchIndices` | Good read-only Elasticsearch inventory. |

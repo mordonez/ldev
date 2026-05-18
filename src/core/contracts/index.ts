@@ -29,6 +29,7 @@ export {
   liferayInventorySitesSchema,
   liferayInventoryTemplatesSchema,
   liferayInventoryStructuresSchema,
+  liferayInventoryStructuresResultSchema,
   whereUsedResourceTypes,
   whereUsedMatchKinds,
   pageEvidenceSourceValues,
@@ -42,6 +43,18 @@ export {
   whereUsedPlanResultSchema,
 } from './inventory.schema.js';
 
+export {
+  pageEvidenceResourceTypes,
+  pageEvidenceKinds,
+  pageEvidenceResourceTypeSchema,
+  pageEvidenceKindSchema,
+  pageEvidenceContextSchema,
+  pageEvidenceSchema,
+  liferayInventoryPagesResultSchema,
+} from './inventory-page.schema.js';
+
+export {liferayInventoryPageJsonSchema, validateLiferayInventoryPageJsonResult} from './inventory-page-json.schema.js';
+
 export type {
   LiferayInventorySite,
   LiferayInventoryTemplate,
@@ -49,6 +62,7 @@ export type {
   LiferayInventorySites,
   LiferayInventoryTemplates,
   LiferayInventoryStructures,
+  LiferayInventoryStructuresResult,
   WhereUsedResourceTypeValue,
   WhereUsedMatchKindValue,
   PageEvidenceSourceValue,
@@ -63,6 +77,16 @@ export type {
   WhereUsedPlanResult,
   WhereUsedRunResult,
 } from './inventory.schema.js';
+
+export type {
+  PageEvidenceResourceTypeValue,
+  PageEvidenceKindValue,
+  PageEvidenceContext,
+  PageEvidence,
+  LiferayInventoryPagesResult,
+} from './inventory-page.schema.js';
+
+export type {LiferayInventoryPageJsonResult} from './inventory-page-json.schema.js';
 
 // Resource schemas
 export {
@@ -97,6 +121,7 @@ export {
   commandStatusSchema,
   agentContextIssueSchema,
   agentContextReportSchema,
+  aiBootstrapResultSchema,
 } from './environment.schema.js';
 
 export type {
@@ -108,6 +133,7 @@ export type {
   CommandStatusContract,
   AgentContextIssueContract,
   AgentContextReportContract,
+  AiBootstrapResultContract,
 } from './environment.schema.js';
 
 // Health schemas (liferay_check, liferay_doctor, liferay_mcp_check)
@@ -117,6 +143,7 @@ export {
   doctorToolStatusSchema,
   doctorReportSchema,
   mcpCheckResultSchema,
+  liferayPreflightResultSchema,
 } from './health.schema.js';
 
 export type {
@@ -125,6 +152,7 @@ export type {
   DoctorToolStatusContract,
   DoctorReportContract,
   McpCheckResultContract,
+  LiferayPreflightResultContract,
 } from './health.schema.js';
 
 // Deploy schemas (liferay_deploy_status)

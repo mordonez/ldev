@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {doctorReportSchema} from './health.schema.js';
 
 /**
  * Schemas for environment/status/context MCP tool outputs.
@@ -208,3 +209,33 @@ export const agentContextReportSchema = z.object({
 });
 
 export type AgentContextReportContract = z.infer<typeof agentContextReportSchema>;
+
+const aiBootstrapIntentSchema = z.enum([
+  'discover',
+  'develop',
+  'deploy',
+  'troubleshoot',
+  'migrate-resources',
+  'osgi-debug',
+]);
+
+/**
+ * AiBootstrapResultContract: intent-oriented aggregate returned by ldev_ai_bootstrap.
+ */
+export const aiBootstrapResultSchema = z.object({
+  ok: z.literal(true),
+  intent: aiBootstrapIntentSchema,
+  cache: z
+    .object({
+      requestedTtlSeconds: z.number().int().positive(),
+      hit: z.boolean(),
+      ageSeconds: z.number().int().nonnegative().nullable(),
+    })
+    .nullable(),
+  context: agentContextReportSchema,
+  doctor: doctorReportSchema.nullable(),
+  status: z.null(),
+  recommendedNext: z.string(),
+});
+
+export type AiBootstrapResultContract = z.infer<typeof aiBootstrapResultSchema>;

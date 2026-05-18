@@ -24,7 +24,7 @@ inside an editor.
 | --- | --- | --- |
 | CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Yes — the source of truth |
 | `ldev ai install` | Installs `AGENTS.md`, vendor skills, and tool-specific rule directories (`.claude/rules`, `.cursor/rules`, `.gemini`, `.github/instructions`, `.windsurf/rules`, `.workspace-rules`). | Yes |
-| `ldev-mcp-server` (15 tools) | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
+| `ldev-mcp-server` (18 tools) | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
 
 ## Bootstrap the repo

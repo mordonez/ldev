@@ -31,7 +31,7 @@ These are the parts where `ldev` does something Liferay does not do for you:
 | `project init` / `setup` / `start` | Stand up a working Docker-based Liferay environment from zero. |
 | `worktree setup --with-env` | Each branch with its own Postgres, Liferay and OSGi state. On Linux + Btrfs, swaps are near-instant. |
 | `oauth install --write-env` | Deploy the installer bundle, create the OAuth app, verify the token, write credentials. One command. |
-| `ldev-mcp-server` (15 tools) | The same workflows exposed over MCP, so an agent can run them without a custom integration. |
+| `ldev-mcp-server` (18 tools) | The same workflows exposed over MCP, so an agent can run them without a custom integration. |
 
 ## What it does not do
 
