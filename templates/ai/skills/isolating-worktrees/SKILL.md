@@ -36,7 +36,8 @@ Do not use this skill when:
 6. Immediately after creating a new worktree, `cd .worktrees/<worktree-name>` and confirm the root with `git rev-parse --show-toplevel`. Do not run any further commands until the root is confirmed. If you cannot confirm that the current directory is inside `.worktrees/<worktree-name>`, stop and ask the user to confirm the working directory before continuing.
 7. For runtime-backed worktrees, run `ldev start` **from inside the active worktree directory**, then `ldev status --json`, and wait for startup logs before portal-facing actions. If `ldev start` would run from the main checkout, stop and ask the user which runtime to start instead of proceeding autonomously.
 8. Keep the confirmed root as an active edit boundary for the whole task.
-9. Clean up only after explicit human approval.
+9. Use `ldev worktree status --json` or `ldev worktree list --json` to inspect runtime ownership and ports. Do not infer worktree ownership from port reachability alone.
+10. Clean up only after explicit human approval.
 
 ## Reference
 

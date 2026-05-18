@@ -36,6 +36,8 @@ ldev start
 
 ldev worktree start incident-123
 ldev worktree env --name incident-123
+ldev worktree list
+ldev worktree status incident-123
 ldev worktree clean incident-123 --force
 ldev worktree clean incident-123 --force --delete-branch
 ldev worktree gc --days 14
@@ -48,6 +50,8 @@ ldev worktree gc --days 14 --apply
 - `setup --restart-main-after-clone` — opt-in: after an automatic stop, start main again without waiting for full portal readiness
 - `start` — prepare and start the worktree's local env
 - `env` — prepare or inspect the worktree's local env wiring
+- `list` — show registered worktrees with Compose project, runtime status and ports
+- `status` — inspect one worktree without relying on generic port scans
 - `clean` — destructive; requires `--force`; optionally deletes `fix/<name>` branch
 - `gc` — preview (default) or `--apply` removal of stale worktrees older than `--days`
 
