@@ -50,7 +50,7 @@ function extractJsonToolValue(result: CallToolResult): unknown {
     try {
       return parseJsonUnknown(item.text);
     } catch {
-      return undefined;
+      continue;
     }
   }
   return undefined;

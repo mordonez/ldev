@@ -46,6 +46,7 @@ describe('mcp server tools', () => {
     const bootstrap = ALL_TOOLS.find((tool) => tool.TOOL_NAME === 'ldev_ai_bootstrap');
     const preflight = ALL_TOOLS.find((tool) => tool.TOOL_NAME === 'liferay_inventory_preflight');
     expect(bootstrap?.outputSchema).toBeDefined();
+    expect(bootstrap?.writesFiles).toBe(true);
     expect(preflight?.outputSchema).toBeDefined();
   });
 
@@ -149,5 +150,32 @@ describe('mcp server tools', () => {
     if (content.type === 'text') {
       expect(content.text).toContain('liferay_inventory_sites');
     }
+  });
+
+  test('validates later text content when earlier text is not JSON', () => {
+    const sitesTool = ALL_TOOLS.find((tool) => tool.TOOL_NAME === 'liferay_inventory_sites');
+    expect(sitesTool?.outputSchema).toBeDefined();
+
+    const result = validateToolResult(
+      {
+        content: [
+          {type: 'text', text: 'preface'},
+          {
+            type: 'text',
+            text: JSON.stringify([
+              {
+                groupId: 20120,
+                siteFriendlyUrl: '/global',
+                name: 'Global',
+                pagesCommand: 'ldev portal inventory pages --site /global --json',
+              },
+            ]),
+          },
+        ],
+      },
+      sitesTool!,
+    );
+
+    expect(result.isError).toBeUndefined();
   });
 });

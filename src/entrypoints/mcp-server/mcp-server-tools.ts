@@ -71,7 +71,7 @@ export const TOOL_CATALOG: ToolCatalogEntry[] = [
     module: aiBootstrapTool,
     outputSchema: aiBootstrapResultSchema,
     risk: 'read',
-    writesFiles: false,
+    writesFiles: true,
     fallbackCli: 'ldev ai bootstrap --intent <intent> --json',
   },
   {
