@@ -9,7 +9,7 @@ import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
 import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportStructuresSiteResult = {
   site: string;

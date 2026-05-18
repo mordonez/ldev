@@ -4,9 +4,9 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
-  formatLiferayResourceSyncFragments,
-  runLiferayResourceSyncFragments,
-} from '../../src/features/liferay/resource/liferay-resource-sync-fragments.js';
+  formatLiferayResourceImportFragments,
+  runLiferayResourceImportFragments,
+} from '../../src/features/liferay/resource/liferay-resource-import-fragments.js';
 import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -83,7 +83,7 @@ async function writeFragmentProject(
   );
 }
 
-describe('liferay resource fragments-sync', () => {
+describe('liferay resource fragments-import', () => {
   test('imports fragments through the legacy API only', async () => {
     const {config, repoRoot} = await createRepoFixture();
     const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');
@@ -114,7 +114,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -190,7 +190,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -208,7 +208,7 @@ describe('liferay resource fragments-sync', () => {
       status: 'imported',
       fragmentEntryId: 601,
     });
-    expect(formatLiferayResourceSyncFragments(result)).toBe('imported=1 errors=0');
+    expect(formatLiferayResourceImportFragments(result)).toBe('imported=1 errors=0');
   });
 
   test('creates a missing collection and fragment and supports fragment filter', async () => {
@@ -251,7 +251,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global', dir: 'custom-fragments', fragment: 'ub-base/fragments/hero-banner'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -300,7 +300,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global', dir: nestedFragmentDir, fragment: 'hero-banner'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -357,7 +357,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global', dir: 'custom-fragments', fragment: 'ub-base/fragments/hero-banner'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -408,7 +408,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {allSites: true},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -420,7 +420,7 @@ describe('liferay resource fragments-sync', () => {
       imported: 1,
       errors: 0,
     });
-    expect(formatLiferayResourceSyncFragments(result)).toBe('sites=1 imported=1 errors=0 mode=all-sites');
+    expect(formatLiferayResourceImportFragments(result)).toBe('sites=1 imported=1 errors=0 mode=all-sites');
   });
 
   test('verify passes when API echoes back content matching local files', async () => {
@@ -492,7 +492,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global'},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -577,7 +577,7 @@ describe('liferay resource fragments-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncFragments(
+    const result = await runLiferayResourceImportFragments(
       config,
       {site: '/global'},
       {apiClient, tokenClient: TOKEN_CLIENT},

@@ -10,7 +10,7 @@ import type {
   LocalFragment,
   LocalFragmentCollection,
   LocalFragmentsProject,
-} from './liferay-resource-sync-fragments-types.js';
+} from './liferay-resource-import-fragments-types.js';
 
 export function resolveFragmentsProjectDir(config: AppConfig, dir: string | undefined, siteToken: string): string {
   return resolveArtifactFragmentProjectDir(config, siteToken, dir);

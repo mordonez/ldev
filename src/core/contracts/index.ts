@@ -95,20 +95,20 @@ export {
   liferayResourceSyncFragmentsAllSitesResultSchema,
   liferayResourceSyncFragmentsResultSchema,
   liferayResourceImportFailureSchema,
-  liferayResourceSyncAdtItemResultSchema,
-  liferayResourceSyncStructureItemResultSchema,
-  liferayResourceSyncTemplateItemResultSchema,
+  liferayResourceImportAdtItemResultSchema,
+  liferayResourceImportStructureItemResultSchema,
+  liferayResourceImportTemplateItemResultSchema,
 } from './resource.schema.js';
 
 export type {
-  LiferayResourceSyncFragmentItemResult,
-  LiferayResourceSyncFragmentsSingleResult,
-  LiferayResourceSyncFragmentsAllSitesResult,
-  LiferayResourceSyncFragmentsResult,
+  LiferayResourceImportFragmentItemResult,
+  LiferayResourceImportFragmentsSingleResult,
+  LiferayResourceImportFragmentsAllSitesResult,
+  LiferayResourceImportFragmentsResult,
   LiferayResourceImportFailure,
-  LiferayResourceSyncAdtItemResult,
-  LiferayResourceSyncStructureItemResult,
-  LiferayResourceSyncTemplateItemResult,
+  LiferayResourceImportAdtItemResult,
+  LiferayResourceImportStructureItemResult,
+  LiferayResourceImportTemplateItemResult,
 } from './resource.schema.js';
 
 // Environment schemas (ldev_status, ldev_logs_diagnose, ldev_context)

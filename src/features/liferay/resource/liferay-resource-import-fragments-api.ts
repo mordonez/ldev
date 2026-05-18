@@ -1,9 +1,9 @@
 import {LiferayErrors} from '../errors/index.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {listFragmentCollections, listFragments} from './liferay-resource-shared.js';
-import {postFormCandidates, type ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
-import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-sync-fragments-types.js';
-import {sanitizeFileToken} from './liferay-resource-sync-fragments-local.js';
+import {postFormCandidates, type ResourceDependencies} from './liferay-resource-artifact-shared.js';
+import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-import-fragments-types.js';
+import {sanitizeFileToken} from './liferay-resource-import-fragments-local.js';
 import {
   toFragmentCollectionPayload,
   toFragmentEntryPayload,
@@ -25,7 +25,7 @@ export function createFragmentSyncRuntimeState(): FragmentSyncRuntimeState {
 export async function listRuntimeCollectionsByKey(
   config: AppConfig,
   groupId: number,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<Map<string, FragmentCollectionPayload>> {
   if (runtimeState?.collectionsByKey) {
@@ -50,7 +50,7 @@ export async function findRuntimeCollection(
   config: AppConfig,
   groupId: number,
   collectionSlug: string,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentCollectionPayload | null> {
   const byKey = await listRuntimeCollectionsByKey(config, groupId, dependencies, runtimeState);
@@ -60,7 +60,7 @@ export async function findRuntimeCollection(
 export async function listRuntimeFragmentsByKey(
   config: AppConfig,
   fragmentCollectionId: number,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<Map<string, FragmentEntryPayload>> {
   const cached = runtimeState?.fragmentsByCollectionId.get(fragmentCollectionId);
@@ -86,7 +86,7 @@ export async function findRuntimeFragment(
   config: AppConfig,
   fragmentCollectionId: number,
   fragmentSlug: string,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentEntryPayload | null> {
   const byKey = await listRuntimeFragmentsByKey(config, fragmentCollectionId, dependencies, runtimeState);
@@ -97,7 +97,7 @@ export async function createFragmentCollection(
   config: AppConfig,
   groupId: number,
   collection: LocalFragmentCollection,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentCollectionPayload> {
   const base = {
@@ -142,7 +142,7 @@ export async function updateFragmentCollection(
   config: AppConfig,
   fragmentCollectionId: number,
   collection: LocalFragmentCollection,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<void> {
   if (fragmentCollectionId <= 0) {
@@ -185,7 +185,7 @@ export async function createFragmentEntry(
   groupId: number,
   fragmentCollectionId: number,
   fragment: LocalFragment,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentEntryPayload> {
   const base = fragmentEntryBaseForm(groupId, fragmentCollectionId, fragment);
@@ -222,7 +222,7 @@ export async function updateFragmentEntry(
   fragmentCollectionId: number,
   fragmentEntryId: number,
   fragment: LocalFragment,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
   runtimeState?: FragmentSyncRuntimeState,
 ): Promise<FragmentEntryPayload> {
   if (fragmentEntryId <= 0) {

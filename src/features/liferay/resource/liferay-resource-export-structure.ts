@@ -5,7 +5,7 @@ import {writeLiferayResourceFile} from './liferay-resource-export-shared.js';
 import {normalizeLiferayStructurePayload} from './liferay-resource-structure-normalize.js';
 import path from 'node:path';
 import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
-import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies as ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export async function runLiferayResourceExportStructure(
   config: AppConfig,

@@ -10,29 +10,29 @@ import {
   readLocalFragmentsProject,
   resolveFragmentsProjectDir,
   toErrorMessage,
-} from './liferay-resource-sync-fragments-local.js';
-import {createFragmentSyncRuntimeState} from './liferay-resource-sync-fragments-api.js';
-import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
+} from './liferay-resource-import-fragments-local.js';
+import {createFragmentSyncRuntimeState} from './liferay-resource-import-fragments-api.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import type {
-  LiferayResourceSyncFragmentItemResult,
-  LiferayResourceSyncFragmentsAllSitesResult,
-  LiferayResourceSyncFragmentsResult,
-  LiferayResourceSyncFragmentsSingleResult,
+  LiferayResourceImportFragmentItemResult,
+  LiferayResourceImportFragmentsAllSitesResult,
+  LiferayResourceImportFragmentsResult,
+  LiferayResourceImportFragmentsSingleResult,
   LocalFragment,
   LocalFragmentCollection,
-} from './liferay-resource-sync-fragments-types.js';
-import {syncArtifact} from './sync-engine.js';
-import {fragmentCollectionSyncStrategy} from './sync-strategies/fragment-collection-sync-strategy.js';
-import {fragmentEntrySyncStrategy} from './sync-strategies/fragment-entry-sync-strategy.js';
+} from './liferay-resource-import-fragments-types.js';
+import {runImportArtifact} from './import-engine.js';
+import {fragmentCollectionImportStrategy} from './import-strategies/fragment-collection-import-strategy.js';
+import {fragmentEntryImportStrategy} from './import-strategies/fragment-entry-import-strategy.js';
 
 export type {
-  LiferayResourceSyncFragmentItemResult,
-  LiferayResourceSyncFragmentsAllSitesResult,
-  LiferayResourceSyncFragmentsResult,
-  LiferayResourceSyncFragmentsSingleResult,
-} from './liferay-resource-sync-fragments-types.js';
+  LiferayResourceImportFragmentItemResult,
+  LiferayResourceImportFragmentsAllSitesResult,
+  LiferayResourceImportFragmentsResult,
+  LiferayResourceImportFragmentsSingleResult,
+} from './liferay-resource-import-fragments-types.js';
 
-export async function runLiferayResourceSyncFragments(
+export async function runLiferayResourceImportFragments(
   config: AppConfig,
   options?: {
     site?: string;
@@ -41,8 +41,8 @@ export async function runLiferayResourceSyncFragments(
     dir?: string;
     fragment?: string;
   },
-  dependencies?: ResourceSyncDependencies,
-): Promise<LiferayResourceSyncFragmentsResult> {
+  dependencies?: ResourceDependencies,
+): Promise<LiferayResourceImportFragmentsResult> {
   if (options?.allSites && (options.fragment?.trim() ?? '') !== '') {
     throw LiferayErrors.resourceError('--fragment requires --site or --site-id');
   }
@@ -59,7 +59,7 @@ export async function runLiferayResourceSyncFragments(
   return runFragmentsImport(config, site.id, site.friendlyUrlPath, projectDir, options?.fragment ?? '', dependencies);
 }
 
-export function formatLiferayResourceSyncFragments(result: LiferayResourceSyncFragmentsResult): string {
+export function formatLiferayResourceImportFragments(result: LiferayResourceImportFragmentsResult): string {
   if (result.mode === 'all-sites') {
     return `sites=${result.sites} imported=${result.imported} errors=${result.errors} mode=all-sites`;
   }
@@ -67,17 +67,17 @@ export function formatLiferayResourceSyncFragments(result: LiferayResourceSyncFr
   return `imported=${result.summary.importedFragments} errors=${result.summary.errors}`;
 }
 
-export function getLiferayResourceSyncFragmentsExitCode(result: LiferayResourceSyncFragmentsResult): number {
+export function getLiferayResourceImportFragmentsExitCode(result: LiferayResourceImportFragmentsResult): number {
   return result.mode === 'all-sites' ? (result.errors > 0 ? 1 : 0) : result.summary.errors > 0 ? 1 : 0;
 }
 
 async function runAllSitesImport(
   config: AppConfig,
   dir: string | undefined,
-  dependencies?: ResourceSyncDependencies,
-): Promise<LiferayResourceSyncFragmentsAllSitesResult> {
+  dependencies?: ResourceDependencies,
+): Promise<LiferayResourceImportFragmentsAllSitesResult> {
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
-  const siteResults: LiferayResourceSyncFragmentsSingleResult[] = [];
+  const siteResults: LiferayResourceImportFragmentsSingleResult[] = [];
   let imported = 0;
   let errors = 0;
 
@@ -115,14 +115,14 @@ async function runFragmentsImport(
   siteFriendlyUrl: string,
   projectDir: string,
   fragmentFilter: string,
-  dependencies?: ResourceSyncDependencies,
-): Promise<LiferayResourceSyncFragmentsSingleResult> {
+  dependencies?: ResourceDependencies,
+): Promise<LiferayResourceImportFragmentsSingleResult> {
   const project = await readLocalFragmentsProject(projectDir, fragmentFilter);
   const site = toResolvedSite(groupId, siteFriendlyUrl);
   const runtimeState = createFragmentSyncRuntimeState();
   let imported = 0;
   let errors = 0;
-  const fragmentResults: LiferayResourceSyncFragmentItemResult[] = [];
+  const fragmentResults: LiferayResourceImportFragmentItemResult[] = [];
 
   for (const localCollection of project.collections) {
     try {
@@ -193,12 +193,12 @@ async function syncFragmentCollection(
   site: ResolvedSite,
   collection: LocalFragmentCollection,
   runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<number> {
-  const result = await syncArtifact(
+  const result = await runImportArtifact(
     config,
     site,
-    fragmentCollectionSyncStrategy,
+    fragmentCollectionImportStrategy,
     {
       createMissing: true,
       strategyOptions: {collection, runtimeState},
@@ -215,12 +215,12 @@ async function syncFragmentEntry(
   collectionId: number,
   fragment: LocalFragment,
   runtimeState: ReturnType<typeof createFragmentSyncRuntimeState>,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<number> {
-  const result = await syncArtifact(
+  const result = await runImportArtifact(
     config,
     site,
-    fragmentEntrySyncStrategy,
+    fragmentEntryImportStrategy,
     {
       createMissing: true,
       strategyOptions: {collectionId, fragment, runtimeState},

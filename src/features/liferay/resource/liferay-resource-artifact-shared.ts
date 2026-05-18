@@ -14,9 +14,7 @@ export type ResourceDependencies = {
   tokenClient?: OAuthTokenClient;
 };
 
-export type ResourceSyncDependencies = ResourceDependencies;
-
-export type ResourceSyncResult = {
+export type ImportArtifactResult = {
   status: 'created' | 'updated' | 'checked' | 'checked_missing';
   id: string;
   name: string;
@@ -83,10 +81,6 @@ export function serializeLocalizedMap(map: LocalizedMap): string {
 /** Backward-compatible wrapper: builds and immediately serializes a localized map. */
 export function localizedMap(text: string): string {
   return serializeLocalizedMap(makeLocalizedMap(text));
-}
-
-export function normalizeSyncStatus(checkOnly: boolean): 'checked' | 'updated' {
-  return checkOnly ? 'checked' : 'updated';
 }
 
 export function ensureString(value: unknown, label: string): string {

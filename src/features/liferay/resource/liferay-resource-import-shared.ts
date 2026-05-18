@@ -5,10 +5,10 @@ import {normalizeCliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {LiferayErrors} from '../errors/index.js';
 import {resolveArtifactBaseDir, resolveSiteToken, siteTokenToFriendlyUrl} from '../portal/artifact-paths.js';
-import type {ResourceSyncDependencies} from './liferay-resource-sync-shared.js';
-import {runLiferayResourceSyncAdt} from './liferay-resource-sync-adt.js';
-import {runLiferayResourceSyncStructure} from './liferay-resource-sync-structure.js';
-import {runLiferayResourceSyncTemplate} from './liferay-resource-sync-template.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
+import {runLiferayResourceImportAdt} from './liferay-resource-import-adt.js';
+import {runLiferayResourceImportStructure} from './liferay-resource-import-structure.js';
+import {runLiferayResourceImportTemplate} from './liferay-resource-import-template.js';
 
 export type LiferayResourceImportFailure = {
   site: string;
@@ -224,7 +224,7 @@ export async function runLiferayResourceImportStructures(
     allowBreakingChange?: boolean;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const structureKeys = normalizeImportKeys(options?.structureKeys);
   if (!options?.allSites && !options?.apply && structureKeys.length === 0) {
@@ -243,7 +243,7 @@ export async function runLiferayResourceImportStructures(
       extension: '.json',
       allowedKeys: structureKeys,
       runEntry: (site, file) =>
-        runLiferayResourceSyncStructure(
+        runLiferayResourceImportStructure(
           config,
           {
             site,
@@ -288,7 +288,7 @@ export async function runLiferayResourceImportTemplates(
     structureKey?: string;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const templateKeys = normalizeImportKeys(options?.templateKeys);
   if (!options?.allSites && !options?.apply && templateKeys.length === 0) {
@@ -307,7 +307,7 @@ export async function runLiferayResourceImportTemplates(
       extension: '.ftl',
       allowedKeys: templateKeys,
       runEntry: (site, file) =>
-        runLiferayResourceSyncTemplate(
+        runLiferayResourceImportTemplate(
           config,
           {
             site,
@@ -348,7 +348,7 @@ export async function runLiferayResourceImportAdts(
     className?: string;
     continueOnError?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportResult> {
   const adtKeys = normalizeImportKeys(options?.adtKeys);
   const hasScopedFilter =
@@ -370,7 +370,7 @@ export async function runLiferayResourceImportAdts(
       allowedKeys: adtKeys,
       resolveSiteDirs: resolveDefaultOrSiteBaseDir,
       runEntry: (site, file) =>
-        runLiferayResourceSyncAdt(
+        runLiferayResourceImportAdt(
           config,
           {
             site,

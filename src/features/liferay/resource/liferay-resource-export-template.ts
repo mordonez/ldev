@@ -5,7 +5,7 @@ import {runLiferayResourceGetTemplate} from './liferay-resource-get-template.js'
 import fs from 'fs-extra';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
 import {resolveArtifactSiteDir} from '../portal/artifact-paths.js';
-import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies as ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export async function runLiferayResourceExportTemplate(
   config: AppConfig,

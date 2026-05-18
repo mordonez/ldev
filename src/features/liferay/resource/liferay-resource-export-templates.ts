@@ -10,7 +10,7 @@ import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactBaseDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from './liferay-resource-template-normalize.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportTemplatesSiteResult = {
   site: string;

@@ -5,7 +5,7 @@ import {buildSiteChain} from '../portal/site-resolution.js';
 import type {DdmTemplatePayload} from '../portal/template-queries.js';
 import {resolveResourceSite, listDdmTemplates} from './liferay-resource-shared.js';
 import {matchesDdmTemplate, matchesInventoryTemplate} from '../liferay-identifiers.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceTemplateResult = {
   siteId: number;

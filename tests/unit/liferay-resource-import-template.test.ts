@@ -4,9 +4,9 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
-  formatLiferayResourceSyncTemplate,
-  runLiferayResourceSyncTemplate,
-} from '../../src/features/liferay/resource/liferay-resource-sync-template.js';
+  formatLiferayResourceImportTemplate,
+  runLiferayResourceImportTemplate,
+} from '../../src/features/liferay/resource/liferay-resource-import-template.js';
 import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -51,7 +51,7 @@ async function createRepoFixture() {
   };
 }
 
-describe('liferay resource template-sync', () => {
+describe('liferay resource template-import', () => {
   test('throws when template is missing and createMissing is not enabled', async () => {
     const {config, templateFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
@@ -87,7 +87,7 @@ describe('liferay resource template-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncTemplate(
+      runLiferayResourceImportTemplate(
         config,
         {site: '/global', key: 'MISSING', file: templateFile},
         {apiClient, tokenClient: TOKEN_CLIENT},
@@ -145,7 +145,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: 'BASIC', file: templateFile},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -153,7 +153,7 @@ describe('liferay resource template-sync', () => {
 
     expect(result.status).toBe('updated');
     expect(result.id).toBe('BASIC');
-    expect(formatLiferayResourceSyncTemplate(result)).toContain('updated\tBASIC\tBASIC');
+    expect(formatLiferayResourceImportTemplate(result)).toContain('updated\tBASIC\tBASIC');
     expect(calls).toEqual(
       expect.arrayContaining([
         expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
@@ -210,7 +210,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: 'BASIC', file: templateFile, checkOnly: true},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -280,7 +280,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: '33954', file: templateFile},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -374,7 +374,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: 'UB_TPL_NOTA_PRENSA_DETALLE', file: templateFile},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -440,7 +440,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: 'BASIC', file: templateFile},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -502,7 +502,7 @@ describe('liferay resource template-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncTemplate(
+    const result = await runLiferayResourceImportTemplate(
       config,
       {site: '/global', key: 'BASIC', file: templateFile},
       {apiClient, tokenClient: TOKEN_CLIENT},

@@ -11,9 +11,9 @@ import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayInventoryTemplates} from '../../inventory/liferay-inventory-templates.js';
 import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
 import {resolveStructureFile} from '../../portal/artifact-paths.js';
-import {runLiferayResourceSyncStructure} from '../liferay-resource-sync-structure.js';
-import {runLiferayResourceSyncTemplate} from '../liferay-resource-sync-template.js';
-import type {ResourceSyncDependencies} from '../liferay-resource-sync-shared.js';
+import {runLiferayResourceImportStructure} from '../liferay-resource-import-structure.js';
+import {runLiferayResourceImportTemplate} from '../liferay-resource-import-template.js';
+import type {ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 
 type MigrationStage = 'introduce' | 'cleanup';
 
@@ -76,7 +76,7 @@ export async function runLiferayResourceMigrationRun(
     skipUpdate?: boolean;
     printer?: Printer;
   },
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceMigrationRunResult> {
   const descriptor = await readMigrationDescriptor(config, options.migrationFile);
   const stage = options.stage ?? 'introduce';
@@ -111,7 +111,7 @@ export async function runLiferayResourceMigrationRun(
 
   try {
     const syncTask = async () =>
-      runLiferayResourceSyncStructure(
+      runLiferayResourceImportStructure(
         config,
         {
           site: descriptor.site,
@@ -166,7 +166,7 @@ export async function runLiferayResourceMigrationPipeline(
     createMissingTemplates?: boolean;
     printer?: Printer;
   },
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceMigrationPipelineResult> {
   const descriptor = await readMigrationDescriptor(config, options.migrationFile);
   options.printer?.info(
@@ -179,7 +179,7 @@ export async function runLiferayResourceMigrationPipeline(
   }
 
   for (const dependentKey of descriptor.dependentStructures) {
-    const checked = await runLiferayResourceSyncStructure(
+    const checked = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -190,7 +190,7 @@ export async function runLiferayResourceMigrationPipeline(
       dependencies,
     );
     if (checked.status === 'checked_missing' && !options.checkOnly) {
-      const created = await runLiferayResourceSyncStructure(
+      const created = await runLiferayResourceImportStructure(
         config,
         {
           site: '/global',
@@ -222,7 +222,7 @@ export async function runLiferayResourceMigrationPipeline(
   const templateResults: Array<{name: string; status: string; id: string}> = [];
   for (const templateName of pipelineTemplates) {
     const templateTask = async () =>
-      runLiferayResourceSyncTemplate(
+      runLiferayResourceImportTemplate(
         config,
         {
           site: descriptor.site,
@@ -286,7 +286,7 @@ export async function runLiferayResourceMigrationPipeline(
       const validationTask = async () => {
         const validationPlanFile = await writeTempPlanFile(descriptor.introduce.planNode);
         try {
-          await runLiferayResourceSyncStructure(
+          await runLiferayResourceImportStructure(
             config,
             {
               site: descriptor.site,
@@ -312,7 +312,7 @@ export async function runLiferayResourceMigrationPipeline(
 
     for (const templateName of pipelineTemplates) {
       const validateTemplateTask = async () =>
-        runLiferayResourceSyncTemplate(
+        runLiferayResourceImportTemplate(
           config,
           {
             site: descriptor.site,
@@ -472,8 +472,8 @@ async function runCleanupStage(
     checkOnly?: boolean;
     migrationDryRun?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
-): Promise<Awaited<ReturnType<typeof runLiferayResourceSyncStructure>>> {
+  dependencies?: ResourceDependencies,
+): Promise<Awaited<ReturnType<typeof runLiferayResourceImportStructure>>> {
   const cleanupSources = cleanupSourceFields(descriptor.introduce.planNode);
   if (cleanupSources.length === 0) {
     throw LiferayErrors.resourceError(
@@ -490,7 +490,7 @@ async function runCleanupStage(
   const cleanupPlanFile = await writeTempPlanFile(cleanupPlanNode);
 
   try {
-    return await runLiferayResourceSyncStructure(
+    return await runLiferayResourceImportStructure(
       config,
       {
         site: descriptor.site,
@@ -799,7 +799,7 @@ function removeLegacyLayoutColumns(columns: unknown, cleanupSources: Set<string>
 async function resolvePipelineTemplates(
   config: AppConfig,
   descriptor: MigrationDescriptor,
-  dependencies?: ResourceSyncDependencies,
+  dependencies?: ResourceDependencies,
 ): Promise<string[]> {
   if (!descriptor.templates) {
     return [];

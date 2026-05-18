@@ -4,7 +4,7 @@ import {
   listDdmTemplatesByClassName,
   resolveResourceSite,
 } from './liferay-resource-shared.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export const ADT_CLASS_BY_WIDGET_TYPE: Record<string, string> = {
   'asset-entry': 'com.liferay.asset.kernel.model.AssetEntry',

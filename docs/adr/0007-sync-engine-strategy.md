@@ -1,4 +1,4 @@
-# ADR 0007 — SyncEngine/SyncStrategy: a typed strategy pattern for Liferay resource sync
+# ADR 0007 — ImportEngine/ImportStrategy: a typed strategy pattern for Liferay resource sync
 
 - **Status:** Accepted
 - **Date:** 2026-05 (formalised; pattern established 2026-04)
@@ -19,21 +19,21 @@ Before 2026-04 (PRs #37–38, #60), each resource type had its own bespoke sync 
 
 ## Decision
 
-**Model resource synchronisation as a generic `SyncEngine<Local, Remote>` that runs a pluggable `SyncStrategy<Local, Remote>` for each resource type.**
+**Model resource synchronisation as a generic `ImportEngine<Local, Remote>` that runs a pluggable `ImportStrategy<Local, Remote>` for each resource type.**
 
-### Interfaces (`src/features/liferay/resource/sync-engine.ts`)
+### Interfaces (`src/features/liferay/resource/import-engine.ts`)
 
 ```ts
-interface SyncStrategy<Local, Remote> {
+interface ImportStrategy<Local, Remote> {
   resolveLocal(): Promise<Local[]>;
   findRemote(local: Local): Promise<Remote | null>;
   upsert(local: Local, remote: Remote | null): Promise<Remote>;
   verify(local: Local, remote: Remote): Promise<boolean>;
-  preview?(local: Local, remote: Remote | null): SyncPreview;
+  preview?(local: Local, remote: Remote | null): ImportPreview;
 }
 
-interface SyncEngine<Local, Remote> {
-  run(strategy: SyncStrategy<Local, Remote>, options?: SyncOptions): Promise<SyncResult[]>;
+interface ImportEngine<Local, Remote> {
+  run(strategy: ImportStrategy<Local, Remote>, options?: ImportEngineOptions): Promise<ImportEngineResult[]>;
 }
 ```
 
@@ -50,11 +50,11 @@ The engine owns the loop logic common to all resource types:
 
 ### Strategy responsibilities
 
-Each strategy (`fragmentEntrySyncStrategy`, `templateSyncStrategy`, `structureSyncStrategy`, …) provides only the resource-type-specific logic for each step. Strategies are plain objects, not classes, created once per sync invocation.
+Each strategy (`fragmentEntryImportStrategy`, `templateImportStrategy`, `structureImportStrategy`, …) provides only the resource-type-specific logic for each step. Strategies are plain objects, not classes, created once per sync invocation.
 
 ### Preview mode
 
-Strategies may optionally implement `preview(local, remote)` to return a diff summary without writing. The engine checks for its presence and runs in dry-run mode when `options.preview === true`.
+Strategies may optionally implement `preview(local, remote)` to return a diff summary without writing. The engine checks for its presence and runs in dry-run mode when `options.checkOnly === true`.
 
 ## Drivers
 
@@ -93,9 +93,9 @@ Emit events (`onResolve`, `onUpsert`, …) and register handlers per resource ty
 
 ### Positive
 
-- Adding a new syncable resource type is a single `SyncStrategy<Local, Remote>` implementation — no engine changes needed.
+- Adding a new syncable resource type is a single `ImportStrategy<Local, Remote>` implementation — no engine changes needed.
 - Verification is enforced by the TypeScript interface. A strategy without `verify()` does not compile.
-- Engine tests (`sync-engine.test.ts`) cover all lifecycle paths with mock strategies; individual strategy tests cover resource-type specifics.
+- Engine tests (`import-engine.test.ts`) cover all lifecycle paths with mock strategies; individual strategy tests cover resource-type specifics.
 
 ### Negative
 
@@ -104,4 +104,4 @@ Emit events (`onResolve`, `onUpsert`, …) and register handlers per resource ty
 
 ### Neutral
 
-- The pattern applies only to the resource-sync domain. Other sync-like operations in `ldev` (env start/stop, worktree setup) are not using SyncEngine — they are simpler sequential flows that do not need the strategy abstraction.
+- The pattern applies only to the resource-sync domain. Other sync-like operations in `ldev` (env start/stop, worktree setup) are not using ImportEngine — they are simpler sequential flows that do not need the strategy abstraction.

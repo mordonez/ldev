@@ -1,6 +1,6 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceFragmentRow = {
   fragmentId: number;

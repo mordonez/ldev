@@ -134,9 +134,9 @@ See [ADR 0001–0004](docs/adr/) for the rationale behind this layout.
 
 Each domain has exactly one factory: `LiferayErrors`, `EnvErrors`, `DeployErrors`, `WorktreeErrors`, `OAuthErrors`, `DbErrors`. Every factory method returns a `CliError` with a stable `.code` (e.g., `LIFERAY_SITE_NOT_FOUND`) and a message scrubbed of secrets via `src/core/errors-sanitize.ts`. `throw new Error()` inside a feature is a code-review rejection. See [ADR 0006](docs/adr/0006-domain-error-factories.md).
 
-### SyncEngine/SyncStrategy — typed lifecycle for Liferay resource sync
+### ImportEngine/ImportStrategy — typed lifecycle for Liferay resource import
 
-`src/features/liferay/resource/sync-engine.ts`. All resource sync operations (structures, templates, ADTs, fragments) implement `SyncStrategy<Local, Remote>` with four required steps: `resolveLocal → findRemote → upsert → verify`. The engine runs the loop and handles progress/errors. See [ADR 0007](docs/adr/0007-sync-engine-strategy.md).
+`src/features/liferay/resource/import-engine.ts`. All resource sync operations (structures, templates, ADTs, fragments) implement `ImportStrategy<Local, Remote>` with four required steps: `resolveLocal → findRemote → upsert → verify`. The engine runs the loop and handles progress/errors. See [ADR 0007](docs/adr/0007-sync-engine-strategy.md).
 
 ### Zod contracts — source of truth for MCP tool outputs and dashboard routes
 
@@ -155,7 +155,7 @@ Each domain has exactly one factory: `LiferayErrors`, `EnvErrors`, `DeployErrors
 - `src/core/contracts/index.ts`: all Zod schemas for MCP outputs and dashboard routes.
 - `src/features/liferay/liferay-gateway.ts`: typed HTTP client for all Liferay API calls.
 - `src/features/liferay/errors/liferay-error-factory.ts`: `LiferayErrors` factory (template for other factories).
-- `src/features/liferay/resource/sync-engine.ts`: `SyncEngine` + `SyncStrategy` interfaces.
+- `src/features/liferay/resource/import-engine.ts`: `ImportEngine` + `ImportStrategy` interfaces.
 - `src/features/liferay/`: portal, inventory, resource, page layout, auth, and Liferay-specific operations.
 - `src/commands/resource/`: resource command registration split by workflow group.
 - `src/entrypoints/dashboard/`: HTTP server, route handlers, Preact client.
@@ -174,7 +174,7 @@ Architecture Decision Records in `docs/adr/`. Read before changing the patterns 
 | [0004](docs/adr/0004-eslint-boundary-enforcement.md) | ESLint `no-restricted-imports` to enforce layer boundaries |
 | [0005](docs/adr/0005-liferay-gateway.md) | LiferayGateway as the single Liferay HTTP abstraction |
 | [0006](docs/adr/0006-domain-error-factories.md) | Domain error factories: typed, coded, secret-sanitized |
-| [0007](docs/adr/0007-sync-engine-strategy.md) | SyncEngine/SyncStrategy for resource sync |
+| [0007](docs/adr/0007-sync-engine-strategy.md) | ImportEngine/ImportStrategy for resource sync |
 
 ## Output And Error Contracts
 

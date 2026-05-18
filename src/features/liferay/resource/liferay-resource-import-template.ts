@@ -1,18 +1,18 @@
 /**
- * Liferay template synchronization.
+ * Liferay template import.
  *
- * Syncs a local template file with remote Liferay instance.
- * Uses generic SyncEngine with template-specific strategy.
+ * Imports a local template file into a remote Liferay instance.
+ * Uses ImportEngine with template-specific import strategy.
  *
  * Public API maintained for backward compatibility:
- * - runLiferayResourceSyncTemplate: main entry point
- * - formatLiferayResourceSyncTemplate: format result for output
+ * - runLiferayResourceImportTemplate: main entry point
+ * - formatLiferayResourceImportTemplate: format result for output
  */
 
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import type {ResourceSyncDependencies, ResourceSyncResult} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies, ImportArtifactResult} from './liferay-resource-artifact-shared.js';
 import {resolveResourceSite} from './liferay-resource-shared.js';
 import {
   resolveSiteToken,
@@ -20,10 +20,10 @@ import {
   resolveTemplatesBaseDir,
   siteTokenToFriendlyUrl,
 } from '../portal/artifact-paths.js';
-import {syncArtifact} from './sync-engine.js';
-import {templateSyncStrategy} from './sync-strategies/template-sync-strategy.js';
+import {runImportArtifact} from './import-engine.js';
+import {templateImportStrategy} from './import-strategies/template-import-strategy.js';
 
-export type LiferayResourceSyncTemplateResult = ResourceSyncResult & {
+export type LiferayResourceImportTemplateResult = ImportArtifactResult & {
   templateFile: string;
   siteId: number;
   siteFriendlyUrl: string;
@@ -37,7 +37,7 @@ export type LiferayResourceSyncTemplateResult = ResourceSyncResult & {
  * @param dependencies Optional DI for API client and token client
  * @returns Sync result with status, id, file path, and site info
  */
-export async function runLiferayResourceSyncTemplate(
+export async function runLiferayResourceImportTemplate(
   config: AppConfig,
   options: {
     site?: string;
@@ -47,15 +47,15 @@ export async function runLiferayResourceSyncTemplate(
     checkOnly?: boolean;
     createMissing?: boolean;
   },
-  dependencies?: ResourceSyncDependencies,
-): Promise<LiferayResourceSyncTemplateResult> {
+  dependencies?: ResourceDependencies,
+): Promise<LiferayResourceImportTemplateResult> {
   const site = await resolveResourceSite(config, inferTemplateSite(config, options) ?? '/global', dependencies);
 
-  // Use SyncEngine with template strategy
-  const engineResult = await syncArtifact(
+  // Use ImportEngine with template import strategy
+  const engineResult = await runImportArtifact(
     config,
     site,
-    templateSyncStrategy,
+    templateImportStrategy,
     {
       checkOnly: options.checkOnly,
       createMissing: options.createMissing,
@@ -84,7 +84,7 @@ export async function runLiferayResourceSyncTemplate(
 /**
  * Format template sync result for console output.
  */
-export function formatLiferayResourceSyncTemplate(result: LiferayResourceSyncTemplateResult): string {
+export function formatLiferayResourceImportTemplate(result: LiferayResourceImportTemplateResult): string {
   return [
     `${result.status}\t${result.name}\t${result.id}`,
     `site=${result.siteFriendlyUrl} (${result.siteId})`,

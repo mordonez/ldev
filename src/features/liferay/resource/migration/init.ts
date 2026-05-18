@@ -7,8 +7,8 @@ import {normalizeScalarString} from '../../../../core/utils/text.js';
 import {LiferayErrors} from '../../errors/index.js';
 import {runLiferayResourceGetStructure} from '../liferay-resource-get-structure.js';
 import {resolveMigrationsBaseDir, resolveSiteToken, resolveStructureFile} from '../../portal/artifact-paths.js';
-import type {StructureDefinitionPayload} from '../liferay-resource-sync-structure-diff.js';
-import type {ResourceDependencies} from '../liferay-resource-sync-shared.js';
+import type {StructureDefinitionPayload} from '../liferay-resource-import-structure-diff.js';
+import type {ResourceDependencies} from '../liferay-resource-artifact-shared.js';
 
 export type LiferayResourceMigrationInitResult = {
   site: string;

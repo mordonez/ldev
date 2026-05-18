@@ -28,16 +28,16 @@ function getMockOptions<T>(mockFn: ReturnType<typeof vi.fn>, index: number): T |
   return call === undefined ? undefined : (call[1] as T);
 }
 
-vi.mock('../../src/features/liferay/resource/liferay-resource-sync-adt.js', () => ({
-  runLiferayResourceSyncAdt: syncAdtMock,
+vi.mock('../../src/features/liferay/resource/liferay-resource-import-adt.js', () => ({
+  runLiferayResourceImportAdt: syncAdtMock,
 }));
 
-vi.mock('../../src/features/liferay/resource/liferay-resource-sync-template.js', () => ({
-  runLiferayResourceSyncTemplate: syncTemplateMock,
+vi.mock('../../src/features/liferay/resource/liferay-resource-import-template.js', () => ({
+  runLiferayResourceImportTemplate: syncTemplateMock,
 }));
 
-vi.mock('../../src/features/liferay/resource/liferay-resource-sync-structure.js', () => ({
-  runLiferayResourceSyncStructure: syncStructureMock,
+vi.mock('../../src/features/liferay/resource/liferay-resource-import-structure.js', () => ({
+  runLiferayResourceImportStructure: syncStructureMock,
 }));
 
 const {runLiferayResourceImportAdts, runLiferayResourceImportTemplates, runLiferayResourceImportStructures} =

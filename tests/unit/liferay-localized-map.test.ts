@@ -5,7 +5,7 @@ import {
   serializeLocalizedMap,
   localizedMap,
   type LocalizedMap,
-} from '../../src/features/liferay/resource/liferay-resource-sync-shared.js';
+} from '../../src/features/liferay/resource/liferay-resource-artifact-shared.js';
 
 // ---------------------------------------------------------------------------
 // makeLocalizedMap

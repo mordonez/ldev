@@ -5,9 +5,9 @@ import {describe, expect, test} from 'vitest';
 import type {AppConfig} from '../../src/core/config/schema.js';
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {
-  formatLiferayResourceSyncStructure,
-  runLiferayResourceSyncStructure,
-} from '../../src/features/liferay/resource/liferay-resource-sync-structure.js';
+  formatLiferayResourceImportStructure,
+  runLiferayResourceImportStructure,
+} from '../../src/features/liferay/resource/liferay-resource-import-structure.js';
 import {
   createStaticTokenClient,
   createTestFetchImpl,
@@ -76,7 +76,7 @@ async function createRepoFixture(): Promise<{
   };
 }
 
-describe('liferay resource structure-sync', () => {
+describe('liferay resource structure-import', () => {
   test('throws when structure is missing and createMissing is not enabled', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
@@ -92,7 +92,11 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceImportStructure(
+        config,
+        {site: '/global', key: 'BASIC'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).rejects.toThrow('does not exist and create-missing is not enabled');
   });
 
@@ -110,7 +114,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {site: '/global', key: 'BASIC', checkOnly: true, createMissing: true},
       {apiClient, tokenClient: TOKEN_CLIENT},
@@ -143,7 +147,11 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceImportStructure(
+        config,
+        {site: '/global', key: 'BASIC'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).rejects.toThrow('Define --migration-plan or use --allow-breaking-change');
   });
 
@@ -186,7 +194,11 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceImportStructure(
+        config,
+        {site: '/global', key: 'BASIC'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).rejects.toThrow('changes the shape of existing field(s) oldField');
     expect(calls).not.toEqual(
       expect.arrayContaining([
@@ -225,7 +237,11 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(config, {site: '/global', key: 'BASIC'}, {apiClient, tokenClient: TOKEN_CLIENT}),
+      runLiferayResourceImportStructure(
+        config,
+        {site: '/global', key: 'BASIC'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
     ).rejects.toThrow('Duplicate field identifier(s): cuerpoDelTexto2, textoDestacado');
   });
 
@@ -286,7 +302,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -315,7 +331,7 @@ describe('liferay resource structure-sync', () => {
         sourceCleaned: 1,
       },
     });
-    expect(formatLiferayResourceSyncStructure(result)).toContain('migration scanned=1 migrated=1');
+    expect(formatLiferayResourceImportStructure(result)).toContain('migration scanned=1 migrated=1');
     expect(calls).toEqual(
       expect.arrayContaining([
         expect.stringContaining('PUT http://localhost:8080/o/data-engine/v2.0/data-definitions/301'),
@@ -399,7 +415,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -505,7 +521,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -613,7 +629,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -671,7 +687,7 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(
+      runLiferayResourceImportStructure(
         config,
         {
           site: '/global',
@@ -726,7 +742,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {site: '/global', key: 'BASIC', allowBreakingChange: true},
       {
@@ -741,7 +757,7 @@ describe('liferay resource structure-sync', () => {
 
     expect(result.status).toBe('updated');
     expect(result.recoveredAfterTimeout).toBe(true);
-    expect(formatLiferayResourceSyncStructure(result)).toContain('recoveredAfterTimeout=true');
+    expect(formatLiferayResourceImportStructure(result)).toContain('recoveredAfterTimeout=true');
   });
 
   test('throws recoverable timeout when PUT times out and shape-based recovery cannot prove the update', async () => {
@@ -772,7 +788,7 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(
+      runLiferayResourceImportStructure(
         config,
         {site: '/global', key: 'BASIC', allowBreakingChange: true},
         {
@@ -821,7 +837,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {site: '/global', key: 'BASIC', allowBreakingChange: true},
       {
@@ -890,7 +906,7 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(
+      runLiferayResourceImportStructure(
         config,
         {site: '/global', key: 'BASIC', allowBreakingChange: true},
         {
@@ -963,7 +979,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -1069,7 +1085,7 @@ describe('liferay resource structure-sync', () => {
       }),
     });
 
-    const result = await runLiferayResourceSyncStructure(
+    const result = await runLiferayResourceImportStructure(
       config,
       {
         site: '/global',
@@ -1151,7 +1167,7 @@ describe('liferay resource structure-sync', () => {
     });
 
     await expect(
-      runLiferayResourceSyncStructure(
+      runLiferayResourceImportStructure(
         config,
         {
           site: '/global',

@@ -7,7 +7,7 @@ import {runLiferayInventorySitesIncludingGlobal} from '../inventory/liferay-inve
 import {listFragmentCollections, listFragments, resolveResourceSite} from './liferay-resource-shared.js';
 import {resolveSiteToken} from '../portal/artifact-paths.js';
 import {resolveArtifactBaseDir, resolveArtifactSiteDir, sanitizeArtifactToken} from '../portal/artifact-paths.js';
-import type {ResourceSyncDependencies as ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies as ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceExportFragmentsResult = {
   mode?: 'all-sites';

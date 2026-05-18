@@ -3,10 +3,10 @@ import path from 'node:path';
 import {describe, expect, test, vi, afterEach, beforeEach} from 'vitest';
 
 import type {AppConfig} from '../../../src/core/config/load-config.js';
-import {structureSyncStrategy} from '../../../src/features/liferay/resource/sync-strategies/structure-sync-strategy.js';
+import {structureImportStrategy} from '../../../src/features/liferay/resource/import-strategies/structure-import-strategy.js';
 import type {ResolvedSite} from '../../../src/features/liferay/portal/site-resolution.js';
 import {createTempDir} from '../../../src/testing/temp-repo.js';
-import {mockApiClient, mockTokenClient} from './sync-strategy-test-helpers.js';
+import {mockApiClient, mockTokenClient} from './import-strategy-test-helpers.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -35,7 +35,7 @@ const mockSite: ResolvedSite = {
   friendlyUrlPath: '/test-site',
 };
 
-describe('structureSyncStrategy', () => {
+describe('structureImportStrategy', () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -65,7 +65,7 @@ describe('structureSyncStrategy', () => {
 
       const testConfig = {...mockConfig, cwd: tempDir, repoRoot: tempDir};
 
-      const artifact = await structureSyncStrategy.resolveLocal(testConfig, mockSite, {
+      const artifact = await structureImportStrategy.resolveLocal(testConfig, mockSite, {
         key: 'BASIC',
       });
 
@@ -80,7 +80,7 @@ describe('structureSyncStrategy', () => {
       tempDir = createTempDir('structure-resolve-local-missing-');
       const testConfig = {...mockConfig, cwd: tempDir, repoRoot: tempDir};
 
-      const artifact = await structureSyncStrategy.resolveLocal(testConfig, mockSite, {
+      const artifact = await structureImportStrategy.resolveLocal(testConfig, mockSite, {
         key: 'MISSING',
       });
 
@@ -96,7 +96,7 @@ describe('structureSyncStrategy', () => {
 
       const testConfig = {...mockConfig, cwd: tempDir, repoRoot: tempDir};
 
-      await expect(structureSyncStrategy.resolveLocal(testConfig, mockSite, {key: 'BAD'})).rejects.toThrow();
+      await expect(structureImportStrategy.resolveLocal(testConfig, mockSite, {key: 'BAD'})).rejects.toThrow();
     });
   });
 
@@ -122,7 +122,7 @@ describe('structureSyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await structureSyncStrategy.findRemote(
+      const result = await structureImportStrategy.findRemote(
         mockConfig,
         mockSite,
         localArtifact,
@@ -160,7 +160,7 @@ describe('structureSyncStrategy', () => {
         tokenClient: mockTokenClient(),
       };
 
-      const result = await structureSyncStrategy.findRemote(
+      const result = await structureImportStrategy.findRemote(
         mockConfig,
         mockSite,
         localArtifact,
@@ -210,7 +210,7 @@ describe('structureSyncStrategy', () => {
         sleep: vi.fn().mockResolvedValue(undefined),
       };
 
-      const result = await structureSyncStrategy.upsert(
+      const result = await structureImportStrategy.upsert(
         testConfig,
         mockSite,
         localArtifact,
@@ -269,7 +269,7 @@ describe('structureSyncStrategy', () => {
 
       // The structure strategy throws a breaking change error when fields are removed without migration plan
       await expect(
-        structureSyncStrategy.upsert(
+        structureImportStrategy.upsert(
           testConfig,
           mockSite,
           localArtifact,
@@ -332,7 +332,7 @@ describe('structureSyncStrategy', () => {
       };
 
       // Should not throw
-      const result = await structureSyncStrategy.upsert(
+      const result = await structureImportStrategy.upsert(
         testConfig,
         mockSite,
         localArtifact,
@@ -368,7 +368,7 @@ describe('structureSyncStrategy', () => {
 
       // Verify should not throw
       await expect(
-        structureSyncStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
+        structureImportStrategy.verify(mockConfig, mockSite, localArtifact, remoteArtifact),
       ).resolves.not.toThrow();
     });
   });

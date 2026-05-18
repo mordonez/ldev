@@ -6,7 +6,7 @@ import {ADT_WIDGET_DIR_BY_TYPE} from '../portal/artifact-paths.js';
 import {runLiferayResourceListAdts} from './liferay-resource-list-adts.js';
 import {buildSiteChain} from '../portal/site-resolution.js';
 import {matchesAdtRow, normalizeAdtIdentifier} from '../liferay-identifiers.js';
-import type {ResourceDependencies} from './liferay-resource-sync-shared.js';
+import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 
 export type LiferayResourceAdtResult = {
   siteFriendlyUrl: string;
