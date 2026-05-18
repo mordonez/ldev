@@ -83,7 +83,7 @@ async function writeFragmentProject(
   );
 }
 
-describe('liferay resource fragments-sync', () => {
+describe('liferay resource fragments-import', () => {
   test('imports fragments through the legacy API only', async () => {
     const {config, repoRoot} = await createRepoFixture();
     const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');

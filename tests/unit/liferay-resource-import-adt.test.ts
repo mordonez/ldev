@@ -61,7 +61,7 @@ async function createRepoFixture() {
   };
 }
 
-describe('liferay resource adt-sync', () => {
+describe('liferay resource adt-import', () => {
   test('throws when ADT is missing and createMissing is not enabled', async () => {
     const {config, adtFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({

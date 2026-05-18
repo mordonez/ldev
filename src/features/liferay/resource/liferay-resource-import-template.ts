@@ -1,7 +1,7 @@
 /**
- * Liferay template synchronization.
+ * Liferay template import.
  *
- * Syncs a local template file with remote Liferay instance.
+ * Imports a local template file into a remote Liferay instance.
  * Uses ImportEngine with template-specific import strategy.
  *
  * Public API maintained for backward compatibility:

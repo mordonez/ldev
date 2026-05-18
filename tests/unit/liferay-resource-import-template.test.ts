@@ -51,7 +51,7 @@ async function createRepoFixture() {
   };
 }
 
-describe('liferay resource template-sync', () => {
+describe('liferay resource template-import', () => {
   test('throws when template is missing and createMissing is not enabled', async () => {
     const {config, templateFile} = await createRepoFixture();
     const apiClient = createLiferayApiClient({

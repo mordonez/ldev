@@ -138,7 +138,7 @@ export type ImportArtifactOutcome<Local = never, Remote = never> = {
 };
 
 /**
- * Orchestrate artifact synchronization using a strategy.
+ * Orchestrate artifact import using a strategy.
  */
 export async function runImportArtifact<Local = never, Remote = never>(
   config: AppConfig,
@@ -151,7 +151,7 @@ export async function runImportArtifact<Local = never, Remote = never>(
 }
 
 /**
- * Orchestrate artifact synchronization and expose lifecycle artifacts to callers
+ * Orchestrate artifact import and expose lifecycle artifacts to callers
  * that need artifact-specific result fields.
  */
 export async function runImportArtifactDetailed<Local = never, Remote = never>(
@@ -172,7 +172,7 @@ export async function runImportArtifactDetailed<Local = never, Remote = never>(
   // 2. Find remote artifact
   const remoteArtifact = await strategy.findRemote(config, site, localArtifact, strategyOpts, dependencies);
 
-  // 3. If missing and not allowed, preserve legacy import semantics.
+  // 3. If missing and not allowed, preserve legacy import behaviour.
   if (!remoteArtifact && !options.createMissing) {
     throw LiferayErrors.resourceError(
       `Artifact '${localArtifact.id}' does not exist and create-missing is not enabled.`,

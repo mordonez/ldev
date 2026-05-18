@@ -76,7 +76,7 @@ async function createRepoFixture(): Promise<{
   };
 }
 
-describe('liferay resource structure-sync', () => {
+describe('liferay resource structure-import', () => {
   test('throws when structure is missing and createMissing is not enabled', async () => {
     const {config} = await createRepoFixture();
     const apiClient = createLiferayApiClient({
