@@ -6,6 +6,7 @@ import {describe, expect, test} from 'vitest';
 import {runProjectInit} from '../../src/features/project/project-init.js';
 import {resolveProjectAssets} from '../../src/features/project/project-scaffold.js';
 import {runProcess} from '../../src/core/platform/process.js';
+import type {LiferayReleaseEntry} from '../../src/features/project/project-releases.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
 const silentPrinter = {
@@ -14,6 +15,18 @@ const silentPrinter = {
   error: () => undefined,
   info: () => undefined,
 };
+
+const releaseFixtures: LiferayReleaseEntry[] = [
+  {
+    product: 'dxp',
+    productVersion: 'DXP 2026.Q1.7 LTS',
+    promoted: true,
+    releaseKey: 'dxp-2026.q1.7-lts',
+    tags: ['recommended', 'supported'],
+    targetPlatformVersion: '2026.q1.7',
+    url: 'https://releases-cdn.liferay.com/dxp/2026.q1.7-lts',
+  },
+];
 
 describe('project integration', () => {
   const GIT_ENV_KEYS = [
@@ -159,6 +172,39 @@ describe('project integration', () => {
       expect(result.changes.committed).toBe(true);
       expect(await gitStatus(targetDir)).toBe('');
       expect(await gitLogSubject(targetDir)).toBe('chore: scaffold initial Liferay project files');
+    } finally {
+      restoreGitIdentityEnv();
+    }
+  });
+
+  test('init can select a Liferay release version for the generated workspace and Docker image', async () => {
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-version-');
+
+      const result = await runProjectInit(
+        {
+          name: 'sample-project',
+          targetDir,
+          printer: silentPrinter,
+          liferayVersion: 'dxp-2026.q1.7-lts',
+        },
+        {
+          assets: resolveProjectAssets(repoRoot),
+          fetchLiferayReleases: () => Promise.resolve(releaseFixtures),
+        },
+      );
+
+      expect(result.liferayRelease?.releaseKey).toBe('dxp-2026.q1.7-lts');
+
+      const gradleProperties = await fs.readFile(path.join(targetDir, 'liferay', 'gradle.properties'), 'utf8');
+      expect(gradleProperties).toContain('liferay.workspace.product=dxp-2026.q1.7-lts');
+      expect(gradleProperties).toContain('liferay.workspace.target.platform.version=2026.q1.7');
+      expect(gradleProperties).toContain('liferay.workspace.docker.image.liferay=liferay/dxp:2026.q1.7-lts');
+
+      const dockerEnv = await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8');
+      expect(dockerEnv).toContain('LIFERAY_IMAGE=liferay/dxp:2026.q1.7-lts');
     } finally {
       restoreGitIdentityEnv();
     }
