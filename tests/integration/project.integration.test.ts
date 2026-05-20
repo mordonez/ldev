@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
 
-import {runProjectInit} from '../../src/features/project/project-init.js';
+import {formatProjectResult, runProjectInit} from '../../src/features/project/project-init.js';
 import {resolveProjectAssets} from '../../src/features/project/project-scaffold.js';
 import {runProcess} from '../../src/core/platform/process.js';
 import type {LiferayReleaseEntry} from '../../src/features/project/project-releases.js';
@@ -170,6 +170,11 @@ describe('project integration', () => {
 
       expect(result.commitRequested).toBe(true);
       expect(result.changes.committed).toBe(true);
+      expect(result.nextSteps).toContain('Review the bootstrap commit with git show --stat.');
+      expect(result.nextSteps).not.toContain(
+        'If everything looks right, create your own git commit or rerun with --commit.',
+      );
+      expect(formatProjectResult(result)).toContain('Generated files were committed.');
       expect(await gitStatus(targetDir)).toBe('');
       expect(await gitLogSubject(targetDir)).toBe('chore: scaffold initial Liferay project files');
     } finally {
@@ -205,6 +210,34 @@ describe('project integration', () => {
 
       const dockerEnv = await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8');
       expect(dockerEnv).toContain('LIFERAY_IMAGE=liferay/dxp:test-lts');
+    } finally {
+      restoreGitIdentityEnv();
+    }
+  });
+
+  test('init validates the selected Liferay release before creating the target repository', async () => {
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-invalid-version-');
+      await fs.remove(targetDir);
+
+      await expect(
+        runProjectInit(
+          {
+            name: 'sample-project',
+            targetDir,
+            printer: silentPrinter,
+            liferayVersion: 'dxp-missing',
+          },
+          {
+            assets: resolveProjectAssets(repoRoot),
+            fetchLiferayReleases: () => Promise.resolve(releaseFixtures),
+          },
+        ),
+      ).rejects.toMatchObject({code: 'PROJECT_RELEASE_NOT_FOUND'});
+
+      expect(await fs.pathExists(targetDir)).toBe(false);
     } finally {
       restoreGitIdentityEnv();
     }

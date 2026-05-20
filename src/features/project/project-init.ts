@@ -55,17 +55,17 @@ export async function runProjectInit(
   dependencies?: ProjectCommandDependencies,
 ): Promise<ProjectCommandResult> {
   const targetDir = path.resolve(options.targetDir);
+  const releasesProvider = dependencies?.fetchLiferayReleases ?? fetchLiferayReleases;
+  const liferayRelease = options.liferayVersion
+    ? selectLiferayRelease(await releasesProvider(), options.liferayVersion)
+    : null;
+
   await fs.ensureDir(targetDir);
 
   const hadGit = await isGitRepository(targetDir);
   if (!hadGit) {
     await initializeGitRepository(targetDir);
   }
-
-  const releasesProvider = dependencies?.fetchLiferayReleases ?? fetchLiferayReleases;
-  const liferayRelease = options.liferayVersion
-    ? selectLiferayRelease(await releasesProvider(), options.liferayVersion)
-    : null;
 
   return applyProjectTooling({
     projectName: options.name,
@@ -92,7 +92,9 @@ export function formatProjectResult(result: ProjectCommandResult): string {
     `Git commit: ${result.changes.committed ? 'created' : result.commitRequested ? 'skipped (no staged changes)' : 'not created'}`,
   );
   lines.push('');
-  lines.push('Review the generated files before committing them.');
+  lines.push(
+    result.changes.committed ? 'Generated files were committed.' : 'Review the generated files before committing them.',
+  );
   lines.push('');
   lines.push('Next steps:');
   result.nextSteps.forEach((step, index) => {
@@ -173,14 +175,20 @@ async function applyProjectTooling(options: {
       scaffoldFilesCopied,
       committed,
     },
-    nextSteps: getNextSteps(options.targetDir),
+    nextSteps: getNextSteps(options.targetDir, committed),
   };
 }
 
-function getNextSteps(targetDir: string): string[] {
+function getNextSteps(targetDir: string, committed: boolean): string[] {
+  const reviewSteps = committed
+    ? ['Review the bootstrap commit with git show --stat.']
+    : [
+        'Review the generated files with git diff or your editor.',
+        'If everything looks right, create your own git commit or rerun with --commit.',
+      ];
+
   return [
-    'Review the generated files with git diff or your editor.',
-    'If everything looks right, create your own git commit or rerun with --commit.',
+    ...reviewSteps,
     'Edit docker/.env and adjust COMPOSE_PROJECT_NAME, ports, and local variables.',
     'Edit .liferay-cli.yml and review the project paths.',
     `cd ${targetDir}`,
