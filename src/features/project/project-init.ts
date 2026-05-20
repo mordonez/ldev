@@ -3,7 +3,6 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import {upsertEnvFileValues} from '../../core/config/env-file.js';
-import {CliError} from '../../core/errors.js';
 import {
   gitAddPaths,
   gitCommit,
@@ -193,11 +192,11 @@ function getNextSteps(targetDir: string, committed: boolean): string[] {
     'Edit .liferay-cli.yml and review the project paths.',
     `cd ${targetDir}`,
     'Install ldev globally with npm i -g @mordonezdev/ldev or use npm link from your local ldev checkout.',
-    'ldev setup',
-    'If you need local data, use ldev db import --file path/to/backup.gz.',
-    'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',
     'ldev start',
     'ldev oauth install --write-env',
+    'Optional: run ldev setup first only when you want to pre-pull Docker images or warm local data directories.',
+    'If you need local data, use ldev db import --file path/to/backup.gz.',
+    'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',
   ];
 }
 
@@ -267,15 +266,6 @@ async function updateLiferayGradleProperties(
     'liferay.workspace.docker.image.liferay': liferayRelease.dockerImage,
   });
   await fs.writeFile(gradlePropertiesFile, `${updatedContent}\n`);
-}
-
-export function requireProjectInitOption(value: string | undefined, optionName: string): string {
-  const normalized = value?.trim();
-  if (!normalized) {
-    throw new CliError(`Missing required option: ${optionName}`, {code: 'PROJECT_INIT_OPTION_REQUIRED'});
-  }
-
-  return normalized;
 }
 
 function toProjectSlug(value: string): string {

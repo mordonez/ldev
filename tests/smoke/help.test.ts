@@ -153,13 +153,14 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('--commit');
   }, 10000);
 
-  test('project init --help shows the required bootstrap invocation', async () => {
+  test('project init --help shows the bootstrap invocation', async () => {
     const result = await runCli(['project', 'init', '--help'], {cwd: CLI_CWD});
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Required arguments:');
+    expect(result.stdout).toContain('Arguments:');
+    expect(result.stdout).toContain('[dir]');
     expect(result.stdout).toContain('--name');
     expect(result.stdout).toContain('--dir');
-    expect(result.stdout).toContain('ldev project init --name my-project --dir ~/projects/my-project');
+    expect(result.stdout).toContain('ldev project init my-project --liferay-version dxp-2026.q1.7-lts');
   }, 10000);
 
   test('resource --help documents the normalized resource contract', async () => {
