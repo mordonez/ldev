@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/mordonez/ldev/compare/ldev-v0.7.1...ldev-v0.7.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **init:** support Liferay version selection in project init ([#145](https://github.com/mordonez/ldev/issues/145)) ([366aaab](https://github.com/mordonez/ldev/commit/366aaab5e5097e352efa57ff40915f23935bbb13))
+
 ## [0.7.1](https://github.com/mordonez/ldev/compare/ldev-v0.7.0...ldev-v0.7.1) (2026-05-18)
 
 
