@@ -10,7 +10,9 @@ description: Minimal reference for project bootstrap and agent bootstrap workflo
 Create a new project scaffold linked to local tooling.
 
 ```bash
+ldev project init --list-liferay-versions
 ldev project init --name my-project --dir ~/projects/my-project
+ldev project init --name my-project --dir . --liferay-version dxp-2026.q1.7-lts
 ldev project init --name my-project --dir . --services postgres
 ldev project init --name my-project --dir . --services postgres,elasticsearch
 ldev project init --name my-project --dir . --commit
@@ -20,6 +22,9 @@ Options:
 
 - `--name <name>` (required) — project name used for the scaffold
 - `--dir <dir>` (required) — destination directory
+- `--list-liferay-versions` — list promoted release keys from `https://releases-cdn.liferay.com/releases.json`
+- `--all-liferay-versions` — include non-promoted releases when listing versions
+- `--liferay-version <release-key>` — configure the generated workspace and Docker image for the selected release
 - `--services postgres,elasticsearch` — opt in to additional Docker services
 - `--commit` — create a git commit for the generated changes (by default, no commit is created)
 

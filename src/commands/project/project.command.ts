@@ -1,14 +1,23 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
-import {formatProjectResult, runProjectInit} from '../../features/project/project-init.js';
+import {
+  formatProjectInitLiferayVersions,
+  formatProjectResult,
+  listProjectInitLiferayVersions,
+  requireProjectInitOption,
+  runProjectInit,
+} from '../../features/project/project-init.js';
 import type {DockerService} from '../../features/project/project-scaffold.js';
 
 type ProjectInitCommandOptions = {
-  name: string;
-  dir: string;
+  name?: string;
+  dir?: string;
   services?: string;
   commit?: boolean;
+  liferayVersion?: string;
+  listLiferayVersions?: boolean;
+  allLiferayVersions?: boolean;
 };
 
 export function createProjectCommand(): Command {
@@ -18,9 +27,12 @@ export function createProjectCommand(): Command {
       .command('init')
       .helpGroup('Recommended commands:')
       .description('Create a new project scaffold linked to local tooling')
-      .requiredOption('--name <name>', 'Project name')
-      .requiredOption('--dir <dir>', 'Target directory')
+      .option('--name <name>', 'Project name')
+      .option('--dir <dir>', 'Target directory')
       .option('--services <services>', 'Comma-separated extra services to enable: postgres, elasticsearch')
+      .option('--liferay-version <release-key>', 'Liferay release key to configure, for example dxp-2026.q1.7-lts')
+      .option('--list-liferay-versions', 'List promoted Liferay release keys from releases-cdn.liferay.com')
+      .option('--all-liferay-versions', 'Include non-promoted releases when listing versions')
       .option('--commit', 'Create a git commit for the generated changes'),
   );
   initCommand.addHelpText(
@@ -34,9 +46,13 @@ Optional arguments:
   --services  Comma-separated list of extra Docker services to include.
               Supported values: postgres, elasticsearch
               Example: --services postgres,elasticsearch
+  --liferay-version  Release key from https://releases-cdn.liferay.com/releases.json
+                     Example: --liferay-version dxp-2026.q1.7-lts
 
 Examples:
+  ldev project init --list-liferay-versions
   ldev project init --name my-project --dir ~/projects/my-project
+  ldev project init --name my-project --dir . --liferay-version dxp-2026.q1.7-lts
   ldev project init --name my-project --dir . --services postgres
   ldev project init --name my-project --dir . --services postgres,elasticsearch
 `,
@@ -58,17 +74,25 @@ Use --commit only when you explicitly want bootstrap changes committed immediate
   initCommand.action(
     createFormattedAction(
       async (context, options: ProjectInitCommandOptions) => {
+        if (options.listLiferayVersions || options.allLiferayVersions) {
+          return listProjectInitLiferayVersions({all: Boolean(options.allLiferayVersions)});
+        }
+
         const services = parseServices(options.services);
         const result = await runProjectInit({
-          name: options.name,
-          targetDir: options.dir,
+          name: requireProjectInitOption(options.name, '--name <name>'),
+          targetDir: requireProjectInitOption(options.dir, '--dir <dir>'),
           printer: context.printer,
           commit: Boolean(options.commit),
           services,
+          liferayVersion: options.liferayVersion,
         });
         return result;
       },
-      {text: formatProjectResult},
+      {
+        text: (result) =>
+          Array.isArray(result) ? formatProjectInitLiferayVersions(result) : formatProjectResult(result),
+      },
     ),
   );
 
