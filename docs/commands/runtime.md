@@ -34,7 +34,8 @@ These blocks are `null` unless explicitly requested.
 
 ## `ldev setup`
 
-Pull images, seed `docker/.env` and warm the deploy cache before the first `ldev start`.
+Optional preparation before `ldev start`: pull images, refresh `docker/.env`
+and warm local runtime directories.
 
 ```bash
 ldev setup
@@ -42,7 +43,10 @@ ldev setup --skip-pull
 ldev setup --with elasticsearch --with postgres
 ```
 
-Use `--with <service>` (repeatable) to opt into extra Compose services such as `elasticsearch` or `postgres` when the project scaffold omitted them.
+Use `--with <service>` (repeatable) to opt into extra Compose services such as
+`elasticsearch` or `postgres` when the project scaffold omitted them. For new
+projects, prefer selecting services during scaffold:
+`ldev project init my-project --services postgres,elasticsearch`.
 
 ## `ldev start`
 

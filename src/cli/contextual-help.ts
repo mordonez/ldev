@@ -73,7 +73,6 @@ export function buildContextualRootSummary(cwd: string): string {
   } else {
     lines.push(
       'Runtime-core here:',
-      '  ldev setup',
       '  ldev start',
       '  ldev stop',
       '  ldev status --json',
@@ -131,7 +130,6 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         recommended: [
           'ldev context --json',
           'ldev doctor --json',
-          'ldev setup',
           'ldev start',
           'ldev oauth install --write-env',
           'ldev portal check --json',
@@ -141,7 +139,7 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         notes: [
           'ldev-native is the advanced project type for docker/ + liferay repositories.',
           'Run doctor when runtime or tool readiness matters; context is the default first snapshot.',
-          'This mode includes the richer runtime contract: setup, db, env, osgi, and worktree workflows.',
+          'This mode includes the richer runtime contract: start, db, env, osgi, optional setup, and worktree workflows.',
           'Use it when the repository intentionally relies on Compose overlays, worktrees, or snapshot-oriented flows.',
         ],
       };
@@ -157,9 +155,8 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
           'ldev start',
           '',
           'or:',
-          'ldev project init --name my-project --dir ~/projects/my-project',
+          'ldev project init ~/projects/my-project',
           'cd ~/projects/my-project',
-          'ldev setup',
           'ldev start',
         ],
         notes: [

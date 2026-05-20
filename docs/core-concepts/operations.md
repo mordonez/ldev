@@ -24,7 +24,7 @@ you cleanly. These are the reason to install it.
 | --- | --- |
 | Resources as files | `resource export-*` / `import-*` for structures, templates, ADTs and fragments. UI-only in Liferay. |
 | Structure migration | `resource migration-init` + `migration-pipeline`. Liferay has no native migration of articles when a structure changes. |
-| Local environment bootstrap | `project init` / `setup` / `start`. Working Docker-based Liferay from zero. |
+| Local environment bootstrap | `project init` / `start`. Working Docker-based Liferay from zero. |
 | Branch-isolated runtime | `worktree setup --with-env`. Each branch with its own Postgres / Liferay / OSGi state. |
 | OAuth bring-up | `oauth install --write-env`. Bundle deploy + Gogo + token verification + write to local config. |
 | MCP execution layer | `ldev-mcp-server` exposes 18 ldev tools so agents can run real workflows. |

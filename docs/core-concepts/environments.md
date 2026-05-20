@@ -9,16 +9,15 @@ description: How ldev manages local Liferay environments — Docker as the runti
 reproducible, inspectable and replaceable.
 
 This is one of the areas where `ldev` does real work, not just convenience.
-`project init` + `setup` + `start` will scaffold a working Docker-based
-Liferay from zero, and `worktree setup --with-env` will give a branch its
-own runtime state.
+`project init` + `start` will scaffold and run a working Docker-based Liferay
+from zero, and `worktree setup --with-env` will give a branch its own runtime
+state.
 
 ## Bootstrap from zero
 
 ```bash
-ldev project init --name my-project --dir ~/projects/my-project
+ldev project init ~/projects/my-project
 cd ~/projects/my-project
-ldev setup
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
 ```
@@ -27,7 +26,6 @@ Or, if you already have a repo that uses the `ldev` runtime layout:
 
 ```bash
 ldev env init
-ldev setup
 ldev start
 ```
 
@@ -58,11 +56,13 @@ explicit commands instead of tribal knowledge.
 Top-level lifecycle:
 
 ```bash
-ldev setup
 ldev start
 ldev stop
 ldev status
 ```
+
+`ldev setup` is an optional preparation step for pre-pulling Docker images or
+warming runtime directories before `ldev start`.
 
 Advanced recovery lives under `ldev env`:
 

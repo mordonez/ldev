@@ -20,9 +20,12 @@ import {
   type DockerService,
   type ProjectAssets,
 } from './project-scaffold.js';
+import type {LiferayReleaseEntry, LiferayReleaseSelection} from './project-releases.js';
+import {fetchLiferayReleases, filterReleaseList, selectLiferayRelease} from './project-releases.js';
 
 export type ProjectCommandResult = {
   targetDir: string;
+  liferayRelease: LiferayReleaseSelection | null;
   gitInitialized: boolean;
   commitRequested: boolean;
   changes: {
@@ -36,13 +39,26 @@ export type ProjectCommandResult = {
 
 type ProjectCommandDependencies = {
   assets?: ProjectAssets;
+  fetchLiferayReleases?: () => Promise<LiferayReleaseEntry[]>;
 };
 
 export async function runProjectInit(
-  options: {name: string; targetDir: string; printer: Printer; commit?: boolean; services?: DockerService[]},
+  options: {
+    name: string;
+    targetDir: string;
+    printer: Printer;
+    commit?: boolean;
+    services?: DockerService[];
+    liferayVersion?: string;
+  },
   dependencies?: ProjectCommandDependencies,
 ): Promise<ProjectCommandResult> {
   const targetDir = path.resolve(options.targetDir);
+  const releasesProvider = dependencies?.fetchLiferayReleases ?? fetchLiferayReleases;
+  const liferayRelease = options.liferayVersion
+    ? selectLiferayRelease(await releasesProvider(), options.liferayVersion)
+    : null;
+
   await fs.ensureDir(targetDir);
 
   const hadGit = await isGitRepository(targetDir);
@@ -59,23 +75,52 @@ export async function runProjectInit(
     gitInitialized: !hadGit,
     commitRequested: Boolean(options.commit),
     services: options.services ?? [],
+    liferayRelease,
   });
 }
 
 export function formatProjectResult(result: ProjectCommandResult): string {
   const lines = [`Project ready in: ${result.targetDir}`];
+  if (result.liferayRelease) {
+    lines.push(
+      `Liferay version: ${result.liferayRelease.releaseKey} (${result.liferayRelease.productVersion}, image ${result.liferayRelease.dockerImage})`,
+    );
+  }
   lines.push(`Git repository: ${result.gitInitialized ? 'initialized' : 'existing'}`);
   lines.push(
     `Git commit: ${result.changes.committed ? 'created' : result.commitRequested ? 'skipped (no staged changes)' : 'not created'}`,
   );
   lines.push('');
-  lines.push('Review the generated files before committing them.');
+  lines.push(
+    result.changes.committed ? 'Generated files were committed.' : 'Review the generated files before committing them.',
+  );
   lines.push('');
   lines.push('Next steps:');
   result.nextSteps.forEach((step, index) => {
     lines.push(`  ${index + 1}. ${step}`);
   });
   return lines.join('\n');
+}
+
+export async function listProjectInitLiferayVersions(
+  options: {all?: boolean},
+  dependencies?: Pick<ProjectCommandDependencies, 'fetchLiferayReleases'>,
+): Promise<LiferayReleaseEntry[]> {
+  const releasesProvider = dependencies?.fetchLiferayReleases ?? fetchLiferayReleases;
+  return filterReleaseList(await releasesProvider(), Boolean(options.all));
+}
+
+export function formatProjectInitLiferayVersions(releases: LiferayReleaseEntry[]): string {
+  if (releases.length === 0) {
+    return 'No Liferay releases found.';
+  }
+
+  return releases
+    .map((release) => {
+      const promoted = release.promoted ? ' promoted' : '';
+      return `${release.releaseKey}\t${release.productVersion}${promoted}`;
+    })
+    .join('\n');
 }
 
 async function applyProjectTooling(options: {
@@ -87,6 +132,7 @@ async function applyProjectTooling(options: {
   gitInitialized: boolean;
   commitRequested: boolean;
   services: DockerService[];
+  liferayRelease: LiferayReleaseSelection | null;
 }): Promise<ProjectCommandResult> {
   const dockerCreated = await ensureDockerScaffold(options.targetDir, options.assets, options.services);
   const liferayCreated = await ensureLiferayScaffold(options.targetDir, options.assets);
@@ -94,7 +140,12 @@ async function applyProjectTooling(options: {
     ? false
     : await ensureLiferayDockerenvScaffold(options.targetDir, options.assets);
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
-  await configureGeneratedProjectFiles(options.targetDir, options.projectName, options.services);
+  await configureGeneratedProjectFiles(
+    options.targetDir,
+    options.projectName,
+    options.services,
+    options.liferayRelease,
+  );
 
   const touchedPaths = collectTouchedPaths(options.targetDir, {
     dockerCreated,
@@ -114,6 +165,7 @@ async function applyProjectTooling(options: {
 
   return {
     targetDir: options.targetDir,
+    liferayRelease: options.liferayRelease,
     gitInitialized: options.gitInitialized,
     commitRequested: options.commitRequested,
     changes: {
@@ -122,23 +174,29 @@ async function applyProjectTooling(options: {
       scaffoldFilesCopied,
       committed,
     },
-    nextSteps: getNextSteps(options.targetDir),
+    nextSteps: getNextSteps(options.targetDir, committed),
   };
 }
 
-function getNextSteps(targetDir: string): string[] {
+function getNextSteps(targetDir: string, committed: boolean): string[] {
+  const reviewSteps = committed
+    ? ['Review the bootstrap commit with git show --stat.']
+    : [
+        'Review the generated files with git diff or your editor.',
+        'If everything looks right, create your own git commit or rerun with --commit.',
+      ];
+
   return [
-    'Review the generated files with git diff or your editor.',
-    'If everything looks right, create your own git commit or rerun with --commit.',
+    ...reviewSteps,
     'Edit docker/.env and adjust COMPOSE_PROJECT_NAME, ports, and local variables.',
     'Edit .liferay-cli.yml and review the project paths.',
     `cd ${targetDir}`,
     'Install ldev globally with npm i -g @mordonezdev/ldev or use npm link from your local ldev checkout.',
-    'ldev setup',
-    'If you need local data, use ldev db import --file path/to/backup.gz.',
-    'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',
     'ldev start',
     'ldev oauth install --write-env',
+    'Optional: run ldev setup first only when you want to pre-pull Docker images or warm local runtime directories.',
+    'If you need local data, use ldev db import --file path/to/backup.gz.',
+    'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',
   ];
 }
 
@@ -146,9 +204,17 @@ async function configureGeneratedProjectFiles(
   targetDir: string,
   projectName: string,
   services: DockerService[],
+  liferayRelease: LiferayReleaseSelection | null,
 ): Promise<void> {
   const slug = toProjectSlug(projectName);
-  await updateDockerEnv(path.join(targetDir, 'docker', '.env'), slug, services, process.env.BIND_IP?.trim());
+  await updateDockerEnv(
+    path.join(targetDir, 'docker', '.env'),
+    slug,
+    services,
+    process.env.BIND_IP?.trim(),
+    liferayRelease,
+  );
+  await updateLiferayGradleProperties(path.join(targetDir, 'liferay', 'gradle.properties'), liferayRelease);
 }
 
 async function updateDockerEnv(
@@ -156,6 +222,7 @@ async function updateDockerEnv(
   projectSlug: string,
   services: DockerService[],
   bindIp?: string,
+  liferayRelease?: LiferayReleaseSelection | null,
 ): Promise<void> {
   if (!(await fs.pathExists(dockerEnvFile))) {
     return;
@@ -166,6 +233,10 @@ async function updateDockerEnv(
     COMPOSE_PROJECT_NAME: projectSlug,
     DOCLIB_VOLUME_NAME: `${projectSlug}-doclib`,
   };
+
+  if (liferayRelease) {
+    envValues.LIFERAY_IMAGE = liferayRelease.dockerImage;
+  }
 
   if (services.length > 0) {
     const composeFiles = ['docker-compose.yml', ...services.map((s) => `docker-compose.${s}.yml`)];
@@ -178,6 +249,23 @@ async function updateDockerEnv(
 
   const updatedContent = upsertEnvFileValues(currentContent, envValues);
   await fs.writeFile(dockerEnvFile, `${updatedContent}\n`);
+}
+
+async function updateLiferayGradleProperties(
+  gradlePropertiesFile: string,
+  liferayRelease?: LiferayReleaseSelection | null,
+): Promise<void> {
+  if (!liferayRelease || !(await fs.pathExists(gradlePropertiesFile))) {
+    return;
+  }
+
+  const currentContent = await fs.readFile(gradlePropertiesFile, 'utf8');
+  const updatedContent = upsertEnvFileValues(currentContent, {
+    'liferay.workspace.product': liferayRelease.releaseKey,
+    'liferay.workspace.target.platform.version': liferayRelease.targetPlatformVersion,
+    'liferay.workspace.docker.image.liferay': liferayRelease.dockerImage,
+  });
+  await fs.writeFile(gradlePropertiesFile, `${updatedContent}\n`);
 }
 
 function toProjectSlug(value: string): string {

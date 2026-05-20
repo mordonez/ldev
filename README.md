@@ -70,7 +70,7 @@ do for you:
 - **One-pass portal context** — `portal inventory sites|pages|page|structures`
   consolidates several Headless API calls into a single structured response, so
   a developer or an agent can grab "what is in this portal" in one shot.
-- **Local environments from zero** — `project init`, `setup`, `start` scaffold
+- **Local environments from zero** — `project init` + `start` scaffold
   a working Docker-based Liferay runtime without manual Compose plumbing.
 - **Branch-isolated runtimes** — `worktree setup --with-env` gives each branch
   its own Postgres, Liferay and OSGi state. On Linux + Btrfs, snapshots make
@@ -142,12 +142,14 @@ LCP-backed flows, [LCP CLI](https://learn.liferay.com/w/dxp/cloud/reference/comm
 To stand up a fresh local environment:
 
 ```bash
-ldev project init --name my-project --dir ~/projects/my-project
+ldev project init ~/projects/my-project
 cd ~/projects/my-project
-ldev setup
-ldev start
+ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
 ```
+
+`ldev setup` is optional. Use it before `ldev start` only when you want to
+pre-pull Docker images or warm local runtime directories.
 
 To use it on top of an existing Liferay Workspace, just run `ldev` from the
 workspace root — it detects Blade workspaces and adapts.

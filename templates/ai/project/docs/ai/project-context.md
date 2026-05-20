@@ -26,12 +26,14 @@ reusable across multiple projects, move it into a vendor skill instead.
 ```bash
 ldev ai bootstrap --intent=develop --cache=60 --json
 ldev --repo-root ../main-checkout ai bootstrap --intent=develop --cache=60 --json
-ldev setup
 ldev start
 ldev status
 ldev logs --since 5m --no-follow
 ldev stop
 ```
+
+Use `ldev setup` before `ldev start` only when you want to pre-pull Docker
+images or warm local runtime directories.
 
 Use the global `--repo-root` form when an agent is inside a worktree but needs
 read-only discovery or bootstrap context from the main checkout.

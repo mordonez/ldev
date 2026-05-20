@@ -24,12 +24,14 @@ This project type is intentionally more opinionated:
 
 Operational entry points:
 
-- `ldev setup`
 - `ldev start`
 - `ldev status --json`
 - `ldev logs diagnose --json`
 - `ldev db ...`
 - `ldev env ...`
 - `ldev worktree ...`
+
+`ldev setup` is optional. Use it before `ldev start` only when you want to
+pre-pull Docker images or warm local runtime directories.
 
 Prefer these commands over raw Docker commands when you need repeatable local behavior.

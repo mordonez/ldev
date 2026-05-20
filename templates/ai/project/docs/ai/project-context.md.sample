@@ -71,7 +71,6 @@ URL, a known structure key, a project-specific path convention.
 ```bash
 ldev doctor
 ldev ai bootstrap --intent=develop --cache=60 --json
-ldev setup
 ldev start
 ldev status --json
 ldev logs --since 10m --service liferay --no-follow
@@ -83,6 +82,7 @@ Notes:
 - Use `ldev` as the official entrypoint instead of ad hoc Docker commands.
 - Prefer JSON output when an agent or script will consume the result.
 - If the env is down, verify it with `ldev status --json` before debugging portal behavior.
+- Use `ldev setup` before `ldev start` only when you want to pre-pull Docker images or warm local runtime directories.
 
 ## Project Layout
 

@@ -28,7 +28,7 @@ These are the parts where `ldev` does something Liferay does not do for you:
 | `resource export-*` / `import-*` | Structures, templates, ADTs and fragments are UI-only in Liferay. `ldev` turns them into reviewable files. |
 | `resource migration-pipeline` | Liferay has no native pipeline for migrating articles when a journal structure changes. `ldev` does. |
 | `portal inventory ...` | One structured call returns sites, pages, structures and templates together — the consolidated context a developer or agent needs first. |
-| `project init` / `setup` / `start` | Stand up a working Docker-based Liferay environment from zero. |
+| `project init` / `start` | Stand up a working Docker-based Liferay environment from zero. |
 | `worktree setup --with-env` | Each branch with its own Postgres, Liferay and OSGi state. On Linux + Btrfs, swaps are near-instant. |
 | `oauth install --write-env` | Deploy the installer bundle, create the OAuth app, verify the token, write credentials. One command. |
 | `ldev-mcp-server` (18 tools) | The same workflows exposed over MCP, so an agent can run them without a custom integration. |
