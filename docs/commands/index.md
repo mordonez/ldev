@@ -36,7 +36,7 @@ Top-level entry points:
 
 - `ldev --repo-root <path> ...` — target another local checkout root
 - `ldev context`, `ldev doctor`
-- `ldev setup`, `ldev start`, `ldev stop`, `ldev status`
+- `ldev start`, `ldev stop`, `ldev status`, `ldev setup` for optional preparation
 - `ldev logs`, `ldev logs diagnose`, `ldev shell`
 
 Namespaces:

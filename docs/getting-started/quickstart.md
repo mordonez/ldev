@@ -38,7 +38,7 @@ Requirements:
 Create the project scaffold:
 
 ```bash
-ldev project init --name my-project --dir ~/projects/my-project
+ldev project init ~/projects/my-project
 cd ~/projects/my-project
 ```
 
@@ -57,10 +57,9 @@ ldev doctor
 `ldev` detects the Blade workspace and provides doctor, portal, resource and
 agent workflows on top of it. Your existing Liferay layout is not modified.
 
-## 3. Prepare and start
+## 3. Start
 
 ```bash
-ldev setup
 ldev doctor
 ldev start --activation-key-file /path/to/activation-key.xml
 ```
@@ -68,6 +67,9 @@ ldev start --activation-key-file /path/to/activation-key.xml
 `doctor` catches missing Docker, port conflicts, bad paths and activation-key
 problems before the first start. If your activation key is already exported in
 your shell, `ldev start` is enough.
+
+`ldev setup` is optional. Run it before `ldev start` only when you want to
+pre-pull Docker images or warm local runtime directories.
 
 ## 4. Check health
 

@@ -40,9 +40,9 @@ developer-experience move that happens to also unblock agents:
 ### Reproducible environments
 
 ```bash
-ldev project init --name my-project --dir ~/projects/my-project
-ldev setup
-ldev start
+ldev project init ~/projects/my-project
+cd ~/projects/my-project
+ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
 ```
 

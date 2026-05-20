@@ -194,7 +194,7 @@ function getNextSteps(targetDir: string, committed: boolean): string[] {
     'Install ldev globally with npm i -g @mordonezdev/ldev or use npm link from your local ldev checkout.',
     'ldev start',
     'ldev oauth install --write-env',
-    'Optional: run ldev setup first only when you want to pre-pull Docker images or warm local data directories.',
+    'Optional: run ldev setup first only when you want to pre-pull Docker images or warm local runtime directories.',
     'If you need local data, use ldev db import --file path/to/backup.gz.',
     'Reserve ldev db sync --project <id> --environment <env> --force for an explicit and conscious step, not as default onboarding.',
   ];

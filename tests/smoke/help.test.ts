@@ -37,7 +37,7 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
     expect(result.stdout).toContain("Run 'ldev --help' to see the full command catalog.");
     expect(result.stdout).toContain('blade init ai-workspace');
-    expect(result.stdout).toContain('ldev project init --name my-project --dir ~/projects/my-project');
+    expect(result.stdout).toContain('ldev project init ~/projects/my-project');
   }, 30000);
 
   test('bare ldev adapts its short summary to blade-workspace', async () => {
@@ -61,7 +61,7 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('Detected project type: ldev-native');
     expect(result.stdout).not.toContain('Core workflows:');
     expect(result.stdout).toContain('Runtime-core here:');
-    expect(result.stdout).toContain('ldev setup');
+    expect(result.stdout).toContain('ldev start');
     expect(result.stdout).toContain('ldev db query ...');
   }, 30000);
 
@@ -84,7 +84,7 @@ describe('smoke help', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Detected project type: ldev-native');
     expect(result.stdout).toContain('Recommended first steps for this ldev-native repo:');
-    expect(result.stdout).toContain('ldev setup');
+    expect(result.stdout).toContain('ldev start');
     expect(result.stdout).toContain('ldev oauth install --write-env');
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
   }, 30000);
