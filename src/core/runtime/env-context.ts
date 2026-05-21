@@ -17,6 +17,7 @@ export type EnvContext = {
   bindIp: string;
   httpPort: string;
   portalUrl: string;
+  localHttpsCaCertFile?: string | null;
   composeProjectName: string;
 };
 
@@ -46,6 +47,8 @@ export function resolveEnvContext(config: AppConfig): EnvContext {
   const envValues = readEnvFile(dockerEnvFile);
   const bindIp = envValues.BIND_IP || 'localhost';
   const httpPort = envValues.LIFERAY_HTTP_PORT || '8080';
+  const portalUrl = envValues.LIFERAY_CLI_URL || `http://${bindIp}:${httpPort}`;
+  const dataRoot = resolveDataRoot(config.dockerDir, envValues.ENV_DATA_ROOT);
 
   return {
     repoRoot: config.repoRoot,
@@ -55,10 +58,11 @@ export function resolveEnvContext(config: AppConfig): EnvContext {
     dockerEnvFile,
     dockerEnvExampleFile: fs.existsSync(dockerEnvExampleFile) ? dockerEnvExampleFile : null,
     envValues,
-    dataRoot: resolveDataRoot(config.dockerDir, envValues.ENV_DATA_ROOT),
+    dataRoot,
     bindIp,
     httpPort,
-    portalUrl: `http://${bindIp}:${httpPort}`,
+    portalUrl,
+    localHttpsCaCertFile: resolveLocalHttpsCaCertFile(dataRoot, portalUrl),
     composeProjectName: envValues.COMPOSE_PROJECT_NAME || 'liferay',
   };
 }
@@ -166,6 +170,11 @@ export function resolveManagedStorages(context: EnvContext): RuntimeStorage[] {
 export function resolveDataRoot(dockerDir: string, configured: string | undefined): string {
   const dataRoot = configured && configured !== '' ? configured : './data/default';
   return path.isAbsolute(dataRoot) ? dataRoot : path.resolve(dockerDir, dataRoot);
+}
+
+function resolveLocalHttpsCaCertFile(dataRoot: string, portalUrl: string): string | null {
+  const caCertFile = path.join(dataRoot, 'local-nginx-certs', 'ca.crt');
+  return portalUrl.startsWith('https://') || fs.existsSync(caCertFile) ? caCertFile : null;
 }
 
 async function normalizeEnvDataPermissions(dataRoot: string): Promise<void> {

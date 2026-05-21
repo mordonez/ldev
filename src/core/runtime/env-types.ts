@@ -24,6 +24,7 @@ export type EnvStartResult = {
   portalUrl: string;
   waitedForHealth: boolean;
   activationKeyFile: string | null;
+  localHttpsCaCertInstallCommand?: string | null;
 };
 
 export type EnvStopResult = {

@@ -8,6 +8,7 @@ import {
 import {runEnvSetup} from '../../features/env/env-setup.js';
 import {runEnvStart} from '../../features/env/env-start.js';
 import {runEnvStop} from '../../features/env/env-stop.js';
+import {parseDockerServices} from '../../features/project/docker-services.js';
 import {formatWorktreeEnv, runWorktreeEnv} from '../../features/worktree/worktree-env.js';
 import {formatWorktreeSetup, runWorktreeSetup} from '../../features/worktree/worktree-setup.js';
 import {formatWorktreeStart, runWorktreeStart} from '../../features/worktree/worktree-start.js';
@@ -15,6 +16,7 @@ import {formatWorktreeStart, runWorktreeStart} from '../../features/worktree/wor
 type WorktreeSetupCommandOptions = {
   name?: string;
   base?: string;
+  services?: string;
   withEnv?: boolean;
   stopMainForClone?: boolean;
   restartMainAfterClone?: boolean;
@@ -27,6 +29,7 @@ type WorktreeStartCommandOptions = {
 
 type WorktreeEnvCommandOptions = {
   name?: string;
+  services?: string;
 };
 
 export function registerWorktreeFlowCommands(command: Command): void {
@@ -37,6 +40,10 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .description('Create or reuse a git worktree and optionally prepare its local env')
       .option('--name <name>', 'Worktree name; optional when running inside the worktree')
       .option('--base <ref>', 'Base ref for a new worktree branch')
+      .option(
+        '--services <services>',
+        'Comma-separated extra services to enable in the worktree env: postgres, elasticsearch, webserver',
+      )
       .option('--with-env', 'Prepare worktree local env after creation')
       .option(
         '--stop-main-for-clone',
@@ -53,6 +60,7 @@ export function registerWorktreeFlowCommands(command: Command): void {
           cwd: context.cwd,
           name: options.name,
           baseRef: options.base,
+          services: parseDockerServices(options.services),
           withEnv: Boolean(options.withEnv),
           stopMainForClone: Boolean(options.stopMainForClone),
           restartMainAfterClone: Boolean(options.restartMainAfterClone),
@@ -93,13 +101,18 @@ export function registerWorktreeFlowCommands(command: Command): void {
       .command('env')
       .helpGroup('Daily worktree flow:')
       .description('Prepare or inspect the local env wiring of a worktree')
-      .option('--name <name>', 'Worktree name; optional when running inside the worktree'),
+      .option('--name <name>', 'Worktree name; optional when running inside the worktree')
+      .option(
+        '--services <services>',
+        'Comma-separated extra services to enable in the worktree env: postgres, elasticsearch, webserver',
+      ),
   ).action(
     createFormattedAction(
       async (context, options: WorktreeEnvCommandOptions) =>
         runWorktreeEnv({
           cwd: context.cwd,
           name: options.name,
+          services: parseDockerServices(options.services),
           printer: context.printer,
         }),
       {text: formatWorktreeEnv},

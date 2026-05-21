@@ -16,8 +16,18 @@ broader argument.
 
 ```bash
 ldev worktree setup --name incident-123 --with-env
+ldev worktree setup --name incident-123 --services webserver
 cd .worktrees/incident-123
 ldev start
+```
+
+Use `--services postgres,elasticsearch,webserver` when a worktree needs an
+optional service that the main environment does not currently enable. Passing
+`--services` to `setup` prepares the worktree env automatically. For an existing
+worktree, run:
+
+```bash
+ldev worktree env --name incident-123 --services webserver
 ```
 
 Inspect registered worktrees without guessing from port scans:
@@ -62,7 +72,10 @@ ldev worktree setup --name incident-123 --with-env --stop-main-for-clone --resta
 
 ## Runtime Note
 
-Worktrees inherit the files that exist in the branch or commit used as their base.
+Worktrees inherit the files that exist in the branch or commit used as their
+base. `ldev worktree setup --services ...` and `ldev worktree env --services
+...` can add ldev-owned optional service scaffolding, such as the local HTTPS
+webserver, directly to the worktree after creation.
 
 If your project uses runtime storage overrides such as:
 

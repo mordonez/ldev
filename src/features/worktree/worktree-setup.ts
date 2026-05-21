@@ -6,6 +6,7 @@ import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {addGitWorktree, areSamePath, listGitWorktreeDetails} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
+import type {DockerService} from '../project/project-scaffold.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
 import {runWorktreeEnv} from './worktree-env.js';
 import {prepareWorktreeFlow} from './worktree-flow.js';
@@ -45,6 +46,7 @@ export async function runWorktreeSetup(options: {
   name?: string;
   baseRef?: string;
   withEnv?: boolean;
+  services?: DockerService[];
   stopMainForClone?: boolean;
   restartMainAfterClone?: boolean;
   printer?: Printer;
@@ -55,7 +57,8 @@ export async function runWorktreeSetup(options: {
   const {context} = await prepareWorktreeFlow({cwd: options.cwd, commandName: 'setup'});
   const stopMainForClone = Boolean(options.stopMainForClone);
   const restartMainAfterClone = Boolean(options.restartMainAfterClone);
-  const withEnv = Boolean(options.withEnv);
+  const services = options.services ?? [];
+  const withEnv = Boolean(options.withEnv || services.length > 0);
   const prepareWorktreeEnv = options.prepareWorktreeEnv ?? runWorktreeEnv;
 
   if ((stopMainForClone || restartMainAfterClone) && !withEnv) {
@@ -133,6 +136,7 @@ export async function runWorktreeSetup(options: {
     if (withEnv) {
       await prepareWorktreeEnv({
         cwd: target.worktreeDir,
+        ...(services.length > 0 ? {services} : {}),
         printer: options.printer,
       });
       envPrepared = true;

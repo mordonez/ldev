@@ -215,6 +215,43 @@ describe('project integration', () => {
     }
   });
 
+  test('init can scaffold the optional HTTPS webserver service', async () => {
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-webserver-');
+
+      await runProjectInit(
+        {
+          name: 'sample-project',
+          targetDir,
+          printer: silentPrinter,
+          services: ['webserver'],
+        },
+        {
+          assets: resolveProjectAssets(repoRoot),
+        },
+      );
+
+      const envContent = await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8');
+      const composeContent = await fs.readFile(path.join(targetDir, 'docker', 'docker-compose.webserver.yml'), 'utf8');
+      expect(envContent).toContain(
+        `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}`,
+      );
+      expect(envContent).toContain('LIFERAY_HTTPS_PORT=8443');
+      expect(envContent).toContain('LIFERAY_CLI_URL=https://127.0.0.1:8443');
+      expect(await fs.pathExists(path.join(targetDir, 'docker', 'docker-compose.webserver.yml'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'docker', 'local-nginx', 'Dockerfile'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'docker', 'scripts', 'trust-local-https-ca.ps1'))).toBe(true);
+      expect(await fs.pathExists(path.join(targetDir, 'docker', 'scripts', 'trust-local-https-ca.sh'))).toBe(true);
+      expect(composeContent).toContain('./local-nginx/nginx.conf:/etc/nginx/nginx.conf:ro');
+      expect(composeContent).toContain('./local-nginx/default.conf:/etc/nginx/ldev/default.conf:ro');
+      expect(composeContent).toContain('./local-nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro');
+    } finally {
+      restoreGitIdentityEnv();
+    }
+  });
+
   test('init validates the selected Liferay release before creating the target repository', async () => {
     setupGitIdentityEnv();
     try {
@@ -266,8 +303,28 @@ async function createProjectRepoFixture(): Promise<string> {
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.postgres.yml'), 'services:\n');
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.postgres.volume.yml'), 'services:\n');
   await fs.writeFile(path.join(tpl, 'docker', 'docker-compose.liferay.volume.yml'), 'services:\n');
+  await fs.writeFile(
+    path.join(tpl, 'docker', 'docker-compose.webserver.yml'),
+    [
+      'services:',
+      '  webserver:',
+      '    volumes:',
+      '      - ./local-nginx/nginx.conf:/etc/nginx/nginx.conf:ro',
+      '      - ./local-nginx/default.conf:/etc/nginx/ldev/default.conf:ro',
+      '      - ./local-nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro',
+      '',
+    ].join('\n'),
+  );
   await fs.ensureDir(path.join(tpl, 'docker', 'elasticsearch'));
   await fs.writeFile(path.join(tpl, 'docker', 'elasticsearch', 'Dockerfile'), 'FROM elasticsearch:7.17.26\n');
+  await fs.ensureDir(path.join(tpl, 'docker', 'local-nginx'));
+  await fs.writeFile(path.join(tpl, 'docker', 'local-nginx', 'Dockerfile'), 'FROM nginx:1.27-alpine\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'local-nginx', 'default.conf'), 'server {}\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'local-nginx', 'docker-entrypoint.sh'), '#!/bin/sh\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'local-nginx', 'nginx.conf'), 'events {}\n');
+  await fs.ensureDir(path.join(tpl, 'docker', 'scripts'));
+  await fs.writeFile(path.join(tpl, 'docker', 'scripts', 'trust-local-https-ca.ps1'), 'Write-Host ok\n');
+  await fs.writeFile(path.join(tpl, 'docker', 'scripts', 'trust-local-https-ca.sh'), '#!/usr/bin/env bash\n');
   await fs.ensureDir(path.join(tpl, 'docker', 'liferay-configs-full'));
   await fs.writeFile(path.join(tpl, 'docker', 'liferay-configs-full', 'com.liferay.example.config'), 'enabled=true\n');
   await fs.ensureDir(path.join(tpl, 'docker', 'sql', 'post-import.d'));

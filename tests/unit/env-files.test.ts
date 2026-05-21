@@ -46,6 +46,24 @@ describe('env-files', () => {
     expect(context.dataRoot).toBe(path.join(repoRoot, 'docker', 'data', 'custom'));
   });
 
+  test('resolveEnvContext prefers explicit LIFERAY_CLI_URL for HTTPS webserver setups', () => {
+    const repoRoot = createTempDir('dev-cli-env-context-https-');
+    fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});
+    fs.mkdirSync(path.join(repoRoot, 'liferay'), {recursive: true});
+    fs.writeFileSync(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n');
+    fs.writeFileSync(
+      path.join(repoRoot, 'docker', '.env'),
+      'COMPOSE_PROJECT_NAME=acme\nBIND_IP=127.0.0.1\nLIFERAY_HTTP_PORT=9080\nLIFERAY_CLI_URL=https://127.0.0.1:9443\n',
+    );
+
+    const context = resolveEnvContext(loadConfig({cwd: repoRoot, env: process.env}));
+
+    expect(context.portalUrl).toBe('https://127.0.0.1:9443');
+    expect(context.localHttpsCaCertFile).toBe(
+      path.join(repoRoot, 'docker', 'data', 'default', 'local-nginx-certs', 'ca.crt'),
+    );
+  });
+
   test('ensureEnvDataLayout makes elasticsearch data writable for bind mounts', async () => {
     const repoRoot = createTempDir('dev-cli-env-layout-');
     fs.mkdirSync(path.join(repoRoot, 'docker'), {recursive: true});

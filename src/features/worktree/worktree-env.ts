@@ -8,6 +8,7 @@ import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {resolveManagedStorages} from '../../core/runtime/env-context.js';
+import {ensureDockerServiceAssets, resolveProjectAssets, type DockerService} from '../project/project-scaffold.js';
 import {
   resolvePortSet,
   resolveWorktreeContext,
@@ -28,6 +29,7 @@ export type WorktreeEnvResult = {
   dataRoot: string;
   ports: {
     httpPort: string;
+    httpsPort: string;
     debugPort: string;
     gogoPort: string;
     postgresPort: string;
@@ -41,6 +43,7 @@ export type WorktreeEnvResult = {
 export async function runWorktreeEnv(options: {
   cwd: string;
   name?: string;
+  services?: DockerService[];
   printer?: Printer;
 }): Promise<WorktreeEnvResult> {
   const config = loadConfig({cwd: options.cwd, env: process.env});
@@ -77,6 +80,13 @@ export async function runWorktreeEnv(options: {
   const bindIp = currentValues.BIND_IP || mainValues.BIND_IP || '127.0.0.1';
   const mainComposeProject = mainValues.COMPOSE_PROJECT_NAME || 'liferay';
   const worktreeComposeProject = `${mainComposeProject}-${target.name}`;
+  const requestedServices = uniqueServices(options.services ?? []);
+  await ensureRequestedServiceAssets(target.dockerDir, requestedServices);
+  const composeFile = resolveComposeFileValue(currentValues.COMPOSE_FILE || mainValues.COMPOSE_FILE, requestedServices);
+  const webserverEnabled = hasComposeService(composeFile, 'webserver');
+  const portalUrl = webserverEnabled
+    ? `https://${resolveLocalHttpsHost(bindIp)}:${ports.httpsPort}`
+    : `http://${bindIp}:${ports.httpPort}`;
   const envDataRoot = btrfs.enabled
     ? path.join(btrfs.envsDir ?? path.join(mainEnvContext.dockerDir, 'btrfs', 'envs'), target.name)
     : path.join(target.dockerDir, 'data', 'envs', target.name);
@@ -84,7 +94,6 @@ export async function runWorktreeEnv(options: {
     ...mainValues,
     ...currentValues,
     BIND_IP: bindIp,
-    LIFERAY_CLI_URL: `http://${bindIp}:${ports.httpPort}`,
     COMPOSE_PROJECT_NAME: worktreeComposeProject,
     VOLUME_PREFIX: worktreeComposeProject,
     DOCLIB_VOLUME_NAME: mainValues.DOCLIB_VOLUME_NAME || `${mainComposeProject}-doclib`,
@@ -93,11 +102,14 @@ export async function runWorktreeEnv(options: {
     LIFERAY_OSGI_STATE_VOLUME_NAME: `${worktreeComposeProject}-liferay-osgi-state`,
     ELASTICSEARCH_DATA_VOLUME_NAME: `${worktreeComposeProject}-elasticsearch-data`,
     LIFERAY_HTTP_PORT: ports.httpPort,
+    LIFERAY_HTTPS_PORT: ports.httpsPort,
+    LIFERAY_CLI_URL: portalUrl,
     LIFERAY_DEBUG_PORT: ports.debugPort,
     GOGO_PORT: ports.gogoPort,
     POSTGRES_PORT: ports.postgresPort,
     ES_HTTP_PORT: ports.esHttpPort,
     ENV_DATA_ROOT: envDataRoot,
+    COMPOSE_FILE: composeFile,
     ...(btrfs.enabled && btrfs.rootDir && btrfs.baseDir && btrfs.envsDir && btrfs.useSnapshots
       ? {
           BTRFS_ROOT: btrfs.rootDir,
@@ -122,7 +134,7 @@ export async function runWorktreeEnv(options: {
     dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
     bindIp,
     httpPort: ports.httpPort,
-    portalUrl: `http://${bindIp}:${ports.httpPort}`,
+    portalUrl,
     composeProjectName: worktreeComposeProject,
   };
 
@@ -157,7 +169,7 @@ export async function runWorktreeEnv(options: {
     dockerDir: target.dockerDir,
     envFile: target.envFile,
     composeProjectName: worktreeComposeProject,
-    portalUrl: `http://${bindIp}:${ports.httpPort}`,
+    portalUrl,
     dataRoot: resolveLocalDataRoot(target.dockerDir, envDataRoot),
     ports,
     createdEnvFile,
@@ -225,6 +237,7 @@ function resolveLocalEnvContext(config: AppConfig): LocalEnvContext {
   const envValues = readEnvFile(dockerEnvFile);
   const bindIp = envValues.BIND_IP || 'localhost';
   const httpPort = envValues.LIFERAY_HTTP_PORT || '8080';
+  const portalUrl = envValues.LIFERAY_CLI_URL || `http://${bindIp}:${httpPort}`;
 
   return {
     repoRoot: config.repoRoot,
@@ -236,7 +249,7 @@ function resolveLocalEnvContext(config: AppConfig): LocalEnvContext {
     envValues,
     bindIp,
     httpPort,
-    portalUrl: `http://${bindIp}:${httpPort}`,
+    portalUrl,
     composeProjectName: envValues.COMPOSE_PROJECT_NAME || 'liferay',
     dataRoot: resolveLocalDataRoot(config.dockerDir, envValues.ENV_DATA_ROOT),
   };
@@ -390,4 +403,53 @@ async function readLocalPrepareCommit(directory: string): Promise<string | null>
 
 function awaitableExistsSync(filePath: string): boolean {
   return fs.existsSync(filePath);
+}
+
+function hasComposeService(composeFileValue: string | undefined, service: string): boolean {
+  if (!composeFileValue || composeFileValue.trim() === '') {
+    return false;
+  }
+
+  return composeFileValue
+    .split(path.delimiter)
+    .map((file) => path.basename(file.trim()))
+    .includes(`docker-compose.${service}.yml`);
+}
+
+function resolveComposeFileValue(configured: string | undefined, requestedServices: DockerService[]): string {
+  const files =
+    configured && configured.trim() !== ''
+      ? configured
+          .split(path.delimiter)
+          .map((file) => file.trim())
+          .filter((file) => file !== '')
+      : ['docker-compose.yml'];
+
+  for (const service of requestedServices) {
+    const file = `docker-compose.${service}.yml`;
+    if (!files.some((current) => path.basename(current) === file)) {
+      files.push(file);
+    }
+  }
+
+  return [...new Set(files)].join(path.delimiter);
+}
+
+async function ensureRequestedServiceAssets(dockerDir: string, services: DockerService[]): Promise<void> {
+  if (services.length === 0) {
+    return;
+  }
+
+  const assets = resolveProjectAssets();
+  for (const service of services) {
+    await ensureDockerServiceAssets(dockerDir, assets, service);
+  }
+}
+
+function uniqueServices(services: DockerService[]): DockerService[] {
+  return [...new Set(services)];
+}
+
+function resolveLocalHttpsHost(bindIp: string): string {
+  return bindIp === '0.0.0.0' || bindIp === '::' ? '127.0.0.1' : bindIp;
 }

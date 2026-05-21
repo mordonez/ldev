@@ -19,6 +19,7 @@ function makeResult(overrides: Partial<WorktreeEnvResult> = {}): WorktreeEnvResu
     dataRoot: '/repo/.worktrees/issue-123/docker/data/default',
     ports: {
       httpPort: '8342',
+      httpsPort: '10685',
       debugPort: '9342',
       gogoPort: '12342',
       postgresPort: '5742',

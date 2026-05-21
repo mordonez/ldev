@@ -193,6 +193,22 @@ describe('formatEnvStart', () => {
 
     expect(formatEnvStart(result)).toContain('unchanged');
   });
+
+  test('shows the HTTPS certificate trust command when local HTTPS is enabled', () => {
+    const result: EnvStartResult = {
+      ok: true,
+      dockerDir: '/repo/docker',
+      portalUrl: 'https://127.0.0.1:8443',
+      waitedForHealth: true,
+      activationKeyFile: null,
+      localHttpsCaCertInstallCommand: './docker/scripts/trust-local-https-ca.sh',
+    };
+
+    const output = formatEnvStart(result);
+
+    expect(output).toContain('HTTPS certificate');
+    expect(output).toContain('./docker/scripts/trust-local-https-ca.sh');
+  });
 });
 
 // ---------------------------------------------------------------------------

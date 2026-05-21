@@ -4,6 +4,9 @@ import {fileURLToPath} from 'node:url';
 import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
+import type {DockerService} from './docker-services.js';
+
+export type {DockerService} from './docker-services.js';
 
 export type ProjectAssets = {
   repoRoot: string;
@@ -51,8 +54,6 @@ export async function copyProjectScaffoldFiles(targetDir: string, assets: Projec
   return copied;
 }
 
-export type DockerService = 'postgres' | 'elasticsearch';
-
 export async function ensureDockerScaffold(
   targetDir: string,
   assets: ProjectAssets,
@@ -70,15 +71,15 @@ export async function ensureDockerScaffold(
   await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
 
   if (services.includes('postgres')) {
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.volume.yml');
-    await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
+    await ensureDockerServiceAssets(destination, assets, 'postgres');
   }
 
   if (services.includes('elasticsearch')) {
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.volume.yml');
-    await copyAsset(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
+    await ensureDockerServiceAssets(destination, assets, 'elasticsearch');
+  }
+
+  if (services.includes('webserver')) {
+    await ensureDockerServiceAssets(destination, assets, 'webserver');
   }
 
   await fs.copy(path.join(assets.dockerDir, 'liferay-configs-full'), path.join(destination, 'liferay-configs-full'), {
@@ -90,6 +91,32 @@ export async function ensureDockerScaffold(
   await ensureFile(path.join(destination, 'dumps', '.gitkeep'));
   await fs.copy(path.join(assets.dockerDir, '.env.example'), path.join(destination, '.env'), {overwrite: true});
   return true;
+}
+
+export async function ensureDockerServiceAssets(
+  dockerDir: string,
+  assets: ProjectAssets,
+  service: DockerService,
+): Promise<void> {
+  if (service === 'postgres') {
+    await copyAsset(assets.dockerDir, dockerDir, 'docker-compose.postgres.yml');
+    await copyAsset(assets.dockerDir, dockerDir, 'docker-compose.postgres.volume.yml');
+    await ensureFile(path.join(dockerDir, 'postgres', 'init', '.gitkeep'));
+  }
+
+  if (service === 'elasticsearch') {
+    await copyAsset(assets.dockerDir, dockerDir, 'docker-compose.elasticsearch.yml');
+    await copyAsset(assets.dockerDir, dockerDir, 'docker-compose.elasticsearch.volume.yml');
+    await copyAsset(assets.dockerDir, dockerDir, 'elasticsearch/Dockerfile');
+  }
+
+  if (service === 'webserver') {
+    await copyAsset(assets.dockerDir, dockerDir, 'docker-compose.webserver.yml');
+    await fs.copy(path.join(assets.dockerDir, 'local-nginx'), path.join(dockerDir, 'local-nginx'), {
+      overwrite: true,
+    });
+    await fs.copy(path.join(assets.dockerDir, 'scripts'), path.join(dockerDir, 'scripts'), {overwrite: true});
+  }
 }
 
 export async function ensureLiferayScaffold(targetDir: string, assets: ProjectAssets): Promise<boolean> {
