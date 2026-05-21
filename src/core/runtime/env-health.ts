@@ -1,4 +1,7 @@
+import fs from 'node:fs';
+
 import pWaitFor from 'p-wait-for';
+import {Agent, fetch as undiciFetch} from 'undici';
 
 import {CliError} from '../errors.js';
 import {runDocker, runDockerCompose} from '../platform/docker.js';
@@ -39,7 +42,7 @@ export async function collectEnvStatus(
   const detailedServices = await Promise.all(
     services.map((service) => inspectComposeService(context, service, processOptions)),
   );
-  const portalReachable = await isPortalReachable(context.portalUrl);
+  const portalReachable = await isPortalReachable(context.portalUrl, context.localHttpsCaCertFile ?? null);
   const liferay = detailedServices.find((service) => service.service === 'liferay') ?? null;
 
   return {
@@ -110,14 +113,14 @@ export async function waitForServiceHealthy(
 
 export async function waitForPortalReady(
   portalUrl: string,
-  options?: {timeoutMs?: number; pollIntervalMs?: number},
+  options?: {timeoutMs?: number; pollIntervalMs?: number; localHttpsCaCertFile?: string | null},
 ): Promise<void> {
   const timeoutMs = options?.timeoutMs ?? 180_000;
   const pollIntervalMs = options?.pollIntervalMs ?? 5_000;
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    if (await isPortalInitialized(portalUrl)) {
+    if (await isPortalInitialized(portalUrl, options?.localHttpsCaCertFile ?? null)) {
       return;
     }
 
@@ -188,12 +191,9 @@ async function inspectContainerField(
   return value === '' ? null : value;
 }
 
-async function isPortalInitialized(url: string): Promise<boolean> {
+async function isPortalInitialized(url: string, localHttpsCaCertFile: string | null): Promise<boolean> {
   try {
-    const response = await fetch(`${url}/c/portal/login`, {
-      signal: AbortSignal.timeout(3000),
-      redirect: 'manual',
-    });
+    const response = await fetchWithOptionalLocalCa(`${url}/c/portal/login`, localHttpsCaCertFile, 3000);
 
     return response.status === 302 || response.status === 200;
   } catch {
@@ -201,16 +201,34 @@ async function isPortalInitialized(url: string): Promise<boolean> {
   }
 }
 
-async function isPortalReachable(url: string): Promise<boolean> {
+async function isPortalReachable(url: string, localHttpsCaCertFile: string | null): Promise<boolean> {
   try {
-    const response = await fetch(`${url}/c/portal/login`, {
-      signal: AbortSignal.timeout(1000),
-      redirect: 'manual',
-    });
+    const response = await fetchWithOptionalLocalCa(`${url}/c/portal/login`, localHttpsCaCertFile, 1000);
     return response.status >= 200 && response.status < 500;
   } catch {
     return false;
   }
+}
+
+async function fetchWithOptionalLocalCa(
+  url: string,
+  localHttpsCaCertFile: string | null,
+  timeoutMs: number,
+): Promise<Response> {
+  const init: Parameters<typeof undiciFetch>[1] & {dispatcher?: Agent} = {
+    signal: AbortSignal.timeout(timeoutMs),
+    redirect: 'manual',
+  };
+
+  if (localHttpsCaCertFile && fs.existsSync(localHttpsCaCertFile) && url.startsWith('https://')) {
+    init.dispatcher = new Agent({
+      connect: {
+        ca: fs.readFileSync(localHttpsCaCertFile, 'utf8'),
+      },
+    });
+  }
+
+  return undiciFetch(url, init);
 }
 
 function firstLine(value: string): string | null {

@@ -12,11 +12,11 @@ Create a new project scaffold linked to local tooling.
 ```bash
 ldev project init --list-liferay-versions
 ldev project init my-project
-ldev project init my-project --liferay-version dxp-2026.q1.7-lts --services postgres,elasticsearch
+ldev project init my-project --liferay-version dxp-2026.q1.7-lts --services postgres,elasticsearch,webserver
 ldev project init --name my-project --dir ~/projects/my-project
 ldev project init . --name my-project --liferay-version dxp-2026.q1.7-lts
 ldev project init . --name my-project --services postgres
-ldev project init . --name my-project --services postgres,elasticsearch
+ldev project init . --name my-project --services postgres,elasticsearch,webserver
 ldev project init --name my-project --dir . --commit
 ```
 
@@ -28,7 +28,7 @@ Options:
 - `--list-liferay-versions` — list promoted release keys from `https://releases-cdn.liferay.com/releases.json`
 - `--all-liferay-versions` — include non-promoted releases when listing versions
 - `--liferay-version <release-key>` — configure the generated workspace and Docker image for the selected release
-- `--services postgres,elasticsearch` — opt in to additional Docker services
+- `--services postgres,elasticsearch,webserver` — opt in to additional Docker services. `webserver` adds a local nginx reverse proxy with HTTPS on `https://127.0.0.1:8443`.
 - `--commit` — create a git commit for the generated changes (by default, no commit is created)
 
 After scaffold:
@@ -38,6 +38,29 @@ cd my-project
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
 ```
+
+When `webserver` is enabled, run the matching trust script once after the first
+`ldev start` if you want browsers and Node to trust the generated local CA:
+
+```bash
+bash docker/scripts/trust-local-https-ca.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+.\docker\scripts\trust-local-https-ca.ps1
+```
+
+Run the Windows script from an interactive PowerShell window. Windows can
+require a confirmation before trusting a new root CA; redirected or agent-run
+shells configure `NODE_EXTRA_CA_CERTS` for Node tooling but do not silently
+modify the OS trust store.
+
+The nginx runtime config is read from `docker/local-nginx/` through bind mounts.
+After editing `docker/local-nginx/nginx.conf` or
+`docker/local-nginx/default.conf`, restart the webserver container to load the
+new config. Rebuild the image only when changing the Dockerfile or base image.
 
 `ldev setup` is optional. Use it only when you want to pre-pull Docker images
 or warm local runtime directories before starting.

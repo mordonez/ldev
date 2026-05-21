@@ -1,0 +1,27 @@
+services:
+  webserver:
+    build:
+      context: .
+      dockerfile: local-nginx/Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-liferay}-webserver
+    restart: unless-stopped
+    depends_on:
+      liferay:
+        condition: service_healthy
+    environment:
+      LIFERAY_HTTPS_PORT: ${LIFERAY_HTTPS_PORT:-8443}
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${LIFERAY_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ${ENV_DATA_ROOT:-./data/default}/local-nginx-certs:/etc/nginx/certs
+      - ./local-nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./local-nginx/default.conf:/etc/nginx/ldev/default.conf:ro
+      - ./local-nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1/nginx_status | grep -q ok"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+    networks:
+      - liferay-network

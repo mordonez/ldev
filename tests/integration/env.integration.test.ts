@@ -28,6 +28,7 @@ type EnvStartPayload = {
   portalUrl: string;
   waitedForHealth: boolean;
   activationKeyFile?: string;
+  localHttpsCaCertInstallCommand?: string | null;
 };
 
 describe('env integration', () => {
@@ -99,6 +100,35 @@ describe('env integration', () => {
       ]),
     );
   }, 45000);
+
+  test('env start reports the local HTTPS certificate trust script when webserver compose is active', async () => {
+    const repoRoot = await createEnvRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
+
+    await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.webserver.yml'), 'services:\n  webserver:\n');
+    await fs.writeFile(
+      path.join(repoRoot, 'docker', '.env'),
+      [
+        'COMPOSE_PROJECT_NAME=demo',
+        'DOCLIB_VOLUME_NAME=demo-doclib',
+        'ENV_DATA_ROOT=./data/default',
+        'LDEV_STORAGE_PLATFORM=other',
+        `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}`,
+        'LIFERAY_CLI_URL=https://127.0.0.1:8443',
+        '',
+      ].join('\n'),
+    );
+
+    const result = await runEnvStart(loadConfig({cwd: repoRoot, env: process.env}), {
+      wait: false,
+      processEnv,
+    });
+
+    expect(result.portalUrl).toBe('https://127.0.0.1:8443');
+    expect(result.waitedForHealth).toBe(false);
+    expect(result.localHttpsCaCertInstallCommand).toContain('trust-local-https-ca');
+  }, 30000);
 
   test('env start abort rolls back docker compose when canceled during compose up', async () => {
     const repoRoot = await createEnvRepoFixture();

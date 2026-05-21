@@ -167,6 +167,7 @@ export function resolveWorktreeTargetForContext(
 
 export function resolvePortSet(name: string): {
   httpPort: string;
+  httpsPort: string;
   debugPort: string;
   gogoPort: string;
   postgresPort: string;
@@ -177,6 +178,7 @@ export function resolvePortSet(name: string): {
 
   return {
     httpPort: String(8100 + offset),
+    httpsPort: String(10443 + offset),
     debugPort: String(9000 + offset),
     gogoPort: String(12000 + offset),
     postgresPort: String(5400 + offset),

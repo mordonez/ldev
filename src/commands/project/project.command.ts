@@ -9,7 +9,7 @@ import {
   listProjectInitLiferayVersions,
   runProjectInit,
 } from '../../features/project/project-init.js';
-import type {DockerService} from '../../features/project/project-scaffold.js';
+import {parseDockerServices} from '../../features/project/docker-services.js';
 import {CliError} from '../../core/errors.js';
 
 type ProjectInitCommandOptions = {
@@ -37,7 +37,7 @@ export function createProjectCommand(): Command {
       .description('Create a new project scaffold linked to local tooling')
       .option('--name <name>', 'Project name. Defaults to the destination directory name')
       .option('--dir <dir>', 'Target directory. Overrides the optional [dir] argument')
-      .option('--services <services>', 'Comma-separated extra services to enable: postgres, elasticsearch')
+      .option('--services <services>', 'Comma-separated extra services to enable: postgres, elasticsearch, webserver')
       .option('--liferay-version <release-key>', 'Liferay release key to configure, for example dxp-2026.q1.7-lts')
       .option('--list-liferay-versions', 'List promoted Liferay release keys from releases-cdn.liferay.com')
       .option('--all-liferay-versions', 'Include non-promoted releases when listing versions')
@@ -54,15 +54,15 @@ Optional arguments:
   --name  Project name used for the initial scaffold
   --dir   Destination directory. Overrides the optional [dir] argument
   --services  Comma-separated list of extra Docker services to include.
-              Supported values: postgres, elasticsearch
-              Example: --services postgres,elasticsearch
+              Supported values: postgres, elasticsearch, webserver
+              Example: --services postgres,elasticsearch,webserver
   --liferay-version  Release key from https://releases-cdn.liferay.com/releases.json
                      Example: --liferay-version dxp-2026.q1.7-lts
 
 Examples:
   ldev project init --list-liferay-versions
   ldev project init my-project
-  ldev project init my-project --liferay-version dxp-2026.q1.7-lts --services postgres,elasticsearch
+  ldev project init my-project --liferay-version dxp-2026.q1.7-lts --services postgres,elasticsearch,webserver
   ldev project init --dir ~/projects/my-project --liferay-version dxp-2026.q1.7-lts
   ldev project init --name my-project --dir .
 `,
@@ -88,7 +88,7 @@ Use --commit only when you explicitly want bootstrap changes committed immediate
           return listProjectInitLiferayVersions({all: Boolean(options.allLiferayVersions)});
         }
 
-        const services = parseServices(options.services);
+        const services = parseDockerServices(options.services);
         const inputs = resolveProjectInitInputs(options, positionalDir);
         const result = await runProjectInit({
           name: inputs.name,
@@ -133,13 +133,4 @@ function normalizeInput(value: string | undefined): string | undefined {
 
 function inferProjectNameFromDir(targetDir: string): string {
   return path.basename(path.resolve(targetDir)) || 'liferay';
-}
-
-function parseServices(raw: string | undefined): DockerService[] {
-  if (!raw) return [];
-  const valid: DockerService[] = ['postgres', 'elasticsearch'];
-  return raw
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter((s): s is DockerService => valid.includes(s as DockerService));
 }

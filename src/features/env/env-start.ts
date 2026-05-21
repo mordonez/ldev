@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../core/config/load-config.js';
@@ -94,6 +96,7 @@ export async function runEnvStart(
         await withProgress(options.printer, 'Waiting for portal to finish deploying bundles', async () => {
           await waitForPortalReady(context.portalUrl, {
             timeoutMs: startupTimeoutSeconds * 1000,
+            localHttpsCaCertFile: context.localHttpsCaCertFile,
           });
         });
       } else {
@@ -103,6 +106,7 @@ export async function runEnvStart(
         });
         await waitForPortalReady(context.portalUrl, {
           timeoutMs: startupTimeoutSeconds * 1000,
+          localHttpsCaCertFile: context.localHttpsCaCertFile,
         });
       }
     } catch (error) {
@@ -118,16 +122,45 @@ export async function runEnvStart(
     portalUrl: context.portalUrl,
     waitedForHealth: waitForHealth,
     activationKeyFile: activationKey.destinationFile,
+    localHttpsCaCertInstallCommand: resolveLocalHttpsCaCertInstallCommand(context.dockerDir, composeEnv.COMPOSE_FILE),
   };
 }
 
 export function formatEnvStart(result: EnvStartResult): string {
-  return [
+  const lines = [
     `Environment started from ${result.dockerDir}`,
     `Portal URL: ${result.portalUrl}`,
     `Activation key: ${result.activationKeyFile ?? 'unchanged'}`,
     `Health wait: ${result.waitedForHealth ? 'yes' : 'no'}`,
-  ].join('\n');
+  ];
+
+  if (result.localHttpsCaCertInstallCommand) {
+    lines.push(
+      'HTTPS certificate: run this once to trust the local CA and avoid browser warnings:',
+      `  ${result.localHttpsCaCertInstallCommand}`,
+    );
+  }
+
+  return lines.join('\n');
+}
+
+function resolveLocalHttpsCaCertInstallCommand(dockerDir: string, composeFile: string | undefined): string | null {
+  if (!composeFileUsesWebserver(composeFile)) {
+    return null;
+  }
+
+  if (process.platform === 'win32') {
+    return `powershell -ExecutionPolicy Bypass -File "${path.join(dockerDir, 'scripts', 'trust-local-https-ca.ps1')}"`;
+  }
+
+  return `sh "${path.join(dockerDir, 'scripts', 'trust-local-https-ca.sh')}"`;
+}
+
+function composeFileUsesWebserver(composeFile: string | undefined): boolean {
+  return (composeFile ?? '')
+    .split(path.delimiter)
+    .map((file) => path.basename(file.trim()))
+    .includes('docker-compose.webserver.yml');
 }
 async function restoreBuildDeployFromCache(config: AppConfig): Promise<void> {
   if (!config.liferayDir || !config.repoRoot || !config.dockerDir) {

@@ -121,6 +121,60 @@ describe('worktree integration', () => {
     ).toBe(true);
   }, 15000);
 
+  test('worktree env preserves HTTPS webserver setup with an isolated HTTPS port', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    await fs.appendFile(
+      path.join(repoRoot, 'docker', '.env'),
+      `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}\nLIFERAY_HTTPS_PORT=8443\nLIFERAY_CLI_URL=https://127.0.0.1:8443\n`,
+    );
+    await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.webserver.yml'), 'services:\n  webserver:\n');
+    await runWorktreeSetup({
+      cwd: repoRoot,
+      name: 'issue-https',
+      printer: silentPrinter,
+    });
+
+    const result = await runWorktreeEnv({
+      cwd: path.join(repoRoot, '.worktrees', 'issue-https'),
+    });
+
+    expect(result.portalUrl).toMatch(/^https:\/\/127\.0\.0\.1:\d+$/);
+    expect(result.ports.httpsPort).not.toBe('8443');
+    const envFile = await fs.readFile(path.join(repoRoot, '.worktrees', 'issue-https', 'docker', '.env'), 'utf8');
+    expect(envFile).toContain(
+      `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}`,
+    );
+    expect(envFile).toContain(`LIFERAY_HTTPS_PORT=${result.ports.httpsPort}`);
+    expect(envFile).toContain(`LIFERAY_CLI_URL=${result.portalUrl}`);
+  }, 15000);
+
+  test('worktree env can enable HTTPS webserver when the main env does not declare it', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+    await runWorktreeSetup({
+      cwd: repoRoot,
+      name: 'issue-add-webserver',
+      printer: silentPrinter,
+    });
+
+    const result = await runWorktreeEnv({
+      cwd: path.join(repoRoot, '.worktrees', 'issue-add-webserver'),
+      services: ['webserver'],
+    });
+
+    expect(result.portalUrl).toMatch(/^https:\/\/127\.0\.0\.1:\d+$/);
+    expect(result.ports.httpsPort).not.toBe('8443');
+    const worktreeDockerDir = path.join(repoRoot, '.worktrees', 'issue-add-webserver', 'docker');
+    const envFile = await fs.readFile(path.join(worktreeDockerDir, '.env'), 'utf8');
+    expect(envFile).toContain(
+      `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}`,
+    );
+    expect(envFile).toContain(`LIFERAY_HTTPS_PORT=${result.ports.httpsPort}`);
+    expect(envFile).toContain(`LIFERAY_CLI_URL=${result.portalUrl}`);
+    expect(await fs.pathExists(path.join(worktreeDockerDir, 'docker-compose.webserver.yml'))).toBe(true);
+    expect(await fs.pathExists(path.join(worktreeDockerDir, 'local-nginx', 'Dockerfile'))).toBe(true);
+    expect(await fs.pathExists(path.join(worktreeDockerDir, 'scripts', 'trust-local-https-ca.ps1'))).toBe(true);
+  }, 15000);
+
   test('worktree env clones the main env state on first preparation', async () => {
     const repoRoot = await createWorktreeRepoFixture();
     const mainDataRoot = path.join(repoRoot, 'docker', 'data', 'default');
@@ -225,6 +279,29 @@ describe('worktree integration', () => {
     });
     expect(await fs.pathExists(path.join(repoRoot, '.worktrees', 'current-external'))).toBe(false);
   }, 15000);
+
+  test('worktree setup CLI can enable HTTPS webserver service and prepare env', async () => {
+    const repoRoot = await createWorktreeRepoFixture();
+
+    const result = await runCli(
+      ['worktree', 'setup', '--name', 'cli-webserver', '--services', 'webserver', '--format', 'json'],
+      {cwd: repoRoot},
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      worktreeName: 'cli-webserver',
+      envPrepared: true,
+    });
+    const worktreeDockerDir = path.join(repoRoot, '.worktrees', 'cli-webserver', 'docker');
+    const envFile = await fs.readFile(path.join(worktreeDockerDir, '.env'), 'utf8');
+    expect(envFile).toContain(
+      `COMPOSE_FILE=${['docker-compose.yml', 'docker-compose.webserver.yml'].join(path.delimiter)}`,
+    );
+    expect(envFile).toMatch(/LIFERAY_CLI_URL=https:\/\/127\.0\.0\.1:\d+/);
+    expect(await fs.pathExists(path.join(worktreeDockerDir, 'docker-compose.webserver.yml'))).toBe(true);
+  }, 20000);
 
   test('worktree env syncs ignored local dependency artifacts from the main checkout', async () => {
     const repoRoot = await createWorktreeRepoFixture();

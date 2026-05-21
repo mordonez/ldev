@@ -243,12 +243,25 @@ async function updateDockerEnv(
     envValues.COMPOSE_FILE = composeFiles.join(path.delimiter);
   }
 
+  if (services.includes('webserver')) {
+    envValues.LIFERAY_HTTPS_PORT = '8443';
+    envValues.LIFERAY_CLI_URL = `https://${resolveLocalHttpsHost(bindIp)}:8443`;
+  }
+
   if (bindIp && bindIp !== '') {
     envValues.BIND_IP = bindIp;
   }
 
   const updatedContent = upsertEnvFileValues(currentContent, envValues);
   await fs.writeFile(dockerEnvFile, `${updatedContent}\n`);
+}
+
+function resolveLocalHttpsHost(bindIp: string | undefined): string {
+  if (!bindIp || bindIp === '' || bindIp === '0.0.0.0' || bindIp === '::') {
+    return '127.0.0.1';
+  }
+
+  return bindIp;
 }
 
 async function updateLiferayGradleProperties(
