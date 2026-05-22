@@ -17,6 +17,7 @@ import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
 import {
   fetchStructureTemplateClassIds,
   listDdmTemplates,
+  type DdmTemplatePayload,
   type ResolvedResourceSite,
 } from '../liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from '../liferay-resource-template-normalize.js';
@@ -110,27 +111,38 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
     const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
     const directDdmTemplate = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), opts.key);
 
-    const listedDdmTemplate = directDdmTemplate
-      ? null
-      : (
-          await listDdmTemplates(config, site as ResolvedResourceSite, dependencies, {
-            includeCompanyFallback: site.friendlyUrlPath === '/global',
-          })
-        ).find((item) => {
-          if (
-            !matchesInventoryTemplate(
-              {
-                id: String(item.templateId ?? ''),
-                externalReferenceCode: String(item.externalReferenceCode ?? item.templateKey ?? ''),
-                name: String(item.nameCurrentValue ?? item.name ?? ''),
-              },
-              opts.key,
-            )
-          ) {
-            return false;
-          }
-          return structureIdFilter === '' || ensureString(item.classPK ?? '', 'classPK') === structureIdFilter;
-        });
+    const matchesDdmItem = (item: DdmTemplatePayload) => {
+      if (
+        !matchesInventoryTemplate(
+          {
+            id: String(item.templateId ?? ''),
+            externalReferenceCode: String(item.externalReferenceCode ?? item.templateKey ?? ''),
+            name: String(item.nameCurrentValue ?? item.name ?? ''),
+          },
+          opts.key,
+        )
+      ) {
+        return false;
+      }
+      return structureIdFilter === '' || ensureString(item.classPK ?? '', 'classPK') === structureIdFilter;
+    };
+
+    let listedDdmTemplate: DdmTemplatePayload | undefined;
+    if (!directDdmTemplate) {
+      listedDdmTemplate = (
+        await listDdmTemplates(config, site as ResolvedResourceSite, dependencies, {
+          includeCompanyFallback: site.friendlyUrlPath === '/global',
+        })
+      ).find(matchesDdmItem);
+
+      // Templates may live at company scope regardless of whether the site has its own templates.
+      // Try a direct company-wide lookup when the site-scoped search found nothing.
+      if (!listedDdmTemplate && site.friendlyUrlPath !== '/global') {
+        listedDdmTemplate = (
+          await listDdmTemplates(config, site as ResolvedResourceSite, dependencies, {companyOnly: true})
+        ).find(matchesDdmItem);
+      }
+    }
 
     const existing = directDdmTemplate ?? listedDdmTemplate ?? null;
 

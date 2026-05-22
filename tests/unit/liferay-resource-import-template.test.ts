@@ -388,6 +388,153 @@ describe('liferay resource template-import', () => {
     );
   });
 
+  test('resolves company-scope template when site-specific JSONWS lookup returns empty', async () => {
+    // Scenario: template lives at company scope (groupId=0), not at the specific site.
+    // Headless-delivery finds it (cross-site), but JSONWS site-scoped lookups return nothing.
+    // Without the company-wide fallback, the inventory id (ERC string) would be passed as
+    // templateId to JSONWS update-template, causing NumberFormatException.
+    const {config} = await createRepoFixture();
+    await fs.ensureDir(path.join(config.repoRoot, 'liferay', 'resources', 'journal', 'templates', 'departaments'));
+    const deptTemplateFile = path.join(
+      config.repoRoot,
+      'liferay',
+      'resources',
+      'journal',
+      'templates',
+      'departaments',
+      'UB_TPL_FICHA_ESTUDIO_DOCTORAT.ftl',
+    );
+    await fs.writeFile(deptTemplateFile, 'Hello from local');
+
+    const calls: string[] = [];
+    const siteId = 30200;
+    const globalSiteId = 20121;
+    const companyId = 20097;
+    let persistedScript = 'Old content';
+
+    const companyTemplateEntry = () =>
+      JSON.stringify([
+        {
+          templateId: '40001',
+          templateKey: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+          externalReferenceCode: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+          nameCurrentValue: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+          script: persistedScript,
+          classPK: '301',
+        },
+      ]);
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+
+        if (url.includes('/by-friendly-url-path/departaments')) {
+          return new Response(
+            `{"id":${siteId},"friendlyUrlPath":"/departaments","name":"Departaments","companyId":${companyId}}`,
+            {status: 200},
+          );
+        }
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response(
+            `{"id":${globalSiteId},"friendlyUrlPath":"/global","name":"Global","companyId":${companyId}}`,
+            {status: 200},
+          );
+        }
+        if (url.includes(`/api/jsonws/group/get-group?groupId=${siteId}`)) {
+          return new Response(`{"companyId":${companyId},"parentGroupId":0}`, {status: 200});
+        }
+        if (url.includes(`/api/jsonws/group/get-group?groupId=${globalSiteId}`)) {
+          return new Response(`{"companyId":${companyId},"parentGroupId":0}`, {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        // Headless finds it with ERC as id (as seen on some Liferay instances)
+        if (url.includes(`/o/headless-delivery/v1.0/sites/${siteId}/content-templates?page=1&pageSize=200`)) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+                  name: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+                  contentStructureId: 301,
+                  externalReferenceCode: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT',
+                  templateScript: persistedScript,
+                },
+              ],
+              lastPage: 1,
+              page: 1,
+              pageSize: 200,
+              totalCount: 1,
+            }),
+            {status: 200},
+          );
+        }
+        if (url.includes(`/o/headless-delivery/v1.0/sites/${globalSiteId}/content-templates?page=1&pageSize=200`)) {
+          return new Response('{"items":[],"lastPage":1,"page":1,"pageSize":200,"totalCount":0}', {status: 200});
+        }
+        // JSONWS get-template by key: not found at site level
+        if (
+          url.includes(
+            `/api/jsonws/ddm.ddmtemplate/get-template?groupId=${siteId}&classNameId=1234&templateKey=UB_TPL_FICHA_ESTUDIO_DOCTORAT`,
+          )
+        ) {
+          return new Response('{"status":404}', {status: 404});
+        }
+        // JSONWS list for site: empty (template is at company scope)
+        if (
+          url.includes(
+            `/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=${siteId}&classNameId=1234`,
+          )
+        ) {
+          return new Response('[]', {status: 200});
+        }
+        // JSONWS list for global site: also empty (template is company-wide not in any specific site)
+        if (
+          url.includes(
+            `/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=${globalSiteId}&classNameId=1234`,
+          )
+        ) {
+          return new Response('[]', {status: 200});
+        }
+        // JSONWS company-wide list (groupId=0): returns the template with its numeric templateId
+        if (
+          url.includes(`/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=0&classNameId=1234`)
+        ) {
+          return new Response(companyTemplateEntry(), {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
+          expect(form.get('templateId')).toBe('40001');
+          expect(form.get('script')).toBe('Hello from local');
+          persistedScript = form.get('script') ?? persistedScript;
+          return new Response('{"templateId":"40001"}', {status: 200});
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayResourceImportTemplate(
+      config,
+      {site: '/departaments', key: 'UB_TPL_FICHA_ESTUDIO_DOCTORAT', file: deptTemplateFile},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('updated');
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          `GET http://localhost:8080/api/jsonws/ddm.ddmtemplate/get-templates?companyId=${companyId}&groupId=0`,
+        ),
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
+  });
+
   test('treats export then import as idempotent when runtime only differs by volatile normalized tokens', async () => {
     const {config, templateFile} = await createRepoFixture();
     await fs.writeFile(templateFile, '<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');

@@ -97,7 +97,7 @@ function normalizeDdmTemplate(row: {
   script?: string;
 }): LiferayInventoryTemplate {
   return {
-    id: String(row.id ?? ''),
+    id: String(row.templateId ?? row.id ?? ''),
     name: String(row.nameCurrentValue ?? row.name ?? row.templateKey ?? row.templateId ?? ''),
     contentStructureId: Number(row.classPK ?? -1),
     externalReferenceCode: String(row.externalReferenceCode ?? row.templateKey ?? row.templateId ?? ''),
