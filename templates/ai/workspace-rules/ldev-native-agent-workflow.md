@@ -86,7 +86,7 @@ Hard rule after edits:
 - `modules/` changed -> `ldev deploy module <module-name>`
 - theme source changed -> `ldev deploy theme`
 - structure changed -> `ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>`
-- ADT changed -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl>`
+- ADT changed -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --widget-type <type>`
 - template changed -> `ldev resource import-template --site /<site> --template <TEMPLATE_ID>`
 - fragment changed -> `ldev resource import-fragment --site /<site> --fragment <fragment-key>`
 - properties or source config changed -> `ldev env restart`

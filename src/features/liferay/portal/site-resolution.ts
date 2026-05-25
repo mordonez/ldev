@@ -43,11 +43,23 @@ export type SiteChainEntry = {
 export const resolvedSiteCache = new LookupCache<ResolvedSite>();
 
 export function normalizeFriendlyUrl(value: string): string {
-  if (value.trim() === '') {
+  const normalized = recoverGitBashFriendlyUrl(value.trim());
+  if (normalized === '') {
     return '';
   }
 
-  return value.startsWith('/') ? value : `/${value}`;
+  return normalized.startsWith('/') ? normalized : `/${normalized}`;
+}
+
+function recoverGitBashFriendlyUrl(value: string): string {
+  const normalizedPath = value.replaceAll('\\', '/');
+  const gitRoot = '/Program Files/Git/';
+  const gitRootIndex = normalizedPath.indexOf(gitRoot);
+  if (/^[A-Za-z]:\//.test(normalizedPath) && gitRootIndex >= 0) {
+    return normalizedPath.slice(gitRootIndex + gitRoot.length);
+  }
+
+  return value;
 }
 
 export function normalizeLocalizedName(value: string | Record<string, string> | undefined): string {

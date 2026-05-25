@@ -19,7 +19,7 @@ Typical entry points:
 - `ldev resource export-fragment --site /my-site --fragment <key> --json`
 - `ldev resource import-structure --site /my-site --structure <key> --check-only`
 - `ldev resource import-template --site /my-site --template <id> --check-only`
-- `ldev resource import-adt --site /my-site --file <file> --check-only`
+- `ldev resource import-adt --site /my-site --file <file> --widget-type <type> --check-only`
 - `ldev resource migration-pipeline --migration-file <file>`
 
 Prefer atomic commands. If several resources changed, repeat the singular
