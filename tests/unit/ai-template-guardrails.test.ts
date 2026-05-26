@@ -43,6 +43,7 @@ describe('AI template guardrails', () => {
   });
 
   test('agent entrypoints share the same portability contract', async () => {
+    const canonicalEntrypoint = await readTemplate('templates/ai/install/AGENTS.md');
     const entrypoints = [
       'templates/ai/install/AGENTS.md',
       'templates/ai/install/AGENTS.workspace.md',
@@ -56,11 +57,12 @@ describe('AI template guardrails', () => {
 
     for (const entrypoint of entrypoints) {
       const content = await readTemplate(entrypoint);
+      const effectiveContent = content.trim() === '@AGENTS.md' ? canonicalEntrypoint : content;
 
-      expect(content, entrypoint).toContain('Agent Portability Contract');
-      expect(content, entrypoint).toContain('Same prompt, same gate order');
-      expect(content, entrypoint).toContain('Slash commands are aliases');
-      expect(content, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
+      expect(effectiveContent, entrypoint).toContain('Agent Portability Contract');
+      expect(effectiveContent, entrypoint).toContain('Same prompt, same gate order');
+      expect(effectiveContent, entrypoint).toContain('Slash commands are aliases');
+      expect(effectiveContent, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
     }
   });
 
