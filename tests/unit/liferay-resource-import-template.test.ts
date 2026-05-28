@@ -535,6 +535,111 @@ describe('liferay resource template-import', () => {
     );
   });
 
+  test('resolves global company-scope template when global site has other templates', async () => {
+    const {config, templateFile} = await createRepoFixture();
+    const calls: string[] = [];
+    let persistedScript = 'Old company content';
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: 'UB_TPL_COMPANY_GLOBAL',
+                  name: 'UB_TPL_COMPANY_GLOBAL',
+                  contentStructureId: 301,
+                  externalReferenceCode: 'UB_TPL_COMPANY_GLOBAL',
+                  templateScript: persistedScript,
+                },
+              ],
+              lastPage: 1,
+              page: 1,
+              pageSize: 200,
+              totalCount: 1,
+            }),
+            {status: 200},
+          );
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=UB_TPL_COMPANY_GLOBAL',
+          )
+        ) {
+          return new Response('{"status":404}', {status: 404});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=20121&classNameId=1234')) {
+          return new Response(
+            '[{"templateId":"30000","templateKey":"OTHER_GLOBAL_SITE_TEMPLATE","nameCurrentValue":"Other","classPK":"301"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=0&classNameId=1234')) {
+          return new Response(
+            JSON.stringify([
+              {
+                templateId: '40002',
+                templateKey: 'UB_TPL_COMPANY_GLOBAL',
+                externalReferenceCode: 'UB_TPL_COMPANY_GLOBAL',
+                nameCurrentValue: 'UB_TPL_COMPANY_GLOBAL',
+                script: persistedScript,
+                classPK: '301',
+              },
+            ]),
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
+          const form = new URLSearchParams(toTestRequestBody(init?.body));
+          expect(form.get('templateId')).toBe('40002');
+          expect(form.get('script')).toBe('Hello from local');
+          persistedScript = form.get('script') ?? persistedScript;
+          return new Response('{"templateId":"40002"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=40002')) {
+          return new Response(
+            '{"cacheable":true,"templateId":"40002","templateKey":"UB_TPL_COMPANY_GLOBAL","script":"Hello from local"}',
+            {status: 200},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    const result = await runLiferayResourceImportTemplate(
+      config,
+      {site: '/global', key: 'UB_TPL_COMPANY_GLOBAL', file: templateFile},
+      {apiClient, tokenClient: TOKEN_CLIENT},
+    );
+
+    expect(result.status).toBe('updated');
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          'GET http://localhost:8080/api/jsonws/ddm.ddmtemplate/get-templates?companyId=20097&groupId=0',
+        ),
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
+  });
+
   test('does not update with a nonnumeric headless inventory id when no DDM template matches', async () => {
     const {config, templateFile} = await createRepoFixture();
     const calls: string[] = [];
