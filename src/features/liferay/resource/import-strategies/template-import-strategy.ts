@@ -164,8 +164,7 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
       };
     }
 
-    // Check inventory as fallback
-    if (inventoryExisting) {
+    if (inventoryExisting && isJsonWsTemplateId(inventoryExisting.id)) {
       return {
         id: String(inventoryExisting.id),
         name: inventoryExisting.name,
@@ -283,6 +282,11 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
     }
   },
 };
+
+function isJsonWsTemplateId(value: string): boolean {
+  const numericId = Number(value);
+  return Number.isFinite(numericId) && numericId > 0;
+}
 
 async function fetchStructureByKey(
   config: AppConfig,

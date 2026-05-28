@@ -109,6 +109,7 @@ export async function fetchAdtResourceClassNameId(
   return fetchClassNameIdForValue(config, ADT_RESOURCE_CLASS_NAME, dependencies);
 }
 
+// Lists site templates, optionally using company-scope groupId=0 as fallback.
 export async function listDdmTemplates(
   config: AppConfig,
   site: ResolvedResourceSite,

@@ -51,6 +51,7 @@ export function normalizeFriendlyUrl(value: string): string {
   return normalized.startsWith('/') ? normalized : `/${normalized}`;
 }
 
+// Windows workaround: Git Bash on win32 rewrites /site-path to C:/Program Files/Git/site-path.
 function recoverGitBashFriendlyUrl(value: string): string {
   const normalizedPath = value.replaceAll('\\', '/');
   const gitRoot = '/Program Files/Git/';

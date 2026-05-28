@@ -535,6 +535,80 @@ describe('liferay resource template-import', () => {
     );
   });
 
+  test('does not update with a nonnumeric headless inventory id when no DDM template matches', async () => {
+    const {config, templateFile} = await createRepoFixture();
+    const calls: string[] = [];
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url, init) => {
+        calls.push(`${init?.method ?? 'GET'} ${url}`);
+
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global","companyId":20097}', {
+            status: 200,
+          });
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":20097}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.dynamic.data.mapping.model.DDMStructure')) {
+          return new Response('{"classNameId":1234}', {status: 200});
+        }
+        if (url.includes('/classname/fetch-class-name?value=com.liferay.journal.model.JournalArticle')) {
+          return new Response('{"classNameId":5678}', {status: 200});
+        }
+        if (url.includes('/o/headless-delivery/v1.0/sites/20121/content-templates?page=1&pageSize=200')) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: 'UB_TPL_HEADLESS_ONLY',
+                  name: 'UB_TPL_HEADLESS_ONLY',
+                  contentStructureId: 301,
+                  externalReferenceCode: 'UB_TPL_HEADLESS_ONLY',
+                  templateScript: 'Old',
+                },
+              ],
+              lastPage: 1,
+              page: 1,
+              pageSize: 200,
+              totalCount: 1,
+            }),
+            {status: 200},
+          );
+        }
+        if (
+          url.includes(
+            '/api/jsonws/ddm.ddmtemplate/get-template?groupId=20121&classNameId=1234&templateKey=UB_TPL_HEADLESS_ONLY',
+          )
+        ) {
+          return new Response('{"status":404}', {status: 404});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/get-templates')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/ddm.ddmtemplate/update-template')) {
+          throw new Error('update-template should not be called with a headless ERC id');
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    await expect(
+      runLiferayResourceImportTemplate(
+        config,
+        {site: '/global', key: 'UB_TPL_HEADLESS_ONLY', file: templateFile},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      ),
+    ).rejects.toThrow('does not exist and create-missing is not enabled');
+
+    expect(calls).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('POST http://localhost:8080/api/jsonws/ddm.ddmtemplate/update-template'),
+      ]),
+    );
+  });
+
   test('treats export then import as idempotent when runtime only differs by volatile normalized tokens', async () => {
     const {config, templateFile} = await createRepoFixture();
     await fs.writeFile(templateFile, '<a href="/web/guest/home?p_l_back_url=%2Fgroup%2Fguest">link</a>');
