@@ -2,8 +2,12 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
+import {isCliError} from '../../core/errors.js';
 import type {DeployContext} from './deploy-gradle.js';
 import {DeployErrors} from './errors/deploy-error-factory.js';
+import {DeployErrorCode} from './errors/deploy-error-codes.js';
+
+const BFS_SKIP_DIRS = new Set(['build', '.gradle', 'node_modules', '.git']);
 
 export type DeployModuleTarget = {
   label: string;
@@ -38,8 +42,11 @@ export async function resolveDeployModuleArtifactDirs(context: DeployContext, mo
   try {
     const target = await resolveDeployModuleTarget(context, module);
     return uniqueDirs([...target.artifactDirs, ...legacyArtifactDirs(context, requested)]);
-  } catch {
-    return legacyArtifactDirs(context, requested);
+  } catch (error) {
+    if (isCliError(error) && error.code === DeployErrorCode.MODULE_NOT_FOUND) {
+      return legacyArtifactDirs(context, requested);
+    }
+    throw error;
   }
 }
 
@@ -121,7 +128,7 @@ async function findNestedModule(context: DeployContext, module: string): Promise
 
     const entries = await fs.readdir(current, {withFileTypes: true});
     for (const entry of entries) {
-      if (!entry.isDirectory()) {
+      if (!entry.isDirectory() || BFS_SKIP_DIRS.has(entry.name)) {
         continue;
       }
 
@@ -144,7 +151,7 @@ async function findNestedModule(context: DeployContext, module: string): Promise
 
   if (matches.length > 1) {
     const labels = matches.map((match) => path.relative(context.liferayDir, match).replaceAll(path.sep, '/'));
-    throw DeployErrors.moduleNotFound(`Module ${module} is ambiguous. Matching modules: ${labels.join(', ')}.`);
+    throw DeployErrors.moduleAmbiguous(`Module ${module} is ambiguous. Matching modules: ${labels.join(', ')}.`);
   }
 
   return null;

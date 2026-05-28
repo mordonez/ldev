@@ -8,6 +8,9 @@ export const DeployErrors = {
   moduleNotFound: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, DeployErrorCode.MODULE_NOT_FOUND, options),
 
+  moduleAmbiguous: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(message, DeployErrorCode.MODULE_AMBIGUOUS, options),
+
   gradleError: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, DeployErrorCode.GRADLE_ERROR, options),
 
