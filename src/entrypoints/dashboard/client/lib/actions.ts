@@ -49,15 +49,17 @@ export function previewUrl(name: string, action: string): string {
   return route ? renderRoute(route, name) : actionUrl(name, action);
 }
 
+export type PrimaryAction = {action: string; className: string; label: string};
+
 export function primaryActionForWorktree(
   wt: {env?: {portalReachable?: boolean | null} | null},
   running: boolean,
   stopped: boolean,
-): [string, string, string] {
-  if (!wt.env) return ['init-env', 'btn-start', 'Init env'];
-  if (running && wt.env.portalReachable === false) return ['restart', 'btn-start', 'Restart'];
-  if (stopped) return ['start', 'btn-start', 'Start'];
-  return ['doctor', 'btn-ghost', 'Diagnose'];
+): PrimaryAction {
+  if (!wt.env) return {action: 'init-env', className: 'btn-start', label: 'Init env'};
+  if (running && wt.env.portalReachable === false) return {action: 'restart', className: 'btn-start', label: 'Restart'};
+  if (stopped) return {action: 'start', className: 'btn-start', label: 'Start'};
+  return {action: 'doctor', className: 'btn-ghost', label: 'Diagnose'};
 }
 
 export function worktreeButton(id: string, overrides: Partial<WorktreeButton> = {}): WorktreeButton {

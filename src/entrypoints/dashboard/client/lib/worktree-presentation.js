@@ -1,13 +1,10 @@
 import {actionKind, primaryActionForWorktree, worktreeButton} from './actions.ts';
-import {attentionReasons, isDirty, isRunning, needsAttention} from './dashboard-state.js';
-import {buildSections} from '../components/worktree-sections.jsx';
+import {isRunning, needsAttention, serviceTone} from './dashboard-state.js';
 
-export function buildWorktreePresentation(wt, tasks, activeSection) {
+export function buildWorktreePresentation(wt, tasks) {
   const running = isRunning(wt);
   const stopped = wt.env && !running;
-  const cardStatus = needsAttention(wt) ? 'attention' : running ? 'running' : wt.isMain ? 'main' : null;
-  const sections = buildSections(wt);
-  const selected = sections.find((section) => section.key === activeSection) || sections[0];
+  const cardStatus = computeCardStatus(wt, running);
   const primary = primaryActionForWorktree(wt, running, stopped);
   const activeWorktreeTask = tasks.find(
     (task) => (task.status === 'running' || task.status === 'canceling') && task.worktreeName === wt.name,
@@ -25,7 +22,6 @@ export function buildWorktreePresentation(wt, tasks, activeSection) {
         ),
       activeWorktreeTask,
     ),
-    badges: worktreeBadges(wt, running),
     cardStatus,
     busy: (action) =>
       tasks.some(
@@ -33,8 +29,6 @@ export function buildWorktreePresentation(wt, tasks, activeSection) {
       ),
     primary,
     running,
-    sections,
-    selected,
     stopped,
   };
 }
@@ -44,15 +38,15 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
   const busyLabel = activeWorktreeTask?.status === 'canceling' ? 'Canceling...' : '...';
   const actions = [
     {
-      action: primary[0],
-      className: primary[1],
+      action: primary.action,
+      className: primary.className,
       disabled: busyWorktree,
-      label: busyWorktree ? busyLabel : primary[2],
+      label: busyWorktree ? busyLabel : primary.label,
       target: 'action',
     },
   ];
 
-  if (primary[0] !== 'start' && !running) {
+  if (primary.action !== 'start' && !running) {
     actions.push(
       worktreeButton('start', {
         disabled: busyWorktree,
@@ -104,17 +98,13 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
   return {actions, advancedActions};
 }
 
-function worktreeBadges(wt, running) {
-  const badges = [];
-  if (wt.isMain) badges.push({label: 'main', tone: 'blue'});
-  if (isDirty(wt)) badges.push({label: `${wt.changedFiles} changed`, tone: 'yellow'});
-  badges.push(
-    running
-      ? {label: 'running', tone: 'green'}
-      : wt.env
-        ? {label: 'stopped', tone: 'gray'}
-        : {label: 'no env', tone: 'gray'},
-  );
-  if (needsAttention(wt)) badges.push({label: 'attention', tone: 'red', title: attentionReasons(wt).join(', ')});
-  return badges;
+function computeCardStatus(wt, running) {
+  if (running) {
+    const services = wt.env?.services || [];
+    const hasBadSvc = services.some((s) => serviceTone(s) === 'yellow' || serviceTone(s) === 'red');
+    return hasBadSvc || wt.env?.portalReachable === false ? 'error' : 'running';
+  }
+  if (needsAttention(wt)) return 'attention';
+  if (wt.isMain) return 'main';
+  return null;
 }

@@ -3,7 +3,7 @@ import {describe, expect, test} from 'vitest';
 import {buildWorktreePresentation} from '../../src/entrypoints/dashboard/client/lib/worktree-presentation.js';
 
 describe('buildWorktreePresentation', () => {
-  test('derives badges, primary action, and busy state for a stopped dirty worktree', () => {
+  test('derives primary action and busy state for a stopped dirty worktree', () => {
     const presentation = buildWorktreePresentation(
       {
         name: 'demo',
@@ -15,20 +15,13 @@ describe('buildWorktreePresentation', () => {
         path: '/repo/demo',
       },
       [{kind: 'worktree-start', status: 'running', worktreeName: 'demo'}],
-      undefined,
     );
 
-    expect(presentation.badges).toEqual([
-      {label: '2 changed', tone: 'yellow'},
-      {label: 'stopped', tone: 'gray'},
-      {label: 'attention', tone: 'red', title: '2 changed file(s)'},
-    ]);
-    expect(presentation.primary).toEqual(['start', 'btn-start', 'Start']);
+    expect(presentation.primary).toEqual({action: 'start', className: 'btn-start', label: 'Start'});
+    expect(presentation.cardStatus).toBe('attention');
     expect(presentation.actions.map((action: {label: string}) => action.label)).toContain('...');
     expect(presentation.advancedActions.map((action: {label: string}) => action.label)).toContain('Delete');
     expect(presentation.busy('start')).toBe(true);
-    expect(presentation.sections.map((section: {key: string}) => section.key)).toEqual(['changes']);
-    expect(presentation.selected?.key).toBe('changes');
   });
 
   test('flags running worktrees that need attention', () => {
@@ -41,14 +34,10 @@ describe('buildWorktreePresentation', () => {
         path: '/repo/demo',
       },
       [],
-      'services',
     );
 
-    expect(presentation.badges).toEqual([
-      {label: 'running', tone: 'green'},
-      {label: 'attention', tone: 'red', title: 'portal not reachable'},
-    ]);
-    expect(presentation.primary).toEqual(['restart', 'btn-start', 'Restart']);
+    expect(presentation.primary).toEqual({action: 'restart', className: 'btn-start', label: 'Restart'});
+    expect(presentation.cardStatus).toBe('error');
     expect(presentation.actions.map((action: {label: string}) => action.label)).toEqual([
       'Restart',
       'Stop',
@@ -63,7 +52,6 @@ describe('buildWorktreePresentation', () => {
       'Recreate',
       'Delete',
     ]);
-    expect(presentation.selected?.key).toBe('services');
   });
 
   test('disables worktree actions while another task owns the same worktree', () => {
@@ -76,7 +64,6 @@ describe('buildWorktreePresentation', () => {
         path: '/repo/demoub',
       },
       [{kind: 'db-sync', status: 'running', worktreeName: 'demoub'}],
-      undefined,
     );
 
     expect(

@@ -1285,7 +1285,7 @@ describe('createDashboardServer', () => {
     });
     runDockerMock.mockResolvedValue({
       ok: true,
-      command: 'docker logs --tail 200 --timestamps container-123',
+      command: 'docker logs --tail 500 --timestamps container-123',
       stdout: 'stdout-line\n',
       stderr: 'stderr-line\n',
       exitCode: 0,
@@ -1299,7 +1299,7 @@ describe('createDashboardServer', () => {
     await expect(response.json()).resolves.toMatchObject({
       containerId: 'container-123',
       running: true,
-      logs: 'stdout-line\nstderr-line\n',
+      logs: 'stdout-line\nstderr-line',
     });
   });
 

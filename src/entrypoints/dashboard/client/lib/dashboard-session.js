@@ -8,7 +8,6 @@ export function useDashboardSession(options = {}) {
   const prefs = useMemo(readPrefs, []);
   const [activeFilter, setActiveFilterState] = useState(prefs.activeFilter || 'all');
   const [activityCollapsed, setActivityCollapsedState] = useState(prefs.activityCollapsed ?? true);
-  const [cardSections, setCardSections] = useState(prefs.cardSections || {});
   const [countdown, setCountdown] = useState(20);
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
@@ -22,7 +21,7 @@ export function useDashboardSession(options = {}) {
   const previousTasks = useRef([]);
   const toastTimer = useRef(null);
 
-  const savePrefs = (patch) => writePrefs({activeFilter, activityCollapsed, searchQuery, cardSections, ...patch});
+  const savePrefs = (patch) => writePrefs({activeFilter, activityCollapsed, searchQuery, ...patch});
   const showToast = (message) => {
     if (toastTimer.current) {
       clearTimeout(toastTimer.current);
@@ -154,11 +153,6 @@ export function useDashboardSession(options = {}) {
     setSearchQueryState(query);
     savePrefs({searchQuery: query});
   };
-  const setSection = (name, section) => {
-    const next = {...cardSections, [name]: section};
-    setCardSections(next);
-    savePrefs({cardSections: next});
-  };
   const toggleActivity = () => {
     const next = !activityCollapsed;
     setActivityCollapsedState(next);
@@ -204,7 +198,6 @@ export function useDashboardSession(options = {}) {
     activeFilter,
     activityCollapsed,
     activityTasks,
-    cardSections,
     cancelTask,
     countdown,
     data,
@@ -221,7 +214,6 @@ export function useDashboardSession(options = {}) {
     setFilter,
     setMaintenance,
     setSearch,
-    setSection,
     showToast,
     taskCollapsed,
     tasks,

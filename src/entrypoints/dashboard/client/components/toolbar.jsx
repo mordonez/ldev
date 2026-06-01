@@ -1,23 +1,34 @@
 import {h} from 'preact';
 
-import {classNames, FILTERS} from '../lib/dashboard-state.js';
+import {FILTERS} from '../lib/dashboard-state.js';
 
-export function Toolbar({activeFilter, counts, onFilter, onSearch, query, total, visible}) {
+const FILTER_LABELS = {
+  all: 'All',
+  attention: 'Attention',
+  running: 'Running',
+  dirty: 'Dirty',
+  up: 'Up',
+  main: 'Main',
+};
+
+export function Toolbar({activeFilter, counts, onFilter, onSort, sort, total, visible}) {
   return (
     <div class="toolbar">
-      <div class="toolbar-group">
-        {FILTERS.map(([key, label]) => (
-          <button class={classNames('filter-chip', activeFilter === key && 'active')} key={key} type="button" onClick={() => onFilter(key)}>
-            {label} <span class="chip-count">{counts[key] || 0}</span>
+      <div class="segmented">
+        {FILTERS.map(([key]) => (
+          <button class={`seg${activeFilter === key ? ' active' : ''}`} key={key} type="button" onClick={() => onFilter(key)}>
+            {FILTER_LABELS[key] || key}
+            <span class="badge-n">{counts[key] || 0}</span>
           </button>
         ))}
       </div>
-      <div class="toolbar-search">
-        <input placeholder="Search worktrees..." value={query} onInput={(event) => onSearch(event.currentTarget.value)} />
-      </div>
-      <div class="toolbar-meta">
-        {visible} of {total}
-      </div>
+      <div class="toolbar-spacer" />
+      <span class="toolbar-meta">{visible} of {total}</span>
+      <select class="sort-select" value={sort} onChange={(e) => onSort(e.currentTarget.value)}>
+        <option value="priority">Sort: Priority</option>
+        <option value="name">Sort: Name</option>
+        <option value="changes">Sort: Changes</option>
+      </select>
     </div>
   );
 }

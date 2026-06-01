@@ -1,6 +1,6 @@
 import {h} from 'preact';
 
-import {classNames} from '../lib/dashboard-state.js';
+import {cx} from '../lib/cx.js';
 
 export function DeployPreview({modules, result}) {
   return (
@@ -27,7 +27,7 @@ function DeployModule({module}) {
         <strong>{module.name}</strong>
         <span class="insight-row-meta">{module.artifact || module.source || ''}</span>
       </div>
-      <span class={classNames('status-pill', module.state === 'ACTIVE' ? 'status-active' : 'status-deployed')}>{module.state || 'deployed'}</span>
+      <span class={cx('status-pill', module.state === 'ACTIVE' ? 'status-active' : 'status-deployed')}>{module.state || 'deployed'}</span>
     </div>
   );
 }
@@ -62,7 +62,7 @@ function DoctorCheck({checkInfo}) {
         <strong>{checkInfo.id}</strong>
         <span class="insight-row-meta">{checkInfo.summary}</span>
       </div>
-      <span class={classNames('status-pill', checkInfo.status === 'fail' ? 'status-fail' : 'status-warn')}>{checkInfo.status}</span>
+      <span class={cx('status-pill', checkInfo.status === 'fail' ? 'status-fail' : 'status-warn')}>{checkInfo.status}</span>
     </div>
   );
 }

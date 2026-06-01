@@ -1,5 +1,5 @@
 import {Fragment, h} from 'preact';
-import {useState} from 'preact/hooks';
+import {useEffect, useRef, useState} from 'preact/hooks';
 
 import {DbFormModal} from '../components/db-form-modal.jsx';
 import {Modal} from '../components/modal.jsx';
@@ -20,8 +20,14 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
   const [logModal, setLogModal] = useState(null);
   const [logText, setLogText] = useState('');
   const [resourceWorktree, setResourceWorktree] = useState(null);
+  const infoFetchAbort = useRef(null);
+  const logFetchAbort = useRef(null);
 
   const openDeployPreview = async (name) => {
+    infoFetchAbort.current?.abort();
+    infoFetchAbort.current = new AbortController();
+    const {signal} = infoFetchAbort.current;
+
     setInfoModal({
       title: `${name} - Deploy status`,
       body: <div class="maintenance-empty">Loading deploy status...</div>,
@@ -29,7 +35,7 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
     });
 
     try {
-      const res = await fetch(previewUrl(name, 'deploy-status'), {cache: 'no-store'});
+      const res = await fetch(previewUrl(name, 'deploy-status'), {cache: 'no-store', signal});
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || `HTTP ${res.status}`);
       const modules = result.modules || [];
@@ -37,14 +43,19 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
       setInfoModal({
         title: `${name} - Deploy status`,
         footer: `${modules.length} modules - ${active} active`,
-        body: <DeployPreview active={active} modules={modules} result={result} />,
+        body: <DeployPreview modules={modules} result={result} />,
       });
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setInfoModal((current) => ({...current, body: errorBody(err)}));
     }
   };
 
   const openDoctor = async (name) => {
+    infoFetchAbort.current?.abort();
+    infoFetchAbort.current = new AbortController();
+    const {signal} = infoFetchAbort.current;
+
     setInfoModal({
       title: `${name || 'Repository'} - Diagnose`,
       body: <div class="maintenance-empty">Loading diagnosis...</div>,
@@ -53,7 +64,7 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
 
     try {
       const url = name ? previewUrl(name, 'doctor') : '/api/doctor';
-      const res = await fetch(url, {cache: 'no-store'});
+      const res = await fetch(url, {cache: 'no-store', signal});
       const report = await res.json();
       if (!res.ok) throw new Error(report.error || `HTTP ${res.status}`);
       setInfoModal({
@@ -62,6 +73,7 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
         body: <DoctorPreview name={name} postJson={postJson} report={report} showToast={showToast} />,
       });
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setInfoModal((current) => ({...current, body: errorBody(err)}));
     }
   };
@@ -82,14 +94,19 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
   };
 
   const openLogs = async (name) => {
+    logFetchAbort.current?.abort();
+    logFetchAbort.current = new AbortController();
+    const {signal} = logFetchAbort.current;
+
     setLogModal({name});
     setLogText('Loading...');
     try {
-      const res = await fetch(`/api/worktrees/${encodeURIComponent(name)}/logs`);
+      const res = await fetch(`/api/worktrees/${encodeURIComponent(name)}/logs`, {signal});
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       setLogText(body.logs || 'No logs available.');
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setLogText(`Error: ${String(err.message || err)}`);
     }
   };
@@ -134,8 +151,8 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
   return {
     closeDbModal: () => setDbWorktree(null),
     closeDeleteModal: () => setDeleteModal(null),
-    closeInfoModal: () => setInfoModal(null),
-    closeLogModal: () => setLogModal(null),
+    closeInfoModal: () => { infoFetchAbort.current?.abort(); setInfoModal(null); },
+    closeLogModal: () => { logFetchAbort.current?.abort(); setLogModal(null); },
     closeResourceModal: () => setResourceWorktree(null),
     confirmDeleteWorktree,
     copyPath,
@@ -197,7 +214,7 @@ export function DashboardActionModals({actions, postJson, showToast}) {
         onRefresh={() => actions.logModal && actions.openLogs(actions.logModal.name)}
         title={actions.logModal ? `${actions.logModal.name} - liferay logs` : 'Logs'}
       >
-        <pre class="log-pre">{actions.logText}</pre>
+        <LogViewer text={actions.logText} />
       </Modal>
       <Modal
         footer={actions.infoModal?.footer}
@@ -252,4 +269,13 @@ function DeleteWorktreeModal({isOpen, onClose, onConfirm, onToggleDeleteBranch, 
       </form>
     </ModalFrame>
   );
+}
+
+function LogViewer({text}) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current?.parentElement;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [text]);
+  return <pre class="log-pre" ref={ref}>{text}</pre>;
 }
