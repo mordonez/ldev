@@ -33,14 +33,26 @@ describe('dashboard client actions', () => {
   });
 
   test('selects the primary worktree action from runtime state', () => {
-    expect(primaryActionForWorktree({}, false, false)).toEqual(['init-env', 'btn-start', 'Init env']);
-    expect(primaryActionForWorktree({env: {portalReachable: false}}, true, false)).toEqual([
-      'restart',
-      'btn-start',
-      'Restart',
-    ]);
-    expect(primaryActionForWorktree({env: {}}, false, true)).toEqual(['start', 'btn-start', 'Start']);
-    expect(primaryActionForWorktree({env: {}}, true, false)).toEqual(['doctor', 'btn-ghost', 'Diagnose']);
+    expect(primaryActionForWorktree({}, false, false)).toEqual({
+      action: 'init-env',
+      className: 'btn-start',
+      label: 'Init env',
+    });
+    expect(primaryActionForWorktree({env: {portalReachable: false}}, true, false)).toEqual({
+      action: 'restart',
+      className: 'btn-start',
+      label: 'Restart',
+    });
+    expect(primaryActionForWorktree({env: {}}, false, true)).toEqual({
+      action: 'start',
+      className: 'btn-start',
+      label: 'Start',
+    });
+    expect(primaryActionForWorktree({env: {}}, true, false)).toEqual({
+      action: 'doctor',
+      className: 'btn-ghost',
+      label: 'Diagnose',
+    });
   });
 
   test('builds the delete worktree URL with optional branch deletion', () => {
