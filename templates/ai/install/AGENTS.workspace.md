@@ -97,7 +97,7 @@ These rules apply to every task, regardless of the skill in use:
 
 1. Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`. Use `context.commands.*` and `doctor.readiness.*` to verify readiness before running any command.
 2. Always consume `--json` output. Never parse human-readable text output from `ldev`.
-3. Always run `--check-only` before any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`, `migration-pipeline`).
+3. Always run `--check-only` before resource mutations that support it (`import-structure`, `import-template`, `import-adt`, `migration-pipeline`). `import-fragment` has no `--check-only`; validate the fragment source and run a focused import.
 4. Always use the smallest deploy or import that proves the change. Never broad-deploy as a default validation step.
 5. Never use plural resource commands (`import-structures`, `export-templates`, etc.) or broad deploys without explicit human approval.
 6. After any mutation, verify with operation-specific evidence:
@@ -217,7 +217,9 @@ Use these as the standard reusable entrypoints:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
+
 <!-- Replaced at install time by ldev ai install. Do not edit. -->
+
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation

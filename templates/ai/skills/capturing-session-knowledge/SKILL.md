@@ -80,7 +80,8 @@ Example:
 ## OSGi cache after portlet-model-hints change
 
 After editing portlet-model-hints.xml, clear the OSGi cache before deploying
-or the change will not take effect: run `ldev osgi:clear-cache` then redeploy.
+or the change will not take effect: record the required project cleanup command
+in `docs/ai/project-context.md` before future agents repeat the deploy.
 ```
 
 Do not write more than 5–6 new entries per session. Fewer, sharper entries are
