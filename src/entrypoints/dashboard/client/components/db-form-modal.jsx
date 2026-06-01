@@ -1,7 +1,7 @@
 import {h} from 'preact';
 import {useState} from 'preact/hooks';
 
-import {classNames} from '../lib/dashboard-state.js';
+import {cx} from '../lib/cx.js';
 import {ModalFrame} from './modal-frame.jsx';
 
 export function DbFormModal({isOpen, onClose, onSubmit, worktreeName}) {
@@ -19,7 +19,7 @@ export function DbFormModal({isOpen, onClose, onSubmit, worktreeName}) {
       <form class="create-form" onSubmit={submit}>
         <div class="segmented">
           {['download', 'sync', 'import', 'query'].map((action) => (
-            <button class={classNames('segmented-btn', dbAction === action && 'active')} key={action} type="button" onClick={() => setDbAction(action)}>
+            <button class={cx('segmented-btn', dbAction === action && 'active')} key={action} type="button" onClick={() => setDbAction(action)}>
               {action[0].toUpperCase() + action.slice(1)}
             </button>
           ))}

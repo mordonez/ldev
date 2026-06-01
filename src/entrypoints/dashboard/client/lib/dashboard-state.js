@@ -7,10 +7,6 @@ export const FILTERS = [
   ['main', 'Main'],
 ];
 
-export function classNames(...values) {
-  return values.filter(Boolean).join(' ');
-}
-
 export function serviceName(service) {
   return service.service || service.name || 'service';
 }
@@ -79,4 +75,20 @@ export function priority(wt) {
   if (needsAttention(wt)) return 1;
   if (wt.isMain) return 2;
   return 3;
+}
+
+const STARTING_KINDS = new Set(['worktree-start', 'worktree-init-env', 'worktree-restart']);
+
+export function isWorktreeStarting(tasks, name) {
+  return tasks?.some(
+    (t) => (t.status === 'running' || t.status === 'canceling') &&
+      t.worktreeName === name && STARTING_KINDS.has(t.kind),
+  ) ?? false;
+}
+
+export function isWorktreeStopping(tasks, name) {
+  return tasks?.some(
+    (t) => (t.status === 'running' || t.status === 'canceling') &&
+      t.worktreeName === name && t.kind === 'worktree-stop',
+  ) ?? false;
 }

@@ -22,12 +22,12 @@ export async function handleWorktreeLogs(
       return;
     }
 
-    const result = await runDocker(['logs', '--tail', '200', '--timestamps', containerId], {
+    const result = await runDocker(['logs', '--tail', '500', '--timestamps', containerId], {
       env: composeEnv,
       reject: false,
     });
 
-    const raw = [result.stdout, result.stderr].filter(Boolean).join('');
+    const raw = mergeDockerLogStreams(result.stdout, result.stderr);
     res.writeHead(200, {'Content-Type': 'application/json'});
     res.end(JSON.stringify({logs: raw, containerId, service: 'liferay', running}));
   } catch (err) {
@@ -141,6 +141,20 @@ export async function handleWorktreeLogStream(
       });
     }
   }
+}
+
+function mergeDockerLogStreams(stdout: string, stderr: string): string {
+  const lines = [...stdout.split('\n'), ...stderr.split('\n')].filter(Boolean);
+  const ISO_PREFIX = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s/;
+  const withTs: Array<{ts: string; line: string}> = [];
+  const noTs: string[] = [];
+  for (const line of lines) {
+    const m = ISO_PREFIX.exec(line);
+    if (m) withTs.push({ts: m[1], line});
+    else noTs.push(line);
+  }
+  withTs.sort((a, b) => a.ts.localeCompare(b.ts));
+  return [...withTs.map((x) => x.line), ...noTs].join('\n');
 }
 
 async function resolveWorktreeLogContext(resolver: DashboardWorktreeResolver, worktreeName: string) {

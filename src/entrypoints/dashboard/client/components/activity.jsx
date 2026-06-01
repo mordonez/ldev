@@ -1,7 +1,8 @@
 import {h} from 'preact';
 import {useEffect, useRef, useState} from 'preact/hooks';
 
-import {classNames} from '../lib/dashboard-state.js';
+import {IconActivity, IconAlertTriangle, IconCheck, IconChevronDown, IconRotateCcw} from '../lib/icons.jsx';
+import {cx} from '../lib/cx.js';
 import {isActiveTask, taskTime} from '../lib/tasks.ts';
 
 export function Activity({
@@ -21,124 +22,136 @@ export function Activity({
 
   useEffect(
     () => () => {
-      for (const timer of dismissTimers.current.values()) {
-        clearTimeout(timer);
-      }
+      for (const timer of dismissTimers.current.values()) clearTimeout(timer);
       dismissTimers.current.clear();
     },
     [],
   );
 
   useEffect(() => {
-    const visibleTaskIds = new Set(tasks.map((task) => task.id));
-    setLeavingTaskIds((current) => current.filter((taskId) => visibleTaskIds.has(taskId)));
-    for (const [taskId, timer] of dismissTimers.current.entries()) {
-      if (!visibleTaskIds.has(taskId)) {
+    const visibleTaskIds = new Set(tasks.map((t) => t.id));
+    setLeavingTaskIds((cur) => cur.filter((id) => visibleTaskIds.has(id)));
+    for (const [id, timer] of dismissTimers.current.entries()) {
+      if (!visibleTaskIds.has(id)) {
         clearTimeout(timer);
-        dismissTimers.current.delete(taskId);
+        dismissTimers.current.delete(id);
       }
     }
   }, [tasks]);
 
-  const running = tasks.filter((task) => isActiveTask(task)).length;
-  const finished = tasks.filter((task) => !isActiveTask(task)).length;
-  const handleDismiss = (taskId) => {
-    if (leavingTaskIds.includes(taskId)) {
-      return;
-    }
+  const running = tasks.filter((t) => isActiveTask(t)).length;
+  const finished = tasks.filter((t) => !isActiveTask(t)).length;
 
-    setLeavingTaskIds((current) => [...current, taskId]);
+  const handleDismiss = (taskId) => {
+    if (leavingTaskIds.includes(taskId)) return;
+    setLeavingTaskIds((cur) => [...cur, taskId]);
     const timer = setTimeout(() => {
       dismissTimers.current.delete(taskId);
-      setLeavingTaskIds((current) => current.filter((currentTaskId) => currentTaskId !== taskId));
+      setLeavingTaskIds((cur) => cur.filter((id) => id !== taskId));
       onDismiss(taskId);
     }, 180);
     dismissTimers.current.set(taskId, timer);
   };
 
   return (
-    <aside class={classNames('activity', collapsed && 'is-collapsed')}>
-      <div class="activity-header">
-        <div>
-          <div class="activity-title">Activity</div>
-          <div class="activity-meta">
-            {running ? `${running} active task${running === 1 ? '' : 's'}` : 'No active tasks'}
+    <div class="dock">
+      <div class="dock-inner">
+        <div class="dock-head" onClick={onToggle}>
+          <span class="dt">
+            {running ? <span class="dock-spin" /> : <IconActivity size={13} />}
+            Activity
+          </span>
+          <span class="dmeta">
+            {running ? `${running} running` : 'No active tasks'}
             {hiddenCount ? ` · ${hiddenCount} hidden` : ''}
-          </div>
-        </div>
-        <div class="activity-actions">
+          </span>
+          <div class="dock-spacer" />
           {finished ? (
-            <button class="activity-secondary" type="button" onClick={onClearDone}>
+            <button class="dock-act-btn" type="button" onClick={(e) => { e.stopPropagation(); onClearDone(); }}>
               Clear done
             </button>
           ) : null}
           {hiddenCount ? (
-            <button class="activity-secondary" type="button" onClick={onRestoreHidden}>
+            <button class="dock-act-btn" type="button" onClick={(e) => { e.stopPropagation(); onRestoreHidden(); }}>
               Restore hidden
             </button>
           ) : null}
-          <button class="activity-toggle" type="button" aria-expanded={!collapsed} onClick={onToggle}>
-            {collapsed ? 'Show' : 'Hide'}
-          </button>
+          <span class={cx('dock-chevron', !collapsed && 'open')} style={{display:'flex'}}><IconChevronDown size={16} /></span>
         </div>
-      </div>
-      <div class="activity-body">
-        {tasks.length === 0 ? (
-          <div class="task-empty">
-            {hiddenCount ? 'All visible activity is hidden right now.' : 'Long-running actions will stream here.'}
-          </div>
-        ) : (
-          <div class="activity-list">
-            {tasks.map((task) => {
-              const collapsedTask = taskCollapsed(task);
-              const lastEntry = task.logs?.[task.logs.length - 1] ?? null;
-              const leaving = leavingTaskIds.includes(task.id);
-              return (
-                <article class={classNames('task-card', task.status, collapsedTask && 'is-collapsed', leaving && 'is-leaving')} key={task.id}>
-                  <div class="task-head">
-                    <div class="task-head-copy">
-                      <div class="task-title-row">
-                        <div class="task-title">{task.label}</div>
-                        <span class={classNames('task-status', task.status)}>
-                          {task.status === 'succeeded' ? 'done' : task.status}
-                        </span>
-                      </div>
-                      <div class="task-sub">
-                        {taskTime(task.startedAt)}
-                        {task.endedAt ? ` - ${taskTime(task.endedAt)}` : ''}
-                      </div>
-                      {collapsedTask && lastEntry?.message ? <div class="task-preview">{lastEntry.message}</div> : null}
-                    </div>
-                    <div class="task-head-actions">
-                      <button class="task-toggle" type="button" onClick={() => onToggleTask(task.id)}>
-                        {collapsedTask ? 'Expand' : 'Collapse'}
-                      </button>
-                      {task.status === 'running' ? (
-                        <button class="task-cancel" type="button" onClick={() => onCancel(task.id)}>
-                          Cancel
-                        </button>
-                      ) : null}
-                      {!isActiveTask(task) ? (
-                        <button class="task-dismiss" type="button" onClick={() => handleDismiss(task.id)}>
-                          Dismiss
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div class="task-log">
-                    {(task.logs || []).map((entry) => (
-                      <div class={classNames('task-line', entry.level)} key={entry.id}>
-                        <span class="task-time">{taskTime(entry.timestamp)}</span>
-                        <span class="task-msg">{entry.message}</span>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              );
-            })}
+
+        {!collapsed && (
+          <div class="dock-body">
+            {tasks.length === 0 ? (
+              <div class="dock-empty">
+                {hiddenCount ? 'All visible activity is hidden.' : 'Long-running actions will stream here.'}
+              </div>
+            ) : (
+              tasks.map((task) => (
+                <DockTask
+                  key={task.id}
+                  task={task}
+                  leaving={leavingTaskIds.includes(task.id)}
+                  collapsed={taskCollapsed(task)}
+                  onCancel={onCancel}
+                  onDismiss={handleDismiss}
+                  onToggle={onToggleTask}
+                />
+              ))
+            )}
           </div>
         )}
       </div>
-    </aside>
+    </div>
+  );
+}
+
+function DockTask({task, leaving, collapsed, onCancel, onDismiss, onToggle}) {
+  const active = isActiveTask(task);
+  const statusLabel = task.status === 'succeeded' ? 'done' : task.status;
+  const lastEntry = task.logs?.[task.logs.length - 1] ?? null;
+
+  return (
+    <div class={cx('dock-task', task.status, leaving && 'is-leaving')}>
+      <div class="dock-task-top">
+        <span class="dock-task-ic">
+          {task.status === 'running' ? <IconRotateCcw size={14} /> :
+           task.status === 'failed' ? <IconAlertTriangle size={14} /> :
+           <IconCheck size={14} />}
+        </span>
+        <div class="dock-task-main">
+          <div class="dock-task-title">{task.label}</div>
+          <div class="dock-task-sub">
+            {taskTime(task.startedAt)}
+            {task.endedAt ? ` – ${taskTime(task.endedAt)}` : ''}
+          </div>
+        </div>
+        <span class={`dock-task-st ${task.status}`}>{statusLabel}</span>
+        <div class="dock-task-actions">
+          <button class="dock-act-btn" type="button" onClick={() => onToggle(task.id)}>
+            {collapsed ? 'Expand' : 'Collapse'}
+          </button>
+          {task.status === 'running' && (
+            <button class="dock-act-cancel" type="button" onClick={() => onCancel(task.id)}>Cancel</button>
+          )}
+          {!active && (
+            <button class="dock-act-btn" type="button" onClick={() => onDismiss(task.id)}>Dismiss</button>
+          )}
+        </div>
+      </div>
+      {!collapsed && (task.logs?.length ? (
+        <div class="dock-task-log">
+          {task.logs.map((entry) => (
+            <div class={cx('dock-task-line', entry.level)} key={entry.id}>
+              <span class="dock-task-time">{taskTime(entry.timestamp)}</span>
+              <span class="dock-task-msg">{entry.message}</span>
+            </div>
+          ))}
+        </div>
+      ) : collapsed && lastEntry?.message ? (
+        <div class="dock-task-log">
+          <div class="dock-task-line"><span class="dock-task-time" /><span class="dock-task-msg">{lastEntry.message}</span></div>
+        </div>
+      ) : null)}
+    </div>
   );
 }
