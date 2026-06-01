@@ -1,4 +1,5 @@
 import {describe, expect, test} from 'vitest';
+import {readFileSync} from 'node:fs';
 
 import {ALL_TOOLS, TOOL_CATALOG} from '../../src/entrypoints/mcp-server/mcp-server-tools.js';
 import {validateToolResult} from '../../src/entrypoints/mcp-server/mcp-server.js';
@@ -48,6 +49,20 @@ describe('mcp server tools', () => {
     expect(bootstrap?.outputSchema).toBeDefined();
     expect(bootstrap?.writesFiles).toBe(true);
     expect(preflight?.outputSchema).toBeDefined();
+  });
+
+  test('MCP agent docs document every current tool fallback', () => {
+    const agentDocs = [
+      ['docs/agentic/mcp-decision-route.md', readFileSync('docs/agentic/mcp-decision-route.md', 'utf8')],
+      ['templates/ai/install/AGENTS.md', readFileSync('templates/ai/install/AGENTS.md', 'utf8')],
+    ];
+
+    for (const tool of ALL_TOOLS) {
+      for (const [filePath, content] of agentDocs) {
+        expect(content, `${filePath}: ${tool.TOOL_NAME}`).toContain(tool.TOOL_NAME);
+        expect(content, `${filePath}: ${tool.TOOL_NAME}`).toContain(tool.fallbackCli);
+      }
+    }
   });
 
   test('returns structured content while keeping text JSON compatibility', () => {

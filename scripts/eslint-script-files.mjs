@@ -4,6 +4,7 @@ export const LINT_SCRIPT_FILES = Object.freeze([
   'scripts/extract-pack-filename.mjs',
   'scripts/postprocess-docs-build.mjs',
   'scripts/run-eslint-scripts.mjs',
+  'scripts/verify-ai-templates.mjs',
   'scripts/git-hooks/pre-commit.mjs',
   'scripts/verify-schema.mts',
 ]);

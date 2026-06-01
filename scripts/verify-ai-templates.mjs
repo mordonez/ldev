@@ -23,6 +23,10 @@ const forbiddenLiterals = [
 
 const skillRoots = ['templates/ai/skills', 'templates/ai/project/skills'];
 
+/**
+ * @param {string} relativeDir
+ * @returns {Promise<string[]>}
+ */
 async function walk(relativeDir) {
   const absoluteDir = path.join(repoRoot, relativeDir);
   const entries = await readdir(absoluteDir, {withFileTypes: true});
@@ -31,6 +35,10 @@ async function walk(relativeDir) {
 
   for (const entry of entries) {
     const entryRelativePath = posix.join(relativeDir.replaceAll('\\', '/'), entry.name);
+
+    if (entry.isSymbolicLink()) {
+      continue;
+    }
 
     if (entry.isDirectory()) {
       files.push(...(await walk(entryRelativePath)));
@@ -43,6 +51,10 @@ async function walk(relativeDir) {
   return files;
 }
 
+/**
+ * @param {string} relativePath
+ * @returns {string | null}
+ */
 function mapSourceToInstalled(relativePath) {
   const normalized = relativePath.replaceAll('\\', '/');
   const parts = normalized.split('/');
@@ -62,6 +74,10 @@ function mapSourceToInstalled(relativePath) {
   return null;
 }
 
+/**
+ * @param {string} content
+ * @returns {string[]}
+ */
 function extractInlineRelativePaths(content) {
   const matches = content.matchAll(/`((?:\.\.\/|\.\/|references\/)[^`\s]+)`/g);
   /** @type {string[]} */
@@ -124,9 +140,7 @@ async function verifyForbiddenLiterals() {
 
 async function verifyInstalledRelativePaths() {
   const sourceFiles = (await Promise.all(skillRoots.map((root) => walk(root)))).flat();
-  const installedFiles = new Set(
-    sourceFiles.map(mapSourceToInstalled).filter((value) => value !== null),
-  );
+  const installedFiles = new Set(sourceFiles.map(mapSourceToInstalled).filter((value) => value !== null));
 
   let hasFailures = false;
 
@@ -145,9 +159,7 @@ async function verifyInstalledRelativePaths() {
     const references = extractInlineRelativePaths(content);
 
     for (const reference of references) {
-      const resolvedInstalledPath = posix.normalize(
-        posix.join(posix.dirname(installedSourcePath), reference),
-      );
+      const resolvedInstalledPath = posix.normalize(posix.join(posix.dirname(installedSourcePath), reference));
 
       if (installedFiles.has(resolvedInstalledPath)) {
         continue;
@@ -170,11 +182,7 @@ async function verifyInstalledRelativePaths() {
 async function main() {
   console.log('Verifying AI templates...\n');
 
-  const checks = await Promise.all([
-    verifyBootstrapFiles(),
-    verifyForbiddenLiterals(),
-    verifyInstalledRelativePaths(),
-  ]);
+  const checks = await Promise.all([verifyBootstrapFiles(), verifyForbiddenLiterals(), verifyInstalledRelativePaths()]);
 
   if (checks.every(Boolean)) {
     console.log('\nAI template verification passed');

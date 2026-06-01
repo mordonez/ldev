@@ -93,6 +93,36 @@ describe('AI template guardrails', () => {
     expect(projectIssue).toContain('Portal resources -> `portal-resource-workflow`');
   });
 
+  test('AI command docs only reference installable vendor skills', async () => {
+    const vendorManifest = await readTemplate('templates/ai/install/vendor-skills.txt');
+    const commandDocs = await readTemplate('docs/commands/project-and-ai.md');
+    const vendorSkills = new Set(
+      vendorManifest
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('#')),
+    );
+    const documentedSkills = [...commandDocs.matchAll(/--skill\s+([a-z0-9-]+)/g)].map((match) => match[1]);
+
+    expect(documentedSkills.length).toBeGreaterThan(0);
+    for (const documentedSkill of documentedSkills) {
+      expect(vendorSkills.has(documentedSkill), documentedSkill).toBe(true);
+    }
+  });
+
+  test('agent entrypoints document fragment imports as the check-only exception', async () => {
+    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const workspaceAgents = await readTemplate('templates/ai/install/AGENTS.workspace.md');
+
+    for (const content of [agents, workspaceAgents]) {
+      expect(content).toContain('resource mutations that support it');
+      expect(content).toContain('`import-fragment` has no `--check-only`');
+      expect(content).not.toContain(
+        'any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`',
+      );
+    }
+  });
+
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {
     const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
     const agents = await readTemplate('templates/ai/install/AGENTS.md');
