@@ -78,6 +78,11 @@ ldev env restore
 ldev start
 ```
 
+## Done When
+
+Root cause is identified and documented. Route to the fix skill (`developing-liferay`,
+`portal-resource-workflow`, etc.). Do not claim done from an untested hypothesis.
+
 ## Guardrails
 
 - Do not jump straight to rebuild, clean, or restore.

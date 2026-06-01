@@ -3,7 +3,7 @@ name: capturing-session-knowledge
 description: 'Captures durable project learnings that prevent repeated agent mistakes. Use when ending a session after discovering non-obvious project constraints, failure causes, or efficiency shortcuts.'
 ---
 
-# capturing-session-knowledge
+# Capturing Session Knowledge
 
 Use this skill to distil what the session revealed that a fresh agent should
 know before starting the next one. The goal is to avoid repeating mistakes and

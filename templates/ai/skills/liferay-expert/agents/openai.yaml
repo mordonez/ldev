@@ -1,4 +1,4 @@
 interface:
   display_name: "Liferay Expert"
-  short_description: "Route technical Liferay work to the right specialist skill"
+  short_description: "Route technical Liferay work to the right specialist skill. Use when the next step for a Liferay task is unclear or needs diagnosis, implementation, deployment, or migration."
   default_prompt: "Use $liferay-expert to decide if this Liferay task should go through troubleshooting, development, deploy, or migration."

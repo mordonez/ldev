@@ -46,6 +46,12 @@ explicit activation key before `ldev start`.
 9. Use `ldev worktree status --json` or `ldev worktree list --json` to inspect runtime ownership and ports. Do not infer worktree ownership from port reachability alone.
 10. Clean up only after explicit human approval.
 
+## Done When
+
+The confirmed worktree root is locked (`git rev-parse --show-toplevel` matches
+`.worktrees/<name>`), the runtime is started if needed, and the edit boundary
+is verified. Report the locked root to the caller before any further edits.
+
 ## Reference
 
 Read `references/worktree-flow.md` for setup variants, recovery paths,

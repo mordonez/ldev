@@ -93,6 +93,7 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
 
 ## Safety Invariants
 
+<!-- sync-with: templates/ai/install/AGENTS.md Safety Invariants (items 1-10 are shared) -->
 These rules apply to every task, regardless of the skill in use:
 
 1. Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`. Use `context.commands.*` and `doctor.readiness.*` to verify readiness before running any command.

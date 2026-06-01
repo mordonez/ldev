@@ -70,6 +70,11 @@ ldev oauth install --write-env
 ldev oauth admin-unblock
 ```
 
+## Done When
+
+The task is routed to the matching specialist skill and that skill is active.
+This router does not execute the fix — it classifies and hands off.
+
 ## Guardrails
 
 - Use `ldev` as the official interface.
