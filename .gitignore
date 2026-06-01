@@ -14,6 +14,7 @@ test-results/
 
 # ── Scratch / working files ───────────────────────────────────
 tmp/
+.worktrees/
 
 # ── Packaged tarballs ─────────────────────────────────────────
 mordonezdev-ldev-*.tgz

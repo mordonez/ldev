@@ -272,6 +272,34 @@ describe('collectModuleArtifacts', () => {
     expect(result[0]).toContain('my-module-1.0.0.jar');
   });
 
+  test('finds artifact for a nested module by leaf name', async () => {
+    const liferayDir = path.join(tmpDir, 'liferay');
+    const moduleDir = path.join(liferayDir, 'modules', 'parent', 'child-api');
+    const libsDir = path.join(moduleDir, 'build', 'libs');
+    await fs.ensureDir(libsDir);
+    await fs.writeFile(path.join(moduleDir, 'build.gradle'), '');
+    await fs.writeFile(path.join(libsDir, 'child-api-1.0.0.jar'), '');
+
+    const ctx = makeContext(liferayDir);
+    const result = await collectModuleArtifacts(ctx, 'child-api');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('child-api-1.0.0.jar');
+  });
+
+  test('finds artifact for a nested module by relative path', async () => {
+    const liferayDir = path.join(tmpDir, 'liferay');
+    const moduleDir = path.join(liferayDir, 'modules', 'parent', 'child-service');
+    const libsDir = path.join(moduleDir, 'build', 'libs');
+    await fs.ensureDir(libsDir);
+    await fs.writeFile(path.join(moduleDir, 'build.gradle'), '');
+    await fs.writeFile(path.join(libsDir, 'child-service-1.0.0.jar'), '');
+
+    const ctx = makeContext(liferayDir);
+    const result = await collectModuleArtifacts(ctx, 'modules/parent/child-service');
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('child-service-1.0.0.jar');
+  });
+
   test('finds artifact in theme dist dir', async () => {
     const liferayDir = path.join(tmpDir, 'liferay');
     const distDir = path.join(liferayDir, 'themes', 'my-theme', 'dist');

@@ -14,6 +14,7 @@ import {
   readPrepareCommit,
   runDeployStep,
   runGradleTask,
+  hotDeployArtifactsToRunningLiferay,
   seedBuildDockerConfigs,
   syncArtifactsToDeployCache,
   syncArtifactsToBuildDeploy,
@@ -27,6 +28,10 @@ export type DeployAllResult = {
   targetCommit: string;
   seededDockerenv: boolean;
   artifactsCopiedToCache: number;
+  artifactsHotDeployed: number;
+  hotDeployed: boolean;
+  hotDeployReason: string | null;
+  hotDeployTarget: string | null;
   cacheDir: string | null;
 };
 
@@ -64,6 +69,7 @@ export async function runDeployAll(config: AppConfig, options?: {printer?: Print
   const targetCommit = await resolveHeadCommit(context.repoRoot);
   await writePrepareCommit(context, targetCommit);
   const artifacts = await listDeployArtifacts(context.buildDeployDir);
+  const hotDeploy = await hotDeployArtifactsToRunningLiferay(config, artifacts);
   const cache = await syncArtifactsToDeployCache(config, context, artifacts);
 
   return {
@@ -72,6 +78,10 @@ export async function runDeployAll(config: AppConfig, options?: {printer?: Print
     targetCommit,
     seededDockerenv,
     artifactsCopiedToCache: cache.copied,
+    artifactsHotDeployed: hotDeploy.copied,
+    hotDeployed: hotDeploy.hotDeployed,
+    hotDeployReason: hotDeploy.reason,
+    hotDeployTarget: hotDeploy.target,
     cacheDir: cache.cacheDir,
   };
 }
@@ -86,6 +96,8 @@ export function formatDeployAll(result: DeployAllResult): string {
     `Prepared commit: ${result.targetCommit}`,
     `dockerenv copied: ${result.seededDockerenv ? 'yes' : 'no'}`,
     `artifacts in cache: ${result.artifactsCopiedToCache}`,
+    `Hot deployed to running Liferay: ${result.hotDeployed ? `yes (${result.artifactsHotDeployed})` : 'no'}`,
+    ...(result.hotDeployReason ? [`Hot deploy reason: ${result.hotDeployReason}`] : []),
   ].join('\n');
 }
 
@@ -125,6 +137,10 @@ async function runWorkspaceDeployAll(config: AppConfig, options?: {printer?: Pri
     targetCommit: await resolveWorkspaceTargetCommit(repoRoot),
     seededDockerenv: false,
     artifactsCopiedToCache: 0,
+    artifactsHotDeployed: 0,
+    hotDeployed: false,
+    hotDeployReason: 'blade workspace deploy does not use ldev docker hot deploy',
+    hotDeployTarget: null,
     cacheDir: null,
   };
 }

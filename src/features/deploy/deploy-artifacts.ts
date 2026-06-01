@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import type {DeployContext} from './deploy-gradle.js';
+import {resolveDeployModuleArtifactDirs} from './deploy-module-resolver.js';
 
 export async function listDeployArtifacts(directory: string): Promise<string[]> {
   if (!(await fs.pathExists(directory))) {
@@ -22,17 +23,8 @@ export async function syncArtifactsToBuildDeploy(context: DeployContext, artifac
 }
 
 export async function collectModuleArtifacts(context: DeployContext, module: string): Promise<string[]> {
-  const candidates = [
-    path.join(context.liferayDir, 'themes', module, 'dist'),
-    path.join(context.liferayDir, 'modules', module, `${module}-api`, 'build', 'libs'),
-    path.join(context.liferayDir, 'modules', module, `${module}-service`, 'build', 'libs'),
-    path.join(context.liferayDir, 'modules', module, 'build', 'libs'),
-    path.join(context.liferayDir, 'client-extensions', module, 'dist'),
-    path.join(context.liferayDir, 'wars', module, 'build', 'libs'),
-  ];
-
   const artifacts: string[] = [];
-  for (const candidate of candidates) {
+  for (const candidate of await resolveDeployModuleArtifactDirs(context, module)) {
     artifacts.push(...(await listDeployArtifacts(candidate)));
   }
 

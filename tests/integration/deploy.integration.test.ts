@@ -12,6 +12,9 @@ import {runCli} from '../../src/testing/cli-entry.js';
 type DeployAllPayload = {
   seededDockerenv: boolean;
   artifactsCopiedToCache: number;
+  artifactsHotDeployed: number;
+  hotDeployed: boolean;
+  hotDeployTarget: string | null;
 };
 
 type DeployPreparePayload = {
@@ -45,17 +48,26 @@ type DeployCacheUpdatePayload = {
 describe('deploy integration', () => {
   test('deploy all executes dockerDeploy and writes the prepare marker', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {...process.env, PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`};
 
-    const result = await runCli(['deploy', 'all', '--format', 'json'], {cwd: repoRoot});
+    const result = await runCli(['deploy', 'all', '--format', 'json'], {cwd: repoRoot, env});
 
     expect(result.exitCode).toBe(0);
     const parsed = parseTestJson<DeployAllPayload>(result.stdout);
     expect(parsed.seededDockerenv).toBe(true);
+    expect(parsed.hotDeployed).toBe(true);
+    expect(parsed.artifactsHotDeployed).toBe(1);
+    expect(parsed.hotDeployTarget).toBe('liferay-container');
     expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'demo.jar'))).toBe(true);
     expect(parsed.artifactsCopiedToCache).toBe(1);
     expect(
       await fs.pathExists(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-deploy-cache', 'demo.jar')),
     ).toBe(true);
+    const calls = await readFakeDockerCalls(fakeBinDir);
+    expect(calls).toEqual(
+      expect.arrayContaining(['compose ps -q liferay', expect.stringContaining('compose exec -T liferay sh -lc')]),
+    );
   }, 60000);
 
   test('deploy prepare writes build marker and seeds dockerenv without buildService when unnecessary', async () => {
@@ -157,6 +169,24 @@ describe('deploy integration', () => {
     ).toBe(true);
   }, 45000);
 
+  test('deploy module resolves nested modules by leaf directory name', async () => {
+    const repoRoot = await createDeployRepoFixture({withServiceXml: false});
+
+    const result = await runCli(['deploy', 'module', 'child-api', '--format', 'json'], {
+      cwd: repoRoot,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const parsed = parseTestJson<DeployModulePayload>(result.stdout);
+    expect(parsed.artifactsCopiedToBuild).toBe(1);
+    expect(parsed.artifactsCopiedToCache).toBe(1);
+    expect(await fs.pathExists(path.join(repoRoot, 'liferay', 'build', 'docker', 'deploy', 'child-api.jar'))).toBe(
+      true,
+    );
+    const gradleCalls = await fs.readFile(path.join(repoRoot, 'liferay', '.gradle-calls.log'), 'utf8');
+    expect(gradleCalls).toContain(':modules:parent:child-api:dockerDeploy');
+  }, 45000);
+
   test('deploy theme syncs theme artifacts to build/docker/deploy and deploy cache', async () => {
     const repoRoot = await createDeployRepoFixture({withServiceXml: false});
     const fakeBinDir = await createFakeDockerBin();
@@ -254,6 +284,7 @@ async function createDeployRepoFixture(options: {withServiceXml: boolean}): Prom
   await fs.ensureDir(path.join(repoRoot, 'docker', 'data', 'default'));
   await fs.ensureDir(path.join(liferayDir, 'configs', 'dockerenv'));
   await fs.ensureDir(path.join(liferayDir, 'modules', 'foo'));
+  await fs.ensureDir(path.join(liferayDir, 'modules', 'parent', 'child-api'));
   await fs.ensureDir(path.join(liferayDir, 'themes', 'ub-theme'));
   await fs.writeFile(path.join(repoRoot, 'docker', 'docker-compose.yml'), 'services:\n  liferay:\n');
   await fs.writeFile(
@@ -266,6 +297,12 @@ async function createDeployRepoFixture(options: {withServiceXml: boolean}): Prom
     'virtual.hosts.valid.hosts=*\n',
   );
   await fs.writeFile(path.join(liferayDir, 'modules', 'foo', 'service.properties'), 'release.info.version=1\n');
+  await fs.writeFile(path.join(liferayDir, 'modules', 'foo', 'build.gradle'), 'plugins {}\n');
+  await fs.writeFile(path.join(liferayDir, 'modules', 'parent', 'child-api', 'build.gradle'), 'plugins {}\n');
+  await fs.writeFile(
+    path.join(liferayDir, 'modules', 'parent', 'child-api', 'bnd.bnd'),
+    'Bundle-SymbolicName: com.example.child.api\n',
+  );
   if (options.withServiceXml) {
     await fs.writeFile(path.join(liferayDir, 'modules', 'foo', 'service.xml'), '<service-builder />\n');
   }
@@ -281,6 +318,11 @@ fi
 if [[ "$*" == *":modules:foo:dockerDeploy"* ]]; then
   mkdir -p "${liferayDir}/modules/foo/build/libs"
   printf 'foo\\n' > "${liferayDir}/modules/foo/build/libs/foo.jar"
+  exit 0
+fi
+if [[ "$*" == *":modules:parent:child-api:dockerDeploy"* ]]; then
+  mkdir -p "${liferayDir}/modules/parent/child-api/build/libs"
+  printf 'child\\n' > "${liferayDir}/modules/parent/child-api/build/libs/child-api.jar"
   exit 0
 fi
 if [[ "$*" == *":themes:ub-theme:dockerDeploy"* ]]; then
@@ -310,6 +352,12 @@ echo %* | findstr /C:":modules:foo:dockerDeploy" >nul\r
 if not errorlevel 1 (\r
   mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\foo\\\\build\\\\libs" >nul 2>&1\r
   echo foo> "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\foo\\\\build\\\\libs\\\\foo.jar"\r
+  exit /b 0\r
+)\r
+echo %* | findstr /C:":modules:parent:child-api:dockerDeploy" >nul\r
+if not errorlevel 1 (\r
+  mkdir "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\parent\\\\child-api\\\\build\\\\libs" >nul 2>&1\r
+  echo child> "${liferayDir.replaceAll('\\', '\\\\')}\\\\modules\\\\parent\\\\child-api\\\\build\\\\libs\\\\child-api.jar"\r
   exit /b 0\r
 )\r
 echo %* | findstr /C:":themes:ub-theme:dockerDeploy" >nul\r

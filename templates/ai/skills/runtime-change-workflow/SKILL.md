@@ -11,12 +11,15 @@ technical gates.
 
 ## Gate Order
 
-1. Bootstrap and lock the active root:
+1. Bootstrap and lock the active root before any file edit or runtime mutation:
 
 ```bash
 ldev ai bootstrap --intent=develop --cache=60 --json
 git rev-parse --show-toplevel
 ```
+
+If a tool-capable agent has not completed this gate, do not Edit, Write, or
+deploy. First load the routed skill, then mutate only inside the locked root.
 
 2. For `ldev-native` non-trivial work, use `isolating-worktrees` unless the
    user explicitly chooses a lighter path.
@@ -55,7 +58,7 @@ git rev-parse --show-toplevel
 
 - Use `--json` for agent-consumed command output.
 - Use the resource mutation gates in
-   [../../docs/RESOURCE_MUTATION_GATES.md](../../docs/RESOURCE_MUTATION_GATES.md).
+  [../../docs/RESOURCE_MUTATION_GATES.md](../../docs/RESOURCE_MUTATION_GATES.md).
 - Resolve IDs, keys, site names, and URLs through `ldev portal inventory`.
 - Diagnose failed commands before retrying.
 - Do not claim Green until the original Red scenario no longer reproduces.

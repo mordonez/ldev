@@ -34,6 +34,11 @@ ldev osgi status <bundle-symbolic-name> --json
 ldev osgi diag <bundle-symbolic-name> --json
 ```
 
+`<module-name>` may be the leaf directory, a `modules/...` relative path, or
+the bundle symbolic name from `bnd.bnd`. If `MODULE_NOT_FOUND` appears, inspect
+the command hints and retry with the relative module path before widening to
+`ldev deploy all`.
+
 - Theme:
 
 ```bash
@@ -50,15 +55,7 @@ Use the runtime proof contract in
 Use portal-resource-workflow.
 ```
 
-- Journal migration:
-
-```bash
-ldev resource migration-pipeline --migration-file <file> --check-only
-ldev resource migration-pipeline --migration-file <file>
-```
-
-For migration validation in a worktree, first scope the descriptor to the tested
-content item with `introduce.articleIds`.
+- Journal migration: use `migrating-journal-structures`.
 
 Use `ldev deploy prepare` only to stage artifacts before a deploy. It is not a
 substitute for deploying or importing into the running portal.
@@ -87,6 +84,8 @@ For production, include the `ldev resource ...` command and manual UI fallback.
 ## Guardrails
 
 - Do not use a wider deploy than necessary.
+- Treat `ldev deploy all` JSON as runtime evidence only when `hotDeployed` is
+  true or `hotDeployReason` explains why a restart/manual action remains.
 - For theme deploys, use the contract in
   [../../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
 - Use local `ldev` MCP tools only for read-only verification and diagnosis.

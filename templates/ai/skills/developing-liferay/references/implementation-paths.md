@@ -60,6 +60,11 @@ References:
 
 Use the stable file-based resource workflows instead of ad hoc API calls.
 
+For Search Results ADTs, first inspect the data already supplied by
+`searchContainer.getResults()` and indexed document fields. Do not start with a
+JSP/taglib override unless runtime evidence proves the ADT cannot reach the
+needed indexed values.
+
 References:
 
 - `structures.md`
@@ -70,7 +75,7 @@ References:
 ```bash
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
 ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
-ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
+ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --widget-type <type> --check-only
 ```
 
 When validation looks correct, run the same command without `--check-only`.
@@ -79,7 +84,7 @@ Use the import that matches the edited resource type:
 
 - structure -> `ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY>`
 - template -> `ldev resource import-template --site /<site> --template <TEMPLATE_ID>`
-- ADT -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl>`
+- ADT -> `ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --widget-type <type>`
 
 ## Fragments
 

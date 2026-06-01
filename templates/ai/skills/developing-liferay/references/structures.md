@@ -79,7 +79,7 @@ ldev resource export-adt --site /<site> --adt <ADT_KEY>
 ```bash
 ldev resource import-structure --site /<site> --structure <STRUCTURE_KEY> --check-only
 ldev resource import-template --site /<site> --template <TEMPLATE_ID> --check-only
-ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --check-only
+ldev resource import-adt --site /<site> --file <path/to/adt.ftl> --widget-type <type> --check-only
 ```
 
 4. If validation is correct, rerun without `--check-only`

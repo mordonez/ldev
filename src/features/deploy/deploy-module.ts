@@ -1,9 +1,7 @@
-import fs from 'fs-extra';
-import path from 'node:path';
-
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {DeployErrors} from './errors/deploy-error-factory.js';
+import {resolveDeployModuleTarget} from './deploy-module-resolver.js';
 
 import {
   collectModuleArtifacts,
@@ -42,9 +40,12 @@ export async function runDeployModule(
 
   const context = resolveDeployContext(config);
   await ensureGradleWrapper(context);
+  const target = await resolveDeployModuleTarget(context, module);
 
-  await runDeployStep(options.printer, `Deploying module ${module}`, async () => {
-    await runGradleTasksForModule(context, module);
+  await runDeployStep(options.printer, `Deploying module ${target.label}`, async () => {
+    for (const task of target.gradleTasks) {
+      await runGradleTask(context, task);
+    }
   });
 
   const artifacts = await collectModuleArtifacts(context, module);
@@ -57,7 +58,7 @@ export async function runDeployModule(
 
   return {
     ok: true,
-    module,
+    module: target.label,
     artifactsCopiedToBuild,
     artifactsCopiedToCache: cache.copied,
     artifactsHotDeployed: hotDeploy.copied,
@@ -79,52 +80,4 @@ export function formatDeployModule(result: DeployModuleResult): string {
     `Artifacts in cache: ${result.artifactsCopiedToCache}`,
     `Prepared commit: ${result.targetCommit}`,
   ].join('\n');
-}
-
-async function runGradleTasksForModule(
-  context: ReturnType<typeof resolveDeployContext>,
-  module: string,
-): Promise<void> {
-  const themeDir = path.join(context.liferayDir, 'themes', module);
-  if (await fs.pathExists(themeDir)) {
-    await runGradleTask(context, [`:themes:${module}:dockerDeploy`, '-q']);
-    return;
-  }
-
-  const clientExtDir = path.join(context.liferayDir, 'client-extensions', module);
-  if (await fs.pathExists(clientExtDir)) {
-    await runGradleTask(context, [
-      `:client-extensions:${module}:dockerDeploy`,
-      '-Pliferay.workspace.environment=dockerenv',
-    ]);
-    return;
-  }
-
-  const warDir = path.join(context.liferayDir, 'wars', module);
-  if (await fs.pathExists(warDir)) {
-    await runGradleTask(context, [`:wars:${module}:dockerDeploy`, '-Pliferay.workspace.environment=dockerenv']);
-    return;
-  }
-
-  const apiDir = path.join(context.liferayDir, 'modules', module, `${module}-api`);
-  const serviceDir = path.join(context.liferayDir, 'modules', module, `${module}-service`);
-  if ((await fs.pathExists(apiDir)) && (await fs.pathExists(serviceDir))) {
-    await runGradleTask(context, [
-      `:modules:${module}:${module}-api:dockerDeploy`,
-      '-Pliferay.workspace.environment=dockerenv',
-    ]);
-    await runGradleTask(context, [
-      `:modules:${module}:${module}-service:dockerDeploy`,
-      '-Pliferay.workspace.environment=dockerenv',
-    ]);
-    return;
-  }
-
-  const moduleDir = path.join(context.liferayDir, 'modules', module);
-  if (await fs.pathExists(moduleDir)) {
-    await runGradleTask(context, [`:modules:${module}:dockerDeploy`, '-Pliferay.workspace.environment=dockerenv']);
-    return;
-  }
-
-  throw DeployErrors.moduleNotFound(`No module, theme, client extension, or war named ${module} exists.`);
 }

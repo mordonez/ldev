@@ -629,7 +629,7 @@ describe('liferay inventory structures and templates', () => {
 
     expect(result).toEqual([
       {
-        id: '',
+        id: '40802',
         name: 'Legacy News',
         contentStructureId: 302,
         externalReferenceCode: 'legacy-news',
@@ -684,7 +684,7 @@ describe('liferay inventory structures and templates', () => {
 
     expect(result).toEqual([
       {
-        id: '',
+        id: '40802',
         name: 'Legacy News',
         contentStructureId: 302,
         externalReferenceCode: 'legacy-news',
