@@ -51,7 +51,7 @@ ldev ai install --target .
 ldev ai install --target . --project-context
 ldev ai install --target . --project --project-context
 ldev ai install --target . --skills-only
-ldev ai install --target . --skill ldev-environment --skill liferay-discovery
+ldev ai install --target . --skill liferay-expert --skill developing-liferay
 ldev ai install --target . --force
 ldev ai install --target . --local
 ```
@@ -61,7 +61,7 @@ Options:
 - `--target <dir>` (required) — project root
 - `--force` — overwrite `AGENTS.md` if it already exists
 - `--local` — keep AI tooling local by adding generated agent/editor files to `.gitignore`, while `docs/ai` stays versionable
-- `--skills-only` — only update vendor skills from the manifest
+- `--skills-only` — only update vendor skills and managed rules from the manifest
 - `--project-context` — install project-owned context scaffolding (`docs/ai/project-context.md` + sample)
 - `--project` — install project-owned skills and agents, filtered by detected project type; also installs the project context scaffold
 - `--skill <name>` — install only specific vendor skills (repeatable)
@@ -74,14 +74,14 @@ What the install produces:
 
 ## `ldev ai update`
 
-Safely refresh vendor skills listed in the manifest.
+Safely refresh vendor skills and managed rules listed in the manifest.
 
 ```bash
 ldev ai update --target .
-ldev ai update --target . --skill ldev-environment --skill liferay-discovery
+ldev ai update --target . --skill liferay-expert --skill developing-liferay
 ```
 
-`--skill <name>` rewrites the vendor manifest to the selected set and refreshes only those skills.
+`--skill <name>` rewrites the vendor manifest to the selected skill set and refreshes managed rules.
 
 ## `ldev ai status`
 

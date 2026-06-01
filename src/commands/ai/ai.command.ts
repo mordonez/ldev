@@ -65,7 +65,7 @@ export function createAiCommand(): Command {
         '--local',
         'Keep AI tooling local by adding generated agent/editor files to .gitignore while leaving docs/ai versionable',
       )
-      .option('--skills-only', 'Only update vendor skills from the manifest')
+      .option('--skills-only', 'Only update vendor skills and managed rules from the manifest')
       .option(
         '--project-context',
         'Also install project-owned context scaffolding (docs/ai/project-context.md and sample)',
@@ -84,7 +84,7 @@ export function createAiCommand(): Command {
   const updateCommand = addOutputFormatOption(
     command
       .command('update')
-      .description('Safely update vendor skills listed in the manifest')
+      .description('Safely update vendor skills and managed rules listed in the manifest')
       .requiredOption('--target <target>', 'Project root')
       .option(
         '--skill <name>',
@@ -135,7 +135,7 @@ export function createAiCommand(): Command {
 This namespace bootstraps the reusable AI surface for a project that uses ldev.
 
 Safe defaults:
-  update               Refresh vendor-managed skills listed in the manifest
+  update               Refresh vendor-managed skills and ldev-managed rules listed in the manifest
   status               Inspect managed rule ownership, manifest state and drift
 
 Potentially mutating:
@@ -149,7 +149,7 @@ Potentially mutating:
   install --project    Also install project-owned skills and agents.
                        ldev only installs the subset that makes sense for the detected project type/runtime:
                        update will not touch them once installed. Also installs project context scaffolding.
-  update --skill ...   Re-scope the vendor-managed set to specific skills and refresh them
+  update --skill ...   Re-scope the vendor-managed skill set and refresh managed rules
 `,
   );
 

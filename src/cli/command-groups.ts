@@ -73,6 +73,15 @@ export const bootstrapGroup: CommandGroup = {
   },
 };
 
+export const agentGroup: CommandGroup = {
+  name: 'agent',
+  version: '0.1.0',
+  group: 'Agent workflows:',
+  register(program) {
+    program.addCommand(createAiCommand().helpGroup(this.group!));
+  },
+};
+
 export const infrastructureGroup: CommandGroup = {
   name: 'infrastructure',
   version: '0.1.0',
@@ -91,21 +100,12 @@ export const infrastructureGroup: CommandGroup = {
   },
 };
 
-/** Hidden commands: available to call but not shown in root help */
-export const hiddenGroup: CommandGroup = {
-  name: 'hidden',
-  version: '0.1.0',
-  register(program) {
-    program.addCommand(createAiCommand(), {hidden: true});
-  },
-};
-
 /** All built-in command groups in registration order */
 export const COMMAND_GROUPS: CommandGroup[] = [
   coreGroup,
   bootstrapGroup,
+  agentGroup,
   portalGroup,
   resourceGroup,
   infrastructureGroup,
-  hiddenGroup,
 ];
