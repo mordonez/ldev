@@ -17,6 +17,7 @@ import {isGatewayStatus, rethrowGatewayAsResourceError} from './shared.js';
 import {
   fetchStructureTemplateClassIds,
   listDdmTemplates,
+  type DdmTemplatePayload,
   type ResolvedResourceSite,
 } from '../liferay-resource-shared.js';
 import {normalizeLiferayTemplateScript} from '../liferay-resource-template-normalize.js';
@@ -27,7 +28,7 @@ import {
   type ResourceDependencies,
   postFormCandidates,
 } from '../liferay-resource-artifact-shared.js';
-import {matchesInventoryTemplate} from '../../liferay-identifiers.js';
+import {matchesDdmTemplate, matchesInventoryTemplate} from '../../liferay-identifiers.js';
 import type {LocalArtifact, RemoteArtifact, ImportStrategy} from '../import-engine.js';
 
 type TemplateLocalData = {
@@ -105,34 +106,13 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
       return true;
     });
 
-    // Try direct DDM template lookup
-    const {classNameId} = await fetchStructureTemplateClassIds(config, dependencies);
-    const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
-    const directDdmTemplate = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), opts.key);
-
-    const listedDdmTemplate = directDdmTemplate
-      ? null
-      : (
-          await listDdmTemplates(config, site as ResolvedResourceSite, dependencies, {
-            includeCompanyFallback: site.friendlyUrlPath === '/global',
-          })
-        ).find((item) => {
-          if (
-            !matchesInventoryTemplate(
-              {
-                id: String(item.templateId ?? ''),
-                externalReferenceCode: String(item.externalReferenceCode ?? item.templateKey ?? ''),
-                name: String(item.nameCurrentValue ?? item.name ?? ''),
-              },
-              opts.key,
-            )
-          ) {
-            return false;
-          }
-          return structureIdFilter === '' || ensureString(item.classPK ?? '', 'classPK') === structureIdFilter;
-        });
-
-    const existing = directDdmTemplate ?? listedDdmTemplate ?? null;
+    const existing = await findUpdatableDdmTemplate(
+      config,
+      site as ResolvedResourceSite,
+      opts.key,
+      structureIdFilter,
+      dependencies,
+    );
 
     if (existing) {
       if (structureIdFilter !== '' && ensureString(existing.classPK ?? '', 'classPK') !== structureIdFilter) {
@@ -143,17 +123,16 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
         name: ensureString(existing.templateKey ?? existing.templateId ?? opts.key, 'templateName'),
         contentHash: localArtifact.contentHash, // Will verify in verify() step
         data: {
-          templateId: ensureString(existing.templateId as string | undefined, 'templateId'),
-          templateKey: existing.templateKey as string | undefined,
-          externalReferenceCode: existing.externalReferenceCode as string | undefined,
-          classPK: ensureString((existing.classPK as string | undefined) ?? '', 'classPK'),
-          script: existing.script as string | undefined,
+          templateId: ensureString(existing.templateId, 'templateId'),
+          templateKey: existing.templateKey,
+          externalReferenceCode: existing.externalReferenceCode,
+          classPK: ensureString(existing.classPK ?? '', 'classPK'),
+          script: existing.script,
         },
       };
     }
 
-    // Check inventory as fallback
-    if (inventoryExisting) {
+    if (inventoryExisting && isJsonWsTemplateId(inventoryExisting.id)) {
       return {
         id: String(inventoryExisting.id),
         name: inventoryExisting.name,
@@ -272,6 +251,49 @@ export const templateImportStrategy: ImportStrategy<TemplateLocalData, TemplateR
   },
 };
 
+function isJsonWsTemplateId(value: string): boolean {
+  const numericId = Number(value);
+  return Number.isFinite(numericId) && numericId > 0;
+}
+
+async function findUpdatableDdmTemplate(
+  config: AppConfig,
+  site: ResolvedResourceSite,
+  key: string,
+  structureIdFilter: string,
+  dependencies?: ResourceDependencies,
+): Promise<DdmTemplatePayload | null> {
+  const {classNameId} = await fetchStructureTemplateClassIds(config, dependencies);
+  const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
+  const direct = await tryGetDdmTemplateByKey(gateway, site.id, String(classNameId), key);
+  if (direct && matchesTemplateForUpdate(direct, key, structureIdFilter)) {
+    return direct;
+  }
+
+  const siteTemplate = (
+    await listDdmTemplates(config, site, dependencies, {
+      includeCompanyFallback: false,
+    })
+  ).find((item) => matchesTemplateForUpdate(item, key, structureIdFilter));
+  if (siteTemplate) {
+    return siteTemplate;
+  }
+
+  return (
+    (await listDdmTemplates(config, site, dependencies, {companyOnly: true})).find((item) =>
+      matchesTemplateForUpdate(item, key, structureIdFilter),
+    ) ?? null
+  );
+}
+
+function matchesTemplateForUpdate(item: DdmTemplatePayload, key: string, structureIdFilter: string): boolean {
+  if (!matchesDdmTemplate(item, key)) {
+    return false;
+  }
+
+  return structureIdFilter === '' || ensureString(item.classPK ?? '', 'classPK') === structureIdFilter;
+}
+
 async function fetchStructureByKey(
   config: AppConfig,
   siteId: number,
@@ -294,9 +316,9 @@ async function tryGetDdmTemplateByKey(
   siteId: number,
   classNameId: string,
   templateKey: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<DdmTemplatePayload | null> {
   try {
-    return await gateway.getJson<Record<string, unknown>>(
+    return await gateway.getJson<DdmTemplatePayload>(
       `/api/jsonws/ddm.ddmtemplate/get-template?groupId=${siteId}&classNameId=${classNameId}&templateKey=${templateKey}`,
       'template-lookup',
     );

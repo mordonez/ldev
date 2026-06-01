@@ -99,7 +99,8 @@ describe('ai integration', () => {
     expect(agents).toContain('editing root');
     expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
     const claude = await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8');
-    expect(claude).toContain('if it exists');
+    const effectiveClaude = claude.trim() === '@AGENTS.md' ? agents : claude;
+    expect(effectiveClaude).toContain('if it exists');
   }, 30000);
 
   test('install --local adds agent/editor tooling paths to .gitignore but keeps docs/ai versionable', async () => {

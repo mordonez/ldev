@@ -1,6 +1,6 @@
 ---
 name: capturing-session-knowledge
-description: "Captures durable project learnings that prevent repeated agent mistakes. Use when ending a session after discovering non-obvious project constraints, failure causes, or efficiency shortcuts."
+description: 'Captures durable project learnings that prevent repeated agent mistakes. Use when ending a session after discovering non-obvious project constraints, failure causes, or efficiency shortcuts.'
 ---
 
 # capturing-session-knowledge
@@ -40,6 +40,8 @@ Each entry is an atomic, actionable insight to avoid past mistakes.
 
 Each entry must be atomic and actionable:
 
+- **Repeated preventable agent mistakes** — missing bootstrap/skill routing,
+  wrong shell invocation, or a broad fallback after a focused command failed.
 - **Errors with a known cause** — something that failed and why, so it is not
   retried blindly (e.g. "gradle deployFast fails on this module because X; use
   blade deploy instead").
@@ -68,6 +70,7 @@ then the **action** or **fact**. Keep each entry to 1–3 lines.
 
 ```markdown
 ## <short label>
+
 <When / situation>: <what to do or know>.
 ```
 
@@ -75,6 +78,7 @@ Example:
 
 ```markdown
 ## OSGi cache after portlet-model-hints change
+
 After editing portlet-model-hints.xml, clear the OSGi cache before deploying
 or the change will not take effect: run `ldev osgi:clear-cache` then redeploy.
 ```

@@ -43,6 +43,7 @@ describe('AI template guardrails', () => {
   });
 
   test('agent entrypoints share the same portability contract', async () => {
+    const canonicalEntrypoint = await readTemplate('templates/ai/install/AGENTS.md');
     const entrypoints = [
       'templates/ai/install/AGENTS.md',
       'templates/ai/install/AGENTS.workspace.md',
@@ -56,11 +57,12 @@ describe('AI template guardrails', () => {
 
     for (const entrypoint of entrypoints) {
       const content = await readTemplate(entrypoint);
+      const effectiveContent = content.trim() === '@AGENTS.md' ? canonicalEntrypoint : content;
 
-      expect(content, entrypoint).toContain('Agent Portability Contract');
-      expect(content, entrypoint).toContain('Same prompt, same gate order');
-      expect(content, entrypoint).toContain('Slash commands are aliases');
-      expect(content, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
+      expect(effectiveContent, entrypoint).toContain('Agent Portability Contract');
+      expect(effectiveContent, entrypoint).toContain('Same prompt, same gate order');
+      expect(effectiveContent, entrypoint).toContain('Slash commands are aliases');
+      expect(effectiveContent, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
     }
   });
 
@@ -135,7 +137,29 @@ describe('AI template guardrails', () => {
       expect(content, entrypoint).toContain("$args = @('portal', 'inventory', 'page', '--url', $url, '--json')");
       expect(content, entrypoint).toContain('& ldev @args');
       expect(content, entrypoint).toContain("& npx.cmd '@mordonezdev/ldev' @args");
+      expect(content, entrypoint).toContain('MSYS_NO_PATHCONV=1');
+      expect(content, entrypoint).toContain('C:/Program Files/Git/<site>');
     }
+  });
+
+  test('session failure guardrails cover bootstrap, nested deploys, ADTs, and learnings', async () => {
+    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
+    const deploying = await readTemplate('templates/ai/skills/deploying-liferay/SKILL.md');
+    const resource = await readTemplate('templates/ai/skills/portal-resource-workflow/SKILL.md');
+    const implementation = await readTemplate(
+      'templates/ai/skills/developing-liferay/references/implementation-paths.md',
+    );
+    const learnings = await readTemplate('templates/ai/skills/capturing-session-knowledge/SKILL.md');
+
+    expect(runtime).toContain('before any file edit or runtime mutation');
+    expect(deploying).toContain('leaf directory');
+    expect(deploying).toContain('modules/...` relative path');
+    expect(deploying).toContain('hotDeployed');
+    expect(resource).toContain('--widget-type <type>');
+    expect(resource).toContain('MSYS_NO_PATHCONV=1');
+    expect(implementation).toContain('searchContainer.getResults()');
+    expect(implementation).toContain('JSP/taglib override');
+    expect(learnings).toContain('Repeated preventable agent mistakes');
   });
 
   test('routing references point to canonical workflows instead of duplicating them', async () => {

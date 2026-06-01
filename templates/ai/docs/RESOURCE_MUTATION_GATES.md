@@ -5,7 +5,7 @@ Before mutating structures, templates, ADTs, or fragments:
 ```bash
 ldev resource import-structure --site /<site> --structure <KEY> --check-only
 ldev resource import-template --site /<site> --template <KEY> --check-only
-ldev resource import-adt --site /<site> --file <path> --check-only
+ldev resource import-adt --site /<site> --file <path> --widget-type <type> --check-only
 ```
 
 `import-fragment` has no `--check-only`; validate fragment source files

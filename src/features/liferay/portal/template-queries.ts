@@ -109,15 +109,20 @@ export async function fetchAdtResourceClassNameId(
   return fetchClassNameIdForValue(config, ADT_RESOURCE_CLASS_NAME, dependencies);
 }
 
+// Lists site templates, optionally using company-scope groupId=0 as fallback.
 export async function listDdmTemplates(
   config: AppConfig,
   site: ResolvedResourceSite,
   dependencies?: SiteResolutionDependencies,
-  options?: {includeCompanyFallback?: boolean},
+  options?: {includeCompanyFallback?: boolean; companyOnly?: boolean},
 ): Promise<DdmTemplatePayload[]> {
   const apiClient = dependencies?.apiClient ?? createLiferayApiClient();
   const gateway = createTemplateQueryGateway(config, apiClient, dependencies);
   const {classNameId, resourceClassNameId} = await fetchStructureTemplateClassIds(config, dependencies);
+
+  if (options?.companyOnly) {
+    return fetchDdmTemplates(gateway, site.companyId, null, classNameId, resourceClassNameId);
+  }
 
   const siteTemplates = await fetchDdmTemplates(gateway, site.companyId, site.id, classNameId, resourceClassNameId);
 

@@ -60,9 +60,13 @@ Apply the smallest matching import:
 ```bash
 ldev resource import-structure --liferay-timeout-seconds 300 --site /<site> --structure <KEY>
 ldev resource import-template --liferay-timeout-seconds 300 --site /<site> --template <KEY>
-ldev resource import-adt --site /<site> --file <path>
+ldev resource import-adt --site /<site> --file <path> --widget-type <type>
 ldev resource import-fragment --site /<site> --fragment <KEY>
 ```
+
+On Windows, run `/site` arguments from PowerShell argv arrays or set
+`MSYS_NO_PATHCONV=1` in Git Bash. A rewritten value like
+`C:/Program Files/Git/<site>` is shell path conversion, not a Liferay site.
 
 For fragments, a read-back/hash mismatch is not a request to update a checksum
 file. It means the runtime content returned after import differs from the local
