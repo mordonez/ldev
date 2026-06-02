@@ -82,13 +82,10 @@ assume one agent reads the other's file.
 
 ---
 
-## Description checklist
+## Before opening a review
 
-- [ ] `description` starts with what the skill does (not "Use when")
-- [ ] `description` includes "Use when <concrete trigger>"
-- [ ] `short_description` includes "Use when <concrete trigger>"
-- [ ] `name` matches the folder name exactly
-- [ ] SKILL.md is under 100 lines
-- [ ] "Done When" section is present with concrete exit condition
-- [ ] No duplication between SKILL.md and references/
-- [ ] All commands use `ldev` public entrypoints (`ldev --help` is the source of truth)
+Run through `SKILL_REVIEW_CHECKLIST.md` — it is the single source of truth for
+quality gates. Key quick checks from it: `description` and `short_description`
+both include "Use when <concrete trigger>", `name` matches the folder, SKILL.md
+is under 100 lines, "Done When" is present, and all commands use public `ldev`
+entrypoints.

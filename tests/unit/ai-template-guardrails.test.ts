@@ -69,7 +69,7 @@ describe('AI template guardrails', () => {
     ];
     for (const entrypoint of thinDelegators) {
       const content = await readTemplate(entrypoint);
-      const effectiveContent = content.trim() === '@AGENTS.md' ? canonicalEntrypoint : content;
+      const effectiveContent = content.trim().startsWith('@AGENTS.md') ? canonicalEntrypoint : content;
       expect(effectiveContent, entrypoint).toContain('Agent Portability Contract');
       expect(effectiveContent, entrypoint).toContain('Same prompt, same gate order');
       expect(effectiveContent, entrypoint).toContain('AGENTS.md');
@@ -154,9 +154,7 @@ describe('AI template guardrails', () => {
     for (const content of [agents, workspaceAgents]) {
       expect(content).toContain('resource mutations that support it');
       expect(content).toContain('`import-fragment` has no `--check-only`');
-      expect(content).not.toContain(
-        'any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`',
-      );
+      expect(content).not.toContain('any resource mutation (');
     }
   });
 

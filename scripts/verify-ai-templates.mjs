@@ -1,4 +1,4 @@
-import {readdir, readFile} from 'node:fs/promises';
+import {readdir, readFile, stat} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -22,6 +22,12 @@ const forbiddenLiterals = [
 
 const skillRoots = ['templates/ai/skills', 'templates/ai/project/skills'];
 
+const thinDelegators = [
+  'templates/ai/project/.cursorrules',
+  'templates/ai/project/.gemini/GEMINI.md',
+  'templates/ai/project/.github/copilot-instructions.md',
+];
+
 /**
  * @param {string} relativeDir
  * @returns {Promise<string[]>}
@@ -36,6 +42,13 @@ async function walk(relativeDir) {
     const entryRelativePath = posix.join(relativeDir.replaceAll('\\', '/'), entry.name);
 
     if (entry.isSymbolicLink()) {
+      // Follow symlinked directories; skip symlinked files and dangling symlinks.
+      const targetStat = await stat(path.join(absoluteDir, entry.name)).catch(() => null);
+
+      if (targetStat?.isDirectory()) {
+        files.push(...(await walk(entryRelativePath)));
+      }
+
       continue;
     }
 
@@ -178,10 +191,28 @@ async function verifyInstalledRelativePaths() {
   return !hasFailures;
 }
 
+async function verifyThinDelegators() {
+  let hasFailures = false;
+
+  for (const relativePath of thinDelegators) {
+    const content = await readFile(path.join(repoRoot, relativePath), 'utf8');
+
+    if (!content.includes('AGENTS.md')) {
+      console.error(`✗ Thin delegator missing AGENTS.md reference: ${relativePath}`);
+      hasFailures = true;
+      continue;
+    }
+
+    console.log(`✓ Thin delegator references AGENTS.md: ${relativePath}`);
+  }
+
+  return !hasFailures;
+}
+
 async function main() {
   console.log('Verifying AI templates...\n');
 
-  const checks = await Promise.all([verifyBootstrapFiles(), verifyForbiddenLiterals(), verifyInstalledRelativePaths()]);
+  const checks = await Promise.all([verifyBootstrapFiles(), verifyForbiddenLiterals(), verifyInstalledRelativePaths(), verifyThinDelegators()]);
 
   if (checks.every(Boolean)) {
     console.log('\nAI template verification passed');

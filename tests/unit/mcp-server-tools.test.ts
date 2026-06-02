@@ -53,9 +53,13 @@ describe('mcp server tools', () => {
   });
 
   test('MCP agent docs document every current tool fallback', async () => {
-    const agentDocs = [
-      ['docs/agentic/mcp-decision-route.md', await readFile('docs/agentic/mcp-decision-route.md', 'utf8')],
-      ['templates/ai/install/AGENTS.md', await readFile('templates/ai/install/AGENTS.md', 'utf8')],
+    const [mcpRouteDoc, agentDoc] = await Promise.all([
+      readFile('docs/agentic/mcp-decision-route.md', 'utf8'),
+      readFile('templates/ai/install/AGENTS.md', 'utf8'),
+    ]);
+    const agentDocs: [string, string][] = [
+      ['docs/agentic/mcp-decision-route.md', mcpRouteDoc],
+      ['templates/ai/install/AGENTS.md', agentDoc],
     ];
 
     for (const tool of ALL_TOOLS) {
