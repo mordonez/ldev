@@ -9,9 +9,8 @@ const bootstrapLiteral = 'ldev ai bootstrap --intent=develop --cache=60 --json';
 const bootstrapFiles = [
   'templates/ai/install/AGENTS.md',
   'templates/ai/install/AGENTS.workspace.md',
-  'templates/ai/project/.cursorrules',
-  'templates/ai/project/.gemini/GEMINI.md',
-  'templates/ai/project/.github/copilot-instructions.md',
+  // Thin delegators (.cursorrules, GEMINI.md, copilot-instructions.md) intentionally omit
+  // the bootstrap literal — they delegate to AGENTS.md as the single source of truth.
 ];
 
 const forbiddenLiterals = [

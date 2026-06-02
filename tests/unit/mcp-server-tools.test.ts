@@ -1,5 +1,6 @@
+import {readFile} from 'node:fs/promises';
+
 import {describe, expect, test} from 'vitest';
-import {readFileSync} from 'node:fs';
 
 import {ALL_TOOLS, TOOL_CATALOG} from '../../src/entrypoints/mcp-server/mcp-server-tools.js';
 import {validateToolResult} from '../../src/entrypoints/mcp-server/mcp-server.js';
@@ -51,10 +52,10 @@ describe('mcp server tools', () => {
     expect(preflight?.outputSchema).toBeDefined();
   });
 
-  test('MCP agent docs document every current tool fallback', () => {
+  test('MCP agent docs document every current tool fallback', async () => {
     const agentDocs = [
-      ['docs/agentic/mcp-decision-route.md', readFileSync('docs/agentic/mcp-decision-route.md', 'utf8')],
-      ['templates/ai/install/AGENTS.md', readFileSync('templates/ai/install/AGENTS.md', 'utf8')],
+      ['docs/agentic/mcp-decision-route.md', await readFile('docs/agentic/mcp-decision-route.md', 'utf8')],
+      ['templates/ai/install/AGENTS.md', await readFile('templates/ai/install/AGENTS.md', 'utf8')],
     ];
 
     for (const tool of ALL_TOOLS) {
