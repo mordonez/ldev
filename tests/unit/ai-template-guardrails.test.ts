@@ -44,26 +44,63 @@ describe('AI template guardrails', () => {
 
   test('agent entrypoints share the same portability contract', async () => {
     const canonicalEntrypoint = await readTemplate('templates/ai/install/AGENTS.md');
-    const entrypoints = [
+
+    // Full contract must appear in canonical entrypoints
+    const fullContractEntrypoints = [
       'templates/ai/install/AGENTS.md',
       'templates/ai/install/AGENTS.workspace.md',
+      'templates/ai/workspace-rules/ldev-native-agent-workflow.md',
+      'templates/ai/workspace-rules/ldev-workspace-agent-workflow.md',
+    ];
+    for (const entrypoint of fullContractEntrypoints) {
+      const content = await readTemplate(entrypoint);
+      expect(content, entrypoint).toContain('Agent Portability Contract');
+      expect(content, entrypoint).toContain('Same prompt, same gate order');
+      expect(content, entrypoint).toContain('Slash commands are aliases');
+      expect(content, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
+    }
+
+    // Thin delegators only assert the core claim and defer the full contract to AGENTS.md
+    const thinDelegators = [
       'templates/ai/project/CLAUDE.md',
       'templates/ai/project/.github/copilot-instructions.md',
       'templates/ai/project/.gemini/GEMINI.md',
       'templates/ai/project/.cursorrules',
-      'templates/ai/workspace-rules/ldev-native-agent-workflow.md',
-      'templates/ai/workspace-rules/ldev-workspace-agent-workflow.md',
     ];
-
-    for (const entrypoint of entrypoints) {
+    for (const entrypoint of thinDelegators) {
       const content = await readTemplate(entrypoint);
-      const effectiveContent = content.trim() === '@AGENTS.md' ? canonicalEntrypoint : content;
-
+      const effectiveContent = content.trim().startsWith('@AGENTS.md') ? canonicalEntrypoint : content;
       expect(effectiveContent, entrypoint).toContain('Agent Portability Contract');
       expect(effectiveContent, entrypoint).toContain('Same prompt, same gate order');
-      expect(effectiveContent, entrypoint).toContain('Slash commands are aliases');
-      expect(effectiveContent, entrypoint).toContain('read `.agents/skills/project-issue-engineering/SKILL.md`');
+      expect(effectiveContent, entrypoint).toContain('AGENTS.md');
     }
+  });
+
+  test('AGENTS.workspace.md safety invariants stay in sync with AGENTS.md', async () => {
+    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const workspaceAgents = await readTemplate('templates/ai/install/AGENTS.workspace.md');
+
+    // Shared invariants 1-10 must appear verbatim in both templates
+    const sharedInvariants = [
+      'Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`',
+      'Always consume `--json` output. Never parse human-readable text output from `ldev`',
+      'Always run `--check-only` before resource mutations that support it',
+      '`import-fragment` has no `--check-only`',
+      'Always use the smallest deploy or import that proves the change',
+      'Never use plural resource commands',
+      'read back the updated resource with `ldev resource structure/template/adt`',
+      'use `ldev logs diagnose --since 5m --json`',
+      'Never guess IDs, keys, or site names',
+      'Never assume the portal URL',
+    ];
+
+    for (const invariant of sharedInvariants) {
+      expect(agents, `AGENTS.md missing: ${invariant}`).toContain(invariant);
+      expect(workspaceAgents, `AGENTS.workspace.md missing: ${invariant}`).toContain(invariant);
+    }
+
+    // ldev-native worktree gate is only in the non-workspace variant
+    expect(agents).toContain('isolated worktree setup and root lock');
   });
 
   test('mutating work delegates to shared vendor workflow skills', async () => {
@@ -91,6 +128,34 @@ describe('AI template guardrails', () => {
     expect(projectIssue).toContain('This is the project-process wrapper');
     expect(projectIssue).toContain('switch to `runtime-change-workflow`');
     expect(projectIssue).toContain('Portal resources -> `portal-resource-workflow`');
+  });
+
+  test('AI command docs only reference installable vendor skills', async () => {
+    const vendorManifest = await readTemplate('templates/ai/install/vendor-skills.txt');
+    const commandDocs = await readTemplate('docs/commands/project-and-ai.md');
+    const vendorSkills = new Set(
+      vendorManifest
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0 && !line.startsWith('#')),
+    );
+    const documentedSkills = [...commandDocs.matchAll(/--skill\s+([a-z0-9-]+)/g)].map((match) => match[1]);
+
+    expect(documentedSkills.length).toBeGreaterThan(0);
+    for (const documentedSkill of documentedSkills) {
+      expect(vendorSkills.has(documentedSkill), documentedSkill).toBe(true);
+    }
+  });
+
+  test('agent entrypoints document fragment imports as the check-only exception', async () => {
+    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const workspaceAgents = await readTemplate('templates/ai/install/AGENTS.workspace.md');
+
+    for (const content of [agents, workspaceAgents]) {
+      expect(content).toContain('resource mutations that support it');
+      expect(content).toContain('`import-fragment` has no `--check-only`');
+      expect(content).not.toContain('any resource mutation (');
+    }
   });
 
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {

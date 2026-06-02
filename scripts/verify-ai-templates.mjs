@@ -1,4 +1,4 @@
-import {readdir, readFile} from 'node:fs/promises';
+import {readdir, readFile, stat} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -9,9 +9,8 @@ const bootstrapLiteral = 'ldev ai bootstrap --intent=develop --cache=60 --json';
 const bootstrapFiles = [
   'templates/ai/install/AGENTS.md',
   'templates/ai/install/AGENTS.workspace.md',
-  'templates/ai/project/.cursorrules',
-  'templates/ai/project/.gemini/GEMINI.md',
-  'templates/ai/project/.github/copilot-instructions.md',
+  // Thin delegators (.cursorrules, GEMINI.md, copilot-instructions.md) intentionally omit
+  // the bootstrap literal — they delegate to AGENTS.md as the single source of truth.
 ];
 
 const forbiddenLiterals = [
@@ -23,6 +22,16 @@ const forbiddenLiterals = [
 
 const skillRoots = ['templates/ai/skills', 'templates/ai/project/skills'];
 
+const thinDelegators = [
+  'templates/ai/project/.cursorrules',
+  'templates/ai/project/.gemini/GEMINI.md',
+  'templates/ai/project/.github/copilot-instructions.md',
+];
+
+/**
+ * @param {string} relativeDir
+ * @returns {Promise<string[]>}
+ */
 async function walk(relativeDir) {
   const absoluteDir = path.join(repoRoot, relativeDir);
   const entries = await readdir(absoluteDir, {withFileTypes: true});
@@ -31,6 +40,17 @@ async function walk(relativeDir) {
 
   for (const entry of entries) {
     const entryRelativePath = posix.join(relativeDir.replaceAll('\\', '/'), entry.name);
+
+    if (entry.isSymbolicLink()) {
+      // Follow symlinked directories; skip symlinked files and dangling symlinks.
+      const targetStat = await stat(path.join(absoluteDir, entry.name)).catch(() => null);
+
+      if (targetStat?.isDirectory()) {
+        files.push(...(await walk(entryRelativePath)));
+      }
+
+      continue;
+    }
 
     if (entry.isDirectory()) {
       files.push(...(await walk(entryRelativePath)));
@@ -43,6 +63,10 @@ async function walk(relativeDir) {
   return files;
 }
 
+/**
+ * @param {string} relativePath
+ * @returns {string | null}
+ */
 function mapSourceToInstalled(relativePath) {
   const normalized = relativePath.replaceAll('\\', '/');
   const parts = normalized.split('/');
@@ -62,6 +86,10 @@ function mapSourceToInstalled(relativePath) {
   return null;
 }
 
+/**
+ * @param {string} content
+ * @returns {string[]}
+ */
 function extractInlineRelativePaths(content) {
   const matches = content.matchAll(/`((?:\.\.\/|\.\/|references\/)[^`\s]+)`/g);
   /** @type {string[]} */
@@ -124,9 +152,7 @@ async function verifyForbiddenLiterals() {
 
 async function verifyInstalledRelativePaths() {
   const sourceFiles = (await Promise.all(skillRoots.map((root) => walk(root)))).flat();
-  const installedFiles = new Set(
-    sourceFiles.map(mapSourceToInstalled).filter((value) => value !== null),
-  );
+  const installedFiles = new Set(sourceFiles.map(mapSourceToInstalled).filter((value) => value !== null));
 
   let hasFailures = false;
 
@@ -145,9 +171,7 @@ async function verifyInstalledRelativePaths() {
     const references = extractInlineRelativePaths(content);
 
     for (const reference of references) {
-      const resolvedInstalledPath = posix.normalize(
-        posix.join(posix.dirname(installedSourcePath), reference),
-      );
+      const resolvedInstalledPath = posix.normalize(posix.join(posix.dirname(installedSourcePath), reference));
 
       if (installedFiles.has(resolvedInstalledPath)) {
         continue;
@@ -167,14 +191,28 @@ async function verifyInstalledRelativePaths() {
   return !hasFailures;
 }
 
+async function verifyThinDelegators() {
+  let hasFailures = false;
+
+  for (const relativePath of thinDelegators) {
+    const content = await readFile(path.join(repoRoot, relativePath), 'utf8');
+
+    if (!content.includes('AGENTS.md')) {
+      console.error(`✗ Thin delegator missing AGENTS.md reference: ${relativePath}`);
+      hasFailures = true;
+      continue;
+    }
+
+    console.log(`✓ Thin delegator references AGENTS.md: ${relativePath}`);
+  }
+
+  return !hasFailures;
+}
+
 async function main() {
   console.log('Verifying AI templates...\n');
 
-  const checks = await Promise.all([
-    verifyBootstrapFiles(),
-    verifyForbiddenLiterals(),
-    verifyInstalledRelativePaths(),
-  ]);
+  const checks = await Promise.all([verifyBootstrapFiles(), verifyForbiddenLiterals(), verifyInstalledRelativePaths(), verifyThinDelegators()]);
 
   if (checks.every(Boolean)) {
     console.log('\nAI template verification passed');

@@ -56,15 +56,17 @@ The local `ldev` MCP server follows the current MCP shape for CLI projects:
 | Log diagnosis | `ldev_logs_diagnose` | `ldev logs diagnose --since 10m --json` |
 | Site discovery | `liferay_inventory_sites` | `ldev portal inventory sites --json` |
 | API surface readiness | `liferay_inventory_preflight` | `ldev portal inventory preflight --json` |
-| Page tree | `liferay_inventory_pages` | `ldev portal inventory pages --site /<site> --json` |
+| Page tree | `liferay_inventory_pages` | `ldev portal inventory pages --site <site> --json` |
 | Page inspection | `liferay_inventory_page` | `ldev portal inventory page --url <url> --json` |
-| Structures | `liferay_inventory_structures` | `ldev portal inventory structures --site /<site> --json` |
-| Templates | `liferay_inventory_templates` | `ldev portal inventory templates --site /<site> --json` |
+| Resource impact lookup | `liferay_inventory_where_used` | `ldev portal inventory where-used --type <type> --key <key> --json` |
+| Structures | `liferay_inventory_structures` | `ldev portal inventory structures --site <site> --json` |
+| Templates | `liferay_inventory_templates` | `ldev portal inventory templates --site <site> --json` |
 | Deploy state | `liferay_deploy_status` | `ldev deploy status --json` |
 | Bundle status | `liferay_osgi_status` | `ldev osgi status <bundle> --json` |
 | Bundle diagnosis | `liferay_osgi_diag` | `ldev osgi diag <bundle> --json` |
 | Thread dumps | `liferay_osgi_thread_dump` | `ldev osgi thread-dump --json` |
 | Local diagnostics | `liferay_doctor` | `ldev doctor --json` |
+| Liferay portal MCP readiness | `liferay_mcp_check` | `ldev mcp check --json` |
 
 `liferay_osgi_thread_dump` is diagnostic, but it writes dump artifacts under the
 project's configured dump directory. Treat it as CLI-first when the user has not

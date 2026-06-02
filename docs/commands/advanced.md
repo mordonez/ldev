@@ -81,19 +81,21 @@ Re-seeds `BTRFS_BASE` from the current main env data root. `env restore` uses th
 
 ## MCP
 
-Inspect the Liferay MCP server and its runtime availability.
+Inspect Liferay MCP availability and local ldev MCP client configuration.
 
 ```bash
 ldev mcp check --json
 ldev mcp probe --json
 ldev mcp openapis --json
+ldev mcp doctor --target . --tool all
 ```
 
 - `check` — detect endpoint candidates and feature flag state
 - `probe` — run a real MCP initialize handshake
 - `openapis` — call the MCP `get-openapis` tool after initialize
+- `doctor` — validate local editor MCP config and run the stdio list-tools handshake
 
-Auth options (all three subcommands):
+Auth options (`check`, `probe`, `openapis`):
 
 ```bash
 ldev mcp probe --authorization-header 'Basic ...'

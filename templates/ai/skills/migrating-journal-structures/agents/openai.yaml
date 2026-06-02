@@ -1,4 +1,4 @@
 interface:
-  display_name: "Migrating journal structures"
-  short_description: "Migrate Journal structures/templates with fieldsets and content"
+  display_name: "Migrating Journal Structures"
+  short_description: "Migrate Journal structures and content with descriptor-backed validation. Use when existing content must be moved, renamed, converted, or reshaped."
   default_prompt: "Use $migrating-journal-structures to execute structure changes + migration + validation + cleanup without data loss."

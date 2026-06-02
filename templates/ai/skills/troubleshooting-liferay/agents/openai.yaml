@@ -1,4 +1,4 @@
 interface:
   display_name: "Troubleshooting Liferay"
-  short_description: "Diagnose Liferay DXP issues"
+  short_description: "Diagnose unhealthy or failing Liferay runtimes before proposing fixes. Use when the cause is unclear, the portal is failing, or logs show errors."
   default_prompt: "Use $troubleshooting-liferay to diagnose this Liferay issue and propose the minimum solution path."

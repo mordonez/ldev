@@ -174,15 +174,15 @@ install.
 | Pre-flight | Always | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
 | Health check | Task touches runtime | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json` |
 | Discovery | Task mentions a portal surface | `ldev portal inventory ...` |
-| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` |
+| Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` for supported imports; validate fragment source before `import-fragment` |
 | Mutation | After check-only passes | `ldev resource import-*`, `ldev deploy ...` |
-| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource get-*` / `ldev resource export-*` / `ldev portal inventory ... --json`. Runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json`. |
+| Post-mutation verify | After any mutation | Resource changes: read back via `ldev resource structure/template/adt` / `ldev resource export-*` / `ldev portal inventory ... --json`. Runtime/deploy changes: `ldev logs diagnose --since 5m --json`, `ldev portal check --json`. |
 
 Key invariants (full list in `AGENTS.md → Safety Invariants`):
 
 - Always read `liferay.portalUrl` from context — never assume.
 - Always consume `--json`. Never parse human-readable output.
-- Always run `--check-only` before resource mutations.
+- Always run `--check-only` before resource mutations that support it.
 - Never use plural resource commands without explicit human approval.
 - Do not treat `ldev logs diagnose` as universal verification for resource
   imports; prefer read-after-write evidence from `ldev resource` /

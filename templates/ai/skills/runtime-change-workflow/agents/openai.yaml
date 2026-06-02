@@ -1,4 +1,4 @@
 interface:
   display_name: "Runtime Change Workflow"
-  short_description: "Run the canonical Red -> Green loop for mutating ldev work"
+  short_description: "Canonical Red -> Green gate order for code, resource, or runtime mutations. Use when making any change with reproduction risk or runtime state impact."
   default_prompt: "Use $runtime-change-workflow to handle this non-trivial code, resource, or runtime mutation with root lock, scope lock, smallest action, and verification evidence."

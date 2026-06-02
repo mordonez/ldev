@@ -44,7 +44,7 @@ ldev resource export-fragments --all-sites
 Key flags:
 
 - `--all-sites` — export from every accessible site in one pass
-- `--check-only` (structures/templates export) — report diffs against local files without writing them
+- `--check-only` (structures export) — report diffs against local files without writing them
 - `--continue-on-error` — do not abort the whole export if one entry fails
 - `--dir <dir>` — override the default destination path resolved from `.liferay-cli.yml`
 

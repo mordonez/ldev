@@ -1,3 +1,5 @@
+import {readFile} from 'node:fs/promises';
+
 import {describe, expect, test} from 'vitest';
 
 import {ALL_TOOLS, TOOL_CATALOG} from '../../src/entrypoints/mcp-server/mcp-server-tools.js';
@@ -48,6 +50,24 @@ describe('mcp server tools', () => {
     expect(bootstrap?.outputSchema).toBeDefined();
     expect(bootstrap?.writesFiles).toBe(true);
     expect(preflight?.outputSchema).toBeDefined();
+  });
+
+  test('MCP agent docs document every current tool fallback', async () => {
+    const [mcpRouteDoc, agentDoc] = await Promise.all([
+      readFile('docs/agentic/mcp-decision-route.md', 'utf8'),
+      readFile('templates/ai/install/AGENTS.md', 'utf8'),
+    ]);
+    const agentDocs: [string, string][] = [
+      ['docs/agentic/mcp-decision-route.md', mcpRouteDoc],
+      ['templates/ai/install/AGENTS.md', agentDoc],
+    ];
+
+    for (const tool of ALL_TOOLS) {
+      for (const [filePath, content] of agentDocs) {
+        expect(content, `${filePath}: ${tool.TOOL_NAME}`).toContain(tool.TOOL_NAME);
+        expect(content, `${filePath}: ${tool.TOOL_NAME}`).toContain(tool.fallbackCli);
+      }
+    }
   });
 
   test('returns structured content while keeping text JSON compatibility', () => {

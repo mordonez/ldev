@@ -20,11 +20,13 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('ldev');
     expect(result.stdout).toContain('Core workflows:');
     expect(result.stdout).toContain('Project bootstrap:');
+    expect(result.stdout).toContain('Agent workflows:');
     expect(result.stdout).toContain('Liferay API tooling:');
     expect(result.stdout).toContain('Advanced local tooling:');
     expect(result.stdout).toContain('db');
     expect(result.stdout).toContain('Detected project type: unknown');
     expect(result.stdout).toContain('Recommended paths from here:');
+    expect(result.stdout).toContain('ai');
     expect(result.stdout).toContain('context');
   }, 30000);
 
@@ -34,6 +36,7 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('Detected project type: unknown');
     expect(result.stdout).not.toContain('Core workflows:');
     expect(result.stdout).toContain('Agent-core entry points:');
+    expect(result.stdout).toContain('ldev ai bootstrap --intent=develop --cache=60 --json');
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
     expect(result.stdout).toContain("Run 'ldev --help' to see the full command catalog.");
     expect(result.stdout).toContain('blade init ai-workspace');
@@ -72,6 +75,7 @@ describe('smoke help', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Detected project type: blade-workspace');
     expect(result.stdout).toContain('Recommended first steps for this Workspace:');
+    expect(result.stdout).toContain('ldev ai bootstrap --intent=develop --cache=60 --json');
     expect(result.stdout).toContain('ldev deploy all');
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
     expect(result.stdout).toContain('ldev portal check --json');
@@ -84,6 +88,7 @@ describe('smoke help', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Detected project type: ldev-native');
     expect(result.stdout).toContain('Recommended first steps for this ldev-native repo:');
+    expect(result.stdout).toContain('ldev ai bootstrap --intent=develop --cache=60 --json');
     expect(result.stdout).toContain('ldev start');
     expect(result.stdout).toContain('ldev oauth install --write-env');
     expect(result.stdout).toContain('ldev resource export-structures --site /global');
@@ -128,6 +133,7 @@ describe('smoke help', () => {
     'liferay',
     'doctor',
     'context',
+    'ai',
   ])(
     '%s --help works',
     async (namespace) => {

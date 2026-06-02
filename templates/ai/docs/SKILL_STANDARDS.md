@@ -43,6 +43,13 @@ Short guide to maintain high-quality skills, based on patterns from:
    - Playbook skills should keep the workflow core in `SKILL.md` and push
      long edge cases into `references/`.
 
+## Per-Agent Trigger Fields
+
+Claude Code triggers skills via the `description` field in SKILL.md frontmatter.
+Codex / OpenAI Agents trigger via `interface.short_description` in `agents/openai.yaml`.
+Both fields must independently convey when to activate the skill. See
+`SKILL_TEMPLATE.md` for the full trigger-field table and a copy-ready template.
+
 ## Review Surface
 
 Use `SKILL_REVIEW_CHECKLIST.md` during review so the package enforces the same

@@ -59,7 +59,7 @@ These rules apply to every task, regardless of the skill in use:
 
 1. Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`. Use `context.commands.*` and `doctor.readiness.*` to verify readiness before running any command.
 2. Always consume `--json` output. Never parse human-readable text output from `ldev`.
-3. Always run `--check-only` before any resource mutation (`import-structure`, `import-template`, `import-adt`, `import-fragment`, `migration-pipeline`).
+3. Always run `--check-only` before resource mutations that support it (`import-structure`, `import-template`, `import-adt`, `migration-pipeline`). `import-fragment` has no `--check-only`; validate the fragment source and run a focused import.
 4. Always use the smallest deploy or import that proves the change. Never broad-deploy as a default validation step.
 5. Never use plural resource commands (`import-structures`, `export-templates`, etc.) or broad deploys without explicit human approval.
 6. After any mutation, verify with operation-specific evidence:
@@ -71,7 +71,7 @@ These rules apply to every task, regardless of the skill in use:
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
 11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: isolated worktree setup and root lock → Red reproduction in the worktree runtime → import/deploy verification with runtime evidence → Green visual validation in that same worktree runtime. Do not reproduce first in the primary checkout. For clearly trivial changes (single-field config update, copy fix, isolated template tweak the developer explicitly scoped), ask the developer whether they want the full isolation workflow or prefer to proceed in the current checkout.
-12. Safety checks that apply to every task regardless of scope: `--check-only` before any resource import, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
+12. Safety checks that apply to every task regardless of scope: `--check-only` before supported resource imports, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
 
 ## ldev Command Resolution
 
@@ -184,19 +184,23 @@ diagnosis.
 MCP-to-CLI fallbacks:
 
 - `ldev_context` -> `ldev context --json`
+- `ldev_ai_bootstrap` -> `ldev ai bootstrap --intent <intent> --json`
 - `liferay_check` -> `ldev portal check --json`
 - `ldev_status` -> `ldev status --json`
 - `ldev_logs_diagnose` -> `ldev logs diagnose --since 10m --json`
 - `liferay_inventory_sites` -> `ldev portal inventory sites --json`
-- `liferay_inventory_pages` -> `ldev portal inventory pages --site /<site> --json`
+- `liferay_inventory_preflight` -> `ldev portal inventory preflight --json`
+- `liferay_inventory_pages` -> `ldev portal inventory pages --site <site> --json`
 - `liferay_inventory_page` -> `ldev portal inventory page --url <url> --json`
-- `liferay_inventory_structures` -> `ldev portal inventory structures --site /<site> --json`
-- `liferay_inventory_templates` -> `ldev portal inventory templates --site /<site> --json`
+- `liferay_inventory_where_used` -> `ldev portal inventory where-used --type <type> --key <key> --json`
+- `liferay_inventory_structures` -> `ldev portal inventory structures --site <site> --json`
+- `liferay_inventory_templates` -> `ldev portal inventory templates --site <site> --json`
 - `liferay_deploy_status` -> `ldev deploy status --json`
 - `liferay_osgi_status` -> `ldev osgi status <bundle> --json`
 - `liferay_osgi_diag` -> `ldev osgi diag <bundle> --json`
 - `liferay_osgi_thread_dump` -> `ldev osgi thread-dump --json`
 - `liferay_doctor` -> `ldev doctor --json`
+- `liferay_mcp_check` -> `ldev mcp check --json`
 
 When the user reports that MCP tools are missing or stale, run:
 
@@ -248,7 +252,9 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
+
 <!-- Replaced at install time by ldev ai install. Do not edit. -->
+
 {{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation

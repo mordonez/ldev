@@ -45,6 +45,7 @@ export function buildContextualRootSummary(cwd: string): string {
   if (context.projectType === 'unknown') {
     lines.push(
       'Agent-core entry points:',
+      '  ldev ai bootstrap --intent=develop --cache=60 --json',
       '  ldev context --json',
       '  ldev doctor --json   # runtime/tooling/browser/deploy checks',
       '  ldev portal check --json',
@@ -106,6 +107,7 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         root: detected.root,
         title: 'Recommended first steps for this Workspace:',
         recommended: [
+          'ldev ai bootstrap --intent=develop --cache=60 --json',
           'ldev context --json',
           'ldev doctor --json',
           'ldev start',
@@ -128,6 +130,7 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         root: detected.root,
         title: 'Recommended first steps for this ldev-native repo:',
         recommended: [
+          'ldev ai bootstrap --intent=develop --cache=60 --json',
           'ldev context --json',
           'ldev doctor --json',
           'ldev start',

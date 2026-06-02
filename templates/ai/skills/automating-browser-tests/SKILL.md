@@ -35,8 +35,8 @@ If install fails, stop and report the blocker.
 
 ## Typical Flow
 
-```powershell
-New-Item -ItemType Directory -Force .tmp/<issue-or-session>/ | Out-Null
+```bash
+mkdir -p .tmp/<issue-or-session>/
 playwright-cli -s=<session-name> open "<localUrl>"
 playwright-cli -s=<session-name> snapshot
 playwright-cli -s=<session-name> run-code "async function (page) { await page.screenshot({ path: '.tmp/<issue>/before-fullpage.png', fullPage: true }); }"
@@ -63,6 +63,11 @@ same session.
 - For flaky failures, use tracing before guessing.
 - If browser navigation lands on the wrong site due to virtual host routing,
   trust `ldev portal inventory`, `curl`, and logs over a misleading screenshot.
+
+## Done When
+
+Evidence is saved under `.tmp/<issue>/` and the browser action reproduces or
+validates the targeted behavior. Report evidence paths to the caller.
 
 ## Guardrails
 
