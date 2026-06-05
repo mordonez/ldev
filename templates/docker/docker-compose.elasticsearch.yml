@@ -6,6 +6,8 @@ services:
     image: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch:7.17.26
     container_name: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch
     restart: unless-stopped
+    mem_limit: ${ELASTICSEARCH_MEMORY_LIMIT:-1024m}
+    cpus: ${ELASTICSEARCH_CPUS:-4}
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -18,10 +20,10 @@ services:
     networks:
       - liferay-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cat/health || exit 1"]
-      interval: 15s
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 -o /dev/null http://localhost:9200/ && curl -fsS --max-time 1 -o /dev/null http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 2
       start_period: 30s
 
   liferay:

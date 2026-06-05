@@ -24,6 +24,7 @@ export type DashboardEnv = {
   dockerDir: string;
   error: string | null;
   portalUrl: string;
+  glowrootUrl?: string;
   portalReachable: boolean | null;
   services: EnvServiceStatus[];
   liferay: EnvServiceStatus | null;
@@ -108,6 +109,7 @@ async function collectWorktreeEnv(
         dockerDir: context.dockerDir,
         error: null,
         portalUrl: runtime.portalUrl,
+        glowrootUrl: context.glowrootUrl,
         portalReachable: null,
         services: [],
         liferay: runtime.liferay,
@@ -121,6 +123,7 @@ async function collectWorktreeEnv(
       dockerDir: context.dockerDir,
       error: null,
       portalUrl: status.portalUrl,
+      glowrootUrl: context.glowrootUrl,
       portalReachable: status.portalReachable,
       services: status.services,
       liferay: status.liferay,

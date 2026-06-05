@@ -17,6 +17,7 @@ export type EnvContext = {
   bindIp: string;
   httpPort: string;
   portalUrl: string;
+  glowrootUrl?: string;
   composeProjectName: string;
 };
 
@@ -59,6 +60,7 @@ export function resolveEnvContext(config: AppConfig): EnvContext {
     bindIp,
     httpPort,
     portalUrl: `http://${bindIp}:${httpPort}`,
+    glowrootUrl: `http://${bindIp}:${envValues.GLOWROOT_PORT || '4000'}`,
     composeProjectName: envValues.COMPOSE_PROJECT_NAME || 'liferay',
   };
 }

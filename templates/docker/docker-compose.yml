@@ -4,19 +4,23 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-liferay}-liferay
     restart: unless-stopped
     stop_grace_period: 120s
+    mem_limit: ${LIFERAY_MEMORY_LIMIT:-3072m}
+    cpus: ${LIFERAY_CPUS:-4}
     environment:
       LIFERAY_JPDA_ENABLED: "true"
       BIND_IP: ${BIND_IP:-}
       LIFERAY_HTTP_PORT: ${LIFERAY_HTTP_PORT:-8080}
       LIFERAY_SESSION_COOKIE_NAME: ${LIFERAY_SESSION_COOKIE_NAME:-}
-      LIFERAY_JVM_OPTS: ${LIFERAY_JVM_OPTS:--Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.net.preferIPv4Stack=true}
+      LIFERAY_JVM_OPTS: ${LIFERAY_JVM_OPTS:--Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.net.preferIPv4Stack=true}
       LIFERAY_CONTAINER_STATUS_ENABLED: "true"
       LIFERAY_THREAD_DUMPS_DIRECTORY: "/opt/liferay/dumps/thread_dumps"
       LIFERAY_WEB_PERIOD_SERVER_PERIOD_HTTP_PERIOD_PORT: "${LIFERAY_HTTP_PORT:-8080}"
+      GLOWROOT_PORT: "${GLOWROOT_PORT:-4000}"
     ports:
       - "${BIND_IP:-127.0.0.1}:${LIFERAY_HTTP_PORT:-8080}:8080"
       - "${BIND_IP:-127.0.0.1}:${LIFERAY_DEBUG_PORT:-8000}:8000"
       - "${BIND_IP:-127.0.0.1}:${GOGO_PORT:-11311}:11311"
+      - "${BIND_IP:-127.0.0.1}:${GLOWROOT_PORT:-4000}:4000"
     volumes:
       - ./liferay-scripts:/usr/local/liferay/scripts
       - ../liferay/build/docker/configs/dockerenv:/mnt/liferay/files
@@ -28,11 +32,11 @@ services:
       - doclib:/opt/liferay/data/document_library
       - ${ENV_DATA_ROOT:-./data/default}/liferay-osgi-state:/opt/liferay/osgi/state
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS --max-time 20 -o /dev/null http://localhost:8080/c/portal/login || exit 1"]
-      interval: 15s
-      timeout: 25s
-      retries: 40
-      start_period: 120s
+      test: ["CMD-SHELL", "curl -fsS --max-time 5 -o /dev/null http://localhost:8080/c/portal/robots || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 6
+      start_period: 180s
     networks:
       - liferay-network
 

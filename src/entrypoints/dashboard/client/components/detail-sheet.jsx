@@ -140,6 +140,17 @@ export function DetailSheet({wt, tasks, onClose, onAction, onDb, onLogs, onResou
               </span>
             </div>
             <div class="det-cell">
+              <span class="det-k">Glowroot</span>
+              <span class="det-v">
+                {wt.env?.glowrootUrl ? (
+                  <a href={running ? wt.env.glowrootUrl : undefined} rel="noreferrer" target="_blank"
+                    style={{color: running ? 'var(--accent)' : 'var(--text-3)', textDecoration: 'none'}}>
+                    {wt.env.glowrootUrl.replace('http://', '')}
+                  </a>
+                ) : <span style={{color: 'var(--text-3)'}}>none</span>}
+              </span>
+            </div>
+            <div class="det-cell">
               <span class="det-k">Changes</span>
               <span class="det-v" style={{color: wt.changedFiles ? 'var(--amber)' : 'var(--text-3)'}}>
                 {wt.changedFiles ? `${wt.changedFiles} files` : 'clean'}

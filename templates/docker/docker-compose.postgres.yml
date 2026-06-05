@@ -3,6 +3,8 @@ services:
     image: postgres:15-alpine
     container_name: ${COMPOSE_PROJECT_NAME:-liferay}-postgres
     restart: unless-stopped
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-512m}
+    cpus: ${POSTGRES_CPUS:-2}
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-liferay}
       POSTGRES_USER: ${POSTGRES_USER:-liferay}
@@ -27,9 +29,10 @@ services:
       - liferay-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liferay} -d ${POSTGRES_DB:-liferay}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 30s
 
   liferay:
     depends_on:

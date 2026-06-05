@@ -360,6 +360,7 @@ function resolveDockerEnv(options: {
     GOGO_PORT: ports.gogoPort,
     POSTGRES_PORT: ports.postgresPort,
     ES_HTTP_PORT: ports.esHttpPort,
+    GLOWROOT_PORT: ports.glowrootPort,
     ENV_DATA_ROOT:
       env.ENV_DATA_ROOT || path.join(path.join(worktree.worktreeRoot, 'docker'), 'data', 'envs', worktree.worktreeName),
     ...env,
@@ -372,6 +373,7 @@ function resolveWorktreePortSet(name: string): {
   gogoPort: string;
   postgresPort: string;
   esHttpPort: string;
+  glowrootPort: string;
 } {
   const hash = checksum(name);
   const offset = hash % 800;
@@ -382,6 +384,7 @@ function resolveWorktreePortSet(name: string): {
     gogoPort: String(12000 + offset),
     postgresPort: String(5400 + offset),
     esHttpPort: String(9201 + offset),
+    glowrootPort: String(4001 + offset),
   };
 }
 

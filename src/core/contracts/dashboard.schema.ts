@@ -124,6 +124,7 @@ export const dashboardEnvSchema = z.object({
   dockerDir: z.string(),
   error: z.string().nullable(),
   portalUrl: z.string(),
+  glowrootUrl: z.string().optional(),
   portalReachable: z.boolean().nullable(),
   services: z.array(envServiceStatusSchema),
   liferay: envServiceStatusSchema.nullable(),
@@ -180,6 +181,7 @@ export const dashboardStatusResponseSchema = z.object({
   refreshedAt: z.string().datetime(),
   mcp: dashboardMcpStatusSchema,
   worktrees: z.array(dashboardWorktreeSchema),
+  defaultWorktreeBase: z.string().optional(),
 });
 export type DashboardStatusResponseContract = z.infer<typeof dashboardStatusResponseSchema>;
 

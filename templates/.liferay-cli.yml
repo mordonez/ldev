@@ -1,3 +1,5 @@
+worktree:
+  defaultBase: main          # Branch used as the base when creating new worktrees from the dashboard
 paths:
   theme: custom-theme        # Replace with your theme name (folder in liferay/themes/)
   structures: liferay/resources/journal/structures
