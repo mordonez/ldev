@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
+import {readProfileFile, resolveLiferayProfileFiles} from '../../core/config/liferay-profile.js';
 import {MCP_SETUP_TOOLS, type McpSetupTool, resolveMcpConfigPath} from '../mcp-server/mcp-server-setup.js';
 import {
   collectDashboardWorktrees,
@@ -25,6 +26,7 @@ export type DashboardStatus = {
   refreshedAt: string;
   mcp: DashboardMcpStatus;
   worktrees: DashboardWorktree[];
+  defaultWorktreeBase?: string;
 };
 
 export type CollectDashboardStatusOptions = CollectDashboardWorktreeOptions;
@@ -55,10 +57,15 @@ export async function collectDashboardStatus(
   const mainRepoRoot = path.resolve(cwd);
   const [mcp, worktrees] = await Promise.all([collectMcpStatus(mainRepoRoot), collectDashboardWorktrees(cwd, options)]);
 
+  const profileFiles = resolveLiferayProfileFiles(mainRepoRoot);
+  const profile = profileFiles.shared ? readProfileFile(profileFiles.shared) : {};
+  const defaultWorktreeBase = profile['worktree.defaultBase'] || undefined;
+
   return {
     cwd: mainRepoRoot,
     refreshedAt: new Date().toISOString(),
     mcp,
     worktrees,
+    defaultWorktreeBase,
   };
 }

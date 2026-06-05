@@ -181,6 +181,7 @@ export const dashboardStatusResponseSchema = z.object({
   refreshedAt: z.string().datetime(),
   mcp: dashboardMcpStatusSchema,
   worktrees: z.array(dashboardWorktreeSchema),
+  defaultWorktreeBase: z.string().optional(),
 });
 export type DashboardStatusResponseContract = z.infer<typeof dashboardStatusResponseSchema>;
 

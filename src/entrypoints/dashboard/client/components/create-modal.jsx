@@ -4,7 +4,7 @@ import {useEffect, useState} from 'preact/hooks';
 import {IconX} from '../lib/icons.jsx';
 
 export function CreateModal({data, isOpen, onClose, onSubmit}) {
-  const mainBranch = data?.worktrees?.find((wt) => wt.isMain)?.branch || '';
+  const defaultBase = data?.defaultWorktreeBase || '';
   const [form, setForm] = useState({
     name: '',
     baseRef: '',
@@ -19,7 +19,7 @@ export function CreateModal({data, isOpen, onClose, onSubmit}) {
     if (isOpen) {
       setForm({
         name: '',
-        baseRef: mainBranch,
+        baseRef: defaultBase,
         startAfterCreate: true,
         withEnv: true,
         installMcp: true,
@@ -27,7 +27,7 @@ export function CreateModal({data, isOpen, onClose, onSubmit}) {
         restartMainAfterClone: false,
       });
     }
-  }, [isOpen, mainBranch]);
+  }, [isOpen, defaultBase]);
 
   if (!isOpen) return null;
 
