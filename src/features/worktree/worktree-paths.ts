@@ -171,6 +171,7 @@ export function resolvePortSet(name: string): {
   gogoPort: string;
   postgresPort: string;
   esHttpPort: string;
+  glowrootPort: string;
 } {
   const hash = checksum(name);
   const offset = hash % 800;
@@ -181,6 +182,7 @@ export function resolvePortSet(name: string): {
     gogoPort: String(12000 + offset),
     postgresPort: String(5400 + offset),
     esHttpPort: String(9201 + offset),
+    glowrootPort: String(4001 + offset),
   };
 }
 

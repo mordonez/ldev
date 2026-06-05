@@ -26,6 +26,17 @@ Local runtime values such as:
 - `LIFERAY_OSGI_STATE_MODE`
 - `LCP_PROJECT`
 - `LCP_ENVIRONMENT`
+- `GLOWROOT_PORT` — port for the Glowroot APM UI (default `4000`; worktrees get a unique port automatically)
+
+## Glowroot
+
+The default `docker-compose.yml` ships with [Glowroot](https://glowroot.org/) enabled out of the box via `LIFERAY_JVM_OPTS`. Once the container is running, the APM UI is available at:
+
+```
+http://127.0.0.1:4000
+```
+
+For worktrees, the port is assigned automatically from `GLOWROOT_PORT` in each worktree's `docker/.env`. Use it to inspect heap usage, slow transactions, and GC activity without any extra setup.
 
 `ldev` may also read `LIFERAY_CLI_URL` and OAuth variables from here as a legacy fallback, but this is not the preferred destination for `ldev oauth install --write-env`.
 

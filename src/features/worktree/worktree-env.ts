@@ -97,6 +97,7 @@ export async function runWorktreeEnv(options: {
     GOGO_PORT: ports.gogoPort,
     POSTGRES_PORT: ports.postgresPort,
     ES_HTTP_PORT: ports.esHttpPort,
+    GLOWROOT_PORT: ports.glowrootPort,
     ENV_DATA_ROOT: envDataRoot,
     ...(btrfs.enabled && btrfs.rootDir && btrfs.baseDir && btrfs.envsDir && btrfs.useSnapshots
       ? {
