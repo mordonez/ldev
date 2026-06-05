@@ -58,8 +58,9 @@ export async function collectDashboardStatus(
   const [mcp, worktrees] = await Promise.all([collectMcpStatus(mainRepoRoot), collectDashboardWorktrees(cwd, options)]);
 
   const profileFiles = resolveLiferayProfileFiles(mainRepoRoot);
-  const profile = profileFiles.shared ? readProfileFile(profileFiles.shared) : {};
-  const defaultWorktreeBase = profile['worktree.defaultBase'] || undefined;
+  const shared = profileFiles.shared ? readProfileFile(profileFiles.shared) : {};
+  const local = profileFiles.local ? readProfileFile(profileFiles.local) : {};
+  const defaultWorktreeBase = local['worktree.defaultBase'] || shared['worktree.defaultBase'] || undefined;
 
   return {
     cwd: mainRepoRoot,
