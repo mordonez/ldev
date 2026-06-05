@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/mordonez/ldev/compare/ldev-v0.7.2...ldev-v0.8.0) (2026-06-05)
+
+
+### Features
+
+* add glowroot port to worktree port set and tune docker resource defaults ([#153](https://github.com/mordonez/ldev/issues/153)) ([c910b7d](https://github.com/mordonez/ldev/commit/c910b7d78af9890f4b6cd4c9958f87837fcf3ea9))
+* **dashboard:** redesign UI with slide-over detail, KPI overview, and theme support ([#151](https://github.com/mordonez/ldev/issues/151)) ([8fcba27](https://github.com/mordonez/ldev/commit/8fcba278aa25e1cc5a4240c5ae04b0b706258e85))
+
+
+### Bug Fixes
+
+* agentic help alignment — expose ldev ai, harden safety invariants, MCP fallback coverage ([#152](https://github.com/mordonez/ldev/issues/152)) ([d9eee95](https://github.com/mordonez/ldev/commit/d9eee95ec34def9cc2b76b474c9f463f769559cb))
+* harden deploy and template resource workflows ([#148](https://github.com/mordonez/ldev/issues/148)) ([7f0ed2d](https://github.com/mordonez/ldev/commit/7f0ed2df898fdcae2c2d68cd2b4ff26cb59bc688))
+
 ## [0.7.2](https://github.com/mordonez/ldev/compare/ldev-v0.7.1...ldev-v0.7.2) (2026-05-20)
 
 
