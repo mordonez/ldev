@@ -124,6 +124,7 @@ export const dashboardEnvSchema = z.object({
   dockerDir: z.string(),
   error: z.string().nullable(),
   portalUrl: z.string(),
+  glowrootUrl: z.string().optional(),
   portalReachable: z.boolean().nullable(),
   services: z.array(envServiceStatusSchema),
   liferay: envServiceStatusSchema.nullable(),
