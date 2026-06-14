@@ -1,57 +1,6 @@
 import {describe, expect, test} from 'vitest';
 
-import {formatAiStatus, type AiStatusReport} from '../../src/features/ai/ai-status.js';
 import {formatAiResult, type AiCommandResult} from '../../src/features/ai/ai-install.js';
-
-// ---------------------------------------------------------------------------
-// ai-status — formatAiStatus
-// ---------------------------------------------------------------------------
-
-function makeAiStatusReport(overrides?: Partial<AiStatusReport>): AiStatusReport {
-  return {
-    ok: true,
-    projectType: 'blade-workspace',
-    manifestPresent: true,
-    packageVersion: '0.2.0',
-    summary: {managedRules: 3, current: 2, modified: 1, stalePackage: 0, staleRuntime: 0, missing: 0},
-    officialWorkspaceFilesDetected: [],
-    coexistenceNotes: [],
-    rules: [],
-    warnings: [],
-    ...overrides,
-  };
-}
-
-describe('formatAiStatus', () => {
-  test('includes manifest presence, project type and rule counts', () => {
-    const result = formatAiStatus(makeAiStatusReport());
-
-    expect(result).toContain('present');
-    expect(result).toContain('blade-workspace');
-    expect(result).toContain('Managed rules: 3');
-    expect(result).toContain('Current=2');
-    expect(result).toContain('Modified=1');
-  });
-
-  test('shows "missing" when manifest is absent', () => {
-    const result = formatAiStatus(makeAiStatusReport({manifestPresent: false}));
-
-    expect(result).toContain('missing');
-  });
-
-  test('includes warnings section when warnings are present', () => {
-    const result = formatAiStatus(makeAiStatusReport({warnings: ['1 managed rules were modified locally.']}));
-
-    expect(result).toContain('Warnings');
-    expect(result).toContain('1 managed rules were modified locally.');
-  });
-
-  test('omits warnings section when there are no warnings', () => {
-    const result = formatAiStatus(makeAiStatusReport({warnings: []}));
-
-    expect(result).not.toContain('Warnings');
-  });
-});
 
 // ---------------------------------------------------------------------------
 // ai-install — formatAiResult

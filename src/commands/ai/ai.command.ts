@@ -2,8 +2,6 @@ import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
 import {formatAiResult, runAiInstall} from '../../features/ai/ai-install.js';
-import {formatAiStatus, runAiStatus} from '../../features/ai/ai-status.js';
-import {runAiUpdate} from '../../features/ai/ai-update.js';
 import {parseBootstrapCacheTtl, runAiBootstrap} from '../../features/agent/agent-bootstrap.js';
 import {
   formatMcpSetup,
@@ -28,15 +26,6 @@ type AiInstallCommandOptions = {
   project?: boolean;
   projectContext?: boolean;
   skill: string[];
-};
-
-type AiUpdateCommandOptions = {
-  target: string;
-  skill: string[];
-};
-
-type AiStatusCommandOptions = {
-  target: string;
 };
 
 type AiBootstrapCommandOptions = {
@@ -81,25 +70,6 @@ export function createAiCommand(): Command {
         'Also install project-owned skills and agents; filtered by project type/capabilities and not managed by ai update',
       ),
   );
-  const updateCommand = addOutputFormatOption(
-    command
-      .command('update')
-      .description('Safely update vendor skills and managed rules listed in the manifest')
-      .requiredOption('--target <target>', 'Project root')
-      .option(
-        '--skill <name>',
-        'Update only specific vendor skills and rewrite the vendor manifest to that set',
-        collectSkillOption,
-        [],
-      ),
-  );
-  const statusCommand = addOutputFormatOption(
-    command
-      .command('status')
-      .description('Inspect managed AI rules, manifest state and drift')
-      .requiredOption('--target <target>', 'Project root'),
-    'json',
-  );
   const mcpSetupCommand = addOutputFormatOption(
     command
       .command('mcp-setup')
@@ -134,10 +104,6 @@ export function createAiCommand(): Command {
     `
 This namespace bootstraps the reusable AI surface for a project that uses ldev.
 
-Safe defaults:
-  update               Refresh vendor-managed skills and ldev-managed rules listed in the manifest
-  status               Inspect managed rule ownership, manifest state and drift
-
 Potentially mutating:
   install              Install vendor skills + AGENTS.md bootstrap
   install --skill ...  Install only selected vendor skills (like tsdown --skill patterns)
@@ -148,8 +114,7 @@ Potentially mutating:
                       Also install project-owned context scaffolding.
   install --project    Also install project-owned skills and agents.
                        ldev only installs the subset that makes sense for the detected project type/runtime:
-                       update will not touch them once installed. Also installs project context scaffolding.
-  update --skill ...   Re-scope the vendor-managed skill set and refresh managed rules
+                       Once installed, use ldev ai install again to safely update without overwriting local changes.
 `,
   );
 
@@ -170,26 +135,6 @@ Potentially mutating:
       },
       {text: formatAiResult},
     ),
-  );
-
-  updateCommand.action(
-    createFormattedAction(
-      async (context, options: AiUpdateCommandOptions) => {
-        const result = await runAiUpdate({
-          targetDir: options.target,
-          selectedSkills: options.skill,
-          printer: context.printer,
-        });
-        return result;
-      },
-      {text: formatAiResult},
-    ),
-  );
-
-  statusCommand.action(
-    createFormattedAction(async (_context, options: AiStatusCommandOptions) => runAiStatus(options.target), {
-      text: formatAiStatus,
-    }),
   );
 
   bootstrapCommand.action(

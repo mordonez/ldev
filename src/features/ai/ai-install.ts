@@ -6,7 +6,6 @@ import type {Printer} from '../../core/output/printer.js';
 import {detectProjectType, type ProjectType} from '../../core/config/project-type.js';
 import {resolveAiAssets, type AiAssets} from './ai-manifest.js';
 import {copyAiTemplatePath, ensureLocalAiGitignoreEntries} from './ai-install-fs.js';
-import {cleanupRetiredManagedAiRules, installManagedAiRules, syncProjectWorkspaceRules} from './ai-install-rules.js';
 import {
   buildNextSteps,
   buildWorkspaceCoexistenceWarnings,
@@ -227,9 +226,6 @@ async function applyAiInstall(options: {
     await fs.remove(path.join(skillsDestinationDir, skillName));
   }
 
-  const workspaceRuleResult = await installManagedAiRules(options.targetDir, options.assets, options.projectType);
-  await cleanupRetiredManagedAiRules(options.targetDir, workspaceRuleResult.installedRules, null);
-
   const officialWorkspaceFilesDetected: string[] = [];
 
   const preservedLocalSkills = options.skillsOnly
@@ -316,8 +312,6 @@ async function applyAiInstall(options: {
     retiredVendorSkills,
   );
 
-  const projectWorkspaceRulesSynced = await syncProjectWorkspaceRules(options.targetDir);
-
   return {
     mode: options.mode,
     targetDir: options.targetDir,
@@ -336,8 +330,8 @@ async function applyAiInstall(options: {
     geminiInstalled,
     cursorrulesInstalled,
     projectSkillsInstalled,
-    workspaceRulesInstalled: workspaceRuleResult.installedRules,
-    workspaceToolTargetsUpdated: workspaceRuleResult.touchedTargets,
+    workspaceRulesInstalled: [],
+    workspaceToolTargetsUpdated: [],
     rulesManifestPath: '',
     officialWorkspaceFilesDetected,
     selectedSkills,
@@ -353,6 +347,6 @@ async function applyAiInstall(options: {
     ),
     gitignoreEntriesAdded,
     claudeSkillCommandsInstalled,
-    projectWorkspaceRulesSynced,
+    projectWorkspaceRulesSynced: [],
   };
 }

@@ -13,7 +13,6 @@ import {detectRepoPaths} from '../../core/config/repo-paths.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
 import {isWorktree} from '../../core/platform/git.js';
-import {runAiStatus} from '../../core/runtime/ai-status.js';
 import type {
   DoctorContext,
   DoctorDependencies,
@@ -139,8 +138,6 @@ export async function collectDoctorContext(
     ),
   };
 
-  const aiStatus = await runAiStatus(project.cwd);
-
   return {
     project,
     repoPaths,
@@ -156,14 +153,6 @@ export async function collectDoctorContext(
     httpPortStatus,
     totalMemoryBytes,
     worktree,
-    ai: {
-      manifestPresent: aiStatus.manifestPresent,
-      managedRules: aiStatus.summary.managedRules,
-      modifiedRules: aiStatus.summary.modified,
-      stalePackageRules: aiStatus.summary.stalePackage,
-      staleRuntimeRules: aiStatus.summary.staleRuntime,
-      warnings: aiStatus.warnings,
-    },
   };
 }
 

@@ -192,12 +192,6 @@ function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContex
       wars: {count: 0, sample: []},
       deployArtifacts: {count: 0, sample: []},
     },
-    ai: {
-      manifestPresent: true,
-      managedRules: 5,
-      modifiedRules: 0,
-      staleRuntimeRules: 0,
-    },
     platform: {
       os: 'linux',
       tools: {

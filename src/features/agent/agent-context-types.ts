@@ -60,12 +60,6 @@ export type AgentContextReport = {
     dataRoot: string | null;
   };
   inventory: ProjectInventory['local'];
-  ai: {
-    manifestPresent: boolean;
-    managedRules: number;
-    modifiedRules: number;
-    staleRuntimeRules: number;
-  };
   platform: {
     os: PlatformCapabilities['os'];
     tools: {
