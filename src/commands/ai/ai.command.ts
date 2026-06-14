@@ -28,25 +28,13 @@ type AiMcpSetupCommandOptions = {
 
 export function createAiCommand(): Command {
   const command = new Command('ai');
+
   const installCommand = addOutputFormatOption(
     command
       .command('install')
-      .description('Install the standard reusable AI assets into a project')
+      .description('Install standard AI meta-files into a project (AGENTS.md, CLAUDE.md, etc.)')
       .requiredOption('--target <target>', 'Project root')
-      .option('--force', 'Overwrite AI files if they already exist'),
-  );
-  const mcpSetupCommand = addOutputFormatOption(
-    command
-      .command('mcp-setup')
-      .description('Write the ldev MCP server config for your AI assistant')
-      .requiredOption('--target <target>', 'Project root to write the config into')
-      .requiredOption(
-        '--tool <tool>',
-        'AI assistant to configure: all, claude-code (.claude/mcp.json), cursor (.cursor/mcp.json), or vscode (.vscode/mcp.json)',
-      ),
-  ).option(
-    '--strategy <strategy>',
-    'Server launch strategy: global (ldev-mcp-server), local (node ./node_modules/...), or npx',
+      .option('--force', 'Overwrite existing files'),
   );
 
   const bootstrapCommand = addOutputFormatOption(
@@ -64,25 +52,39 @@ export function createAiCommand(): Command {
     'json',
   );
 
-  command.description('Standard reusable AI assets and skills for ldev projects').addHelpText(
+  const mcpSetupCommand = addOutputFormatOption(
+    command
+      .command('mcp-setup')
+      .description('Write the ldev MCP server config for your AI assistant')
+      .requiredOption('--target <target>', 'Project root to write the config into')
+      .requiredOption(
+        '--tool <tool>',
+        'AI assistant to configure: all, claude-code (.claude/mcp.json), cursor (.cursor/mcp.json), or vscode (.vscode/mcp.json)',
+      ),
+  ).option(
+    '--strategy <strategy>',
+    'Server launch strategy: global (ldev-mcp-server), local (node ./node_modules/...), or npx',
+  );
+
+  command.description('Standard AI assets and skills for ldev projects').addHelpText(
     'after',
     `
-This namespace bootstraps the reusable AI surface for a project that uses ldev.
+Skills are distributed via the skills.sh standard:
+  npx skills add https://github.com/mordonez/ldev
 
-Potentially mutating:
-  install              Install AGENTS.md and AI meta-files (CLAUDE.md, .cursorrules, etc.)
-  install --force      Overwrite AI files if they already exist
+Meta-file bootstrap:
+  install              Install AGENTS.md, CLAUDE.md, and related files
+  install --force      Overwrite existing files
 `,
   );
 
   installCommand.action(
     createFormattedAction(
-      async (context, options: AiInstallCommandOptions) => {
-        const result = await runAiInstall({
+      async (_context, options: AiInstallCommandOptions) => {
+        return runAiInstall({
           targetDir: options.target,
           force: Boolean(options.force),
         });
-        return result;
       },
       {text: formatAiResult},
     ),
