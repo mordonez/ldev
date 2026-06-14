@@ -10,22 +10,9 @@ import {
   type McpTool,
 } from '../../entrypoints/mcp-server/mcp-server-setup.js';
 
-function collectSkillOption(value: string, previous: string[]): string[] {
-  const skill = value.trim();
-  if (skill.length === 0) {
-    return previous;
-  }
-  return [...previous, skill];
-}
-
 type AiInstallCommandOptions = {
   target: string;
   force?: boolean;
-  local?: boolean;
-  skillsOnly?: boolean;
-  project?: boolean;
-  projectContext?: boolean;
-  skill: string[];
 };
 
 type AiBootstrapCommandOptions = {
@@ -46,29 +33,7 @@ export function createAiCommand(): Command {
       .command('install')
       .description('Install the standard reusable AI assets into a project')
       .requiredOption('--target <target>', 'Project root')
-      .option(
-        '--force',
-        'Overwrite AGENTS.md and requested project AI files if they already exist; project-context requires explicit --project-context',
-      )
-      .option(
-        '--local',
-        'Keep AI tooling local by adding generated agent/editor files to .gitignore while leaving docs/ai versionable',
-      )
-      .option('--skills-only', 'Only update vendor skills and managed rules from the manifest')
-      .option(
-        '--project-context',
-        'Also install project-owned context scaffolding (docs/ai/project-context.md and sample)',
-      )
-      .option(
-        '--skill <name>',
-        'Install only specific vendor skills (repeat for multiple skills)',
-        collectSkillOption,
-        [],
-      )
-      .option(
-        '--project',
-        'Also install project-owned skills and agents; filtered by project type/capabilities and not managed by ai update',
-      ),
+      .option('--force', 'Overwrite AI files if they already exist'),
   );
   const mcpSetupCommand = addOutputFormatOption(
     command
@@ -105,16 +70,8 @@ export function createAiCommand(): Command {
 This namespace bootstraps the reusable AI surface for a project that uses ldev.
 
 Potentially mutating:
-  install              Install vendor skills + AGENTS.md bootstrap
-  install --skill ...  Install only selected vendor skills (like tsdown --skill patterns)
-  install --force      Overwrite AGENTS.md and requested project AI files when bootstrapping a project
-                       project-context files are only overwritten when --project-context is explicitly passed
-  install --local      Add generated agent/editor files to .gitignore, but keep docs/ai versionable
-  install --project-context
-                      Also install project-owned context scaffolding.
-  install --project    Also install project-owned skills and agents.
-                       ldev only installs the subset that makes sense for the detected project type/runtime:
-                       Once installed, use ldev ai install again to safely update without overwriting local changes.
+  install              Install AGENTS.md and AI meta-files (CLAUDE.md, .cursorrules, etc.)
+  install --force      Overwrite AI files if they already exist
 `,
   );
 
@@ -124,12 +81,6 @@ Potentially mutating:
         const result = await runAiInstall({
           targetDir: options.target,
           force: Boolean(options.force),
-          local: Boolean(options.local),
-          skillsOnly: Boolean(options.skillsOnly),
-          project: Boolean(options.project),
-          projectContext: Boolean(options.projectContext),
-          selectedSkills: options.skill,
-          printer: context.printer,
         });
         return result;
       },

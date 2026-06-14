@@ -11,11 +11,6 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     mode: 'install',
     targetDir: '/workspace',
     projectType: 'blade-workspace',
-    local: false,
-    skillsOnly: false,
-    vendorSkills: ['commit', 'review-pr'],
-    updatedSkills: ['commit', 'review-pr'],
-    manifestPath: '/workspace/.agents/.vendor-skills',
     agents: 'installed',
     claudeInstalled: false,
     projectContextInstalled: false,
@@ -23,10 +18,7 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     copilotInstalled: false,
     geminiInstalled: false,
     cursorrulesInstalled: false,
-    selectedSkills: [],
-    warnings: [],
     nextSteps: [],
-    gitignoreEntriesAdded: [],
     ...overrides,
   };
 }
@@ -39,31 +31,22 @@ describe('formatAiResult', () => {
     expect(result).toContain('blade-workspace');
   });
 
-  test('shows installed skills count and AGENTS.md status in install mode', () => {
+  test('shows AGENTS.md status', () => {
     const result = formatAiResult(makeAiCommandResult());
 
-    expect(result).toContain('Installed skills: 2');
     expect(result).toContain('AGENTS.md: installed');
   });
 
-  test('shows local gitignore mode when install uses --local', () => {
-    const result = formatAiResult(makeAiCommandResult({local: true, gitignoreEntriesAdded: ['AGENTS.md', '.agents/']}));
+  test('shows CLAUDE.md when installed', () => {
+    const result = formatAiResult(makeAiCommandResult({claudeInstalled: true}));
 
-    expect(result).toContain('Git ignore mode: local');
-    expect(result).toContain('AI/tooling paths added to .gitignore: 2');
+    expect(result).toContain('CLAUDE.md: applied');
   });
 
-  test('shows updated skills in skillsOnly mode', () => {
-    const result = formatAiResult(makeAiCommandResult({skillsOnly: true, updatedSkills: ['commit']}));
+  test('shows copilot instructions when installed', () => {
+    const result = formatAiResult(makeAiCommandResult({copilotInstalled: true}));
 
-    expect(result).toContain('Updated vendor skills: 1');
-    expect(result).not.toContain('AGENTS.md');
-  });
-
-  test('includes selected skills when present', () => {
-    const result = formatAiResult(makeAiCommandResult({selectedSkills: ['commit', 'review-pr']}));
-
-    expect(result).toContain('Selected skills: commit, review-pr');
+    expect(result).toContain('.github/copilot-instructions.md: applied');
   });
 
   test('renders next steps with numbered list', () => {
@@ -74,17 +57,9 @@ describe('formatAiResult', () => {
     expect(result).toContain('2. Run ldev doctor');
   });
 
-  test('renders warnings section when present', () => {
-    const result = formatAiResult(makeAiCommandResult({warnings: ['Official files detected']}));
-
-    expect(result).toContain('Warnings:');
-    expect(result).toContain('Official files detected');
-  });
-
-  test('omits next steps and warnings sections when empty', () => {
-    const result = formatAiResult(makeAiCommandResult({nextSteps: [], warnings: []}));
+  test('omits next steps section when empty', () => {
+    const result = formatAiResult(makeAiCommandResult({nextSteps: []}));
 
     expect(result).not.toContain('Next steps:');
-    expect(result).not.toContain('Warnings:');
   });
 });

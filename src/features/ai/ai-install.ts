@@ -1,286 +1,94 @@
 import path from 'node:path';
 
-import fs from 'fs-extra';
-
 import type {Printer} from '../../core/output/printer.js';
-import {CliError} from '../../core/errors.js';
 import {detectProjectType, type ProjectType} from '../../core/config/project-type.js';
 import {resolveAiAssets, type AiAssets} from './ai-manifest.js';
-import {copyAiTemplatePath, ensureLocalAiGitignoreEntries} from './ai-install-fs.js';
 import {buildNextSteps, installAgentsFile, installProjectFile} from './ai-install-project.js';
 
 export type AiCommandResult = {
-  mode: 'install' | 'update';
+  mode: 'install';
   targetDir: string;
   projectType: ProjectType;
-  local: boolean;
-  skillsOnly: boolean;
-  vendorSkills: string[];
-  updatedSkills: string[];
-  manifestPath: string;
-  agents: 'installed' | 'overwritten' | 'kept' | 'skipped';
+  agents: 'installed' | 'overwritten' | 'kept';
   claudeInstalled: boolean;
-  projectContextInstalled: boolean;
-  projectContextSampleInstalled: boolean;
   copilotInstalled: boolean;
   geminiInstalled: boolean;
   cursorrulesInstalled: boolean;
-  selectedSkills: string[];
-  warnings: string[];
+  projectContextInstalled: boolean;
+  projectContextSampleInstalled: boolean;
   nextSteps: string[];
-  gitignoreEntriesAdded: string[];
-};
-
-type AiDependencies = {
-  assets?: AiAssets;
-  now?: Date;
 };
 
 export async function runAiInstall(
   options: {
     targetDir: string;
     force: boolean;
-    local?: boolean;
-    skillsOnly: boolean;
-    project?: boolean;
-    projectContext?: boolean;
-    selectedSkills?: string[];
-    printer: Printer;
+    printer?: Printer;
   },
-  dependencies?: AiDependencies,
+  dependencies?: {assets?: AiAssets},
 ): Promise<AiCommandResult> {
-  const selectedSkills = [
-    ...new Set((options.selectedSkills ?? []).map((v) => v.trim()).filter((v) => v.length > 0)),
-  ].sort();
-  return applyAiInstall({
-    mode: options.skillsOnly ? 'update' : 'install',
-    targetDir: path.resolve(options.targetDir),
-    projectType: detectProjectType(path.resolve(options.targetDir)),
-    force: options.force,
-    local: Boolean(options.local),
-    skillsOnly: options.skillsOnly,
-    project: Boolean(options.project),
-    projectContext: Boolean(options.projectContext),
-    selectedSkills,
-    printer: options.printer,
-    assets: dependencies?.assets ?? resolveAiAssets(),
-    now: dependencies?.now ?? new Date(),
-  });
+  const targetDir = path.resolve(options.targetDir);
+  const projectType = detectProjectType(targetDir);
+  const assets = dependencies?.assets ?? resolveAiAssets();
+  const overwrite = options.force;
+
+  const agents = await installAgentsFile(targetDir, assets, options.force, {projectType});
+
+  const claudeInstalled =
+    projectType !== 'blade-workspace' ? await installProjectFile(targetDir, assets, 'CLAUDE.md', {overwrite}) : false;
+
+  const copilotInstalled =
+    projectType !== 'blade-workspace'
+      ? await installProjectFile(targetDir, assets, path.join('.github', 'copilot-instructions.md'), {overwrite})
+      : false;
+
+  const geminiInstalled = await installProjectFile(targetDir, assets, path.join('.gemini', 'GEMINI.md'), {overwrite});
+  const cursorrulesInstalled = await installProjectFile(targetDir, assets, '.cursorrules', {overwrite});
+  const projectContextInstalled = await installProjectFile(
+    targetDir,
+    assets,
+    path.join('docs', 'ai', 'project-context.md'),
+    {overwrite},
+  );
+  const projectContextSampleInstalled = await installProjectFile(
+    targetDir,
+    assets,
+    path.join('docs', 'ai', 'project-context.md.sample'),
+    {overwrite},
+  );
+
+  return {
+    mode: 'install',
+    targetDir,
+    projectType,
+    agents,
+    claudeInstalled,
+    copilotInstalled,
+    geminiInstalled,
+    cursorrulesInstalled,
+    projectContextInstalled,
+    projectContextSampleInstalled,
+    nextSteps: buildNextSteps(projectType),
+  };
 }
 
 export function formatAiResult(result: AiCommandResult): string {
   const lines = [`Installation completed in: ${result.targetDir}`, ''];
   lines.push(`Project type: ${result.projectType}`);
-  if (result.selectedSkills.length > 0) {
-    lines.push(`Selected skills: ${result.selectedSkills.join(', ')}`);
-  }
-  if (result.local) {
-    lines.push('Git ignore mode: local');
-  }
-
-  if (result.skillsOnly) {
-    lines.push(`Updated vendor skills: ${result.updatedSkills.length}`);
-  } else {
-    lines.push(`Installed skills: ${result.updatedSkills.length}`);
-    lines.push(`AGENTS.md: ${result.agents}`);
-    if (result.claudeInstalled) lines.push('CLAUDE.md: applied');
-    if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: applied');
-    if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: applied');
-    if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: applied');
-    if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: applied');
-    if (result.cursorrulesInstalled) lines.push('.cursorrules: applied');
-    if (result.gitignoreEntriesAdded.length > 0) {
-      lines.push(`AI/tooling paths added to .gitignore: ${result.gitignoreEntriesAdded.length}`);
-    }
-  }
+  lines.push(`AGENTS.md: ${result.agents}`);
+  if (result.claudeInstalled) lines.push('CLAUDE.md: applied');
+  if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: applied');
+  if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: applied');
+  if (result.cursorrulesInstalled) lines.push('.cursorrules: applied');
+  if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: applied');
+  if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: applied');
 
   if (result.nextSteps.length > 0) {
-    lines.push('');
-    lines.push('Next steps:');
+    lines.push('', 'Next steps:');
     result.nextSteps.forEach((step, index) => {
       lines.push(`  ${index + 1}. ${step}`);
     });
   }
 
-  if (result.warnings.length > 0) {
-    lines.push('', 'Warnings:');
-    result.warnings.forEach((warning) => {
-      lines.push(`  - ${warning}`);
-    });
-  }
-
   return lines.join('\n');
-}
-
-async function listVendorSkills(assets: AiAssets): Promise<string[]> {
-  if (!(await fs.pathExists(assets.skillsSourceDir))) {
-    return [];
-  }
-
-  const entries = await fs.readdir(assets.skillsSourceDir, {withFileTypes: true});
-  return entries
-    .filter((e) => e.isDirectory())
-    .map((e) => e.name)
-    .sort();
-}
-
-async function readManifestSkills(manifestPath: string): Promise<string[]> {
-  if (!(await fs.pathExists(manifestPath))) {
-    return [];
-  }
-
-  const content = await fs.readFile(manifestPath, 'utf8');
-  return content
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith('#'));
-}
-
-async function writeVendorManifest(manifestPath: string, skills: string[], generatedAt: Date): Promise<void> {
-  const lines = [
-    '# Skills installed by ldev',
-    `# Updated: ${generatedAt.toISOString()}`,
-    '# Do not edit manually — generated by ldev ai',
-    ...skills,
-    '',
-  ];
-
-  await fs.ensureDir(path.dirname(manifestPath));
-  await fs.writeFile(manifestPath, lines.join('\n'));
-}
-
-async function applyAiInstall(options: {
-  mode: 'install' | 'update';
-  targetDir: string;
-  projectType: ProjectType;
-  force: boolean;
-  local: boolean;
-  skillsOnly: boolean;
-  project: boolean;
-  projectContext: boolean;
-  selectedSkills: string[];
-  printer: Printer;
-  assets: AiAssets;
-  now: Date;
-}): Promise<AiCommandResult> {
-  const skillsDestinationDir = path.join(options.targetDir, '.agents', 'skills');
-  const manifestPath = path.join(options.targetDir, '.agents', '.vendor-skills');
-
-  await fs.ensureDir(skillsDestinationDir);
-
-  const vendorSkills = await listVendorSkills(options.assets);
-  const selectedSkills = options.selectedSkills;
-  if (selectedSkills.length > 0) {
-    const invalid = selectedSkills.filter((skillName) => !vendorSkills.includes(skillName));
-    if (invalid.length > 0) {
-      throw new CliError(
-        `Unknown vendor skill(s): ${invalid.join(', ')}. Available skills: ${vendorSkills.join(', ')}`,
-        {code: 'AI_INSTALL_INVALID_VENDOR'},
-      );
-    }
-  }
-  const managedVendorSkills = selectedSkills.length > 0 ? selectedSkills : vendorSkills;
-  const manifestSkills = await readManifestSkills(manifestPath);
-  const retiredVendorSkills =
-    manifestSkills.length > 0 ? manifestSkills.filter((skillName) => !managedVendorSkills.includes(skillName)) : [];
-  const skillsToUpdate = managedVendorSkills;
-
-  for (const skillName of skillsToUpdate) {
-    await copyAiTemplatePath(
-      path.join(options.assets.skillsSourceDir, skillName),
-      path.join(skillsDestinationDir, skillName),
-      {
-        overwrite: true,
-      },
-    );
-  }
-
-  for (const skillName of retiredVendorSkills) {
-    await fs.remove(path.join(skillsDestinationDir, skillName));
-  }
-
-  await writeVendorManifest(manifestPath, managedVendorSkills, options.now);
-
-  const warnings: string[] = [];
-
-  const agents = !options.skillsOnly
-    ? await installAgentsFile(options.targetDir, options.assets, options.force, {
-        projectType: options.projectType,
-      })
-    : 'skipped';
-
-  const overwriteProjectFiles = options.force;
-  const overwriteProjectContextFiles = options.force && options.projectContext;
-
-  const claudeInstalled = !options.skillsOnly
-    ? options.projectType === 'blade-workspace'
-      ? false
-      : await installProjectFile(options.targetDir, options.assets, 'CLAUDE.md', {
-          overwrite: overwriteProjectFiles,
-        })
-    : false;
-
-  const installProjectContext = !options.skillsOnly && (options.project || options.projectContext);
-
-  const projectContextInstalled = installProjectContext
-    ? await installProjectFile(options.targetDir, options.assets, path.join('docs', 'ai', 'project-context.md'), {
-        overwrite: overwriteProjectContextFiles,
-      })
-    : false;
-
-  const projectContextSampleInstalled = installProjectContext
-    ? await installProjectFile(
-        options.targetDir,
-        options.assets,
-        path.join('docs', 'ai', 'project-context.md.sample'),
-        {
-          overwrite: overwriteProjectContextFiles,
-        },
-      )
-    : false;
-
-  const copilotInstalled = !options.skillsOnly
-    ? options.projectType === 'blade-workspace'
-      ? false
-      : await installProjectFile(options.targetDir, options.assets, path.join('.github', 'copilot-instructions.md'), {
-          overwrite: overwriteProjectFiles,
-        })
-    : false;
-
-  const geminiInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, path.join('.gemini', 'GEMINI.md'), {
-        overwrite: overwriteProjectFiles,
-      })
-    : false;
-
-  const cursorrulesInstalled = !options.skillsOnly
-    ? await installProjectFile(options.targetDir, options.assets, '.cursorrules', {
-        overwrite: overwriteProjectFiles,
-      })
-    : false;
-
-  const gitignoreEntriesAdded =
-    !options.skillsOnly && options.local ? await ensureLocalAiGitignoreEntries(options.targetDir) : [];
-
-  return {
-    mode: options.mode,
-    targetDir: options.targetDir,
-    projectType: options.projectType,
-    local: options.local,
-    skillsOnly: options.skillsOnly,
-    vendorSkills: managedVendorSkills,
-    updatedSkills: skillsToUpdate,
-    manifestPath,
-    agents,
-    claudeInstalled,
-    projectContextInstalled,
-    projectContextSampleInstalled,
-    copilotInstalled,
-    geminiInstalled,
-    cursorrulesInstalled,
-    selectedSkills,
-    warnings,
-    nextSteps: buildNextSteps(options.projectType),
-    gitignoreEntriesAdded,
-  };
 }
