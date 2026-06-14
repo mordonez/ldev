@@ -4,7 +4,6 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 
-import {buildRulesManifest} from '../../src/features/ai/ai-install-rules.js';
 import {
   isProbablyBinary,
   normalizeGitignoreEntryForComparison,
@@ -257,72 +256,5 @@ describe('buildWorkspaceCoexistenceWarnings', () => {
     const warnings = buildWorkspaceCoexistenceWarnings('blade-workspace', ['.workspace-rules/liferay-rules.md']);
     expect(warnings.length).toBe(2);
     expect(warnings[1]).toContain('ldev-liferay-mcp');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// ai-install-rules — buildRulesManifest (pure)
-// ---------------------------------------------------------------------------
-
-describe('buildRulesManifest', () => {
-  test('returns a manifest with version 1 and correct metadata', () => {
-    const now = new Date('2025-01-15T10:00:00Z');
-    const manifest = buildRulesManifest({
-      now,
-      packageVersion: '0.4.0',
-      targetDir: '/project',
-      projectType: 'unknown',
-      officialWorkspaceFilesDetected: [],
-      rules: [],
-    });
-
-    expect(manifest.version).toBe(1);
-    expect(manifest.packageVersion).toBe('0.4.0');
-    expect(manifest.projectType).toBe('unknown');
-    expect(manifest.generatedAt).toBe('2025-01-15T10:00:00.000Z');
-  });
-
-  test('stamps rules with lastVerifiedAt date slice', () => {
-    const now = new Date('2025-01-15T10:00:00Z');
-    const manifest = buildRulesManifest({
-      now,
-      packageVersion: '0.4.0',
-      targetDir: '/project',
-      projectType: 'unknown',
-      officialWorkspaceFilesDetected: [],
-      rules: [
-        {
-          id: 'ldev-liferay-core',
-          namespace: 'ldev',
-          layer: 'ldev-common',
-          maintainer: 'ldev',
-          sourceKind: 'derived',
-          sourcePath: '.ldev/ai/rules/ldev-liferay-core.md',
-          sourceReferences: [],
-          targetFiles: [],
-          contentHash: 'sha256:abc',
-          verifiedAgainst: [],
-          lastVerifiedAt: '',
-          verificationStatus: 'verified',
-          localModificationPolicy: 'replace-if-unmodified',
-        },
-      ],
-    });
-
-    expect(manifest.rules[0].lastVerifiedAt).toBe('2025-01-15');
-  });
-
-  test('includes officialWorkspaceFilesDetected in output', () => {
-    const now = new Date();
-    const manifest = buildRulesManifest({
-      now,
-      packageVersion: '0.4.0',
-      targetDir: '/project',
-      projectType: 'blade-workspace',
-      officialWorkspaceFilesDetected: ['.workspace-rules/liferay-rules.md'],
-      rules: [],
-    });
-
-    expect(manifest.officialWorkspaceFilesDetected).toEqual(['.workspace-rules/liferay-rules.md']);
   });
 });

@@ -1,83 +1,7 @@
-import path from 'node:path';
-
 import {describe, expect, test} from 'vitest';
 
-import {
-  computeContentHash,
-  detectManagedRuleNamespace,
-  detectRuleLayer,
-  rulesManifestPath,
-} from '../../src/features/ai/ai-manifest.js';
 import {formatAiStatus, type AiStatusReport} from '../../src/features/ai/ai-status.js';
 import {formatAiResult, type AiCommandResult} from '../../src/features/ai/ai-install.js';
-
-// ---------------------------------------------------------------------------
-// ai-manifest — pure helpers
-// ---------------------------------------------------------------------------
-
-describe('computeContentHash', () => {
-  test('returns a sha256: prefixed hex digest', () => {
-    const hash = computeContentHash('hello world');
-
-    expect(hash).toMatch(/^sha256:[a-f0-9]{64}$/);
-  });
-
-  test('is deterministic for the same input', () => {
-    expect(computeContentHash('abc')).toBe(computeContentHash('abc'));
-  });
-
-  test('produces different hashes for different content', () => {
-    expect(computeContentHash('foo')).not.toBe(computeContentHash('bar'));
-  });
-
-  test('empty string produces a valid hash', () => {
-    expect(computeContentHash('')).toMatch(/^sha256:[a-f0-9]{64}$/);
-  });
-});
-
-describe('detectManagedRuleNamespace', () => {
-  test('returns ldev-workspace for ldev-workspace-* prefix', () => {
-    expect(detectManagedRuleNamespace('ldev-workspace-setup')).toBe('ldev-workspace');
-    expect(detectManagedRuleNamespace('ldev-workspace-runtime')).toBe('ldev-workspace');
-  });
-
-  test('returns ldev-native for ldev-native-* prefix', () => {
-    expect(detectManagedRuleNamespace('ldev-native-runtime')).toBe('ldev-native');
-    expect(detectManagedRuleNamespace('ldev-native-deploy')).toBe('ldev-native');
-  });
-
-  test('returns ldev for ldev-* prefix (non-workspace, non-native)', () => {
-    expect(detectManagedRuleNamespace('ldev-liferay-core')).toBe('ldev');
-    expect(detectManagedRuleNamespace('ldev-liferay-mcp')).toBe('ldev');
-  });
-
-  test('returns null for unrecognised prefixes', () => {
-    expect(detectManagedRuleNamespace('custom-rule')).toBeNull();
-    expect(detectManagedRuleNamespace('project-overlay')).toBeNull();
-    expect(detectManagedRuleNamespace('')).toBeNull();
-  });
-});
-
-describe('detectRuleLayer', () => {
-  test('maps ldev namespace to ldev-common', () => {
-    expect(detectRuleLayer('ldev')).toBe('ldev-common');
-  });
-
-  test('maps ldev-workspace and ldev-native namespaces to project-type', () => {
-    expect(detectRuleLayer('ldev-workspace')).toBe('project-type');
-    expect(detectRuleLayer('ldev-native')).toBe('project-type');
-  });
-});
-
-describe('rulesManifestPath', () => {
-  test('resolves to .ldev/ai/rules-manifest.json inside targetDir', () => {
-    const result = rulesManifestPath('/some/project');
-
-    expect(path.normalize(result)).toBe(
-      path.normalize(path.join('/some/project', '.ldev', 'ai', 'rules-manifest.json')),
-    );
-  });
-});
 
 // ---------------------------------------------------------------------------
 // ai-status — formatAiStatus
@@ -154,7 +78,7 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     projectSkillsInstalled: [],
     workspaceRulesInstalled: [],
     workspaceToolTargetsUpdated: [],
-    rulesManifestPath: '/workspace/.ldev/ai/rules-manifest.json',
+    rulesManifestPath: '',
     officialWorkspaceFilesDetected: [],
     selectedSkills: [],
     warnings: [],
