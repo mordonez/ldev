@@ -3,21 +3,11 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import type {Printer} from '../../core/output/printer.js';
+import {CliError} from '../../core/errors.js';
 import {detectProjectType, type ProjectType} from '../../core/config/project-type.js';
 import {resolveAiAssets, type AiAssets} from './ai-manifest.js';
 import {copyAiTemplatePath, ensureLocalAiGitignoreEntries} from './ai-install-fs.js';
-import {
-  buildNextSteps,
-  buildWorkspaceCoexistenceWarnings,
-  collectExistingProjectSkills,
-  collectLocalSkills,
-  installAgentsFile,
-  installClaudeSkillCommands,
-  installProjectFile,
-  installProjectOwnedSkills,
-  resolveSelectedSkills,
-  uniqueSorted,
-} from './ai-install-project.js';
+import {buildNextSteps, installAgentsFile, installProjectFile} from './ai-install-project.js';
 
 export type AiCommandResult = {
   mode: 'install' | 'update';
@@ -27,7 +17,6 @@ export type AiCommandResult = {
   skillsOnly: boolean;
   vendorSkills: string[];
   updatedSkills: string[];
-  preservedLocalSkills: string[];
   manifestPath: string;
   agents: 'installed' | 'overwritten' | 'kept' | 'skipped';
   claudeInstalled: boolean;
@@ -36,17 +25,10 @@ export type AiCommandResult = {
   copilotInstalled: boolean;
   geminiInstalled: boolean;
   cursorrulesInstalled: boolean;
-  projectSkillsInstalled: string[];
-  workspaceRulesInstalled: string[];
-  workspaceToolTargetsUpdated: string[];
-  rulesManifestPath: string;
-  officialWorkspaceFilesDetected: string[];
   selectedSkills: string[];
   warnings: string[];
   nextSteps: string[];
   gitignoreEntriesAdded: string[];
-  claudeSkillCommandsInstalled: string[];
-  projectWorkspaceRulesSynced: string[];
 };
 
 type AiDependencies = {
@@ -67,6 +49,9 @@ export async function runAiInstall(
   },
   dependencies?: AiDependencies,
 ): Promise<AiCommandResult> {
+  const selectedSkills = [
+    ...new Set((options.selectedSkills ?? []).map((v) => v.trim()).filter((v) => v.length > 0)),
+  ].sort();
   return applyAiInstall({
     mode: options.skillsOnly ? 'update' : 'install',
     targetDir: path.resolve(options.targetDir),
@@ -76,7 +61,7 @@ export async function runAiInstall(
     skillsOnly: options.skillsOnly,
     project: Boolean(options.project),
     projectContext: Boolean(options.projectContext),
-    selectedSkills: uniqueSorted(options.selectedSkills ?? []),
+    selectedSkills,
     printer: options.printer,
     assets: dependencies?.assets ?? resolveAiAssets(),
     now: dependencies?.now ?? new Date(),
@@ -95,9 +80,6 @@ export function formatAiResult(result: AiCommandResult): string {
 
   if (result.skillsOnly) {
     lines.push(`Updated vendor skills: ${result.updatedSkills.length}`);
-    if (result.preservedLocalSkills.length > 0) {
-      lines.push(`Preserved local skills: ${result.preservedLocalSkills.length}`);
-    }
   } else {
     lines.push(`Installed skills: ${result.updatedSkills.length}`);
     lines.push(`AGENTS.md: ${result.agents}`);
@@ -110,24 +92,6 @@ export function formatAiResult(result: AiCommandResult): string {
     if (result.gitignoreEntriesAdded.length > 0) {
       lines.push(`AI/tooling paths added to .gitignore: ${result.gitignoreEntriesAdded.length}`);
     }
-  }
-  if (result.workspaceRulesInstalled.length > 0) {
-    lines.push(`Installed AI rules: ${result.workspaceRulesInstalled.join(', ')}`);
-  }
-  if (result.workspaceToolTargetsUpdated.length > 0) {
-    lines.push(`Updated tool targets: ${result.workspaceToolTargetsUpdated.join(', ')}`);
-  }
-
-  if (result.projectSkillsInstalled.length > 0) {
-    lines.push(
-      `Installed project skills: ${result.projectSkillsInstalled.length} (${result.projectSkillsInstalled.join(', ')})`,
-    );
-  }
-  if (result.claudeSkillCommandsInstalled.length > 0) {
-    lines.push(`Claude skills linked: ${result.claudeSkillCommandsInstalled.length} (.claude/skills/)`);
-  }
-  if (result.projectWorkspaceRulesSynced.length > 0) {
-    lines.push(`Project workspace rules synced: ${result.projectWorkspaceRulesSynced.join(', ')}`);
   }
 
   if (result.nextSteps.length > 0) {
@@ -205,7 +169,16 @@ async function applyAiInstall(options: {
   await fs.ensureDir(skillsDestinationDir);
 
   const vendorSkills = await listVendorSkills(options.assets);
-  const selectedSkills = resolveSelectedSkills(vendorSkills, options.selectedSkills);
+  const selectedSkills = options.selectedSkills;
+  if (selectedSkills.length > 0) {
+    const invalid = selectedSkills.filter((skillName) => !vendorSkills.includes(skillName));
+    if (invalid.length > 0) {
+      throw new CliError(
+        `Unknown vendor skill(s): ${invalid.join(', ')}. Available skills: ${vendorSkills.join(', ')}`,
+        {code: 'AI_INSTALL_INVALID_VENDOR'},
+      );
+    }
+  }
   const managedVendorSkills = selectedSkills.length > 0 ? selectedSkills : vendorSkills;
   const manifestSkills = await readManifestSkills(manifestPath);
   const retiredVendorSkills =
@@ -226,29 +199,13 @@ async function applyAiInstall(options: {
     await fs.remove(path.join(skillsDestinationDir, skillName));
   }
 
-  const officialWorkspaceFilesDetected: string[] = [];
-
-  const preservedLocalSkills = options.skillsOnly
-    ? (await collectLocalSkills(skillsDestinationDir)).filter((skillName) => !manifestSkills.includes(skillName))
-    : [];
-
   await writeVendorManifest(manifestPath, managedVendorSkills, options.now);
 
-  let projectSkillsInstalled: string[] = [];
   const warnings: string[] = [];
-  if (options.project) {
-    projectSkillsInstalled = await installProjectOwnedSkills(options.targetDir, options.assets, options.projectType);
-  }
-
-  warnings.push(...buildWorkspaceCoexistenceWarnings(options.projectType, officialWorkspaceFilesDetected));
-
-  const existingProjectSkills = await collectExistingProjectSkills(skillsDestinationDir);
-  const allProjectSkillsForAgentsMd = [...new Set([...projectSkillsInstalled, ...existingProjectSkills])].sort();
 
   const agents = !options.skillsOnly
     ? await installAgentsFile(options.targetDir, options.assets, options.force, {
         projectType: options.projectType,
-        projectSkillsInstalled: allProjectSkillsForAgentsMd,
       })
     : 'skipped';
 
@@ -305,13 +262,6 @@ async function applyAiInstall(options: {
   const gitignoreEntriesAdded =
     !options.skillsOnly && options.local ? await ensureLocalAiGitignoreEntries(options.targetDir) : [];
 
-  const allCommandSkills = [...new Set([...managedVendorSkills, ...allProjectSkillsForAgentsMd])];
-  const claudeSkillCommandsInstalled = await installClaudeSkillCommands(
-    options.targetDir,
-    allCommandSkills,
-    retiredVendorSkills,
-  );
-
   return {
     mode: options.mode,
     targetDir: options.targetDir,
@@ -320,7 +270,6 @@ async function applyAiInstall(options: {
     skillsOnly: options.skillsOnly,
     vendorSkills: managedVendorSkills,
     updatedSkills: skillsToUpdate,
-    preservedLocalSkills,
     manifestPath,
     agents,
     claudeInstalled,
@@ -329,24 +278,9 @@ async function applyAiInstall(options: {
     copilotInstalled,
     geminiInstalled,
     cursorrulesInstalled,
-    projectSkillsInstalled,
-    workspaceRulesInstalled: [],
-    workspaceToolTargetsUpdated: [],
-    rulesManifestPath: '',
-    officialWorkspaceFilesDetected,
     selectedSkills,
     warnings,
-    nextSteps: buildNextSteps(
-      options.targetDir,
-      options.projectType,
-      options.local,
-      options.skillsOnly,
-      options.project,
-      installProjectContext,
-      selectedSkills,
-    ),
+    nextSteps: buildNextSteps(options.projectType),
     gitignoreEntriesAdded,
-    claudeSkillCommandsInstalled,
-    projectWorkspaceRulesSynced: [],
   };
 }

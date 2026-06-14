@@ -15,7 +15,6 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     skillsOnly: false,
     vendorSkills: ['commit', 'review-pr'],
     updatedSkills: ['commit', 'review-pr'],
-    preservedLocalSkills: [],
     manifestPath: '/workspace/.agents/.vendor-skills',
     agents: 'installed',
     claudeInstalled: false,
@@ -24,17 +23,10 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     copilotInstalled: false,
     geminiInstalled: false,
     cursorrulesInstalled: false,
-    projectSkillsInstalled: [],
-    workspaceRulesInstalled: [],
-    workspaceToolTargetsUpdated: [],
-    rulesManifestPath: '',
-    officialWorkspaceFilesDetected: [],
     selectedSkills: [],
     warnings: [],
     nextSteps: [],
     gitignoreEntriesAdded: [],
-    claudeSkillCommandsInstalled: [],
-    projectWorkspaceRulesSynced: [],
     ...overrides,
   };
 }
@@ -68,32 +60,10 @@ describe('formatAiResult', () => {
     expect(result).not.toContain('AGENTS.md');
   });
 
-  test('shows preserved local skills count when non-zero in skillsOnly mode', () => {
-    const result = formatAiResult(
-      makeAiCommandResult({skillsOnly: true, preservedLocalSkills: ['my-skill', 'other-skill']}),
-    );
-
-    expect(result).toContain('Preserved local skills: 2');
-  });
-
   test('includes selected skills when present', () => {
     const result = formatAiResult(makeAiCommandResult({selectedSkills: ['commit', 'review-pr']}));
 
     expect(result).toContain('Selected skills: commit, review-pr');
-  });
-
-  test('includes workspace rules when installed', () => {
-    const result = formatAiResult(
-      makeAiCommandResult({workspaceRulesInstalled: ['ldev-liferay-core', 'ldev-liferay-mcp']}),
-    );
-
-    expect(result).toContain('ldev-liferay-core, ldev-liferay-mcp');
-  });
-
-  test('includes project skills count when installed', () => {
-    const result = formatAiResult(makeAiCommandResult({projectSkillsInstalled: ['project-issue-engineering']}));
-
-    expect(result).toContain('Installed project skills: 1');
   });
 
   test('renders next steps with numbered list', () => {

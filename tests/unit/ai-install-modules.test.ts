@@ -11,13 +11,7 @@ import {
   ensureLocalAiGitignoreEntries,
   writeTextFileLf,
 } from '../../src/features/ai/ai-install-fs.js';
-import {
-  normalizeRelativePath,
-  uniqueSorted,
-  resolveSelectedSkills,
-  buildNextSteps,
-  buildWorkspaceCoexistenceWarnings,
-} from '../../src/features/ai/ai-install-project.js';
+import {buildNextSteps} from '../../src/features/ai/ai-install-project.js';
 
 // ---------------------------------------------------------------------------
 // ai-install-fs — pure helpers
@@ -162,99 +156,26 @@ describe('writeTextFileLf', () => {
 // ai-install-project — pure helpers
 // ---------------------------------------------------------------------------
 
-describe('normalizeRelativePath', () => {
-  test('replaces backslashes with forward slashes', () => {
-    expect(normalizeRelativePath('src\\features\\ai')).toBe('src/features/ai');
-  });
-
-  test('leaves forward-slash paths unchanged', () => {
-    expect(normalizeRelativePath('src/features/ai')).toBe('src/features/ai');
-  });
-
-  test('handles empty string', () => {
-    expect(normalizeRelativePath('')).toBe('');
-  });
-});
-
-describe('uniqueSorted', () => {
-  test('removes duplicates and sorts alphabetically', () => {
-    expect(uniqueSorted(['b', 'a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
-  });
-
-  test('trims whitespace from values', () => {
-    expect(uniqueSorted(['  foo  ', 'bar'])).toEqual(['bar', 'foo']);
-  });
-
-  test('filters out empty strings after trimming', () => {
-    expect(uniqueSorted(['a', '', '  ', 'b'])).toEqual(['a', 'b']);
-  });
-
-  test('returns empty array for empty input', () => {
-    expect(uniqueSorted([])).toEqual([]);
-  });
-});
-
-describe('resolveSelectedSkills', () => {
-  test('returns empty array when no skills are requested', () => {
-    expect(resolveSelectedSkills(['commit', 'review-pr'], [])).toEqual([]);
-  });
-
-  test('returns requested skills when all are valid', () => {
-    expect(resolveSelectedSkills(['commit', 'review-pr'], ['commit'])).toEqual(['commit']);
-  });
-
-  test('throws CliError when a requested skill does not exist', () => {
-    expect(() => resolveSelectedSkills(['commit'], ['unknown-skill'])).toThrow();
-  });
-
-  test('throws CliError mentioning the invalid skill name', () => {
-    expect(() => resolveSelectedSkills(['commit'], ['bad-skill'])).toThrowError(/bad-skill/);
-  });
-});
-
 describe('buildNextSteps', () => {
-  test('returns skillsOnly steps for blade-workspace', () => {
-    const steps = buildNextSteps('/project', 'blade-workspace', false, true, false, false, []);
+  test('returns steps for blade-workspace', () => {
+    const steps = buildNextSteps('blade-workspace');
     expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0]).toContain('.workspace-rules');
+    expect(steps.some((s) => s.includes('Liferay Workspace'))).toBe(true);
   });
 
-  test('returns skillsOnly steps for unknown project type with selected skills', () => {
-    const steps = buildNextSteps('/project', 'unknown', false, true, false, false, ['commit']);
-    expect(steps[0]).toContain('.agents/skills');
+  test('returns steps for unknown project type', () => {
+    const steps = buildNextSteps('unknown');
+    expect(steps.length).toBeGreaterThan(0);
+    expect(steps[0]).toContain('AGENTS.md');
   });
 
-  test('includes local gitignore review step when local is true', () => {
-    const steps = buildNextSteps('/project', 'unknown', true, false, false, false, []);
-    expect(steps.some((s) => s.includes('.gitignore'))).toBe(true);
+  test('includes skills install step', () => {
+    const steps = buildNextSteps('unknown');
+    expect(steps.some((s) => s.includes('npx skills add'))).toBe(true);
   });
 
-  test('includes project note when project flag is true', () => {
-    const steps = buildNextSteps('/project', 'blade-workspace', false, false, true, false, []);
-    expect(steps.some((s) => s.includes('project-owned'))).toBe(true);
-  });
-});
-
-describe('buildWorkspaceCoexistenceWarnings', () => {
-  test('returns no warnings for non-blade-workspace project type', () => {
-    const warnings = buildWorkspaceCoexistenceWarnings('unknown', ['.workspace-rules/liferay-rules.md']);
-    expect(warnings).toHaveLength(0);
-  });
-
-  test('returns no warnings for blade-workspace with no official files detected', () => {
-    const warnings = buildWorkspaceCoexistenceWarnings('blade-workspace', []);
-    expect(warnings).toHaveLength(0);
-  });
-
-  test('returns base warning for blade-workspace with official files', () => {
-    const warnings = buildWorkspaceCoexistenceWarnings('blade-workspace', ['some-official-file.md']);
-    expect(warnings.length).toBeGreaterThan(0);
-    expect(warnings[0]).toContain('base layer');
-  });
-
-  test('adds MCP conflict warning when liferay-rules.md is among detected files', () => {
-    const warnings = buildWorkspaceCoexistenceWarnings('blade-workspace', ['.workspace-rules/liferay-rules.md']);
-    expect(warnings.length).toBe(2);
-    expect(warnings[1]).toContain('ldev-liferay-mcp');
+  test('includes bootstrap verification step', () => {
+    const steps = buildNextSteps('blade-workspace');
+    expect(steps.some((s) => s.includes('ldev ai bootstrap'))).toBe(true);
   });
 });
