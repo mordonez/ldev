@@ -47,7 +47,7 @@ ldev logs diagnose --since 5m --json
 ```
 
 Use the runtime proof contract in
-[../../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
+[references/theme-deploy-runtime-proof.md](references/theme-deploy-runtime-proof.md).
 
 - Journal structures, Journal templates, ADTs, or fragments:
 
@@ -87,7 +87,7 @@ For production, include the `ldev resource ...` command and manual UI fallback.
 - Treat `ldev deploy all` JSON as runtime evidence only when `hotDeployed` is
   true or `hotDeployReason` explains why a restart/manual action remains.
 - For theme deploys, use the contract in
-  [../../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
+  [references/theme-deploy-runtime-proof.md](references/theme-deploy-runtime-proof.md).
 - Use local `ldev` MCP tools only for read-only verification and diagnosis.
 - Do not assume success from build output alone.
 - Do not mark portal resource work done until import, read-back, and browser

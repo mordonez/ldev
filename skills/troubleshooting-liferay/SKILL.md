@@ -57,7 +57,7 @@ ldev start
 - Bundle issues: `ldev osgi status <bundle> --json` and `ldev osgi diag <bundle> --json`
 - Hanging portal: `ldev osgi thread-dump`
 - Page/site/resource issues: use the portal discovery contract in
-  [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md).
+  [references/portal-discovery.md](references/portal-discovery.md).
 
 ## Production-Like Reproduction
 

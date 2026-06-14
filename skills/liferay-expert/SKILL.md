@@ -24,7 +24,7 @@ If required fields are missing, stop and report that the installed `ldev` AI ass
 
 ## Resolve Runtime Context
 
-If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md) before searching or editing.
+If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [references/portal-discovery.md](references/portal-discovery.md) before searching or editing.
 
 ## Routing
 

@@ -25,9 +25,9 @@ If these fields are missing, stop and report that the installed `ldev` AI assets
 
 ## Discover Before Editing
 
-If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md) before code search or edits.
+If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [references/portal-discovery.md](references/portal-discovery.md) before code search or edits.
 
-Preferred discovery commands live in `PORTAL_DISCOVERY.md`; use `inventory where-used` when the key is already known and impact must be scoped before editing.
+Preferred discovery commands live in `portal-discovery.md`; use `inventory where-used` when the key is already known and impact must be scoped before editing.
 
 Use local `ldev` MCP tools for read-only inventory when visible. Use the CLI for file exports/imports and file-backed resource mutations. For structured content or site page mutations that do not yet have a dedicated `ldev` command, prefer OAuth-backed Headless APIs plus read-back proof.
 

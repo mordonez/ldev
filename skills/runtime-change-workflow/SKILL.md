@@ -31,7 +31,7 @@ deploy. First load the routed skill, then mutate only inside the locked root.
 3. Reproduce Red in the active isolated runtime before edits. Production
    screenshots are context, not Red. If a URL is provided, resolve it in the
    worktree or sandbox runtime first with the full page inventory contract in
-   [../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md).
+   [references/portal-discovery.md](references/portal-discovery.md).
 
 4. Lock scope before the first edit:
    - list every file and portal resource you plan to touch
@@ -58,7 +58,7 @@ deploy. First load the routed skill, then mutate only inside the locked root.
 
 - Use `--json` for agent-consumed command output.
 - Use the resource mutation gates in
-  [../../docs/RESOURCE_MUTATION_GATES.md](../../docs/RESOURCE_MUTATION_GATES.md).
+  [references/resource-mutation-gates.md](references/resource-mutation-gates.md).
 - Resolve IDs, keys, site names, and URLs through `ldev portal inventory`.
 - Diagnose failed commands before retrying.
 - Do not claim Green until the original Red scenario no longer reproduces.

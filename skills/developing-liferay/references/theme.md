@@ -21,7 +21,7 @@ ldev logs --since 2m --service liferay --no-follow
 ```
 
 Use the runtime proof contract in
-[../../../docs/THEME_DEPLOY_RUNTIME_PROOF.md](../../../docs/THEME_DEPLOY_RUNTIME_PROOF.md).
+[./theme-deploy-runtime-proof.md](./theme-deploy-runtime-proof.md).
 
 4. Verify the affected page in runtime
 

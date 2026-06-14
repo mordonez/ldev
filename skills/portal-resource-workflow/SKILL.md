@@ -11,7 +11,7 @@ fragments. Deploy commands do not apply these resources.
 ## 1. Resolve Origin
 
 Start from runtime evidence, not grep. Use the full page inventory contract in
-[../../docs/PORTAL_DISCOVERY.md](../../docs/PORTAL_DISCOVERY.md).
+[references/portal-discovery.md](references/portal-discovery.md).
 
 For cross-site ambiguity:
 
@@ -53,7 +53,7 @@ When editing a Journal structure, every new field must also be placed in
 ## 4. Validate And Apply
 
 Use the mutation gates in
-[../../docs/RESOURCE_MUTATION_GATES.md](../../docs/RESOURCE_MUTATION_GATES.md).
+[references/resource-mutation-gates.md](references/resource-mutation-gates.md).
 
 Apply the smallest matching import:
 
