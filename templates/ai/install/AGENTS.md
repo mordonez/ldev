@@ -21,7 +21,7 @@ Before changing code or runtime state:
    visible in the active assistant. If they are not visible, continue with the
    CLI fallback commands in this file; do not block the task.
 4. Read `CLAUDE.md`.
-5. Read the task-specific skill under `.agents/skills/` if one applies.
+5. Invoke the task-specific skill if one applies (skills are installed via `npx skills add https://github.com/mordonez/ldev`).
 6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
    mutates code, resources, or runtime state, read it first for non-trivial work
    such as bug fixes, features, migrations, or anything with reproduction risk.
@@ -252,10 +252,6 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
-
-<!-- Replaced at install time by ldev ai install. Do not edit. -->
-
-{{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation
 

@@ -38,7 +38,7 @@ Before changing code or runtime state:
 3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
    `ldev` command covers the required portal surface.
 4. Read `docs/ai/project-context.md` if it exists.
-5. Read the task-specific skill under `.agents/skills/` if one applies.
+5. Invoke the task-specific skill if one applies (skills are installed via `npx skills add https://github.com/mordonez/ldev`).
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -218,10 +218,6 @@ Use these as the standard reusable entrypoints:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
-
-<!-- Replaced at install time by ldev ai install. Do not edit. -->
-
-{{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation
 
