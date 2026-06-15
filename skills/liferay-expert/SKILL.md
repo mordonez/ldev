@@ -49,7 +49,7 @@ Do not substitute these commands for each other in plans or handoffs.
 
 Use `inventory structures --with-templates` for structure/template discovery, `inventory page --url <fullUrl> --json --full` only when routing needs expanded page details, and `inventory where-used` when the task starts from a known key and needs impact analysis. Prefer `--site` unless a cross-site answer is required.
 
-MCP equivalents when visible: `liferay_inventory_page`, `liferay_inventory_structures`, `liferay_inventory_templates`.
+MCP equivalents when visible: `ldev:liferay_inventory_page`, `ldev:liferay_inventory_structures`, `ldev:liferay_inventory_templates`.
 
 ## AI asset maintenance
 

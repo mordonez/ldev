@@ -8,6 +8,15 @@ This is distinct from `ldev portal content prune`, which removes complete
 articles by count. This reference covers per-article version history and
 language version issues.
 
+## Contents
+
+- Diagnosing the version volume problem
+- Reducing version history via portal UI
+- Groovy script for bulk version cleanup
+- Empty linguistic versions (diagnose, fix via UI, fix via Groovy)
+- After version cleanup
+- Guardrails
+
 ## Diagnosing the version volume problem
 
 First confirm the scope. Get article volume per site:
@@ -43,7 +52,7 @@ For bulk version cleanup, prefer a Groovy script (see below).
 
 ## Groovy script for bulk version cleanup
 
-See `../../developing-liferay/references/groovy-console.md` for console access.
+For Groovy console access, switch to the `developing-liferay` skill and follow its `references/groovy-console.md` reference.
 
 Preview articles with many versions before deleting:
 

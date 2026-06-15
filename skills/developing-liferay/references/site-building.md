@@ -4,6 +4,13 @@ Use this reference when the task is editing structured content values, proving a
 new data shape against a real article, or changing site pages that are not yet
 covered by a dedicated `ldev` mutation command.
 
+## Contents
+
+- Default Mutation Order
+- Structured Content (discovery, runtime-proven update matrix, proven payload patterns for PATCH and PUT)
+- Site Pages
+- Auth Triage
+
 ## Default Mutation Order
 
 1. Discover with `ldev portal inventory ... --json`.

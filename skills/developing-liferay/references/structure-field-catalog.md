@@ -4,6 +4,17 @@ Use this reference when **authoring or editing a structure JSON file** from scra
 or when modifying existing fields. Every structure lives under
 `liferay/resources/journal/structures/<site>/<STRUCTURE_KEY>.json`.
 
+## Contents
+
+- FTL field accessor patterns
+- Top-level skeleton
+- Common field skeleton
+- Field type table
+- customProperties per type (text, select, radio, grid, checkbox, numeric, date, date_time, rich_text, image, document_library, journal_article, link_to_layout, color, geolocation, separator)
+- Nested fields (fieldset)
+- defaultDataLayout skeleton
+- Guardrails
+
 Always export the current version from the portal before editing:
 
 ```bash

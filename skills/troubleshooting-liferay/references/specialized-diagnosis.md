@@ -3,6 +3,15 @@
 Use this reference for troubleshooting branches that are important but only
 apply to specific incident shapes.
 
+## Contents
+
+- Isolated worktree troubleshooting
+- Reindex incidents (see reindex-after-import.md, reindex-journal.md)
+- Search and buscadores (see search-debug.md)
+- Content version accumulation or empty language versions (see content-versions.md)
+- Environment lifecycle and recovery
+- Emergency SQL diagnosis
+
 ## Isolated worktree troubleshooting
 
 Use `isolating-worktrees` for the canonical setup, root lock, recovery, and cleanup flow.

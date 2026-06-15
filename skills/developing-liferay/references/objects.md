@@ -4,6 +4,18 @@ Use this reference when defining, querying, or troubleshooting Liferay Objects
 (DXP 7.4+ / quarterly releases). Objects is the core of modern DXP development
 for custom data models without traditional OSGi modules.
 
+## Contents
+
+- When to use Objects
+- Object definitions (key fields, field types, flags)
+- Relationships (one-to-many, many-to-many)
+- Auto-generated REST API (pagination, filtering, sorting)
+- Object Actions
+- Object Validations
+- Workflow on Objects
+- Canonical modern pattern
+- Common failure causes
+
 ## When to use Objects
 
 | Use Objects when | Use Journal Article when | Use Document when |

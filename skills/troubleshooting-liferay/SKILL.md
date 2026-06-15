@@ -62,10 +62,10 @@ ldev start
 ## Production-Like Reproduction
 
 When clean local data is insufficient, reproduce with imported data before
-guessing. Use `references/production-reproduction.md` for DB sync/import,
+guessing. Use [references/production-reproduction.md](references/production-reproduction.md) for DB sync/import,
 Document Library mounting, content volume checks, and post-import tuning.
 
-Use `references/specialized-diagnosis.md` for isolated worktree incidents,
+Use [references/specialized-diagnosis.md](references/specialized-diagnosis.md) for isolated worktree incidents,
 reindex incidents, search widget failures, and content-version cleanup.
 
 ## Recovery

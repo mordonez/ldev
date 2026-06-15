@@ -6,7 +6,7 @@ description: 'Runs Playwright-based checks and captures visual evidence against 
 # Automating Browser Tests
 
 Use `ldev` for portal discovery and runtime state, and `playwright-cli` for
-browser actions. Read `REFERENCE.md` for exact command syntax, browser
+browser actions. Read [references/browser-automation.md](references/browser-automation.md) for exact command syntax, browser
 installation, login scripts, page layout mutations, mobile viewports, and
 cleanup patterns.
 

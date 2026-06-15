@@ -4,6 +4,15 @@ Use this reference when setting up OAuth2 for headless API access, when
 `ldev oauth install --write-env` is part of the workflow, or when token-related
 failures block an agent or script.
 
+## Contents
+
+- Portal-side setup (required fields, scopes)
+- Grant types
+- ldev oauth install --write-env
+- Obtaining a token manually
+- When the token expires
+- Common failure causes
+
 ## Portal-side setup
 
 OAuth2 applications are managed in the portal UI:

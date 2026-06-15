@@ -7,6 +7,18 @@ Hard boundary: `ldev` cannot force or start reindex. If reindex is required, a
 human must run it from the Liferay UI. Use `ldev` only for health checks, logs,
 inventory, and browser validation around that manual step.
 
+## Contents
+
+- Establish Baseline First
+- Symptom Triage
+- Check Elasticsearch Health
+- Manual Reindex
+- Search Widget Configuration
+- Permissions
+- Filters
+- Visual Issues
+- Guardrails
+
 ## Establish Baseline First
 
 ```bash
