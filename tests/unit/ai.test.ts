@@ -11,8 +11,6 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     claudeInstalled: false,
     copilotInstalled: false,
     geminiInstalled: false,
-    cursorrulesInstalled: false,
-    projectContextInstalled: false,
     projectContextSampleInstalled: false,
     projectIssueSkillInstalled: false,
     nextSteps: [],
@@ -66,9 +64,9 @@ describe('formatAiResult', () => {
     expect(result).not.toContain('Next steps:');
   });
 
-  test('includes project-context line when installed', () => {
-    const result = formatAiResult(makeAiCommandResult({projectContextInstalled: true}));
+  test('includes project-context.md.sample line when installed', () => {
+    const result = formatAiResult(makeAiCommandResult({projectContextSampleInstalled: true}));
 
-    expect(result).toContain('docs/ai/project-context.md: applied');
+    expect(result).toContain('docs/ai/project-context.md.sample: applied');
   });
 });

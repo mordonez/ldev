@@ -1,5 +1,7 @@
 import path from 'node:path';
 
+import fs from 'fs-extra';
+
 import type {Printer} from '../../core/output/printer.js';
 import {detectProjectType, type ProjectType} from '../../core/config/project-type.js';
 import {resolveAiAssets, type AiAssets} from './ai-manifest.js';
@@ -13,8 +15,6 @@ export type AiCommandResult = {
   claudeInstalled: boolean;
   copilotInstalled: boolean;
   geminiInstalled: boolean;
-  cursorrulesInstalled: boolean;
-  projectContextInstalled: boolean;
   projectContextSampleInstalled: boolean;
   projectIssueSkillInstalled: boolean;
   nextSteps: string[];
@@ -44,13 +44,6 @@ export async function runAiInstall(
       : false;
 
   const geminiInstalled = await installProjectFile(targetDir, assets, path.join('.gemini', 'GEMINI.md'), {overwrite});
-  const cursorrulesInstalled = await installProjectFile(targetDir, assets, '.cursorrules', {overwrite});
-  const projectContextInstalled = await installProjectFile(
-    targetDir,
-    assets,
-    path.join('docs', 'ai', 'project-context.md'),
-    {overwrite},
-  );
   const projectContextSampleInstalled = await installProjectFile(
     targetDir,
     assets,
@@ -60,6 +53,10 @@ export async function runAiInstall(
 
   const projectIssueSkillInstalled = await installProjectSkill(targetDir, assets, 'issue-engineering', {overwrite});
 
+  // Ensure .claude/skills/ exists so that `npx skills add` can create Claude Code symlinks there.
+  // skills.sh silently skips Claude Code symlink creation when .claude/ does not exist.
+  await fs.ensureDir(path.join(targetDir, '.claude', 'skills'));
+
   return {
     mode: 'install',
     targetDir,
@@ -68,8 +65,6 @@ export async function runAiInstall(
     claudeInstalled,
     copilotInstalled,
     geminiInstalled,
-    cursorrulesInstalled,
-    projectContextInstalled,
     projectContextSampleInstalled,
     projectIssueSkillInstalled,
     nextSteps: buildNextSteps(projectType),
@@ -83,8 +78,6 @@ export function formatAiResult(result: AiCommandResult): string {
   if (result.claudeInstalled) lines.push('CLAUDE.md: applied');
   if (result.copilotInstalled) lines.push('.github/copilot-instructions.md: applied');
   if (result.geminiInstalled) lines.push('.gemini/GEMINI.md: applied');
-  if (result.cursorrulesInstalled) lines.push('.cursorrules: applied');
-  if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: applied');
   if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: applied');
   if (result.projectIssueSkillInstalled) lines.push('.agents/skills/project-issue-engineering: applied');
 

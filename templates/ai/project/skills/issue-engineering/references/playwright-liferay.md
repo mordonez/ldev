@@ -42,7 +42,7 @@ ldev portal page-layout export --url <fullUrl>
 
 3. Review the project Playwright login/editor patterns in:
 
-`../../automating-browser-tests/REFERENCE.md`
+`../../automating-browser-tests/references/browser-automation.md`
 
 ## Signals That You Should Use Playwright
 

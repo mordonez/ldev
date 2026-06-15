@@ -50,8 +50,10 @@ Typical examples:
 
 - the standard `AGENTS.md`
 - the lightweight bootstrap entrypoints such as `AGENTS.md` and `CLAUDE.md`
-- curated vendor skills from `install/vendor-skills.txt`
-- the vendor manifest `.agents/.vendor-skills`
+- project-context scaffolding (`docs/ai/project-context.md`)
+- the project-scoped issue skill (`.agents/skills/project-issue-engineering/`)
+
+Vendor skills are distributed via the skills.sh standard (`npx skills add`) and are not bundled inside the ldev package.
 
 It should not install by default:
 

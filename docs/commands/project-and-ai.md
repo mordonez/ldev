@@ -61,9 +61,10 @@ What the install produces:
 
 - `AGENTS.md` (skipped on re-run without `--force` if already present)
 - `CLAUDE.md`, `.github/copilot-instructions.md` (non-blade-workspace projects only)
-- `.gemini/GEMINI.md`, `.cursorrules`
-- `docs/ai/project-context.md` and `docs/ai/project-context.md.sample`
+- `.gemini/GEMINI.md`
+- `docs/ai/project-context.md.sample` (copy to `project-context.md` and fill in project-specific values)
 - `.agents/skills/project-issue-engineering/` (project-scoped issue workflow skill)
+- `.claude/skills/` (empty directory, created so that `npx skills add` can place Claude Code symlinks there)
 
 To install skills, use the skills.sh standard:
 

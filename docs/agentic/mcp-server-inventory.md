@@ -94,7 +94,7 @@ the human-facing CLI.
 | `env clean`, `worktree clean`, `worktree gc --apply` | Destructive local cleanup. |
 | `db import --force`, `db sync --force` | Replaces local database state. |
 | `db download`, `db sync`, `files-download` | External downloads, credentials, long-running operations. Better as CLI workflows. |
-| `project init`, `ai install`, `ai update` | Bootstrap/configuration flows, not normal runtime tools. |
+| `project init`, `ai install` | Bootstrap/configuration flows, not normal runtime tools. |
 | `auth token` | Secret-bearing result. Prefer health checks that do not return tokens. |
 | `config set`, `feature-flags enable/disable`, `reindex speedup-on/off` | Mutates local/portal configuration; expose later only with explicit apply semantics. |
 | `content prune` | Potentially destructive portal content operation; keep CLI-first. |

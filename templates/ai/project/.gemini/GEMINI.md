@@ -12,7 +12,6 @@ bootstrap, safety invariants, worktree rules, and installed skills.
 3. `docs/ai/project-context.md` if it exists
 4. `docs/ai/project-learnings.md` if it exists
 5. matching task skill under `.agents/skills/`
-6. `.gemini/ldev-*.md` files for installed workspace rules
 
 ## Agent Portability Contract
 

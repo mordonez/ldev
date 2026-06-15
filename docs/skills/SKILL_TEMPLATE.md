@@ -55,7 +55,7 @@ complete. One to three sentences.>
 
 - <Non-negotiable safety check>
 - <Non-negotiable safety check>
-- <Reference the relevant shared doc, e.g. RESOURCE_MUTATION_GATES.md, when applicable>
+- <Reference the relevant per-skill doc, e.g. [references/resource-mutation-gates.md](references/resource-mutation-gates.md), when applicable>
 ````
 
 ---

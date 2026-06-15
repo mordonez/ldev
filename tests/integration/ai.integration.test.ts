@@ -17,12 +17,12 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.github', 'copilot-instructions.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.gemini', 'GEMINI.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.cursorrules'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
     expect(
       await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering', 'SKILL.md')),
     ).toBe(true);
+    expect(await fs.pathExists(path.join(targetDir, '.claude', 'skills'))).toBe(true);
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
@@ -77,15 +77,11 @@ describe('ai integration', () => {
 
     await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
     await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
 
     const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).toBe('custom claude\n');
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).toBe(
-      'custom context\n',
-    );
   }, 30000);
 
   test('install with --force overwrites existing project files', async () => {
@@ -93,17 +89,11 @@ describe('ai integration', () => {
 
     await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
     await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
-    await fs.writeFile(path.join(targetDir, '.cursorrules'), 'custom cursor\n');
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
 
     const result = await runCli(['ai', 'install', '--target', targetDir, '--force'], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).not.toBe('custom claude\n');
-    expect(await fs.readFile(path.join(targetDir, '.cursorrules'), 'utf8')).not.toBe('custom cursor\n');
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).not.toBe(
-      'custom context\n',
-    );
   }, 30000);
 
   test('installed files use LF line endings', async () => {
@@ -117,7 +107,6 @@ describe('ai integration', () => {
       path.join(targetDir, 'AGENTS.md'),
       path.join(targetDir, 'CLAUDE.md'),
       path.join(targetDir, '.gemini'),
-      path.join(targetDir, '.cursorrules'),
       path.join(targetDir, 'docs', 'ai'),
     ]);
 

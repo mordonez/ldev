@@ -3,6 +3,13 @@
   "packages": {
     ".": {
       "release-type": "node",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": ".claude-plugin/plugin.json",
+          "jsonpath": "$.version"
+        }
+      ],
       "changelog-types": [
         { "type": "feat",     "section": "Features",                  "hidden": false },
         { "type": "fix",      "section": "Bug Fixes",                 "hidden": false },
