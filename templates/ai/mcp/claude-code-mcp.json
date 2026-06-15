@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "ldev": {
-      "command": "ldev-mcp-server"
-    }
-  }
-}

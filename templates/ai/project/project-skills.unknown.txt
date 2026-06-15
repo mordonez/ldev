@@ -1,1 +1,0 @@
-# Generic repositories get only the project-owned skill that does not assume a specific runtime capability.
