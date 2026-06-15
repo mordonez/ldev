@@ -57,7 +57,6 @@ describe('AI template guardrails', () => {
       'templates/ai/project/CLAUDE.md',
       'templates/ai/project/.github/copilot-instructions.md',
       'templates/ai/project/.gemini/GEMINI.md',
-      'templates/ai/project/.cursorrules',
     ];
     for (const entrypoint of thinDelegators) {
       const content = await readTemplate(entrypoint);
@@ -98,8 +97,8 @@ describe('AI template guardrails', () => {
   test('mutating work delegates to shared vendor workflow skills', async () => {
     const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
     const resource = await readTemplate('skills/portal-resource-workflow/SKILL.md');
-    const discovery = await readTemplate('templates/ai/docs/PORTAL_DISCOVERY.md');
-    const mutation = await readTemplate('templates/ai/docs/RESOURCE_MUTATION_GATES.md');
+    const discovery = await readTemplate('skills/runtime-change-workflow/references/portal-discovery.md');
+    const mutation = await readTemplate('skills/portal-resource-workflow/references/resource-mutation-gates.md');
 
     expect(runtime).toContain('Owns the reusable gate order');
     expect(runtime).toContain('Do not claim Green until the original Red scenario no longer reproduces');
@@ -226,7 +225,7 @@ describe('AI template guardrails', () => {
   test('theme deploy guidance requires runtime refresh before browser Green', async () => {
     const deploySkill = await readTemplate('skills/deploying-liferay/SKILL.md');
     const themeReference = await readTemplate('skills/developing-liferay/references/theme.md');
-    const themeProof = await readTemplate('templates/ai/docs/THEME_DEPLOY_RUNTIME_PROOF.md');
+    const themeProof = await readTemplate('skills/deploying-liferay/references/theme-deploy-runtime-proof.md');
 
     expect(themeProof).toContain('runtimeRefreshed');
     expect(themeProof).toContain('runtimeActionRequired');
