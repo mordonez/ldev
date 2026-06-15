@@ -3,7 +3,7 @@ import path from 'node:path';
 import type {Printer} from '../../core/output/printer.js';
 import {detectProjectType, type ProjectType} from '../../core/config/project-type.js';
 import {resolveAiAssets, type AiAssets} from './ai-manifest.js';
-import {buildNextSteps, installAgentsFile, installProjectFile} from './ai-install-project.js';
+import {buildNextSteps, installAgentsFile, installProjectFile, installProjectSkill} from './ai-install-project.js';
 
 export type AiCommandResult = {
   mode: 'install';
@@ -16,6 +16,7 @@ export type AiCommandResult = {
   cursorrulesInstalled: boolean;
   projectContextInstalled: boolean;
   projectContextSampleInstalled: boolean;
+  projectIssueSkillInstalled: boolean;
   nextSteps: string[];
 };
 
@@ -57,6 +58,8 @@ export async function runAiInstall(
     {overwrite},
   );
 
+  const projectIssueSkillInstalled = await installProjectSkill(targetDir, assets, 'issue-engineering', {overwrite});
+
   return {
     mode: 'install',
     targetDir,
@@ -68,6 +71,7 @@ export async function runAiInstall(
     cursorrulesInstalled,
     projectContextInstalled,
     projectContextSampleInstalled,
+    projectIssueSkillInstalled,
     nextSteps: buildNextSteps(projectType),
   };
 }
@@ -82,6 +86,7 @@ export function formatAiResult(result: AiCommandResult): string {
   if (result.cursorrulesInstalled) lines.push('.cursorrules: applied');
   if (result.projectContextInstalled) lines.push('docs/ai/project-context.md: applied');
   if (result.projectContextSampleInstalled) lines.push('docs/ai/project-context.md.sample: applied');
+  if (result.projectIssueSkillInstalled) lines.push('.agents/skills/project-issue-engineering: applied');
 
   if (result.nextSteps.length > 0) {
     lines.push('', 'Next steps:');

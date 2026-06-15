@@ -1,0 +1,147 @@
+# Intake
+
+Use this reference when the issue arrives with weak technical context or mixes URLs, screenshots, and ambiguous descriptions.
+
+## Objective
+
+- Confirm the affected surface before reading code
+- Turn issue URLs and clues into context verified with `ldev`
+- Make remaining unknowns explicit
+
+## Default URL rule
+
+If the issue, review, bug report, repro steps, or human notes mention portal
+URLs, inspect every one of them immediately with `ldev portal inventory page
+--url` before searching code, reproducing in the browser, or planning a fix.
+
+Treat this as the default entrypoint whenever a relevant URL exists. The goal is
+to turn each URL into concrete portal context first: local/runtime URL, site,
+page type, owning resource, and likely implementation surface.
+
+## Recommended Flow
+
+1. Read the issue and comments:
+
+```bash
+gh issue view NUM --json title,body,labels,comments
+```
+
+2. Resolve each reported URL through `ldev` first. If multiple URLs are named,
+run the command for each one rather than picking a single "main" URL:
+
+```bash
+ldev context --json
+ldev portal inventory page --url <issueUrl> --full --json
+```
+
+If the issue URL is production, use it only as an identifier for discovery. Do
+not use the production host for browser reproduction. Reuse the resolved
+local/runtime URL from `ldev`.
+
+If a comment or reviewer drops an additional URL later in the thread, stop and
+inspect that URL too before assuming it is the same surface.
+
+Full output is the default for agents because it includes content fields, raw
+template candidates, display-page DDM templates, and export paths. Use
+`templateExportPath`, `displayPageDefaultTemplate`, and
+`displayPageDdmTemplates` to select active Journal templates; do not substitute
+a similarly named template found by `rg`.
+
+3. If there is no exact URL, traverse the site:
+
+```bash
+ldev portal inventory sites --json
+ldev portal inventory pages --site /<site> --json
+ldev portal inventory page --url <fullUrl> --full --json
+```
+
+4. If `displayStyle: ddmTemplate_<ID>` appears, resolve the owning ADT before
+searching code:
+
+```bash
+ldev resource adt --display-style ddmTemplate_<ID> --site /<site> --json
+```
+
+5. If the page inspection identifies another owned resource first, resolve that
+resource before grep:
+
+- ADT -> inspect the ADT file path and owning resource
+- template -> inspect the template id/file
+- fragment -> inspect the fragment key/site
+- theme/module -> inspect the owning artifact
+
+Do not start with broad `rg` over the whole repo when `ldev portal inventory`
+can tell you which page/resource is actually involved.
+
+6. If the project has created a structured issue enrichment script, use it:
+
+```bash
+# Only run if the project has created this script
+# On Windows, replace `python` with `py` if `python` is not in PATH
+python .agents/skills/project-issue-engineering/scripts/prepare_issue.py NUM
+```
+
+## What to Add to the Issue
+
+- Verified local URL used for reproduction
+- Site, layout, structure, template, or ADT actually resolved by tooling
+- Hypotheses clearly labeled as `NOT_VERIFIED`
+
+## What Not to Add
+
+- Conclusions based only on file names
+- IDs guessed
+- Unreproduced diagnoses
+- Claims based only on the production URL without local page inspection
+
+## Ambiguity Escape
+
+If the issue contains **relative or comparative references** to fields, layouts,
+or components, stop and ask the user for clarification before planning the fix.
+Patterns that require clarification:
+
+- **Field ordinal**: "the first field", "the first field that appears"
+  → Ask: "Which exact field key or DDM name is this referring to?"
+- **Cross-reference to another resource**: "same way as X", "equals Y",
+  "like the Z"
+  → Export X or Y first and confirm the exact behavior being replicated.
+- **Vague selector**: "the image", "the title", "the description"
+  → Resolve it through `ldev resource export-*` or portal inventory before assuming.
+- **Behavioral reference without a field key**: "show/hide the date", "hide the field"
+  → Confirm the exact DDM field name by exporting the structure first.
+
+- **Existing field becomes repeatable**: "make field X repeatable", "repeat
+  field pair X + Y", "preserve existing content"
+  -> Ask whether saved legacy values must migrate into the new repeated shape
+  or stay in legacy fields with additive extra fields.
+
+Do not assume. A wrong assumption at intake becomes scope creep at edit time.
+
+## Reproduce the Symptom
+
+For `ldev-native`, do this after creating or entering the isolated worktree and
+starting its runtime. Do not capture Red in the primary checkout first.
+
+After confirming the local URL and surface in the worktree runtime, capture the
+failing state **before any code change**. This screenshot is the definition of
+the problem, not the issue description, not a hypothesis.
+
+```bash
+playwright-cli -s=issue-NUM open "<localUrl>"
+playwright-cli -s=issue-NUM snapshot
+playwright-cli -s=issue-NUM run-code "async function (page) { await page.screenshot({ path: '.tmp/issue-NUM/before.png', fullPage: true }); }"
+```
+
+Use the page snapshot/inspection as part of intake:
+
+- confirm the expected page actually loaded
+- locate the relevant page blocks/components before code search
+- record the concrete resource or component you are about to change
+
+If the symptom does not appear:
+
+- record that the bug was not reproduced in this environment
+- stop and report to the user before proceeding
+- do not infer the bug is present or already fixed without evidence
+
+Save `before.png` from the worktree runtime before editing any file.

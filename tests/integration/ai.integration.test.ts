@@ -20,6 +20,9 @@ describe('ai integration', () => {
     expect(await fs.pathExists(path.join(targetDir, '.cursorrules'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
+    expect(
+      await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering', 'SKILL.md')),
+    ).toBe(true);
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
@@ -27,6 +30,7 @@ describe('ai integration', () => {
 
     expect(result.stdout).toContain('AGENTS.md: installed');
     expect(result.stdout).toContain('CLAUDE.md: applied');
+    expect(result.stdout).toContain('.agents/skills/project-issue-engineering: applied');
   }, 30000);
 
   test('output includes next steps with npx skills add', async () => {

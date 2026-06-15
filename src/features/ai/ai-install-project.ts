@@ -49,6 +49,26 @@ export async function installProjectFile(
   return true;
 }
 
+export async function installProjectSkill(
+  targetDir: string,
+  assets: AiAssets,
+  skillName: string,
+  options?: {overwrite?: boolean},
+): Promise<boolean> {
+  const source = path.join(assets.projectSkillsDir, skillName);
+  if (!(await fs.pathExists(source))) {
+    return false;
+  }
+
+  const destination = path.join(targetDir, '.agents', 'skills', `project-${skillName}`);
+  if ((await fs.pathExists(destination)) && !options?.overwrite) {
+    return false;
+  }
+
+  await copyAiTemplatePath(source, destination, {overwrite: options?.overwrite ?? true});
+  return true;
+}
+
 export function buildNextSteps(projectType: ProjectType): string[] {
   const steps: string[] = [];
   if (projectType === 'blade-workspace') {

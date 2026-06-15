@@ -14,6 +14,7 @@ function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandRes
     cursorrulesInstalled: false,
     projectContextInstalled: false,
     projectContextSampleInstalled: false,
+    projectIssueSkillInstalled: false,
     nextSteps: [],
     ...overrides,
   };
