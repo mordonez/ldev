@@ -228,7 +228,7 @@ describe('AI template guardrails', () => {
   });
 
   test('browser automation documents PowerShell-safe run-code files', async () => {
-    const reference = await readTemplate('skills/automating-browser-tests/REFERENCE.md');
+    const reference = await readTemplate('skills/automating-browser-tests/references/browser-automation.md');
 
     expect(reference).toContain('`.tmp/<issue>/*.js`');
     expect(reference).toContain('Get-Content -Raw');
