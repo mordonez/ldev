@@ -75,10 +75,6 @@ describe('normalizeGitignoreEntryForComparison', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// ai-install-fs — ensureLocalAiGitignoreEntries (filesystem)
-// ---------------------------------------------------------------------------
-
 describe('ensureLocalAiGitignoreEntries', () => {
   let tmpDir: string;
 
@@ -127,10 +123,6 @@ describe('ensureLocalAiGitignoreEntries', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// ai-install-fs — writeTextFileLf
-// ---------------------------------------------------------------------------
-
 describe('writeTextFileLf', () => {
   let tmpDir: string;
 
@@ -153,29 +145,31 @@ describe('writeTextFileLf', () => {
 });
 
 // ---------------------------------------------------------------------------
-// ai-install-project — pure helpers
+// ai-install-project — buildNextSteps
 // ---------------------------------------------------------------------------
 
 describe('buildNextSteps', () => {
-  test('returns steps for blade-workspace', () => {
-    const steps = buildNextSteps('blade-workspace');
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps.some((s) => s.includes('Liferay Workspace'))).toBe(true);
-  });
+  test('includes npx skills add step for all project types', () => {
+    const steps = buildNextSteps('ldev-native');
 
-  test('returns steps for unknown project type', () => {
-    const steps = buildNextSteps('unknown');
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0]).toContain('AGENTS.md');
-  });
-
-  test('includes skills install step', () => {
-    const steps = buildNextSteps('unknown');
     expect(steps.some((s) => s.includes('npx skills add'))).toBe(true);
   });
 
   test('includes bootstrap verification step', () => {
-    const steps = buildNextSteps('blade-workspace');
+    const steps = buildNextSteps('ldev-native');
+
     expect(steps.some((s) => s.includes('ldev ai bootstrap'))).toBe(true);
+  });
+
+  test('includes base layer note for blade-workspace', () => {
+    const steps = buildNextSteps('blade-workspace');
+
+    expect(steps.some((s) => s.includes('base layer'))).toBe(true);
+  });
+
+  test('does not include base layer note for ldev-native', () => {
+    const steps = buildNextSteps('ldev-native');
+
+    expect(steps.every((s) => !s.includes('base layer'))).toBe(true);
   });
 });

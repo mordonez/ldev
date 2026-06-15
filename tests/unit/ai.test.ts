@@ -2,22 +2,18 @@ import {describe, expect, test} from 'vitest';
 
 import {formatAiResult, type AiCommandResult} from '../../src/features/ai/ai-install.js';
 
-// ---------------------------------------------------------------------------
-// ai-install — formatAiResult
-// ---------------------------------------------------------------------------
-
 function makeAiCommandResult(overrides?: Partial<AiCommandResult>): AiCommandResult {
   return {
     mode: 'install',
     targetDir: '/workspace',
-    projectType: 'blade-workspace',
+    projectType: 'ldev-native',
     agents: 'installed',
     claudeInstalled: false,
-    projectContextInstalled: false,
-    projectContextSampleInstalled: false,
     copilotInstalled: false,
     geminiInstalled: false,
     cursorrulesInstalled: false,
+    projectContextInstalled: false,
+    projectContextSampleInstalled: false,
     nextSteps: [],
     ...overrides,
   };
@@ -28,28 +24,34 @@ describe('formatAiResult', () => {
     const result = formatAiResult(makeAiCommandResult());
 
     expect(result).toContain('/workspace');
-    expect(result).toContain('blade-workspace');
+    expect(result).toContain('ldev-native');
   });
 
   test('shows AGENTS.md status', () => {
-    const result = formatAiResult(makeAiCommandResult());
+    const result = formatAiResult(makeAiCommandResult({agents: 'installed'}));
 
     expect(result).toContain('AGENTS.md: installed');
   });
 
-  test('shows CLAUDE.md when installed', () => {
+  test('shows AGENTS.md kept when not overwritten', () => {
+    const result = formatAiResult(makeAiCommandResult({agents: 'kept'}));
+
+    expect(result).toContain('AGENTS.md: kept');
+  });
+
+  test('includes CLAUDE.md line when installed', () => {
     const result = formatAiResult(makeAiCommandResult({claudeInstalled: true}));
 
     expect(result).toContain('CLAUDE.md: applied');
   });
 
-  test('shows copilot instructions when installed', () => {
-    const result = formatAiResult(makeAiCommandResult({copilotInstalled: true}));
+  test('omits CLAUDE.md line when not installed', () => {
+    const result = formatAiResult(makeAiCommandResult({claudeInstalled: false}));
 
-    expect(result).toContain('.github/copilot-instructions.md: applied');
+    expect(result).not.toContain('CLAUDE.md');
   });
 
-  test('renders next steps with numbered list', () => {
+  test('renders next steps when present', () => {
     const result = formatAiResult(makeAiCommandResult({nextSteps: ['Review AGENTS.md', 'Run ldev doctor']}));
 
     expect(result).toContain('Next steps:');
@@ -61,5 +63,11 @@ describe('formatAiResult', () => {
     const result = formatAiResult(makeAiCommandResult({nextSteps: []}));
 
     expect(result).not.toContain('Next steps:');
+  });
+
+  test('includes project-context line when installed', () => {
+    const result = formatAiResult(makeAiCommandResult({projectContextInstalled: true}));
+
+    expect(result).toContain('docs/ai/project-context.md: applied');
   });
 });
