@@ -14,19 +14,18 @@ Treat these files as the primary Workspace guidance:
 - `.claude/CLAUDE.md`
 - tool-specific Workspace AI files under `.cursor/`, `.gemini/`, `.github/`, `.windsurf/`
 
-`ldev` installs complementary `ldev-*` rule files in those locations. Do not
-replace the official Workspace files with vendor-specific rewrites.
+Do not replace the official Workspace files with vendor-specific rewrites.
 
 Mental model:
 
 - official AI Workspace files explain the standard Liferay Workspace baseline
-- `ldev` adds task-shaped workflows, runtime diagnostics, deploy verification,
-  OAuth bootstrap, MCP checks, and agent-oriented shortcuts
+- `ldev` skills add task-shaped workflows, runtime diagnostics, deploy verification,
+  OAuth bootstrap, MCP checks, and agent-oriented shortcuts on top
 
 If both layers speak to the same topic:
 
 - keep the official Workspace files as the base source
-- treat `ldev-*` rules as the augmentation layer for direct operational work
+- treat `ldev` skills as the augmentation layer for direct operational work
 
 ## Required Bootstrap
 
@@ -38,7 +37,7 @@ Before changing code or runtime state:
 3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
    `ldev` command covers the required portal surface.
 4. Read `docs/ai/project-context.md` if it exists.
-5. Read the task-specific skill under `.agents/skills/` if one applies.
+5. Invoke the task-specific skill if one applies (skills are installed via `npx skills add https://github.com/mordonez/ldev`).
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -142,8 +141,8 @@ Use vendor skills for the full reusable workflow:
 - `migrating-journal-structures`
 - `automating-browser-tests`
 
-Use `.workspace-rules/ldev-*.md` files to adapt those workflows to the
-Workspace runtime and to coexist cleanly with the official AI Workspace rules.
+The official AI Workspace rules remain the base layer; `ldev` skills handle
+runtime diagnostics, deploy verification, and portal workflows on top of it.
 
 Before using MCP:
 
@@ -219,16 +218,10 @@ Use these as the standard reusable entrypoints:
 - `automating-browser-tests`
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
 
-<!-- Replaced at install time by ldev ai install. Do not edit. -->
-
-{{LIFECYCLE_SKILLS_SECTION}}
-
 ## Validation
 
 After installing or updating vendor AI assets:
 
-1. Review `.workspace-rules/ldev-*.md`.
-2. Review the tool-specific generated files under `.claude/`, `.cursor/`,
-   `.gemini/`, `.github/`, and `.windsurf/`.
-3. Keep official Liferay Workspace files intact.
-4. Treat `ldev` as augmentation, not replacement, for the Workspace AI layer.
+1. Review `AGENTS.md` and the installed skills under `.agents/skills/`.
+2. Keep official Liferay Workspace files intact.
+3. Treat `ldev` as augmentation, not replacement, for the Workspace AI layer.

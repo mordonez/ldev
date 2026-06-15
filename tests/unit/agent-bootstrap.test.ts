@@ -192,12 +192,6 @@ function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContex
       wars: {count: 0, sample: []},
       deployArtifacts: {count: 0, sample: []},
     },
-    ai: {
-      manifestPresent: true,
-      managedRules: 5,
-      modifiedRules: 0,
-      staleRuntimeRules: 0,
-    },
     platform: {
       os: 'linux',
       tools: {
@@ -226,6 +220,9 @@ function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContex
       osgi: {supported: true, requires: ['repo', 'ldev-native-runtime', 'docker', 'docker-compose'], missing: []},
       liferay: {supported: true, requires: ['repo', 'liferay-url'], missing: []},
       setup: {supported: true, requires: ['ldev-native-runtime', 'repo', 'docker', 'docker-compose'], missing: []},
+    },
+    ai: {
+      manifestPresent: true,
     },
     issues: [],
     ...overrides,

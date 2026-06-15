@@ -52,15 +52,6 @@ export type DoctorToolStatus = {
   reason?: string;
 };
 
-export type DoctorAiStatus = {
-  manifestPresent: boolean;
-  managedRules: number;
-  modifiedRules: number;
-  stalePackageRules: number;
-  staleRuntimeRules: number;
-  warnings: string[];
-};
-
 export type DoctorRuntimeService = {
   service: string;
   state: string | null;
@@ -181,5 +172,4 @@ export type DoctorContext = {
   httpPortStatus: DoctorPortStatus;
   totalMemoryBytes: number;
   worktree: boolean;
-  ai: DoctorAiStatus;
 };

@@ -1,0 +1,9 @@
+{
+  "name": "ldev",
+  "description": "Skills for developing, deploying, troubleshooting, and managing Liferay projects with ldev. Use when working with Liferay DXP, portal resources, OSGi modules, themes, structured content, fragments, or the ldev CLI.",
+  "version": "0.7.2",
+  "author": {
+    "name": "mordonez"
+  },
+  "skillsDir": "skills"
+}

@@ -8,10 +8,9 @@ bootstrap, safety invariants, worktree rules, and installed skills.
 ## Read First
 
 1. `AGENTS.md`
-2. `CLAUDE.md`
-3. `docs/ai/project-context.md` if it exists
-4. `docs/ai/project-learnings.md` if it exists
-5. matching task skill under `.agents/skills/`
+2. `docs/ai/project-context.md` if it exists
+3. `docs/ai/project-learnings.md` if it exists
+4. matching task skill under `.agents/skills/`
 
 ## Agent Portability Contract
 

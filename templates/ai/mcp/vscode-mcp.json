@@ -1,8 +1,0 @@
-{
-  "servers": {
-    "ldev": {
-      "type": "stdio",
-      "command": "ldev-mcp-server"
-    }
-  }
-}
