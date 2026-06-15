@@ -36,16 +36,28 @@ ldev resource export-fragment --site /<site> --fragment <KEY>
 
 ## 3. Decide Import vs Migration
 
-Use plain import only when existing content remains readable without moving,
-renaming, changing type, nesting, or cleaning up saved fields.
+**Plain `import-structure` is sufficient when:**
+- Adding optional new fields or fieldsets (additive).
+- Moving or nesting existing fields into a new fieldset **within the same
+  structure** while keeping their `name` values unchanged — Liferay's DDM
+  service remaps `parentfieldid` automatically for all existing content when
+  the structure is updated through the portal API.
 
-Switch to `migrating-journal-structures` when a structure change moves existing
-values, converts repeatability, renames fields, changes field types, or must
-preserve existing values in a new location.
+**Switch to `migrating-journal-structures` when:**
+- Data must appear in a field that belongs to a **different structure**
+  (cross-structure migration).
+- Any field `name` changes (rename).
+- Any field type changes.
+- Existing saved values must appear inside a new repeatable shape
+  (repeatability conversion).
+- Legacy fields must be cleaned up or removed.
+- Content requires transformation (split, merge, format conversion).
 
-If the issue asks to make an existing field or field pair repeatable, ask
-whether saved values must migrate into the new repeatable shape or stay in
-legacy fields with additive extra fields.
+If the issue asks to make an existing field or field pair repeatable, clarify
+the goal first: a same-structure fieldset wrapper (same `name` values) is a
+plain import — Liferay handles it automatically. Only route to
+`migrating-journal-structures` when saved values must appear at a new field
+path in a different structure or under a renamed field.
 
 When editing a Journal structure, every new field must also be placed in
 `defaultDataLayout` at the requested visual position.

@@ -1,30 +1,31 @@
 ---
 name: migrating-journal-structures
-description: 'Runs controlled Journal structure/template migrations with descriptor-backed validation. Use when existing Journal content may be moved, renamed, converted, cleaned up, or must preserve existing content in a new field shape.'
+description: 'Runs controlled Journal structure/template migrations with descriptor-backed validation. Use when existing Journal content must move across structures, be renamed, change type, or preserve existing content in a new location — not for same-structure reorganizations that Liferay handles automatically.'
 ---
 
 # Migrating Journal Structures
 
-Use when a Journal structure change can affect saved content. Plain imports are
-only for compatible additive changes handled by `portal-resource-workflow`.
+Use when a Journal structure change requires migration Liferay cannot handle automatically.
+Plain imports cover more than additive-only changes — read the Hard Gate first.
 
 ## Hard Gate
 
 Before editing a Journal structure, classify the change:
 
-- Additive-only and content-compatible: optional new fields or fieldsets, no
-  renames, no type changes, no movement/nesting of existing fields, no cleanup.
-- Migration-required: any rename, type change, nesting/movement, repeatability
-  conversion, cleanup of legacy fields, or requirement that existing values
-  appear in a new field location.
+- **Additive or same-structure reorganization** (plain `import-structure`): adding optional
+  fields, or nesting existing fields into a new fieldset within the same structure with the
+  same `name` values. Liferay remaps `parentfieldid` to preserve existing content automatically.
+  Condition: `name` unchanged, same structure, update via `import-structure` not direct DB.
+- **Migration-required** (`migration-init is mandatory`): any rename, type change,
+  cross-structure movement, repeatability conversion where existing saved values must
+  migrate into the new repeatable shape, legacy field cleanup, or content transformation.
 
-For migration-required changes, `migration-init is mandatory`. Do not hand-write
-the descriptor from scratch, do not rely on `import-structure`, and do not
-continue without a pipeline plan.
+Do not hand-write the descriptor from scratch, do not rely on `import-structure` alone,
+and do not continue without a pipeline plan.
 
-If the issue asks to make an existing field or field pair repeatable, ask
-whether saved values must migrate into the new repeatable shape or stay in
-legacy fields with additive extra fields.
+If the issue asks to make an existing field or field pair repeatable, ask whether
+saved values must migrate into the new repeatable shape (migration-required) or a
+same-structure wrapper with unchanged `name` values suffices (plain import).
 
 Existing-content and new-content validation are both required.
 
@@ -34,9 +35,7 @@ Existing-content and new-content validation are both required.
 ldev ai bootstrap --intent=migrate-resources --json
 ```
 
-Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`.
-
-If any are missing, report that installed `ldev` AI assets are out of sync.
+Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`. If any are missing, report that installed `ldev` AI assets are out of sync.
 
 ## Isolation
 

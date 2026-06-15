@@ -77,6 +77,12 @@ not reuse legacy identifiers inside the repeatable fieldset; duplicate field
 identifiers make the schema ambiguous and can cause Liferay to blank or remap
 legacy content during persistence.
 
+This applies only to migration-pipeline scenarios (cross-structure or renamed
+fields). For same-structure reorganizations where fields are wrapped into a
+fieldset without renaming, the opposite is true: keep the original `name`
+values so Liferay's DDM service can remap `parentfieldid` automatically. Changing
+the `name` in that case forces a migration-pipeline path unnecessarily.
+
 After read-after-write proves that target fields contain copied values and the
 final template renders them, ask for explicit user confirmation before the
 cleanup phase. Only then may the plan remove legacy fields, remove fallback
