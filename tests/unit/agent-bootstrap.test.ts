@@ -221,6 +221,9 @@ function makeContextReport(overrides?: Partial<AgentContextReport>): AgentContex
       liferay: {supported: true, requires: ['repo', 'liferay-url'], missing: []},
       setup: {supported: true, requires: ['ldev-native-runtime', 'repo', 'docker', 'docker-compose'], missing: []},
     },
+    ai: {
+      manifestPresent: true,
+    },
     issues: [],
     ...overrides,
   };

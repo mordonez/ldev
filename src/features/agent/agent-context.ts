@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
@@ -80,6 +81,9 @@ export async function runAgentContext(
       dataRoot: collapseHome(project.env.dataRoot),
     },
     inventory: project.inventory.local,
+    ai: {
+      manifestPresent: project.repo.root ? fs.existsSync(path.join(project.repo.root, 'AGENTS.md')) : false,
+    },
     platform: {
       os: platform.os,
       tools: {
