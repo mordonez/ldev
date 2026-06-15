@@ -62,6 +62,7 @@ What the install produces:
 - `CLAUDE.md`, `.github/copilot-instructions.md` (non-blade-workspace projects only)
 - `.gemini/GEMINI.md`, `.cursorrules`
 - `docs/ai/project-context.md` and `docs/ai/project-context.md.sample`
+- `.agents/skills/project-issue-engineering/` (project-scoped issue workflow skill)
 
 To install skills, use the skills.sh standard:
 
