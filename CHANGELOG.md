@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/mordonez/ldev/compare/ldev-v0.8.0...ldev-v0.9.0) (2026-06-15)
+
+
+### Features
+
+* skills.sh compatibility — simplify ai install, adopt skills standard ([#154](https://github.com/mordonez/ldev/issues/154)) ([7f1edee](https://github.com/mordonez/ldev/commit/7f1edee43005869aea794a63f1afe1a3c43a61f8))
+
 ## [0.8.0](https://github.com/mordonez/ldev/compare/ldev-v0.7.2...ldev-v0.8.0) (2026-06-05)
 
 
