@@ -44,7 +44,8 @@ or warm local runtime directories before starting.
 
 ## `ldev ai install`
 
-Install the standard reusable AI assets into a project.
+Commit the standard agent entrypoint files to a project repo so all editors
+auto-load the skills without manual setup.
 
 ```bash
 ldev ai install --target .

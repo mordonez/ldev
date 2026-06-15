@@ -179,14 +179,15 @@ Errors normalise to a stable envelope, so `jq` plus `--strict` is enough to fail
 Because every workflow has structured output, exposing `ldev` to an agent is free: the same operations are available as MCP tools. Today, without a CLI like this, an AI agent cannot meaningfully operate Liferay — too much of the platform lives behind the admin UI. With `ldev`, an agent can stand up an environment, import a structure, run a migration check, deploy a module, and verify the result.
 
 ```bash
-ldev ai install --target .
+# Install skills — the agent knows how to use ldev:
 npx skills add https://github.com/mordonez/ldev
+
+# Optional: commit agent entrypoint files to your project repo:
+ldev ai install --target .
+
+# Optional: wire up the MCP server for your editor:
 ldev ai mcp-setup --target . --tool all
 ```
-
-`ldev ai install` writes the agent entrypoint files (`AGENTS.md`, `CLAUDE.md`,
-`.gemini/GEMINI.md`, `.cursorrules`, and more). `npx skills add` installs the
-workflow skills via the [skills.sh](https://skills.sh) standard.
 
 The MCP server exposes tools covering environment management, portal inspection, resource workflows, structure migration, diagnostics, and deploy — every major workflow in the CLI. The CLI is always the canonical path; MCP is acceleration on top of it.
 

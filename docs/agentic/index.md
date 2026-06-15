@@ -20,30 +20,37 @@ inside an editor.
 
 ## What `ldev` provides for agents
 
-| Layer | What it does | Required? |
+| Layer | What it does | When |
 | --- | --- | --- |
-| CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Yes — the source of truth |
-| `ldev ai install` | Writes `AGENTS.md`, tool-specific config files, project context scaffold, and the project-scoped issue skill. | Yes |
-| `npx skills add https://github.com/mordonez/ldev` | Installs vendor skills into `.agents/skills/`. | Yes |
-| `ldev-mcp-server` | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
+| CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Always |
+| `npx skills add https://github.com/mordonez/ldev` | Installs workflow skills into `.agents/skills/`. The agent knows how to use ldev. | Always |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
+| `ldev ai install` | Commits `AGENTS.md` and agent config files to the project repo so all editors auto-load the skills. Also adds the project-scoped issue skill. | For team repos |
+| `ldev-mcp-server` | Structured shortcuts over selected `ldev` workflows. | Optional |
 
-## Bootstrap the repo
+## Get started
+
+Install skills so the agent knows how to use ldev:
 
 ```bash
-ldev ai install --target .
 npx skills add https://github.com/mordonez/ldev
 ```
 
-`ldev ai install` writes the agent entrypoint files and the project-scoped
-issue skill. See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install)
-for the full file list.
+That is enough to start. Re-run it after each `ldev` update to pick up
+skill changes.
 
-`npx skills add` installs vendor skills via the
-[skills.sh](https://skills.sh) standard. Re-run it after each `ldev` update.
+## Set up a project repo
 
-In Blade workspaces, `ldev` coexists with the official AI folders rather
-than replacing them.
+For team repos, commit the agent entrypoint files so all editors auto-load
+the skills without manual setup:
+
+```bash
+ldev ai install --target .
+```
+
+See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install) for the
+full list of files. In Blade workspaces, `ldev` coexists with the official
+AI folders rather than replacing them.
 
 ## Set up the local MCP server
 
