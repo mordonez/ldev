@@ -21,7 +21,7 @@ skills/<skill-name>/
 
 ## SKILL.md template
 
-```markdown
+````markdown
 ---
 name: <kebab-case-matches-folder>
 description: '<One sentence: what the skill does>. Use when <specific concrete triggers — task type, surface, or state>.'
@@ -56,7 +56,7 @@ complete. One to three sentences.>
 - <Non-negotiable safety check>
 - <Non-negotiable safety check>
 - <Reference the relevant shared doc, e.g. RESOURCE_MUTATION_GATES.md, when applicable>
-```
+````
 
 ---
 
@@ -86,6 +86,6 @@ assume one agent reads the other's file.
 
 Run through `SKILL_REVIEW_CHECKLIST.md` — it is the single source of truth for
 quality gates. Key quick checks from it: `description` and `short_description`
-both include "Use when <concrete trigger>", `name` matches the folder, SKILL.md
+both include "Use when \<concrete trigger\>", `name` matches the folder, SKILL.md
 is under 100 lines, "Done When" is present, and all commands use public `ldev`
 entrypoints.
