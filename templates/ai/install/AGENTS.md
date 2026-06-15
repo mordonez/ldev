@@ -14,20 +14,22 @@ Project-specific context lives outside this file:
 
 Before changing code or runtime state:
 
-1. Run `ldev ai bootstrap --intent=develop --cache=60 --json`.
+1. Run `ldev ai bootstrap --intent=develop --cache=60 --json`. If bootstrap
+   fails or returns partial output, continue with the available context.
+   Do not block the task.
 2. Run `ldev doctor --json` only when the task needs extra runtime health,
    installed tooling, browser automation, deploy verification, or diagnosis.
 3. Use local `ldev` MCP tools for structured discovery/diagnosis when they are
    visible in the active assistant. If they are not visible, continue with the
    CLI fallback commands in this file; do not block the task.
 4. Read `CLAUDE.md`.
-5. Read the task-specific skill under `.agents/skills/` if one applies.
+5. Read the matching skill file directly from `.agents/skills/<skill-name>/SKILL.md` and follow it. Do not rely on any external skill invocation framework or assistant-specific mechanism to load ldev skills.
 6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
-   mutates code, resources, or runtime state, read it first for non-trivial work
-   such as bug fixes, features, migrations, or anything with reproduction risk.
-   For clearly trivial ad-hoc requests where the developer has explicitly scoped
-   the exact change, confirm whether they want the full issue workflow or prefer
-   to proceed directly.
+   mutates code, resources, or runtime state, read it first. A task is
+   non-trivial when it touches more than one file, involves any runtime resource,
+   or carries reproduction risk (bug fixes, features, migrations). A task scoped
+   by the developer to a single known file with no runtime resource change may
+   proceed directly without the full issue workflow.
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -41,6 +43,13 @@ workflow.
 Same prompt, same gate order. The active assistant may be GitHub Copilot,
 Claude Code, Codex, Gemini, Cursor, or another coding agent, but the workflow
 contract is this file plus the installed skills.
+
+**ldev skills are self-contained.** They do not depend on any external skill
+invocation framework, assistant plugin, or platform-specific mechanism. Always
+read skill files directly from `.agents/skills/<skill-name>/SKILL.md`. If any
+installed agent extension imposes its own pre-task protocol, ldev's Required
+Bootstrap sequence remains the authoritative first step for all Liferay and
+ldev tasks. External protocols do not replace or reorder these gates.
 
 Slash commands are aliases. If the user invokes `/project-issue-engineering`,
 `$project-issue-engineering`, names a skill, or pastes a skill body, resolve it
@@ -70,8 +79,8 @@ These rules apply to every task, regardless of the skill in use:
 8. If a command fails, diagnose first (`ldev logs diagnose --json` or `ldev doctor --json`) before retrying.
 9. Never guess IDs, keys, or site names. Use `ldev portal inventory ...` to resolve them.
 10. Never assume the portal URL. Read `context.liferay.portalUrl` from bootstrap output.
-11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: isolated worktree setup and root lock → Red reproduction in the worktree runtime → import/deploy verification with runtime evidence → Green visual validation in that same worktree runtime. Do not reproduce first in the primary checkout. For clearly trivial changes (single-field config update, copy fix, isolated template tweak the developer explicitly scoped), ask the developer whether they want the full isolation workflow or prefer to proceed in the current checkout.
-12. Safety checks that apply to every task regardless of scope: `--check-only` before supported resource imports, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, browser validation) are the recommended default; for clearly trivial tasks, confirm with the developer before imposing them.
+11. For `ldev-native`, the recommended default for any task that mutates code/resources/runtime is: isolated worktree setup and root lock → Red reproduction in the worktree runtime → import/deploy verification with runtime evidence → Green visual validation in that same worktree runtime. Do not reproduce first in the primary checkout. For single-field config updates, copy fixes, or isolated template tweaks where the developer has explicitly named the file and change, proceeding in the current checkout without a worktree is acceptable.
+12. Safety checks that apply to every task regardless of scope: `--check-only` before supported resource imports, read-after-write verification after mutations, ID and URL resolution via `ldev portal inventory` (never guess), and diagnosis before speculative fixes. These are not negotiable. Workflow steps (worktree isolation, browser validation) are the recommended default; skip them only when the developer has explicitly scoped a single-file change with no runtime resource mutations.
 
 ## ldev Command Resolution
 
@@ -120,7 +129,7 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
   check `ldev --help` to verify no `ldev` equivalent exists.
 - If an `ldev-native` task needs isolated runtime state or a confirmed edit
   boundary, use `isolating-worktrees` for the canonical setup, recovery, and
-  cleanup flow. For runtime-backed worktrees, ask the user whether main needs to run in parallel with the worktree. Default: `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped). Add `--restart-main-after-clone` only if the user confirms they need main running alongside.
+  cleanup flow. Default: `ldev worktree setup --name <worktree-name> --with-env --stop-main-for-clone` (main stays stopped). Add `--restart-main-after-clone` only if the user explicitly asks for main running alongside the worktree.
 - If the user asks for a vanilla sandbox, clean sandbox, or fresh Liferay
   sandbox, do not use `isolating-worktrees` and do not clone the current
   repository into a worktree. Create a fresh `ldev` project with
@@ -252,10 +261,6 @@ Use these as the standard reusable entrypoints when the task needs a deeper play
 - `migrating-journal-structures`: safe Journal migration playbook.
 - `automating-browser-tests`: Playwright browser checks, visual evidence and page-editor workflows.
 - `capturing-session-knowledge`: end-of-session knowledge distillation to `docs/ai/project-learnings.md`.
-
-<!-- Replaced at install time by ldev ai install. Do not edit. -->
-
-{{LIFECYCLE_SKILLS_SECTION}}
 
 ## Validation
 

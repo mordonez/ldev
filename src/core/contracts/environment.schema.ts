@@ -183,9 +183,6 @@ export const agentContextReportSchema = z.object({
   }),
   ai: z.object({
     manifestPresent: z.boolean(),
-    managedRules: z.number().int().nonnegative(),
-    modifiedRules: z.number().int().nonnegative(),
-    staleRuntimeRules: z.number().int().nonnegative(),
   }),
   platform: z.object({
     os: platformOsSchema,

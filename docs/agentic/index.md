@@ -20,41 +20,37 @@ inside an editor.
 
 ## What `ldev` provides for agents
 
-| Layer | What it does | Required? |
+| Layer | What it does | When |
 | --- | --- | --- |
-| CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Yes — the source of truth |
-| `ldev ai install` | Installs `AGENTS.md`, vendor skills, and tool-specific rule directories (`.claude/rules`, `.cursor/rules`, `.gemini`, `.github/instructions`, `.windsurf/rules`, `.workspace-rules`). | Yes |
-| `ldev-mcp-server` (18 tools) | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
+| CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Always |
+| `npx skills add https://github.com/mordonez/ldev` | Installs workflow skills into `.agents/skills/`. The agent knows how to use ldev. | Always |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
+| `ldev ai install` | Commits `AGENTS.md` and agent config files to the project repo so all editors auto-load the skills. Also adds the project-scoped issue skill. | For team repos |
+| `ldev-mcp-server` | Structured shortcuts over selected `ldev` workflows. | Optional |
 
-## Bootstrap the repo
+## Get started
+
+Install skills so the agent knows how to use ldev:
+
+```bash
+npx skills add https://github.com/mordonez/ldev
+```
+
+That is enough to start. Re-run it after each `ldev` update to pick up
+skill changes.
+
+## Set up a project repo
+
+For team repos, commit the agent entrypoint files so all editors auto-load
+the skills without manual setup:
 
 ```bash
 ldev ai install --target .
 ```
 
-What this prepares:
-
-- `AGENTS.md`
-- vendor-managed skills under `.agents/skills/`
-- tool-specific rule directories
-- optional project-owned skills, agents and context scaffolding
-
-Optional overlays:
-
-```bash
-ldev ai install --target . --project-context
-ldev ai install --target . --project --project-context
-```
-
-Useful follow-up:
-
-```bash
-ldev ai status --target . --json
-```
-
-In Blade workspaces, `ldev` coexists with the official AI folders and the
-`.workspace-rules` model rather than replacing them.
+See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install) for the
+full list of files. In Blade workspaces, `ldev` coexists with the official
+AI folders rather than replacing them.
 
 ## Set up the local MCP server
 
@@ -99,17 +95,9 @@ tree.
 
 The AI layer is easier to maintain if each kind of knowledge has one home:
 
-- `.agents/skills/*` (without the `project-` prefix) — vendor skills
-  installed by `ldev`
-- `.agents/skills/project-*` — project-owned workflows (issue handling,
-  PR process)
+- `.agents/skills/*` — vendor skills from `npx skills add`
+- `.agents/skills/project-*` — project-owned workflows from `ldev ai install`
 - `docs/ai/project-context.md` — long-form project context
-- `.workspace-rules/ldev-*` — runtime/tooling rules for `ldev`, not the
-  main home of project process
-
-Short version: skills for workflows, `project-context.md` for project
-context, `ldev-*` workspace rules for tooling guidance. Same model in
-`ldev-native` and `blade-workspace`.
 
 ## Structured portal context for agents
 
@@ -149,20 +137,19 @@ mapping of MCP tools to CLI fallbacks, and
 [MCP Server Inventory](./mcp-server-inventory.md) for the current and
 candidate tool list.
 
-## Keep skills and rules up to date
+## Keep skills up to date
 
-After pulling a new version of `ldev`, refresh skills and rules:
+After pulling a new version of `ldev`, refresh skills:
 
 ```bash
-ldev ai install --skills-only --target .
+npx skills add https://github.com/mordonez/ldev
 ```
 
-This updates `.agents/skills/` and all tool-specific rule directories.
+To reinstall the base meta-files with updated content:
 
-> **Windows:** rule directories are created as copies instead of symlinks
-> (symlinks require Developer Mode). Re-running the command refreshes those
-> copies. If you later enable Developer Mode, the next run replaces them
-> with proper symlinks.
+```bash
+ldev ai install --target . --force
+```
 
 ## The agent runtime contract
 

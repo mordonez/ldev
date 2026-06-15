@@ -40,7 +40,6 @@ Some commands default to JSON because their output is primarily structured:
 - `ldev portal theme-check`
 - `ldev resource import-structures|import-templates|import-adts`
 - `ldev resource export-structure|export-template`
-- `ldev ai status`
 
 ## Commands you will use most
 

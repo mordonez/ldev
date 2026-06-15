@@ -20,10 +20,9 @@ const forbiddenLiterals = [
   '/tmp/_solution_plan.md',
 ];
 
-const skillRoots = ['templates/ai/skills', 'templates/ai/project/skills'];
+const skillRoots = ['skills', 'templates/ai/project/skills'];
 
 const thinDelegators = [
-  'templates/ai/project/.cursorrules',
   'templates/ai/project/.gemini/GEMINI.md',
   'templates/ai/project/.github/copilot-instructions.md',
 ];
@@ -71,15 +70,13 @@ function mapSourceToInstalled(relativePath) {
   const normalized = relativePath.replaceAll('\\', '/');
   const parts = normalized.split('/');
 
-  if (parts[0] !== 'templates' || parts[1] !== 'ai') {
-    return null;
+  // Vendor skills: skills/<name>/... → .agents/skills/<name>/...
+  if (parts[0] === 'skills' && parts.length >= 3) {
+    return posix.join('.agents', 'skills', parts[1], ...parts.slice(2));
   }
 
-  if (parts[2] === 'skills' && parts.length >= 5) {
-    return posix.join('.agents', 'skills', parts[3], ...parts.slice(4));
-  }
-
-  if (parts[2] === 'project' && parts[3] === 'skills' && parts.length >= 6) {
+  // Project skills: templates/ai/project/skills/<name>/... → .agents/skills/project-<name>/...
+  if (parts[0] === 'templates' && parts[1] === 'ai' && parts[2] === 'project' && parts[3] === 'skills' && parts.length >= 6) {
     return posix.join('.agents', 'skills', `project-${parts[4]}`, ...parts.slice(5));
   }
 
@@ -127,10 +124,11 @@ async function verifyBootstrapFiles() {
 }
 
 async function verifyForbiddenLiterals() {
-  const aiFiles = await walk('templates/ai');
+  const [aiFiles, skillFiles] = await Promise.all([walk('templates/ai'), walk('skills')]);
+  const allFiles = [...aiFiles, ...skillFiles];
   let hasFailures = false;
 
-  for (const relativePath of aiFiles) {
+  for (const relativePath of allFiles) {
     const content = await readFile(path.join(repoRoot, relativePath), 'utf8');
 
     for (const forbiddenLiteral of forbiddenLiterals) {

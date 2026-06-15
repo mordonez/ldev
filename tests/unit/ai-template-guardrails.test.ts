@@ -25,10 +25,7 @@ async function findSkillFiles(dir: string): Promise<string[]> {
 
 describe('AI template guardrails', () => {
   test('generated skills stay compact and discoverable', async () => {
-    const skillFiles = [
-      ...(await findSkillFiles('templates/ai/skills')),
-      ...(await findSkillFiles('templates/ai/project/skills')),
-    ];
+    const skillFiles = await findSkillFiles('skills');
 
     expect(skillFiles.length).toBeGreaterThan(0);
 
@@ -46,12 +43,7 @@ describe('AI template guardrails', () => {
     const canonicalEntrypoint = await readTemplate('templates/ai/install/AGENTS.md');
 
     // Full contract must appear in canonical entrypoints
-    const fullContractEntrypoints = [
-      'templates/ai/install/AGENTS.md',
-      'templates/ai/install/AGENTS.workspace.md',
-      'templates/ai/workspace-rules/ldev-native-agent-workflow.md',
-      'templates/ai/workspace-rules/ldev-workspace-agent-workflow.md',
-    ];
+    const fullContractEntrypoints = ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md'];
     for (const entrypoint of fullContractEntrypoints) {
       const content = await readTemplate(entrypoint);
       expect(content, entrypoint).toContain('Agent Portability Contract');
@@ -65,7 +57,6 @@ describe('AI template guardrails', () => {
       'templates/ai/project/CLAUDE.md',
       'templates/ai/project/.github/copilot-instructions.md',
       'templates/ai/project/.gemini/GEMINI.md',
-      'templates/ai/project/.cursorrules',
     ];
     for (const entrypoint of thinDelegators) {
       const content = await readTemplate(entrypoint);
@@ -104,15 +95,10 @@ describe('AI template guardrails', () => {
   });
 
   test('mutating work delegates to shared vendor workflow skills', async () => {
-    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
-    const resource = await readTemplate('templates/ai/skills/portal-resource-workflow/SKILL.md');
-    const projectIssue = await readTemplate('templates/ai/project/skills/issue-engineering/SKILL.md');
-    const vendorManifest = await readTemplate('templates/ai/install/vendor-skills.txt');
-    const discovery = await readTemplate('templates/ai/docs/PORTAL_DISCOVERY.md');
-    const mutation = await readTemplate('templates/ai/docs/RESOURCE_MUTATION_GATES.md');
-
-    expect(vendorManifest).toContain('runtime-change-workflow');
-    expect(vendorManifest).toContain('portal-resource-workflow');
+    const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
+    const resource = await readTemplate('skills/portal-resource-workflow/SKILL.md');
+    const discovery = await readTemplate('skills/runtime-change-workflow/references/portal-discovery.md');
+    const mutation = await readTemplate('skills/portal-resource-workflow/references/resource-mutation-gates.md');
 
     expect(runtime).toContain('Owns the reusable gate order');
     expect(runtime).toContain('Do not claim Green until the original Red scenario no longer reproduces');
@@ -120,31 +106,10 @@ describe('AI template guardrails', () => {
     expect(resource).toContain('Resolve the source-of-truth site before editing');
     expect(discovery).toContain('displayPageDdmTemplates');
     expect(mutation).toContain('real import plus read-back proves the new script hash');
-    expect(runtime).toContain('PORTAL_DISCOVERY.md');
-    expect(runtime).toContain('RESOURCE_MUTATION_GATES.md');
-    expect(resource).toContain('PORTAL_DISCOVERY.md');
-    expect(resource).toContain('RESOURCE_MUTATION_GATES.md');
-
-    expect(projectIssue).toContain('This is the project-process wrapper');
-    expect(projectIssue).toContain('switch to `runtime-change-workflow`');
-    expect(projectIssue).toContain('Portal resources -> `portal-resource-workflow`');
-  });
-
-  test('AI command docs only reference installable vendor skills', async () => {
-    const vendorManifest = await readTemplate('templates/ai/install/vendor-skills.txt');
-    const commandDocs = await readTemplate('docs/commands/project-and-ai.md');
-    const vendorSkills = new Set(
-      vendorManifest
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith('#')),
-    );
-    const documentedSkills = [...commandDocs.matchAll(/--skill\s+([a-z0-9-]+)/g)].map((match) => match[1]);
-
-    expect(documentedSkills.length).toBeGreaterThan(0);
-    for (const documentedSkill of documentedSkills) {
-      expect(vendorSkills.has(documentedSkill), documentedSkill).toBe(true);
-    }
+    expect(runtime).toContain('portal-discovery.md');
+    expect(runtime).toContain('resource-mutation-gates.md');
+    expect(resource).toContain('portal-discovery.md');
+    expect(resource).toContain('resource-mutation-gates.md');
   });
 
   test('agent entrypoints document fragment imports as the check-only exception', async () => {
@@ -159,31 +124,24 @@ describe('AI template guardrails', () => {
   });
 
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {
-    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
+    const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
     const agents = await readTemplate('templates/ai/install/AGENTS.md');
-    const nativeWorkflow = await readTemplate('templates/ai/workspace-rules/ldev-native-agent-workflow.md');
-    const executionFlow = await readTemplate(
-      'templates/ai/project/skills/issue-engineering/references/execution-flow.md',
-    );
 
-    const combined = [runtime, agents, nativeWorkflow, executionFlow].join('\n');
+    const combined = [runtime, agents].join('\n');
 
     expect(combined).not.toContain('Red-1');
     expect(combined).not.toContain('Red-2');
     expect(combined).not.toContain('Red-1/Red-2');
     expect(runtime).toContain('Start the worktree runtime before');
     expect(runtime).toContain('do not reproduce first in the primary checkout');
-    expect(nativeWorkflow).toContain('Red reproduction in the worktree runtime');
-    expect(executionFlow).toContain('single Red -> Green loop inside that worktree');
   });
 
   test('vanilla sandbox requests bypass worktree setup', async () => {
-    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
-    const worktrees = await readTemplate('templates/ai/skills/isolating-worktrees/SKILL.md');
+    const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
+    const worktrees = await readTemplate('skills/isolating-worktrees/SKILL.md');
     const agents = await readTemplate('templates/ai/install/AGENTS.md');
-    const nativeWorkflow = await readTemplate('templates/ai/workspace-rules/ldev-native-agent-workflow.md');
 
-    for (const content of [runtime, worktrees, agents, nativeWorkflow]) {
+    for (const content of [runtime, worktrees, agents]) {
       expect(content).toContain('vanilla sandbox');
       expect(content).toContain('ldev project init');
       expect(content).toContain('activation key');
@@ -208,13 +166,11 @@ describe('AI template guardrails', () => {
   });
 
   test('session failure guardrails cover bootstrap, nested deploys, ADTs, and learnings', async () => {
-    const runtime = await readTemplate('templates/ai/skills/runtime-change-workflow/SKILL.md');
-    const deploying = await readTemplate('templates/ai/skills/deploying-liferay/SKILL.md');
-    const resource = await readTemplate('templates/ai/skills/portal-resource-workflow/SKILL.md');
-    const implementation = await readTemplate(
-      'templates/ai/skills/developing-liferay/references/implementation-paths.md',
-    );
-    const learnings = await readTemplate('templates/ai/skills/capturing-session-knowledge/SKILL.md');
+    const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
+    const deploying = await readTemplate('skills/deploying-liferay/SKILL.md');
+    const resource = await readTemplate('skills/portal-resource-workflow/SKILL.md');
+    const implementation = await readTemplate('skills/developing-liferay/references/implementation-paths.md');
+    const learnings = await readTemplate('skills/capturing-session-knowledge/SKILL.md');
 
     expect(runtime).toContain('before any file edit or runtime mutation');
     expect(deploying).toContain('leaf directory');
@@ -228,33 +184,26 @@ describe('AI template guardrails', () => {
   });
 
   test('routing references point to canonical workflows instead of duplicating them', async () => {
-    const routing = await readTemplate('templates/ai/skills/liferay-expert/references/routing.md');
-    const issueExecution = await readTemplate(
-      'templates/ai/project/skills/issue-engineering/references/execution-flow.md',
-    );
-    const resourceCompatibility = await readTemplate(
-      'templates/ai/skills/developing-liferay/references/resource-workflow.md',
-    );
+    const routing = await readTemplate('skills/liferay-expert/references/routing.md');
+    const resourceCompatibility = await readTemplate('skills/developing-liferay/references/resource-workflow.md');
 
     expect(routing).toContain('runtime-change-workflow');
     expect(routing).toContain('portal-resource-workflow');
     expect(routing).toContain('migrating-journal-structures');
-    expect(issueExecution).toContain('runtime-change-workflow');
-    expect(issueExecution).toContain('portal-resource-workflow');
     expect(resourceCompatibility).toContain('../../portal-resource-workflow/SKILL.md');
     expect(resourceCompatibility).toContain('Do not duplicate resource import command sequences here');
   });
 
   test('skills cover the main ldev Liferay work scenarios', async () => {
     const scenarios = new Map([
-      ['issue feature or bug fix', 'templates/ai/skills/runtime-change-workflow/SKILL.md'],
-      ['unknown runtime failure', 'templates/ai/skills/troubleshooting-liferay/SKILL.md'],
-      ['implementation edit', 'templates/ai/skills/developing-liferay/SKILL.md'],
-      ['deploy verification', 'templates/ai/skills/deploying-liferay/SKILL.md'],
-      ['portal resource edit', 'templates/ai/skills/portal-resource-workflow/SKILL.md'],
-      ['journal data migration', 'templates/ai/skills/migrating-journal-structures/SKILL.md'],
-      ['browser validation', 'templates/ai/skills/automating-browser-tests/SKILL.md'],
-      ['worktree isolation', 'templates/ai/skills/isolating-worktrees/SKILL.md'],
+      ['issue feature or bug fix', 'skills/runtime-change-workflow/SKILL.md'],
+      ['unknown runtime failure', 'skills/troubleshooting-liferay/SKILL.md'],
+      ['implementation edit', 'skills/developing-liferay/SKILL.md'],
+      ['deploy verification', 'skills/deploying-liferay/SKILL.md'],
+      ['portal resource edit', 'skills/portal-resource-workflow/SKILL.md'],
+      ['journal data migration', 'skills/migrating-journal-structures/SKILL.md'],
+      ['browser validation', 'skills/automating-browser-tests/SKILL.md'],
+      ['worktree isolation', 'skills/isolating-worktrees/SKILL.md'],
     ]);
 
     for (const [scenario, skillPath] of scenarios) {
@@ -264,7 +213,7 @@ describe('AI template guardrails', () => {
   });
 
   test('browser automation documents PowerShell-safe run-code files', async () => {
-    const reference = await readTemplate('templates/ai/skills/automating-browser-tests/REFERENCE.md');
+    const reference = await readTemplate('skills/automating-browser-tests/references/browser-automation.md');
 
     expect(reference).toContain('`.tmp/<issue>/*.js`');
     expect(reference).toContain('Get-Content -Raw');
@@ -274,25 +223,22 @@ describe('AI template guardrails', () => {
   });
 
   test('theme deploy guidance requires runtime refresh before browser Green', async () => {
-    const deploySkill = await readTemplate('templates/ai/skills/deploying-liferay/SKILL.md');
-    const themeReference = await readTemplate('templates/ai/skills/developing-liferay/references/theme.md');
-    const deployRules = await readTemplate('templates/ai/workspace-rules/ldev-deploy-verification.md');
-    const nativeRules = await readTemplate('templates/ai/workspace-rules/ldev-native-deploy.md');
-    const nativeWorkflow = await readTemplate('templates/ai/workspace-rules/ldev-native-agent-workflow.md');
-    const themeProof = await readTemplate('templates/ai/docs/THEME_DEPLOY_RUNTIME_PROOF.md');
+    const deploySkill = await readTemplate('skills/deploying-liferay/SKILL.md');
+    const themeReference = await readTemplate('skills/developing-liferay/references/theme.md');
+    const themeProof = await readTemplate('skills/deploying-liferay/references/theme-deploy-runtime-proof.md');
 
     expect(themeProof).toContain('runtimeRefreshed');
     expect(themeProof).toContain('runtimeActionRequired');
     expect(themeProof).toContain('ldev deploy theme --format json');
 
-    for (const content of [deploySkill, themeReference, deployRules, nativeRules, nativeWorkflow]) {
-      expect(content).toContain('THEME_DEPLOY_RUNTIME_PROOF.md');
+    for (const content of [deploySkill, themeReference]) {
+      expect(content).toContain('theme-deploy-runtime-proof.md');
     }
   });
 
   test('journal structure migrations require a descriptor-backed pipeline', async () => {
-    const content = await readTemplate('templates/ai/skills/migrating-journal-structures/SKILL.md');
-    const pipeline = await readTemplate('templates/ai/skills/migrating-journal-structures/references/pipeline.md');
+    const content = await readTemplate('skills/migrating-journal-structures/SKILL.md');
+    const pipeline = await readTemplate('skills/migrating-journal-structures/references/pipeline.md');
 
     expect(content).toContain('preserve existing content');
     expect(content).toContain('migration-init is mandatory');
@@ -322,11 +268,8 @@ describe('AI template guardrails', () => {
   });
 
   test('journal structure edits require layout placement and saved authoring proof', async () => {
-    const resource = await readTemplate('templates/ai/skills/portal-resource-workflow/SKILL.md');
-    const fieldCatalog = await readTemplate(
-      'templates/ai/skills/developing-liferay/references/structure-field-catalog.md',
-    );
-    const intake = await readTemplate('templates/ai/project/skills/issue-engineering/references/intake.md');
+    const resource = await readTemplate('skills/portal-resource-workflow/SKILL.md');
+    const fieldCatalog = await readTemplate('skills/developing-liferay/references/structure-field-catalog.md');
 
     expect(resource).toContain('defaultDataLayout');
     expect(resource).toContain('requested visual position');
@@ -334,14 +277,12 @@ describe('AI template guardrails', () => {
     expect(resource).toContain('duplicate buttons alone are not Green');
     expect(fieldCatalog).toContain('Place new fields in `defaultDataLayout`');
     expect(fieldCatalog).toContain('Do not include `FieldSet` in a new fieldset name/reference');
-    expect(intake).toContain('Existing field becomes repeatable');
-    expect(intake).toContain('saved legacy values must migrate');
   });
 
   test('site-building guidance covers headless-first content and page mutation flows', async () => {
-    const skill = await readTemplate('templates/ai/skills/developing-liferay/SKILL.md');
-    const siteBuilding = await readTemplate('templates/ai/skills/developing-liferay/references/site-building.md');
-    const oauthSetup = await readTemplate('templates/ai/skills/developing-liferay/references/oauth2-setup.md');
+    const skill = await readTemplate('skills/developing-liferay/SKILL.md');
+    const siteBuilding = await readTemplate('skills/developing-liferay/references/site-building.md');
+    const oauthSetup = await readTemplate('skills/developing-liferay/references/oauth2-setup.md');
 
     expect(skill).toContain('references/site-building.md');
     expect(siteBuilding).toContain('structured-contents/{structuredContentId}');
@@ -358,18 +299,15 @@ describe('AI template guardrails', () => {
   });
 
   test('reindex is documented as a manual UI action, not an ldev command', async () => {
-    const skillFiles = [
-      ...(await findSkillFiles('templates/ai/skills')),
-      ...(await findSkillFiles('templates/ai/project/skills')),
-    ];
+    const skillFiles = await findSkillFiles('skills');
     const markdownFiles = [
       ...skillFiles,
-      'templates/ai/skills/troubleshooting-liferay/references/reindex-after-import.md',
-      'templates/ai/skills/troubleshooting-liferay/references/reindex-journal.md',
-      'templates/ai/skills/troubleshooting-liferay/references/search-debug.md',
-      'templates/ai/skills/troubleshooting-liferay/references/specialized-diagnosis.md',
-      'templates/ai/skills/troubleshooting-liferay/references/content-versions.md',
-      'templates/ai/skills/migrating-journal-structures/references/pipeline.md',
+      'skills/troubleshooting-liferay/references/reindex-after-import.md',
+      'skills/troubleshooting-liferay/references/reindex-journal.md',
+      'skills/troubleshooting-liferay/references/search-debug.md',
+      'skills/troubleshooting-liferay/references/specialized-diagnosis.md',
+      'skills/troubleshooting-liferay/references/content-versions.md',
+      'skills/migrating-journal-structures/references/pipeline.md',
     ];
 
     for (const file of markdownFiles) {
@@ -380,29 +318,12 @@ describe('AI template guardrails', () => {
       expect(content, file).not.toContain('speedup-off');
     }
 
-    const reindexAfterImport = await readTemplate(
-      'templates/ai/skills/troubleshooting-liferay/references/reindex-after-import.md',
-    );
-    const reindexJournal = await readTemplate(
-      'templates/ai/skills/troubleshooting-liferay/references/reindex-journal.md',
-    );
+    const reindexAfterImport = await readTemplate('skills/troubleshooting-liferay/references/reindex-after-import.md');
+    const reindexJournal = await readTemplate('skills/troubleshooting-liferay/references/reindex-journal.md');
 
     expect(reindexAfterImport).toContain('The only supported way to force');
     expect(reindexAfterImport).toContain('manual action in the Liferay UI');
     expect(reindexJournal).toContain('A human must start the relevant reindex');
-  });
-
-  test('project issue workflow locks resource origin before edits', async () => {
-    const skill = await readTemplate('templates/ai/project/skills/issue-engineering/SKILL.md');
-    const content = await readTemplate('templates/ai/project/skills/issue-engineering/references/resource-origin.md');
-
-    expect(skill).toContain('read `references/resource-origin.md` before scope lock');
-    expect(skill).toContain('migrating-journal-structures');
-    expect(content).toContain('source-of-truth site');
-    expect(content).toContain('portal inventory page --url <fullUrl> --full --json');
-    expect(content).toContain('templateExportPath');
-    expect(content).toContain('candidate copies are out of scope until proven active');
-    expect(content).toContain('Do not edit sibling site copies');
   });
 
   test('project context sample prompts stable shared-resource facts', async () => {

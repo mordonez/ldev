@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import type {AppConfig} from '../../core/config/load-config.js';
@@ -9,7 +10,6 @@ import {getCurrentBranchName, isWorktree} from '../../core/platform/git.js';
 import {runProcess} from '../../core/platform/process.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
 import {collectEnvStatus} from '../env/env-health.js';
-import {runAiStatus} from '../ai/ai-status.js';
 import type {AgentContextIssue, AgentContextReport, CommandStatus, Presence} from './agent-context-types.js';
 
 export type {AgentContextReport};
@@ -31,11 +31,10 @@ export async function runAgentContext(
   const isWorktreeFn = options?.isWorktreeFn ?? isWorktree;
   const inRepo = project.repo.inRepo;
 
-  const [platform, branch, worktree, aiStatus] = await Promise.all([
+  const [platform, branch, worktree] = await Promise.all([
     detectCapabilitiesFn(cwd),
     inRepo ? getCurrentBranchNameFn(cwd) : Promise.resolve(null),
     inRepo ? isWorktreeFn(cwd) : Promise.resolve(false),
-    runAiStatus(project.cwd),
   ]);
   const issues = await collectAgentIssues(config, project.projectType);
 
@@ -83,10 +82,7 @@ export async function runAgentContext(
     },
     inventory: project.inventory.local,
     ai: {
-      manifestPresent: aiStatus.manifestPresent,
-      managedRules: aiStatus.summary.managedRules,
-      modifiedRules: aiStatus.summary.modified,
-      staleRuntimeRules: aiStatus.summary.staleRuntime,
+      manifestPresent: project.repo.root ? fs.existsSync(path.join(project.repo.root, 'AGENTS.md')) : false,
     },
     platform: {
       os: platform.os,

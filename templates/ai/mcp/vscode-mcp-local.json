@@ -1,9 +1,0 @@
-{
-  "servers": {
-    "ldev": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["./node_modules/@mordonezdev/ldev/dist/mcp-server.js"]
-    }
-  }
-}

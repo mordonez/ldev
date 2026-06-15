@@ -227,14 +227,6 @@ function makeDoctorContext(overrides?: Partial<DoctorContext>): DoctorContext {
     httpPortStatus: 'free',
     totalMemoryBytes: 16 * 1024 ** 3,
     worktree: false,
-    ai: {
-      manifestPresent: true,
-      managedRules: 1,
-      modifiedRules: 0,
-      stalePackageRules: 0,
-      staleRuntimeRules: 0,
-      warnings: [],
-    },
     ...overrides,
   };
 }

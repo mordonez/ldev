@@ -44,55 +44,33 @@ or warm local runtime directories before starting.
 
 ## `ldev ai install`
 
-Install the standard reusable AI assets into a project.
+Commit the standard agent entrypoint files to a project repo so all editors
+auto-load the skills without manual setup.
 
 ```bash
 ldev ai install --target .
-ldev ai install --target . --project-context
-ldev ai install --target . --project --project-context
-ldev ai install --target . --skills-only
-ldev ai install --target . --skill liferay-expert --skill developing-liferay
 ldev ai install --target . --force
-ldev ai install --target . --local
 ```
 
 Options:
 
 - `--target <dir>` (required) — project root
-- `--force` — overwrite `AGENTS.md` if it already exists
-- `--local` — keep AI tooling local by adding generated agent/editor files to `.gitignore`, while `docs/ai` stays versionable
-- `--skills-only` — only update vendor skills and managed rules from the manifest
-- `--project-context` — install project-owned context scaffolding (`docs/ai/project-context.md` + sample)
-- `--project` — install project-owned skills and agents, filtered by detected project type; also installs the project context scaffold
-- `--skill <name>` — install only specific vendor skills (repeatable)
+- `--force` — overwrite existing files
 
 What the install produces:
 
-- `AGENTS.md` and tool-specific rule directories (`.claude/rules`, `.cursor/rules`, `.gemini`, `.github/instructions`, `.windsurf/rules`, `.workspace-rules`)
-- vendor-managed skills under `.agents/skills/`
-- optional project-owned skills and agents (`.agents/skills/project-*`) and project menu-map scaffolding under `docs/ai/menu/`
+- `AGENTS.md` (skipped on re-run without `--force` if already present)
+- `CLAUDE.md`, `.github/copilot-instructions.md` (non-blade-workspace projects only)
+- `.gemini/GEMINI.md`
+- `docs/ai/project-context.md.sample` (copy to `project-context.md` and fill in project-specific values)
+- `.agents/skills/project-issue-engineering/` (project-scoped issue workflow skill)
+- `.claude/skills/` (empty directory, created so that `npx skills add` can place Claude Code symlinks there)
 
-## `ldev ai update`
-
-Safely refresh vendor skills and managed rules listed in the manifest.
-
-```bash
-ldev ai update --target .
-ldev ai update --target . --skill liferay-expert --skill developing-liferay
-```
-
-`--skill <name>` rewrites the vendor manifest to the selected skill set and refreshes managed rules.
-
-## `ldev ai status`
-
-Inspect managed AI rules, manifest state, and drift.
+To install skills, use the skills.sh standard:
 
 ```bash
-ldev ai status --target .
-ldev ai status --target . --format text
+npx skills add https://github.com/mordonez/ldev
 ```
-
-Defaults to JSON. Use this before `install` or `update` on an existing project to see what is managed, what has drifted, and what is project-owned.
 
 ## `ldev ai bootstrap`
 
@@ -120,10 +98,11 @@ intent needs readiness, `doctor`.
 
 When you are inside a worktree but need context from the main checkout,
 prefer the global form `ldev --repo-root <path> ai bootstrap ...`.
+
 ## Typical next steps
 
 ```bash
 ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
-In Blade workspaces, `ldev ai install` coexists with the official AI folders and the `.workspace-rules` workflow instead of replacing them.
+In Blade workspaces, `ldev ai install` coexists with the official AI folders instead of replacing them.
