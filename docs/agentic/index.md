@@ -23,8 +23,8 @@ inside an editor.
 | Layer | What it does | Required? |
 | --- | --- | --- |
 | CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Yes — the source of truth |
-| `ldev ai install` | Installs `AGENTS.md`, tool-specific config files (`.gemini`, `.cursorrules`, `.github/copilot-instructions.md`), project context scaffold, and the project-scoped issue skill. | Yes |
-| `npx skills add https://github.com/mordonez/ldev` | Installs vendor skills into `.agents/skills/` via the skills.sh standard. | Yes |
+| `ldev ai install` | Writes `AGENTS.md`, tool-specific config files, project context scaffold, and the project-scoped issue skill. | Yes |
+| `npx skills add https://github.com/mordonez/ldev` | Installs vendor skills into `.agents/skills/`. | Yes |
 | `ldev-mcp-server` | Structured shortcuts over selected `ldev` workflows. | Optional, recommended |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
 
@@ -35,14 +35,12 @@ ldev ai install --target .
 npx skills add https://github.com/mordonez/ldev
 ```
 
-`ldev ai install` writes the entrypoint files (`AGENTS.md`, `CLAUDE.md`,
-`.gemini/GEMINI.md`, `.cursorrules`, `.github/copilot-instructions.md`),
-the project context scaffold (`docs/ai/project-context.md`), and the
-project-scoped issue skill (`.agents/skills/project-issue-engineering/`).
+`ldev ai install` writes the agent entrypoint files and the project-scoped
+issue skill. See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install)
+for the full file list.
 
-`npx skills add` installs vendor skills into `.agents/skills/` via the
-[skills.sh](https://skills.sh) standard. Re-run it after pulling a new
-version of `ldev` to pick up updated skills.
+`npx skills add` installs vendor skills via the
+[skills.sh](https://skills.sh) standard. Re-run it after each `ldev` update.
 
 In Blade workspaces, `ldev` coexists with the official AI folders rather
 than replacing them.
@@ -90,16 +88,9 @@ tree.
 
 The AI layer is easier to maintain if each kind of knowledge has one home:
 
-- `.agents/skills/*` (without the `project-` prefix) — vendor skills
-  installed by `npx skills add https://github.com/mordonez/ldev`
-- `.agents/skills/project-*` — project-owned workflows (issue handling,
-  PR process), installed by `ldev ai install`
+- `.agents/skills/*` — vendor skills from `npx skills add`
+- `.agents/skills/project-*` — project-owned workflows from `ldev ai install`
 - `docs/ai/project-context.md` — long-form project context
-
-Short version: vendor skills for reusable ldev workflows, `project-*`
-skills for team rituals and project-specific process,
-`project-context.md` for project facts. Same model in `ldev-native` and
-`blade-workspace`.
 
 ## Structured portal context for agents
 

@@ -96,10 +96,11 @@ intent needs readiness, `doctor`.
 
 When you are inside a worktree but need context from the main checkout,
 prefer the global form `ldev --repo-root <path> ai bootstrap ...`.
+
 ## Typical next steps
 
 ```bash
 ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
-In Blade workspaces, `ldev ai install` coexists with the official AI folders and the `.workspace-rules` workflow instead of replacing them.
+In Blade workspaces, `ldev ai install` coexists with the official AI folders instead of replacing them.

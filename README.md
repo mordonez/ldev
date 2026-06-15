@@ -184,9 +184,9 @@ npx skills add https://github.com/mordonez/ldev
 ldev ai mcp-setup --target . --tool all
 ```
 
-`ldev ai install` writes `AGENTS.md` and related agent config files, plus
-the project-scoped issue skill. `npx skills add` installs vendor skills via
-the [skills.sh](https://skills.sh) standard.
+`ldev ai install` writes the agent entrypoint files (`AGENTS.md`, `CLAUDE.md`,
+`.gemini/GEMINI.md`, `.cursorrules`, and more). `npx skills add` installs the
+workflow skills via the [skills.sh](https://skills.sh) standard.
 
 The MCP server exposes tools covering environment management, portal inspection, resource workflows, structure migration, diagnostics, and deploy — every major workflow in the CLI. The CLI is always the canonical path; MCP is acceleration on top of it.
 
