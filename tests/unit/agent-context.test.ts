@@ -5,7 +5,6 @@ import type {ProjectContext} from '../../src/core/config/project-context.js';
 
 const collectEnvStatusMock = vi.fn();
 const resolveEnvContextMock = vi.fn();
-const runAiStatusMock = vi.fn();
 const runProcessMock = vi.fn();
 
 vi.mock('../../src/features/env/env-health.js', () => ({
@@ -14,10 +13,6 @@ vi.mock('../../src/features/env/env-health.js', () => ({
 
 vi.mock('../../src/core/runtime/env-context.js', () => ({
   resolveEnvContext: resolveEnvContextMock,
-}));
-
-vi.mock('../../src/features/ai/ai-status.js', () => ({
-  runAiStatus: runAiStatusMock,
 }));
 
 vi.mock('../../src/core/platform/process.js', () => ({
@@ -50,14 +45,6 @@ describe('agent context', () => {
     vi.clearAllMocks();
     resolveEnvContextMock.mockReturnValue({
       dataRoot: '/repo/docker/data/default',
-    });
-    runAiStatusMock.mockResolvedValue({
-      manifestPresent: true,
-      summary: {
-        managedRules: 5,
-        modified: 1,
-        staleRuntime: 0,
-      },
     });
     runProcessMock.mockResolvedValue({
       ok: false,

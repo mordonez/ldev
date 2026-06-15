@@ -53,7 +53,7 @@ MCP equivalents when visible: `liferay_inventory_page`, `liferay_inventory_struc
 
 ## AI asset maintenance
 
-When skills or agent context files are out of date, run `ldev ai status --target <project-root> --json` first, then `ldev ai update --target <project-root>` or `ldev ai update --target <project-root> --skill <skill-name>`.
+To update skills and agent context files, run `npx skills add https://github.com/mordonez/ldev` from the project root. To reinstall the base meta-files (AGENTS.md, CLAUDE.md, etc.), run `ldev ai install --target <project-root> --force`.
 
 ## OAuth2 prerequisite
 

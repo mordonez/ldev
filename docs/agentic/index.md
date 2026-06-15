@@ -40,17 +40,10 @@ What this prepares:
 - tool-specific rule directories
 - optional project-owned skills, agents and context scaffolding
 
-Optional overlays:
+Install skills via the skills.sh standard:
 
 ```bash
-ldev ai install --target . --project-context
-ldev ai install --target . --project --project-context
-```
-
-Useful follow-up:
-
-```bash
-ldev ai status --target . --json
+npx skills add https://github.com/mordonez/ldev
 ```
 
 In Blade workspaces, `ldev` coexists with the official AI folders and the
@@ -149,20 +142,19 @@ mapping of MCP tools to CLI fallbacks, and
 [MCP Server Inventory](./mcp-server-inventory.md) for the current and
 candidate tool list.
 
-## Keep skills and rules up to date
+## Keep skills up to date
 
-After pulling a new version of `ldev`, refresh skills and rules:
+After pulling a new version of `ldev`, refresh skills:
 
 ```bash
-ldev ai install --skills-only --target .
+npx skills add https://github.com/mordonez/ldev
 ```
 
-This updates `.agents/skills/` and all tool-specific rule directories.
+To reinstall the base meta-files with updated content:
 
-> **Windows:** rule directories are created as copies instead of symlinks
-> (symlinks require Developer Mode). Re-running the command refreshes those
-> copies. If you later enable Developer Mode, the next run replaces them
-> with proper symlinks.
+```bash
+ldev ai install --target . --force
+```
 
 ## The agent runtime contract
 

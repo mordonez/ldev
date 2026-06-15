@@ -12,7 +12,6 @@ export type AiAssets = {
   aiRoot: string;
   installDir: string;
   projectDir: string;
-  skillsSourceDir: string;
   agentsTemplatePath: string;
   workspaceAgentsTemplatePath: string;
 };
@@ -31,7 +30,6 @@ export function resolveAiAssets(repoRoot = getDefaultRepoRoot()): AiAssets {
     aiRoot,
     installDir,
     projectDir,
-    skillsSourceDir: path.join(repoRoot, 'skills'),
     agentsTemplatePath: path.join(installDir, 'AGENTS.md'),
     workspaceAgentsTemplatePath: path.join(installDir, 'AGENTS.workspace.md'),
   };

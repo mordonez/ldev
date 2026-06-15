@@ -3,158 +3,118 @@ import path from 'node:path';
 
 import {describe, expect, test} from 'vitest';
 
-import {parseTestJson} from '../../src/testing/cli-test-helpers.js';
-import {createTempDir, createTempRepo, createTempWorkspace} from '../../src/testing/temp-repo.js';
+import {createTempDir, createTempWorkspace} from '../../src/testing/temp-repo.js';
 import {runCli, CLI_CWD} from '../../src/testing/cli-entry.js';
 
-const AI_ROOT = path.resolve(CLI_CWD, 'templates', 'ai');
-const PACKAGE_VERSION = (fs.readJsonSync(path.join(CLI_CWD, 'package.json')) as {version: string}).version;
-
-type RulesManifestRule = {
-  id: string;
-  namespace: string;
-  targetFiles?: string[];
-  verifiedAgainst?: string[];
-  localModificationPolicy?: string;
-  sourceKind?: string;
-  sourceReferences?: string[];
-};
-
-type RulesManifest = {
-  projectType: string;
-  packageVersion: string;
-  officialWorkspaceFilesDetected?: string[];
-  rules: RulesManifestRule[];
-};
-
 describe('ai integration', () => {
-  test('install creates vendor skills, manifest, AGENTS.md and common managed AI rules', async () => {
+  test('install creates AGENTS.md and common AI files', async () => {
     const targetDir = createTempDir('dev-cli-ai-install-');
 
-    const result = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Run playwright-cli install --skills');
-    expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(false);
     expect(await fs.pathExists(path.join(targetDir, '.github', 'copilot-instructions.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.gemini', 'GEMINI.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, '.cursorrules'))).toBe(true);
-
-    const installedSkills = (await fs.readdir(path.join(targetDir, '.agents', 'skills'))).sort();
-    const vendorSkills = (await fs.readFile(path.join(AI_ROOT, 'install', 'vendor-skills.txt'), 'utf8'))
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.startsWith('#'))
-      .sort();
-
-    expect(installedSkills).toEqual(vendorSkills);
-    expect(installedSkills).not.toContain('issue-engineering');
-
-    const manifest = await fs.readFile(path.join(targetDir, '.agents', '.vendor-skills'), 'utf8');
-    expect(manifest).toContain('# Skills installed by ldev');
-    expect(manifest).toContain('# Do not edit manually');
-    expect(manifest).toContain(vendorSkills[0]);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-core.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-client-extensions.md'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-mcp.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-setup.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-runtime.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-agent-workflow.md'))).toBe(
-      false,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'))).toBe(false);
-
-    const rulesManifest = parseTestJson<RulesManifest>(
-      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
-    );
-    expect(rulesManifest.projectType).toBe('unknown');
-    expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
-    expect(rulesManifest.rules).toHaveLength(7);
-    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
-      'ldev-deploy-verification',
-      'ldev-liferay-client-extensions',
-      'ldev-liferay-core',
-      'ldev-liferay-mcp',
-      'ldev-portal-discovery',
-      'ldev-resource-migrations',
-      'ldev-runtime-troubleshooting',
-    ]);
-    for (const rule of rulesManifest.rules) {
-      expect(rule.namespace).toBe('ldev');
-    }
-    const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
-    expect(agents).toContain('Read order:');
-    expect(agents).toContain('docs/ai/project-context.md');
-    expect(agents).toContain('confirm the');
-    expect(agents).toContain('editing root');
-    expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
-    const claude = await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8');
-    const effectiveClaude = claude.trim() === '@AGENTS.md' ? agents : claude;
-    expect(effectiveClaude).toContain('if it exists');
-  }, 30000);
-
-  test('install --local adds agent/editor tooling paths to .gitignore but keeps docs/ai versionable', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-local-');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--local', '--project-context'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-
-    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
-    expect(gitignore).toContain('# ldev ai install --local');
-    expect(gitignore).toContain('AGENTS.md');
-    expect(gitignore).toContain('CLAUDE.md');
-    expect(gitignore).toContain('.cursorrules');
-    expect(gitignore).toContain('.agents/');
-    expect(gitignore).toContain('.claude/');
-    expect(gitignore).toContain('.github/instructions/');
-    expect(gitignore).toContain('.ldev/ai/');
-    expect(gitignore).toContain('.liferay-cli.yml');
-    expect(gitignore).not.toContain('docs/ai/project-context.md');
-    expect(gitignore).not.toContain('docs/ai/project-context.md.sample');
-
-    expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
 
-    const secondResult = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
-      cwd: CLI_CWD,
-    });
-    expect(secondResult.exitCode).toBe(0);
-    const secondGitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
-    expect(secondGitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
+    const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
+    expect(agents).not.toContain('{{LIFECYCLE_SKILLS_SECTION}}');
+    expect(agents).toContain('docs/ai/project-context.md');
+
+    expect(result.stdout).toContain('AGENTS.md: installed');
+    expect(result.stdout).toContain('CLAUDE.md: applied');
   }, 30000);
 
-  test('install --project --project-context writes managed AI files with LF endings', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-lf-');
+  test('output includes next steps with npx skills add', async () => {
+    const targetDir = createTempDir('dev-cli-ai-nextsteps-');
 
-    const result = await runCli(['ai', 'install', '--force', '--target', targetDir, '--project', '--project-context'], {
-      cwd: CLI_CWD,
-    });
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Next steps:');
+    expect(result.stdout).toContain('npx skills add https://github.com/mordonez/ldev');
+    expect(result.stdout).toContain('ldev ai bootstrap --intent=develop --json');
+  }, 30000);
+
+  test('install without --force keeps existing AGENTS.md', async () => {
+    const targetDir = createTempDir('dev-cli-ai-keep-');
+
+    await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+    await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'custom agents\n');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom agents\n');
+    expect(result.stdout).toContain('AGENTS.md: kept');
+  }, 30000);
+
+  test('install with --force overwrites existing AGENTS.md', async () => {
+    const targetDir = createTempDir('dev-cli-ai-force-agents-');
+
+    await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+    await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'custom agents\n');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--force'], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
+    expect(agents).not.toBe('custom agents\n');
+    expect(agents).toContain('docs/ai/project-context.md');
+    expect(result.stdout).toContain('AGENTS.md: overwritten');
+  }, 30000);
+
+  test('install without --force does not overwrite existing project files', async () => {
+    const targetDir = createTempDir('dev-cli-ai-noforce-files-');
+
+    await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).toBe('custom claude\n');
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).toBe(
+      'custom context\n',
+    );
+  }, 30000);
+
+  test('install with --force overwrites existing project files', async () => {
+    const targetDir = createTempDir('dev-cli-ai-force-files-');
+
+    await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
+    await fs.writeFile(path.join(targetDir, '.cursorrules'), 'custom cursor\n');
+    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir, '--force'], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).not.toBe('custom claude\n');
+    expect(await fs.readFile(path.join(targetDir, '.cursorrules'), 'utf8')).not.toBe('custom cursor\n');
+    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).not.toBe(
+      'custom context\n',
+    );
+  }, 30000);
+
+  test('installed files use LF line endings', async () => {
+    const targetDir = createTempDir('dev-cli-ai-lf-');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
 
     const managedFiles = await collectFiles([
-      path.join(targetDir, '.agents'),
-      path.join(targetDir, '.claude'),
-      path.join(targetDir, '.github'),
-      path.join(targetDir, '.workspace-rules'),
-      path.join(targetDir, 'docs', 'ai'),
       path.join(targetDir, 'AGENTS.md'),
       path.join(targetDir, 'CLAUDE.md'),
+      path.join(targetDir, '.gemini'),
+      path.join(targetDir, '.cursorrules'),
+      path.join(targetDir, 'docs', 'ai'),
     ]);
 
     expect(managedFiles.length).toBeGreaterThan(0);
@@ -164,546 +124,48 @@ describe('ai integration', () => {
     }
   }, 30000);
 
-  test('install --local adds marker when equivalent gitignore entries already exist', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-local-marker-');
-
-    await fs.writeFile(
-      path.join(targetDir, '.gitignore'),
-      ['/AGENTS.md', 'CLAUDE.md # local tool file', '.agents/', '.claude/   ', ''].join('\n'),
-    );
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-
-    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
-    expect(gitignore).toContain('# ldev ai install --local');
-    expect(gitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
-    expect(gitignore.match(/^AGENTS\.md$/gm)?.length ?? 0).toBe(0);
-    expect(gitignore.match(/^CLAUDE\.md$/gm)?.length ?? 0).toBe(0);
-    expect(gitignore.endsWith('\n')).toBe(true);
-    expect(gitignore.endsWith('\n\n')).toBe(false);
-  }, 30000);
-
-  test('install --local does not duplicate equivalent gitignore entries', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-local-normalize-');
-
-    await fs.writeFile(
-      path.join(targetDir, '.gitignore'),
-      [
-        '# existing ignore rules',
-        '/AGENTS.md',
-        'CLAUDE.md # managed locally',
-        '.cursorrules # cursor entrypoint',
-        '/.agents/',
-        '.claude/   ',
-        '/.cursor/',
-        '.gemini/ # optional',
-        '/.windsurf/',
-        '.workspace-rules/',
-        '/.github/instructions/',
-        '.github/copilot-instructions.md # keep local',
-        '/.ldev/ai/',
-        '.liferay-cli.yml',
-        '',
-      ].join('\n'),
-    );
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--local'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-
-    const gitignore = await fs.readFile(path.join(targetDir, '.gitignore'), 'utf8');
-    expect(gitignore).toContain('# ldev ai install --local');
-    expect(gitignore.match(/# ldev ai install --local/g)?.length).toBe(1);
-    expect(gitignore).not.toContain('\nAGENTS.md\n');
-    expect(gitignore).not.toContain('\nCLAUDE.md\n');
-    expect(gitignore).not.toContain('\n.cursorrules\n');
-    expect(gitignore).not.toContain('\n.agents/\n');
-    expect(gitignore).not.toContain('\n.claude/\n');
-    expect(gitignore).not.toContain('\n.cursor/\n');
-    expect(gitignore).not.toContain('\n.gemini/\n');
-    expect(gitignore).not.toContain('\n.windsurf/\n');
-    expect(gitignore.match(/^\.workspace-rules\/$/gm)?.length ?? 0).toBe(1);
-    expect(gitignore).not.toContain('\n.github/instructions/\n');
-    expect(gitignore).not.toContain('\n.github/copilot-instructions.md\n');
-    expect(gitignore).not.toContain('\n.ldev/ai/\n');
-    expect(gitignore.match(/^\.liferay-cli\.yml$/gm)?.length ?? 0).toBe(1);
-    expect(gitignore.trimEnd().endsWith('# ldev ai install --local')).toBe(true);
-  }, 30000);
-
-  test('install --skill installs only selected vendor skills and writes manifest accordingly', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-selected-');
-
-    const result = await runCli(
-      ['ai', 'install', '--target', targetDir, '--skill', 'developing-liferay', '--skill', 'liferay-expert'],
-      {
-        cwd: CLI_CWD,
-      },
-    );
-
-    expect(result.exitCode).toBe(0);
-
-    const installedSkills = (await fs.readdir(path.join(targetDir, '.agents', 'skills'))).sort();
-    expect(installedSkills).toEqual(['developing-liferay', 'liferay-expert']);
-
-    const manifest = await fs.readFile(path.join(targetDir, '.agents', '.vendor-skills'), 'utf8');
-    expect(manifest).toContain('developing-liferay');
-    expect(manifest).toContain('liferay-expert');
-    expect(manifest).not.toContain('deploying-liferay');
-  }, 30000);
-
-  test('update preserves local skills and an existing AGENTS.md', async () => {
-    const targetDir = createTempDir('dev-cli-ai-update-');
-    const installResult = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(installResult.exitCode).toBe(0);
-
-    await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'custom-project-skill'));
-    await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'), '# custom\n');
-    await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'local agents\n');
-
-    const updateResult = await runCli(['ai', 'update', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-
-    expect(updateResult.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
-      true,
-    );
-    expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('local agents\n');
-  }, 30000);
-
-  test('update installs newly curated vendor skills and removes retired vendor-managed skills', async () => {
-    const targetDir = createTempDir('dev-cli-ai-update-curated-');
-
-    await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'));
-    await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill', 'SKILL.md'), '# retired\n');
-    await fs.ensureDir(path.join(targetDir, '.agents', 'skills', 'custom-project-skill'));
-    await fs.writeFile(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'), '# custom\n');
-    await fs.ensureDir(path.join(targetDir, '.agents'));
-    await fs.writeFile(
-      path.join(targetDir, '.agents', '.vendor-skills'),
-      '# old vendor surface\nretired-vendor-skill\ndeploying-liferay\n',
-    );
-
-    const updateResult = await runCli(['ai', 'update', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-
-    expect(updateResult.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'retired-vendor-skill'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'developing-liferay', 'SKILL.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'custom-project-skill', 'SKILL.md'))).toBe(
-      true,
-    );
-  }, 30000);
-
-  test('update --skill rewrites vendor manifest scope and removes previously managed vendor skills', async () => {
-    const targetDir = createTempDir('dev-cli-ai-update-selected-');
-
-    const installResult = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(installResult.exitCode).toBe(0);
-
-    const updateResult = await runCli(['ai', 'update', '--target', targetDir, '--skill', 'liferay-expert'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(updateResult.exitCode).toBe(0);
-    const installedSkills = await fs.readdir(path.join(targetDir, '.agents', 'skills'));
-    expect(installedSkills).toEqual(['liferay-expert']);
-
-    const manifest = await fs.readFile(path.join(targetDir, '.agents', '.vendor-skills'), 'utf8');
-    expect(manifest).toContain('liferay-expert');
-    expect(manifest).not.toContain('developing-liferay');
-  }, 30000);
-
-  test('install fails when --skill is unknown', async () => {
-    const targetDir = createTempDir('dev-cli-ai-install-invalid-skill-');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--skill', 'unknown-skill'], {cwd: CLI_CWD});
-
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('Unknown vendor skill');
-  }, 30000);
-
-  test('install without force keeps AGENTS.md and install with force overwrites it', async () => {
-    const targetDir = createTempDir('dev-cli-ai-force-');
-    const firstInstall = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(firstInstall.exitCode).toBe(0);
-
-    await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'custom agents\n');
-
-    const keepResult = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(keepResult.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom agents\n');
-
-    const forceResult = await runCli(['ai', 'install', '--target', targetDir, '--force'], {
-      cwd: CLI_CWD,
-    });
-    expect(forceResult.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toContain(`.agents/skills/project-*`);
-  }, 30000);
-
-  test('install --project in a generic repo adds project context but no project-owned skills', async () => {
-    const targetDir = createTempDir('My Project.ai.project-');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
-
-    const projectSkills: string[] = [];
-
-    for (const skill of projectSkills) {
-      expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', skill, 'SKILL.md'))).toBe(true);
-    }
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(false);
-
-    const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
-    expect(agents).not.toContain('## Project-Owned Skills Installed By `--project`');
-    for (const skill of projectSkills) {
-      expect(agents).toContain(`\`${skill}\``);
-    }
-  }, 30000);
-
-  test('install --project in blade-workspace keeps the shared issue workflow but skips native-only helper agents', async () => {
+  test('install in blade-workspace skips CLAUDE.md and copilot-instructions', async () => {
     const targetDir = createTempWorkspace();
 
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
-      cwd: CLI_CWD,
-    });
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
 
     expect(result.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-capturing-session-knowledge'))).toBe(
-      false,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
-  }, 30000);
-
-  test('install --project in ldev-native installs the full project-owned issue workflow pack', async () => {
-    const targetDir = createTempRepo();
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'capturing-session-knowledge'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-capturing-session-knowledge'))).toBe(
-      false,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.agents', 'skills', 'project-issue-engineering'))).toBe(true);
-    expect(
-      await fs.pathExists(
-        path.join(
-          targetDir,
-          '.agents',
-          'skills',
-          'project-issue-engineering',
-          'references',
-          'github-visual-evidence.md',
-        ),
-      ),
-    ).toBe(true);
-    expect(
-      await fs.pathExists(
-        path.join(targetDir, '.agents', 'skills', 'project-issue-engineering', 'scripts', 'png_to_evidence_svg.mjs'),
-      ),
-    ).toBe(true);
-  }, 30000);
-
-  test('install --project-context creates CLAUDE.md, project-context docs and copilot-instructions.md but does not overwrite existing ones', async () => {
-    const targetDir = createTempDir('dev-cli-ai-project-files-');
-
-    const firstInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context'], {
-      cwd: CLI_CWD,
-    });
-    expect(firstInstall.exitCode).toBe(0);
-    expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.github', 'copilot-instructions.md'))).toBe(true);
-
-    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
-    await fs.ensureDir(path.join(targetDir, 'docs', 'ai'));
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'custom sample\n');
-    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'custom copilot\n');
-
-    const secondInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context'], {
-      cwd: CLI_CWD,
-    });
-    expect(secondInstall.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).toBe('custom claude\n');
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).toBe(
-      'custom context\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'utf8')).toBe(
-      'custom sample\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).toBe(
-      'custom copilot\n',
-    );
-  }, 40000);
-
-  test('install --force overwrites existing project AI files including gemini and cursor entrypoints', async () => {
-    const targetDir = createTempDir('dev-cli-ai-project-files-force-');
-
-    const firstInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context'], {
-      cwd: CLI_CWD,
-    });
-    expect(firstInstall.exitCode).toBe(0);
-
-    await fs.writeFile(path.join(targetDir, 'CLAUDE.md'), 'custom claude\n');
-    await fs.ensureDir(path.join(targetDir, 'docs', 'ai'));
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'custom sample\n');
-    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'custom copilot\n');
-    await fs.ensureDir(path.join(targetDir, '.gemini'));
-    await fs.writeFile(path.join(targetDir, '.gemini', 'GEMINI.md'), 'custom gemini\n');
-    await fs.writeFile(path.join(targetDir, '.cursorrules'), 'custom cursor\n');
-
-    const secondInstall = await runCli(['ai', 'install', '--target', targetDir, '--project-context', '--force'], {
-      cwd: CLI_CWD,
-    });
-    expect(secondInstall.exitCode).toBe(0);
-
-    expect(await fs.readFile(path.join(targetDir, 'CLAUDE.md'), 'utf8')).not.toBe('custom claude\n');
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).not.toBe(
-      'custom context\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'utf8')).not.toBe(
-      'custom sample\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).not.toBe(
-      'custom copilot\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, '.gemini', 'GEMINI.md'), 'utf8')).not.toBe('custom gemini\n');
-    expect(await fs.readFile(path.join(targetDir, '.cursorrules'), 'utf8')).not.toBe('custom cursor\n');
-  }, 40000);
-
-  test('install --project --force does not overwrite project-context files unless --project-context is explicit', async () => {
-    const targetDir = createTempDir('dev-cli-ai-project-force-scope-');
-
-    const firstInstall = await runCli(['ai', 'install', '--target', targetDir, '--project'], {
-      cwd: CLI_CWD,
-    });
-    expect(firstInstall.exitCode).toBe(0);
-
-    await fs.ensureDir(path.join(targetDir, 'docs', 'ai'));
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'custom context\n');
-    await fs.writeFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'custom sample\n');
-
-    const secondInstall = await runCli(['ai', 'install', '--target', targetDir, '--project', '--force'], {
-      cwd: CLI_CWD,
-    });
-    expect(secondInstall.exitCode).toBe(0);
-
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md'), 'utf8')).toBe(
-      'custom context\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, 'docs', 'ai', 'project-context.md.sample'), 'utf8')).toBe(
-      'custom sample\n',
-    );
-  }, 40000);
-
-  test('install in blade-workspace preserves official AI files and adds ldev workspace augmentation files', async () => {
-    const targetDir = createTempWorkspace();
-
-    await fs.ensureDir(path.join(targetDir, '.workspace-rules'));
-    await fs.ensureDir(path.join(targetDir, '.claude'));
-    await fs.ensureDir(path.join(targetDir, '.github'));
-    await fs.writeFile(path.join(targetDir, '.workspace-rules', 'liferay-rules.md'), 'official workspace rules\n');
-    await fs.writeFile(path.join(targetDir, '.claude', 'CLAUDE.md'), 'official claude\n');
-    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'official copilot\n');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, '.workspace-rules', 'liferay-rules.md'), 'utf8')).toBe(
-      'official workspace rules\n',
-    );
-    expect(await fs.readFile(path.join(targetDir, '.claude', 'CLAUDE.md'), 'utf8')).toBe('official claude\n');
-    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).toBe(
-      'official copilot\n',
-    );
-
     expect(await fs.pathExists(path.join(targetDir, 'AGENTS.md'))).toBe(true);
     expect(await fs.pathExists(path.join(targetDir, 'CLAUDE.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, 'docs', 'ai', 'project-context.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.agents', '.vendor-skills'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-agent-workflow.md'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.claude', 'rules', 'ldev-workspace-agent-workflow.md'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.cursor', 'rules', 'ldev-workspace-agent-workflow.mdc'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.gemini', 'ldev-workspace-agent-workflow.md'))).toBe(true);
-    expect(
-      await fs.pathExists(
-        path.join(targetDir, '.github', 'instructions', 'ldev-workspace-agent-workflow.instructions.md'),
-      ),
-    ).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.windsurf', 'rules', 'ldev-workspace-agent-workflow.md'))).toBe(
-      true,
-    );
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-agent-workflow.md'))).toBe(false);
+    expect(result.stdout).toContain('Project type: blade-workspace');
 
     const agents = await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8');
     expect(agents).toContain('Liferay Workspace');
-    expect(agents).toContain('.workspace-rules/*.md');
+  }, 30000);
 
-    const rulesManifest = parseTestJson<RulesManifest>(
-      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
-    );
-    expect(rulesManifest.projectType).toBe('blade-workspace');
-    expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
-    expect(rulesManifest.officialWorkspaceFilesDetected).toEqual([
-      '.workspace-rules/liferay-rules.md',
-      '.claude/CLAUDE.md',
-      '.github/copilot-instructions.md',
-    ]);
-    expect(rulesManifest.rules).toHaveLength(11);
-    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
-      'ldev-deploy-verification',
-      'ldev-liferay-client-extensions',
-      'ldev-liferay-core',
-      'ldev-liferay-mcp',
-      'ldev-portal-discovery',
-      'ldev-resource-migrations',
-      'ldev-runtime-troubleshooting',
-      'ldev-workspace-agent-workflow',
-      'ldev-workspace-deploy',
-      'ldev-workspace-runtime',
-      'ldev-workspace-setup',
-    ]);
-    for (const rule of rulesManifest.rules) {
-      expect(['ldev', 'ldev-workspace']).toContain(rule.namespace);
-      expect(rule.targetFiles).not.toContain('.workspace-rules/liferay-rules.md');
-      expect(rule.verifiedAgainst).toEqual(['dxp-2026.q1.0-lts']);
-      expect(rule.localModificationPolicy).toBe('replace-if-unmodified');
-      if (rule.id.startsWith('ldev-liferay-') || rule.id.startsWith('ldev-workspace-')) {
-        expect(rule.sourceKind).toBe('derived');
-        expect(rule.sourceReferences?.length ?? 0).toBeGreaterThan(0);
-      }
-    }
-  }, 40000);
-
-  test('install --force in blade-workspace does not overwrite official copilot instructions', async () => {
-    const targetDir = createTempWorkspace();
-
-    await fs.ensureDir(path.join(targetDir, '.github'));
-    await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'official copilot\n');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir, '--force'], {
-      cwd: CLI_CWD,
-    });
-
-    expect(result.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).toBe(
-      'official copilot\n',
-    );
-  }, 40000);
-
-  test('install in ldev-native adds common and native-specific rules but not workspace-specific rules', async () => {
-    const targetDir = createTempDir('dev-cli-ai-native-rules-');
-    await fs.ensureDir(path.join(targetDir, 'docker'));
-    await fs.ensureDir(path.join(targetDir, 'liferay'));
-    await fs.writeFile(path.join(targetDir, 'docker', 'docker-compose.yml'), 'services:\n');
-
-    const result = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(result.exitCode).toBe(0);
-
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-liferay-core.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-runtime.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-native-deploy.md'))).toBe(true);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-setup.md'))).toBe(false);
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-workspace-runtime.md'))).toBe(false);
-    const nativeAgentWorkflow = await fs.readFile(
-      path.join(targetDir, '.workspace-rules', 'ldev-native-agent-workflow.md'),
-      'utf8',
-    );
-    expect(nativeAgentWorkflow).toContain('Before the first edit, confirm every file path you will edit starts with');
-    expect(nativeAgentWorkflow).toContain('the worktree root');
-
-    const rulesManifest = parseTestJson<RulesManifest>(
-      await fs.readFile(path.join(targetDir, '.ldev', 'ai', 'rules-manifest.json'), 'utf8'),
-    );
-    expect(rulesManifest.projectType).toBe('ldev-native');
-    expect(rulesManifest.packageVersion).toBe(PACKAGE_VERSION);
-    expect(rulesManifest.rules).toHaveLength(10);
-    expect(rulesManifest.rules.map((rule) => rule.id).sort()).toEqual([
-      'ldev-deploy-verification',
-      'ldev-liferay-client-extensions',
-      'ldev-liferay-core',
-      'ldev-liferay-mcp',
-      'ldev-native-agent-workflow',
-      'ldev-native-deploy',
-      'ldev-native-runtime',
-      'ldev-portal-discovery',
-      'ldev-resource-migrations',
-      'ldev-runtime-troubleshooting',
-    ]);
-  }, 40000);
-
-  test('update in blade-workspace refreshes ldev-managed rule files without touching official workspace files', async () => {
+  test('install in blade-workspace preserves existing official files', async () => {
     const targetDir = createTempWorkspace();
 
     await fs.ensureDir(path.join(targetDir, '.workspace-rules'));
-    await fs.ensureDir(path.join(targetDir, '.claude'));
     await fs.ensureDir(path.join(targetDir, '.github'));
     await fs.writeFile(path.join(targetDir, '.workspace-rules', 'liferay-rules.md'), 'official workspace rules\n');
-    await fs.writeFile(path.join(targetDir, '.claude', 'CLAUDE.md'), 'official claude\n');
     await fs.writeFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'official copilot\n');
 
-    const installResult = await runCli(['ai', 'install', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-    expect(installResult.exitCode).toBe(0);
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
 
-    await fs.writeFile(path.join(targetDir, 'AGENTS.md'), 'custom workspace agents\n');
-
-    const updateResult = await runCli(['ai', 'update', '--target', targetDir], {
-      cwd: CLI_CWD,
-    });
-
-    expect(updateResult.exitCode).toBe(0);
-    expect(await fs.readFile(path.join(targetDir, 'AGENTS.md'), 'utf8')).toBe('custom workspace agents\n');
+    expect(result.exitCode).toBe(0);
     expect(await fs.readFile(path.join(targetDir, '.workspace-rules', 'liferay-rules.md'), 'utf8')).toBe(
       'official workspace rules\n',
     );
-    expect(await fs.readFile(path.join(targetDir, '.claude', 'CLAUDE.md'), 'utf8')).toBe('official claude\n');
     expect(await fs.readFile(path.join(targetDir, '.github', 'copilot-instructions.md'), 'utf8')).toBe(
       'official copilot\n',
     );
-    expect(await fs.pathExists(path.join(targetDir, '.workspace-rules', 'ldev-runtime-troubleshooting.md'))).toBe(true);
-  }, 40000);
+  }, 30000);
+
+  test('install reports project type in output', async () => {
+    const targetDir = createTempDir('dev-cli-ai-projecttype-');
+
+    const result = await runCli(['ai', 'install', '--target', targetDir], {cwd: CLI_CWD});
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('Project type:');
+    expect(result.stdout).toContain('Installation completed in:');
+  }, 30000);
 });
 
 async function collectFiles(pathsToCollect: string[]): Promise<string[]> {
