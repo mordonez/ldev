@@ -54,24 +54,44 @@ AI folders rather than replacing them.
 
 ## Set up the local MCP server
 
+`ldev-mcp-server` is included in the global `@mordonezdev/ldev` install.
+
+**Claude Code** — one command, available across all projects:
+
 ```bash
-ldev ai mcp-setup --target . --tool all
+claude mcp add ldev --scope user -- ldev-mcp-server
 ```
 
-This writes the MCP config for VSCode, Claude Code and Cursor in one run.
+**VSCode** — add to `.vscode/mcp.json`:
 
-Use an explicit launch strategy when reproducibility matters:
+```json
+{
+  "servers": {
+    "ldev": { "type": "stdio", "command": "ldev-mcp-server" }
+  }
+}
+```
 
-```bash
-ldev ai mcp-setup --target . --tool vscode --strategy local
-ldev ai mcp-setup --target . --tool claude-code --strategy global
-ldev ai mcp-setup --target . --tool cursor --strategy npx
+**Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "ldev": { "command": "ldev-mcp-server" }
+  }
+}
+```
+
+If `ldev` is not installed globally, replace `"command": "ldev-mcp-server"` with:
+
+```json
+"command": "npx", "args": ["--package", "@mordonezdev/ldev", "-y", "ldev-mcp-server"]
 ```
 
 If the editor does not show the tools:
 
 ```bash
-ldev mcp doctor --target . --tool all
+ldev mcp doctor
 ```
 
 ## Context snapshots
@@ -132,6 +152,10 @@ MCP tools execute structured discovery and diagnosis when available.
 CLI remains the source of truth and fallback for every workflow.
 ```
 
+For explicit read-only requests that name a visible local `ldev` MCP tool, the
+agent should call that tool directly before bootstrap. Bootstrap is for routing,
+readiness, mutations, and fallback when the MCP tool is not visible.
+
 See [MCP Decision Route](./mcp-decision-route.md) for the maintained
 mapping of MCP tools to CLI fallbacks, and
 [MCP Server Inventory](./mcp-server-inventory.md) for the current and
@@ -158,7 +182,8 @@ install.
 
 | Phase | When | Commands |
 | --- | --- | --- |
-| Pre-flight | Always | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
+| Direct MCP fast path | Explicit read-only request has a visible matching local `ldev` MCP tool | Call the MCP tool directly |
+| Pre-flight | Routing, readiness, mutations, or no matching MCP tool | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
 | Health check | Task touches runtime | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json` |
 | Discovery | Task mentions a portal surface | `ldev portal inventory ...` |
 | Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` for supported imports; validate fragment source before `import-fragment` |

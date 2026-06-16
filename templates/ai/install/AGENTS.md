@@ -146,8 +146,8 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
 - Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
   explicitly requires fresh runtime or portal state.
 - Prefer the task-shaped public contract first. If the equivalent local `ldev`
-  MCP tool is visible, use it for structured discovery/diagnosis; otherwise use
-  the CLI fallback:
+  MCP tool is visible, use it for explicit read-only MCP requests and structured
+  discovery/diagnosis; otherwise use the CLI fallback:
   - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
@@ -189,6 +189,10 @@ or assistant. If the tool is visible, prefer it for structured discovery and
 diagnosis; if not, use the CLI fallback and continue. `liferay_osgi_thread_dump`
 writes dump artifacts, so use it only when runtime artifacts are part of the
 diagnosis.
+
+For explicit read-only MCP requests with a visible matching tool, call the tool
+directly before bootstrap. Bootstrap remains the fallback for routing context,
+readiness, mutations, or missing MCP tools.
 
 MCP-to-CLI fallbacks:
 

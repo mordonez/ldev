@@ -5,15 +5,34 @@ import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import fs from 'fs-extra';
 
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
-import {
-  getMcpConfigRoot,
-  isMcpTool,
-  MCP_SETUP_TOOLS,
-  type McpServerConfig,
-  type McpSetupTool,
-  type McpTool,
-  resolveMcpConfigPath,
-} from './mcp-server-setup.js';
+
+export type McpSetupTool = 'claude-code' | 'cursor' | 'vscode';
+export type McpTool = McpSetupTool | 'all';
+
+type McpServerConfig = {
+  command: string;
+  args?: string[];
+  type?: string;
+};
+
+export const MCP_SETUP_TOOLS: McpSetupTool[] = ['claude-code', 'cursor', 'vscode'];
+
+export function isMcpTool(tool: string): tool is McpTool {
+  return tool === 'all' || (MCP_SETUP_TOOLS as string[]).includes(tool);
+}
+
+function getMcpConfigRoot(tool: McpSetupTool): 'mcpServers' | 'servers' {
+  return tool === 'vscode' ? 'servers' : 'mcpServers';
+}
+
+export function resolveMcpConfigPath(targetDir: string, tool: McpSetupTool): string {
+  const configPaths: Record<McpSetupTool, string> = {
+    'claude-code': '.claude/mcp.json',
+    cursor: '.cursor/mcp.json',
+    vscode: '.vscode/mcp.json',
+  };
+  return path.join(targetDir, configPaths[tool]);
+}
 
 type McpDoctorToolResult = {
   tool: McpSetupTool;

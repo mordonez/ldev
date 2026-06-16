@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import {readProfileFile, resolveLiferayProfileFiles} from '../../core/config/liferay-profile.js';
-import {MCP_SETUP_TOOLS, type McpSetupTool, resolveMcpConfigPath} from '../mcp-server/mcp-server-setup.js';
+import {MCP_SETUP_TOOLS, type McpSetupTool, resolveMcpConfigPath} from '../mcp-server/mcp-server-doctor.js';
 import {
   collectDashboardWorktrees,
   type CollectDashboardWorktreeOptions,

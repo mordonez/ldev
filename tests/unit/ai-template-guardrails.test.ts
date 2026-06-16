@@ -123,6 +123,18 @@ describe('AI template guardrails', () => {
     }
   });
 
+  test('agent entrypoints document MCP as optional acceleration over CLI', async () => {
+    for (const entrypoint of ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md']) {
+      const content = await readTemplate(entrypoint);
+      expect(content, entrypoint).toContain('MCP tool is visible, use it for explicit read-only MCP requests');
+    }
+
+    const expert = await readTemplate('skills/liferay-expert/SKILL.md');
+    expect(expert).toContain('Direct MCP Requests');
+    expect(expert).toContain('liferay_inventory_sites');
+    expect(expert).toContain('bootstrap just to route an already-routed request');
+  });
+
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {
     const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
     const agents = await readTemplate('templates/ai/install/AGENTS.md');

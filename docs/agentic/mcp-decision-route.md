@@ -23,11 +23,14 @@ CLI remains the source of truth and fallback for every workflow.
 
 ## Default Decision Route
 
-1. Start from the task-specific skill when one applies.
-2. For discovery or diagnosis, use an MCP tool if it is visible in the client.
-3. If the MCP tool is not visible, use the equivalent CLI command with `--json`.
-4. For mutations or artifact-generating diagnosis, prefer CLI workflows and skill guardrails unless a tool documents the write explicitly.
-5. If a client is expected to expose MCP tools but does not, run `ldev mcp doctor`.
+1. If the user explicitly asks for a visible local `ldev` MCP tool or an
+   already-routed read-only MCP answer, call that tool directly.
+2. Start from the task-specific skill when the request still needs routing,
+   readiness context, mutation gates, or workflow judgment.
+3. For discovery or diagnosis, use an MCP tool if it is visible in the client.
+4. If the MCP tool is not visible, use the equivalent CLI command with `--json`.
+5. For mutations or artifact-generating diagnosis, prefer CLI workflows and skill guardrails unless a tool documents the write explicitly.
+6. If a client is expected to expose MCP tools but does not, run `ldev mcp doctor`.
 
 ## MCP Server Practice
 
