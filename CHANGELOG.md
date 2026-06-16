@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/mordonez/ldev/compare/ldev-v0.9.0...ldev-v0.9.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* clarify Journal structure routing and simplify MCP onboarding ([#156](https://github.com/mordonez/ldev/issues/156)) ([b12994c](https://github.com/mordonez/ldev/commit/b12994c6a09ec6e26ef4911d41ef0b5e6d7ef3f3))
+
 ## [0.9.0](https://github.com/mordonez/ldev/compare/ldev-v0.8.0...ldev-v0.9.0) (2026-06-15)
 
 
