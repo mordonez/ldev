@@ -73,7 +73,7 @@ describe('AI template guardrails', () => {
 
     // Shared invariants 1-10 must appear verbatim in both templates
     const sharedInvariants = [
-      'Start with a visible matching local `ldev` MCP tool for explicit read-only MCP requests',
+      'Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`',
       'Always consume `--json` output. Never parse human-readable text output from `ldev`',
       'Always run `--check-only` before resource mutations that support it',
       '`import-fragment` has no `--check-only`',
@@ -123,19 +123,10 @@ describe('AI template guardrails', () => {
     }
   });
 
-  test('agent entrypoints prefer direct MCP for explicit read-only MCP requests', async () => {
-    const entrypoints = [
-      'templates/ai/install/AGENTS.md',
-      'templates/ai/install/AGENTS.workspace.md',
-      'templates/ai/project/CLAUDE.md',
-    ];
-
-    for (const entrypoint of entrypoints) {
+  test('agent entrypoints document MCP as optional acceleration over CLI', async () => {
+    for (const entrypoint of ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md']) {
       const content = await readTemplate(entrypoint);
-
-      expect(content, entrypoint).toMatch(/[Dd]irect MCP/);
-      expect(content, entrypoint).toContain('read-only');
-      expect(content, entrypoint).toContain('visible');
+      expect(content, entrypoint).toContain('MCP tool is visible, use it for explicit read-only MCP requests');
     }
 
     const expert = await readTemplate('skills/liferay-expert/SKILL.md');
