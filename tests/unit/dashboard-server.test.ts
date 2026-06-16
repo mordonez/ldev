@@ -19,7 +19,6 @@ const spawnPipedProcessMock = vi.fn();
 const runEnvStartMock = vi.fn();
 const runEnvStopMock = vi.fn();
 const runMcpDoctorMock = vi.fn();
-const runMcpSetupMock = vi.fn();
 const runOAuthInstallMock = vi.fn();
 const runWorktreeCleanMock = vi.fn();
 const runWorktreeSetupMock = vi.fn();
@@ -164,11 +163,6 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-export-fragments.j
 vi.mock('../../src/entrypoints/mcp-server/mcp-server-doctor.js', () => ({
   formatMcpDoctor: vi.fn(() => 'MCP doctor passed'),
   runMcpDoctor: runMcpDoctorMock,
-}));
-
-vi.mock('../../src/entrypoints/mcp-server/mcp-server-setup.js', () => ({
-  formatMcpSetup: vi.fn(() => 'Configured 3 MCP client configs'),
-  runMcpSetup: runMcpSetupMock,
 }));
 
 vi.mock('../../src/features/oauth/oauth-install.js', () => ({
@@ -426,41 +420,11 @@ describe('createDashboardServer', () => {
     expect(options?.stopEnv).toEqual(expect.any(Function));
     expect(options?.startEnv).toEqual(expect.any(Function));
     expect(options?.printer).toEqual(expect.anything());
-    expect(runMcpSetupMock).toHaveBeenCalledWith({
-      targetDir: '/repo/.worktrees/issue-42',
-      tool: 'all',
-    });
     expect(loadConfigMock).toHaveBeenCalledWith({cwd: '/repo/.worktrees/issue-42', env: process.env});
     expect(runEnvStartMock).toHaveBeenCalledWith(
       expect.objectContaining({repoRoot: '/repo/.worktrees/issue-42'}),
       expect.objectContaining({wait: false}),
     );
-  });
-
-  test('can skip MCP setup when creating a worktree from the dashboard API', async () => {
-    runWorktreeSetupMock.mockResolvedValue({
-      ok: true,
-      worktreeName: 'issue-45',
-      worktreeDir: '/repo/.worktrees/issue-45',
-      branch: 'fix/issue-45',
-      reused: false,
-      envPrepared: true,
-      mainEnvStoppedForClone: false,
-      mainEnvRestartedAfterClone: false,
-    });
-
-    await startServer();
-
-    const response = await postJsonPath(`/api/worktrees`, {
-      name: 'issue-45',
-      installMcp: false,
-    });
-
-    expect(response.status).toBe(202);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(runWorktreeSetupMock).toHaveBeenCalledTimes(1);
-    expect(runMcpSetupMock).not.toHaveBeenCalled();
   });
 
   test('can skip auto-start when creating a worktree from the dashboard API', async () => {
@@ -628,36 +592,6 @@ describe('createDashboardServer', () => {
     expect(taskPayload.tasks[0]).toMatchObject({
       id: body.taskId,
       label: 'Running MCP doctor (all)',
-      status: 'succeeded',
-    });
-  });
-
-  test('queues MCP setup from the dashboard API', async () => {
-    runMcpSetupMock.mockResolvedValue({
-      ok: true,
-      tool: 'all',
-      strategy: 'global',
-      results: [],
-    });
-
-    await startServer();
-
-    const response = await postJsonPath(`/api/mcp/setup`, {tool: 'all'});
-
-    expect(response.status).toBe(202);
-    const body = await readJson<{ok: true; taskId: string; action: string; tool: string; strategy: null}>(response);
-    expect(body).toMatchObject({ok: true, action: 'mcp-setup', tool: 'all', strategy: null});
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(runMcpSetupMock).toHaveBeenCalledWith({targetDir: '/repo', tool: 'all', strategy: undefined});
-
-    const taskResponse = await fetchPath(`/api/tasks`);
-    const taskPayload = await readJson<{
-      tasks: Array<{id: string; label: string; status: string}>;
-    }>(taskResponse);
-    expect(taskPayload.tasks[0]).toMatchObject({
-      id: body.taskId,
-      label: 'Running MCP setup (all)',
       status: 'succeeded',
     });
   });
