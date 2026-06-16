@@ -9,8 +9,7 @@ import {
   runMcpOpenApis,
   runMcpProbe,
 } from '../../features/liferay-mcp/liferay-mcp.js';
-import {formatMcpDoctor, runMcpDoctor} from '../../entrypoints/mcp-server/mcp-server-doctor.js';
-import type {McpTool} from '../../entrypoints/mcp-server/mcp-server-setup.js';
+import {formatMcpDoctor, runMcpDoctor, type McpTool} from '../../entrypoints/mcp-server/mcp-server-doctor.js';
 
 type McpAuthCommandOptions = {
   authorizationHeader?: string;

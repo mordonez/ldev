@@ -99,28 +99,14 @@ the human-facing CLI.
 | `config set`, `feature-flags enable/disable`, `reindex speedup-on/off` | Mutates local/portal configuration; expose later only with explicit apply semantics. |
 | `content prune` | Potentially destructive portal content operation; keep CLI-first. |
 
-## Startup Options
+## Startup
 
-The current local server uses stdio. In that model the MCP client starts
-`ldev-mcp-server` itself, so a separate background daemon is not required and can
-actually be the wrong abstraction: stdio needs a process connected to the
-client's stdin/stdout.
+The server runs over stdio — the MCP client starts `ldev-mcp-server` directly.
+No background daemon required.
 
-Implemented improvements:
+Setup: see [Set up the local MCP server](/agentic/#set-up-the-local-mcp-server).
 
-1. `ldev ai mcp-setup --tool all`.
-   This writes `.vscode/mcp.json`, `.claude/mcp.json`, and `.cursor/mcp.json` in
-   one run. It solves the real daily friction without changing transport.
-
-2. `ldev ai mcp-setup --target . --tool vscode --strategy local|global|npx`.
-   Today strategy is auto-detected. An explicit strategy lets a developer force a
-   local project dependency for reproducible worktrees or force global for speed.
-
-3. `ldev mcp doctor`.
-   This should validate the generated config file, resolve the command on PATH,
-   run `ldev-mcp-server --version`, and optionally perform a minimal MCP
-   initialize/list-tools handshake. This is more valuable than a background
-   process for stdio clients.
+Validate with `ldev mcp doctor`.
 
 Future option:
 

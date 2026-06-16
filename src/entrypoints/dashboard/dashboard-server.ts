@@ -6,7 +6,7 @@ import {collectDashboardStatus} from './dashboard-data.js';
 import {handleWorktreeDbAction, type DashboardDbAction} from './dashboard-db-routes.js';
 import {handleWorktreeLogs, handleWorktreeLogStream} from './dashboard-log-routes.js';
 import {handleMaintenanceApply, handleMaintenancePreview} from './dashboard-maintenance-routes.js';
-import {handleMcpDoctor, handleMcpSetup} from './dashboard-mcp-routes.js';
+import {handleMcpDoctor} from './dashboard-mcp-routes.js';
 import {handleWorktreeResourceExport} from './dashboard-resource-export-routes.js';
 import {serveDashboardClientAsset, serveDashboardClientIndex, writeDashboardError} from './dashboard-http.js';
 import {createDashboardOperationRoutes} from './dashboard-operation-routes.js';
@@ -94,11 +94,6 @@ export function createDashboardServer(options: DashboardServerOptions): http.Ser
       method: 'POST',
       path: '/api/mcp/doctor',
       handle: ({req, res}) => void handleMcpDoctor(cwd, req, res, taskManager),
-    },
-    {
-      method: 'POST',
-      path: '/api/mcp/setup',
-      handle: ({req, res}) => void handleMcpSetup(cwd, req, res, taskManager),
     },
     {
       method: 'GET',
