@@ -10,6 +10,21 @@ Project-specific context lives outside this file:
 - `CLAUDE.md` routes Claude to project-owned context docs.
 - `docs/ai/project-context.md` is the optional long-form project knowledge document.
 
+## Direct MCP Fast Path
+
+When the user explicitly asks for a visible local `ldev` MCP tool, or asks for a
+read-only answer that has a direct local `ldev` MCP equivalent, call that MCP
+tool first. Do not run bootstrap just to route an already-routed request.
+
+Examples:
+
+- "list sites with ldev MCP" -> `liferay_inventory_sites`
+- "check portal with MCP" -> `liferay_check`
+- "show ldev context with MCP" -> `ldev_context`
+
+Use bootstrap before code/resource/runtime changes, when the task needs routing
+context or readiness checks, or when no matching MCP tool is visible.
+
 ## Required Bootstrap
 
 Before changing code or runtime state:
@@ -66,7 +81,7 @@ different issue workflow, skip required gates, or reinterpret project skills.
 
 These rules apply to every task, regardless of the skill in use:
 
-1. Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`. Use `context.commands.*` and `doctor.readiness.*` to verify readiness before running any command.
+1. Start with a visible matching local `ldev` MCP tool for explicit read-only MCP requests; otherwise run `ldev ai bootstrap --intent=develop --cache=60 --json` before code, resource, or runtime changes. Use `context.commands.*` and `doctor.readiness.*` to verify readiness before mutating commands.
 2. Always consume `--json` output. Never parse human-readable text output from `ldev`.
 3. Always run `--check-only` before resource mutations that support it (`import-structure`, `import-template`, `import-adt`, `migration-pipeline`). `import-fragment` has no `--check-only`; validate the fragment source and run a focused import.
 4. Always use the smallest deploy or import that proves the change. Never broad-deploy as a default validation step.
@@ -146,8 +161,8 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
 - Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
   explicitly requires fresh runtime or portal state.
 - Prefer the task-shaped public contract first. If the equivalent local `ldev`
-  MCP tool is visible, use it for structured discovery/diagnosis; otherwise use
-  the CLI fallback:
+  MCP tool is visible, use it for explicit read-only MCP requests and structured
+  discovery/diagnosis; otherwise use the CLI fallback:
   - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
@@ -189,6 +204,10 @@ or assistant. If the tool is visible, prefer it for structured discovery and
 diagnosis; if not, use the CLI fallback and continue. `liferay_osgi_thread_dump`
 writes dump artifacts, so use it only when runtime artifacts are part of the
 diagnosis.
+
+For explicit read-only MCP requests with a visible matching tool, call the tool
+directly before bootstrap. Bootstrap remains the fallback for routing context,
+readiness, mutations, or missing MCP tools.
 
 MCP-to-CLI fallbacks:
 

@@ -10,7 +10,7 @@ technical Liferay work and the next skill is still ambiguous.
 - Affected implementation surface is known -> `developing-liferay`
 - Structures, templates, ADTs, or fragments -> `portal-resource-workflow`
 - Existing change needs build, deploy, import, or runtime verification -> `deploying-liferay`
-- Journal structure change may move, rename, convert, or clean saved data -> `migrating-journal-structures`
+- Journal structure field rename, type change, cross-structure move, or repeatability conversion where saved values must appear at a new field path -> `migrating-journal-structures`
 - User-facing browser reproduction or visual evidence -> `automating-browser-tests`
 
 ## Scenario Checks
@@ -21,7 +21,11 @@ technical Liferay work and the next skill is still ambiguous.
   implementation/deploy only after the root cause is known.
 - Journal template or ADT edit: use `portal-resource-workflow`; do not use theme
   or module deploys.
-- Structure change that must preserve existing values in a new location: use
+- Structure reorganization (grouping fields into fieldsets, nesting, reordering) with
+  unchanged field `name` values: use `portal-resource-workflow`; plain `import-structure`
+  is enough — Liferay remaps `parentfieldid` automatically.
+- Structure change that renames a field, changes its type, moves data to a different
+  structure, or must preserve saved values at a new field path: use
   `migrating-journal-structures`; plain import is not enough.
 
 ## Useful Follow-Up References

@@ -42,8 +42,12 @@ deploy. First load the routed skill, then mutate only inside the locked root.
    - unclear failure -> `troubleshooting-liferay`
    - implementation -> `developing-liferay`
    - deploy/import verification -> `deploying-liferay`
-   - portal resource change -> `portal-resource-workflow`
-   - Journal migration risk -> `migrating-journal-structures`
+   - portal resource change (structures, templates, ADTs, fragments) -> `portal-resource-workflow`
+     — this includes same-structure reorganizations such as grouping fields into fieldsets
+       with unchanged `name` values; `portal-resource-workflow` Step 3 decides whether a
+       plain import suffices or a migration is required — do not pre-judge
+   - Journal structure field rename, type change, cross-structure move, or repeatability
+     conversion where saved values must appear at a new field path -> `migrating-journal-structures`
    - browser evidence -> `automating-browser-tests`
 
 6. Apply the smallest matching action. File edits alone are still Red.

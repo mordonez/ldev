@@ -7,6 +7,17 @@ description: 'Routes technical Liferay work to the right ldev specialist workflo
 
 This is the domain router for reusable `ldev` Liferay workflows. Classify quickly and hand off; deep playbooks live in specialist skills.
 
+## Direct MCP Requests
+
+If the user explicitly asks for a visible local `ldev` MCP tool or a read-only
+answer with a direct MCP equivalent, call that MCP tool first. Do not run
+bootstrap just to route an already-routed request. Examples: "list sites with
+ldev MCP" -> `liferay_inventory_sites`; "check portal with MCP" ->
+`liferay_check`; "show ldev context with MCP" -> `ldev_context`.
+
+Run bootstrap only when the task needs routing context, project readiness, a
+portal URL/auth check, a mutation gate, or no matching MCP tool is visible.
+
 ## Bootstrap
 
 ```bash
@@ -33,7 +44,7 @@ If the task mentions a site, page, URL, structure, template, ADT, or fragment, r
 - Known code/theme/module/config implementation -> `developing-liferay`
 - Journal structures, Journal templates, ADTs, or fragments -> `portal-resource-workflow`
 - Existing change needing build, deploy, import, or runtime proof -> `deploying-liferay`
-- Journal structure change with data movement or compatibility risk -> `migrating-journal-structures`
+- Journal structure field rename, type change, cross-structure move, or repeatability conversion where saved values must move -> `migrating-journal-structures` (same-structure reorganizations with unchanged field `name` values are plain imports handled by `portal-resource-workflow`)
 - Browser reproduction or visual proof -> `automating-browser-tests`
 
 For deeper routing examples, read `references/routing.md`. For Display Page Templates, Navigation Menus, multi-site ownership, and content volume checks, read `references/site-objects.md`.
@@ -49,7 +60,7 @@ Do not substitute these commands for each other in plans or handoffs.
 
 Use `inventory structures --with-templates` for structure/template discovery, `inventory page --url <fullUrl> --json --full` only when routing needs expanded page details, and `inventory where-used` when the task starts from a known key and needs impact analysis. Prefer `--site` unless a cross-site answer is required.
 
-MCP equivalents when visible: `ldev:liferay_inventory_page`, `ldev:liferay_inventory_structures`, `ldev:liferay_inventory_templates`.
+MCP equivalents when visible: `liferay_inventory_sites`, `liferay_inventory_page`, `liferay_inventory_structures`, `liferay_inventory_templates`, `liferay_check`, `ldev_context`.
 
 ## AI asset maintenance
 
@@ -79,5 +90,6 @@ This router does not execute the fix — it classifies and hands off.
 
 - Use `ldev` as the official interface.
 - Prefer local `ldev` MCP tools for read-only discovery when visible; fall back to CLI with `--json`.
+- Honor explicit read-only MCP requests directly before bootstrap when a matching local `ldev` MCP tool is visible.
 - Do not invent portal mutations when an `ldev resource ...` workflow exists.
 - Keep the smallest specialist skill active; do not carry every Liferay skill into the same task unless routing proves it is needed.

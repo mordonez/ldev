@@ -132,6 +132,10 @@ MCP tools execute structured discovery and diagnosis when available.
 CLI remains the source of truth and fallback for every workflow.
 ```
 
+For explicit read-only requests that name a visible local `ldev` MCP tool, the
+agent should call that tool directly before bootstrap. Bootstrap is for routing,
+readiness, mutations, and fallback when the MCP tool is not visible.
+
 See [MCP Decision Route](./mcp-decision-route.md) for the maintained
 mapping of MCP tools to CLI fallbacks, and
 [MCP Server Inventory](./mcp-server-inventory.md) for the current and
@@ -158,7 +162,8 @@ install.
 
 | Phase | When | Commands |
 | --- | --- | --- |
-| Pre-flight | Always | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
+| Direct MCP fast path | Explicit read-only request has a visible matching local `ldev` MCP tool | Call the MCP tool directly |
+| Pre-flight | Routing, readiness, mutations, or no matching MCP tool | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
 | Health check | Task touches runtime | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json` |
 | Discovery | Task mentions a portal surface | `ldev portal inventory ...` |
 | Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` for supported imports; validate fragment source before `import-fragment` |

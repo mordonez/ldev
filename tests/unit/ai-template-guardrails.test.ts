@@ -73,7 +73,7 @@ describe('AI template guardrails', () => {
 
     // Shared invariants 1-10 must appear verbatim in both templates
     const sharedInvariants = [
-      'Always start with `ldev ai bootstrap --intent=develop --cache=60 --json`',
+      'Start with a visible matching local `ldev` MCP tool for explicit read-only MCP requests',
       'Always consume `--json` output. Never parse human-readable text output from `ldev`',
       'Always run `--check-only` before resource mutations that support it',
       '`import-fragment` has no `--check-only`',
@@ -121,6 +121,27 @@ describe('AI template guardrails', () => {
       expect(content).toContain('`import-fragment` has no `--check-only`');
       expect(content).not.toContain('any resource mutation (');
     }
+  });
+
+  test('agent entrypoints prefer direct MCP for explicit read-only MCP requests', async () => {
+    const entrypoints = [
+      'templates/ai/install/AGENTS.md',
+      'templates/ai/install/AGENTS.workspace.md',
+      'templates/ai/project/CLAUDE.md',
+    ];
+
+    for (const entrypoint of entrypoints) {
+      const content = await readTemplate(entrypoint);
+
+      expect(content, entrypoint).toMatch(/[Dd]irect MCP/);
+      expect(content, entrypoint).toContain('read-only');
+      expect(content, entrypoint).toContain('visible');
+    }
+
+    const expert = await readTemplate('skills/liferay-expert/SKILL.md');
+    expect(expert).toContain('Direct MCP Requests');
+    expect(expert).toContain('liferay_inventory_sites');
+    expect(expert).toContain('bootstrap just to route an already-routed request');
   });
 
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {
