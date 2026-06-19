@@ -42,36 +42,6 @@ ldev oauth install --write-env
 `ldev setup` is optional. Use it only when you want to pre-pull Docker images
 or warm local runtime directories before starting.
 
-## `ldev ai install`
-
-Commit the standard agent entrypoint files to a project repo so all editors
-auto-load the skills without manual setup.
-
-```bash
-ldev ai install --target .
-ldev ai install --target . --force
-```
-
-Options:
-
-- `--target <dir>` (required) — project root
-- `--force` — overwrite existing files
-
-What the install produces:
-
-- `AGENTS.md` (skipped on re-run without `--force` if already present)
-- `CLAUDE.md`, `.github/copilot-instructions.md` (non-blade-workspace projects only)
-- `.gemini/GEMINI.md`
-- `docs/ai/project-context.md.sample` (copy to `project-context.md` and fill in project-specific values)
-- `.agents/skills/project-issue-engineering/` (project-scoped issue workflow skill)
-- `.claude/skills/` (empty directory, created so that `npx skills add` can place Claude Code symlinks there)
-
-To install skills, use the skills.sh standard:
-
-```bash
-npx skills add https://github.com/mordonez/ldev
-```
-
 ## `ldev ai bootstrap`
 
 Aggregate project context and the doctor checks needed for an agent intent.
@@ -105,4 +75,4 @@ prefer the global form `ldev --repo-root <path> ai bootstrap ...`.
 ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
-In Blade workspaces, `ldev ai install` coexists with the official AI folders instead of replacing them.
+To set up agent meta-files (`AGENTS.md`, `CLAUDE.md`, etc.) and skills in a project, see [`docs/ai/`](../ai/README.md).

@@ -44,23 +44,13 @@ Typical examples:
 - full end-to-end issue resolution workflows that mix reusable `ldev` execution
   gates with project GitHub process, naming, labels, reviewers, or handoff policy
 
-## Installation Rules
+## Agent Meta-file Distribution
 
-`ldev ai install` should install only:
-
-- the standard `AGENTS.md`
-- the lightweight bootstrap entrypoints such as `AGENTS.md` and `CLAUDE.md`
-- project-context scaffolding (`docs/ai/project-context.md`)
-- the project-scoped issue skill (`.agents/skills/project-issue-engineering/`)
+Agent meta-files (`AGENTS.md`, `CLAUDE.md`, etc.) live in `docs/ai/` and are copied manually into projects. They are not installed by any `ldev` command.
 
 Vendor skills are distributed via the skills.sh standard (`npx skills add`) and are not bundled inside the ldev package.
 
-It should not install by default:
-
-- project-owned context docs
-- project-specific knowledge content
-- project-specific issue workflows
-- runtime-specific agent pipelines
+Project-owned content (context docs, issue workflows, runtime-specific pipelines) must live outside vendor-managed files, under `docs/ai/project-context.md` or `.agents/skills/project-*`.
 - legacy compatibility wrappers
 
 ## Evolution Rules

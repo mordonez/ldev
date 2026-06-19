@@ -1,12 +1,7 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedAction} from '../../cli/command-helpers.js';
-import {formatAiResult, runAiInstall} from '../../features/ai/ai-install.js';
 import {parseBootstrapCacheTtl, runAiBootstrap} from '../../features/agent/agent-bootstrap.js';
-type AiInstallCommandOptions = {
-  target: string;
-  force?: boolean;
-};
 
 type AiBootstrapCommandOptions = {
   intent: string;
@@ -15,14 +10,6 @@ type AiBootstrapCommandOptions = {
 
 export function createAiCommand(): Command {
   const command = new Command('ai');
-
-  const installCommand = addOutputFormatOption(
-    command
-      .command('install')
-      .description('Install standard AI meta-files into a project (AGENTS.md, CLAUDE.md, etc.)')
-      .requiredOption('--target <target>', 'Project root')
-      .option('--force', 'Overwrite existing files'),
-  );
 
   const bootstrapCommand = addOutputFormatOption(
     command
@@ -39,28 +26,14 @@ export function createAiCommand(): Command {
     'json',
   );
 
-  command.description('Standard AI assets and skills for ldev projects').addHelpText(
+  command.description('Agent context and bootstrap for ldev projects').addHelpText(
     'after',
     `
 Skills are distributed via the skills.sh standard:
   npx skills add https://github.com/mordonez/ldev
 
-Meta-file bootstrap:
-  install              Install AGENTS.md, CLAUDE.md, and related files
-  install --force      Overwrite existing files
+Agent meta-files (AGENTS.md, CLAUDE.md, etc.) live in docs/ai/ — copy them manually.
 `,
-  );
-
-  installCommand.action(
-    createFormattedAction(
-      async (_context, options: AiInstallCommandOptions) => {
-        return runAiInstall({
-          targetDir: options.target,
-          force: Boolean(options.force),
-        });
-      },
-      {text: formatAiResult},
-    ),
   );
 
   bootstrapCommand.action(

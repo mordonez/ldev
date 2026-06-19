@@ -1,6 +1,6 @@
 # GEMINI
 
-Gemini Code Assist entrypoint for this project. Installed by `ldev ai install`.
+Gemini Code Assist entrypoint for this project.
 
 This file is intentionally thin. Read `AGENTS.md` first for the canonical
 bootstrap, safety invariants, worktree rules, and installed skills.

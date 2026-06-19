@@ -105,18 +105,20 @@ Use it as the first thing you run after a fresh start.
 
 ## 7. Optional: prepare the repo for AI agents
 
-```bash
-ldev ai install --target .
-```
-
-This installs the standard agent assets (`AGENTS.md`, vendor skills, rule
-directories for Claude/Cursor/VSCode/etc.).
-
-Optional overlays:
+Copy the agent entrypoint file into your project:
 
 ```bash
-ldev ai install --target . --project --project-context
+# Standard ldev-native project:
+cp <ldev-repo>/docs/ai/AGENTS.md ./AGENTS.md
+
+# Create .claude/skills/ so npx skills add can place Claude Code symlinks:
+mkdir -p .claude/skills
+
+# Install vendor skills:
+npx skills add https://github.com/mordonez/ldev
 ```
+
+See [`docs/ai/`](https://github.com/mordonez/ldev/tree/main/docs/ai) for full setup instructions.
 
 ## 8. Working from a worktree
 
@@ -135,4 +137,4 @@ ldev --repo-root ../.. ai bootstrap --intent=develop --json
 - [Resource Migration Pipeline](/workflows/resource-migration-pipeline) — for
   structure changes against existing content.
 - [Worktrees](/advanced/worktrees) — branch-isolated runtimes.
-- [Agent workflows](/agentic/) — once you have `ai install` done.
+- [Agent workflows](/agentic/) — once you have `AGENTS.md` and skills set up.

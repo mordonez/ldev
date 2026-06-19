@@ -40,10 +40,10 @@ describe('AI template guardrails', () => {
   });
 
   test('agent entrypoints share the same portability contract', async () => {
-    const canonicalEntrypoint = await readTemplate('templates/ai/install/AGENTS.md');
+    const canonicalEntrypoint = await readTemplate('docs/ai/AGENTS.md');
 
     // Full contract must appear in canonical entrypoints
-    const fullContractEntrypoints = ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md'];
+    const fullContractEntrypoints = ['docs/ai/AGENTS.md', 'docs/ai/AGENTS.workspace.md'];
     for (const entrypoint of fullContractEntrypoints) {
       const content = await readTemplate(entrypoint);
       expect(content, entrypoint).toContain('Agent Portability Contract');
@@ -68,8 +68,8 @@ describe('AI template guardrails', () => {
   });
 
   test('AGENTS.workspace.md safety invariants stay in sync with AGENTS.md', async () => {
-    const agents = await readTemplate('templates/ai/install/AGENTS.md');
-    const workspaceAgents = await readTemplate('templates/ai/install/AGENTS.workspace.md');
+    const agents = await readTemplate('docs/ai/AGENTS.md');
+    const workspaceAgents = await readTemplate('docs/ai/AGENTS.workspace.md');
 
     // Shared invariants 1-10 must appear verbatim in both templates
     const sharedInvariants = [
@@ -113,8 +113,8 @@ describe('AI template guardrails', () => {
   });
 
   test('agent entrypoints document fragment imports as the check-only exception', async () => {
-    const agents = await readTemplate('templates/ai/install/AGENTS.md');
-    const workspaceAgents = await readTemplate('templates/ai/install/AGENTS.workspace.md');
+    const agents = await readTemplate('docs/ai/AGENTS.md');
+    const workspaceAgents = await readTemplate('docs/ai/AGENTS.workspace.md');
 
     for (const content of [agents, workspaceAgents]) {
       expect(content).toContain('resource mutations that support it');
@@ -125,7 +125,7 @@ describe('AI template guardrails', () => {
 
   test('ldev-native mutating work uses one Red Green loop inside the worktree', async () => {
     const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
-    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const agents = await readTemplate('docs/ai/AGENTS.md');
 
     const combined = [runtime, agents].join('\n');
 
@@ -139,7 +139,7 @@ describe('AI template guardrails', () => {
   test('vanilla sandbox requests bypass worktree setup', async () => {
     const runtime = await readTemplate('skills/runtime-change-workflow/SKILL.md');
     const worktrees = await readTemplate('skills/isolating-worktrees/SKILL.md');
-    const agents = await readTemplate('templates/ai/install/AGENTS.md');
+    const agents = await readTemplate('docs/ai/AGENTS.md');
 
     for (const content of [runtime, worktrees, agents]) {
       expect(content).toContain('vanilla sandbox');
@@ -149,7 +149,7 @@ describe('AI template guardrails', () => {
   });
 
   test('agent entrypoints document safe PowerShell ldev invocation', async () => {
-    const entrypoints = ['templates/ai/install/AGENTS.md', 'templates/ai/install/AGENTS.workspace.md'];
+    const entrypoints = ['docs/ai/AGENTS.md', 'docs/ai/AGENTS.workspace.md'];
 
     for (const entrypoint of entrypoints) {
       const content = await readTemplate(entrypoint);

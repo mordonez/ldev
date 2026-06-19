@@ -1,7 +1,5 @@
 # Copilot Instructions
 
-Installed by `ldev ai install`.
-
 This file is intentionally thin. Read `AGENTS.md` first for the canonical
 bootstrap, safety invariants, worktree rules, and installed skills.
 

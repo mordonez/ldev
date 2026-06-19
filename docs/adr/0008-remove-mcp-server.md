@@ -37,3 +37,4 @@ Both sources reinforce the same conclusion: MCP adds value when the agent needs 
 - `ldev mcp doctor` and the `ldev mcp` command namespace are removed entirely.
 - Dashboard MCP status and `/api/mcp/doctor` route are removed.
 - Agent guidance in `AGENTS.md` and `AGENTS.workspace.md` is rewritten around CLI + skills. All MCP references removed.
+- The reference to "skills installed by `ldev ai install`" in this ADR is superseded by [ADR 0009](./0009-remove-ai-install.md), which removes the install command entirely.

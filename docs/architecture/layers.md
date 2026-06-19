@@ -205,7 +205,6 @@ src/entrypoints/
 | Domain | Directory | Notes |
 |--------|-----------|-------|
 | Agent bootstrap | `features/agent/` | Runtime context for `ldev ai bootstrap` |
-| AI (agentic installer) | `features/ai/` | `ldev ai install` logic |
 | Database | `features/db/` | DB backup, import, sync, query |
 | Deploy | `features/deploy/` | Gradle builds, hot deploy, theme deploy |
 | Doctor | `features/doctor/` | Environment diagnostic probes and report assembly |

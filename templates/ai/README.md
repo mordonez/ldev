@@ -2,39 +2,25 @@
 
 Standard AI knowledge base for projects that use `ldev`.
 
-This package is intentionally split into three areas:
+This package is intentionally split into two areas:
 
-- `install/`: assets that `ldev ai install` copies into a project by default.
 - `project/`: project-owned templates and optional project overlays.
 - `skills/`: reusable domain skills that are safe to inherit across Liferay projects.
-- `docs/`: product rules, inventory and maintainer guidance.
 
 Design intent:
 
 - vendor skills are the canonical home for reusable `ldev` operational knowledge
 - project overlays are for repository-specific process and context only
 
-## Installation (real examples)
-
-Use `ldev` as the canonical entrypoint (Option A).
-
-Install base AI meta-files in a project:
-
-```bash
-ldev ai install --target .
-```
-
-Overwrite existing files:
-
-```bash
-ldev ai install --target . --force
-```
+## Installation
 
 Install skills via the skills.sh standard:
 
 ```bash
 npx skills add https://github.com/mordonez/ldev
 ```
+
+For agent meta-files (AGENTS.md, CLAUDE.md, etc.), see [`docs/ai/`](../../docs/ai/README.md).
 
 ## Prompt usage examples (tsdown-style, adapted to `ldev`)
 

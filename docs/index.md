@@ -96,7 +96,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 <div class="agent-strip">
   <span class="agent-label">Built for agents</span>
-  <p>JSON outputs, installed skills, and project bootstrap — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
+  <p>JSON outputs, installed skills, and project bootstrap — so an agent can run the same workflows you run, without a custom integration. Start with <code>npx skills add https://github.com/mordonez/ldev</code>.</p>
   <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
 </div>
 

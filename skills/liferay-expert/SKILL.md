@@ -51,7 +51,7 @@ Use `inventory structures --with-templates` for structure/template discovery, `i
 
 ## AI asset maintenance
 
-To update skills and agent context files, run `npx skills add https://github.com/mordonez/ldev` from the project root. To reinstall the base meta-files (AGENTS.md, CLAUDE.md, etc.), run `ldev ai install --target <project-root> --force`.
+To update skills, run `npx skills add https://github.com/mordonez/ldev` from the project root. To update agent meta-files (AGENTS.md, CLAUDE.md, etc.), re-copy them from `docs/ai/` in the ldev repository.
 
 ## OAuth2 prerequisite
 

@@ -106,17 +106,6 @@ Dashboard server dependencies (e.g., `hono`, HTTP routing, SSE plumbing) are onl
 
 ---
 
-## Agentic Installer: `ldev ai install`
-
-The agentic installer (`ldev ai install`) configures AI coding assistants to use ldev's CLI + skills. It lives in `src/commands/ai/` and `src/features/ai/`.
-
-**Keep as a CLI subcommand.** Rationale:
-- It is a one-shot setup operation, not a long-running server
-- It requires `ldev` to be installed first (it writes configuration files that reference ldev workflows)
-- There is no scenario where it would be invoked independently of the CLI
-
----
-
 ## Naming Convention
 
 The `ldev` binary uses no prefix — it is the most-typed command.
@@ -157,7 +146,6 @@ Current assessment:
 | Surface | Independent dist? | Distinct lifecycle? | Different deps? | Add binary? |
 |---------|------------------|---------------------|-----------------|-------------|
 | Dashboard | No | Yes | Partial | **No — keep as subcommand** |
-| `ldev ai install` | No | No | No | **No — keep as subcommand** |
 
 ---
 

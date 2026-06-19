@@ -65,6 +65,6 @@ If one of these baseline commands fails due to version-specific API differences,
 
 Because they let you export, review, import, and migrate structures, templates, ADTs, and fragments as files instead of manual UI steps.
 
-## What does `ldev ai install` actually do?
+## How do I set up agent meta-files for a project?
 
-It bootstraps the repo for coding agents by installing `AGENTS.md`, managed skills, and optional project overlays.
+Copy `AGENTS.md` from `docs/ai/` into the project root, create `.claude/skills/`, and run `npx skills add https://github.com/mordonez/ldev`. See [docs/ai/README.md](../ai/README.md) for the full setup steps.

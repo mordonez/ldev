@@ -184,8 +184,8 @@ The integration is CLI-first: structured `--json` output everywhere, plus instal
 # Install skills — the agent knows how to use ldev:
 npx skills add https://github.com/mordonez/ldev
 
-# Optional: commit agent entrypoint files to your project repo:
-ldev ai install --target .
+# Optional: copy the agent entrypoint file to your project repo (see docs/ai/):
+# cp <ldev-repo>/docs/ai/AGENTS.md ./AGENTS.md
 ```
 
 ---

@@ -23,7 +23,7 @@ installed skills) that lets an agent call the same workflows from inside an edit
 | CLI with structured output | Canonical execution contract. Every workflow returns JSON. | Always |
 | `npx skills add https://github.com/mordonez/ldev` | Installs workflow skills into `.agents/skills/`. The agent knows how to use ldev. | Always |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
-| `ldev ai install` | Commits `AGENTS.md` and agent config files to the project repo so all editors auto-load the skills. Also adds the project-scoped issue skill. | For team repos |
+| `docs/ai/AGENTS.md` (copy-paste) | Agent entrypoint committed to the project repo so all editors auto-load the skills. | For team repos |
 
 ## Get started
 
@@ -38,16 +38,23 @@ skill changes.
 
 ## Set up a project repo
 
-For team repos, commit the agent entrypoint files so all editors auto-load
-the skills without manual setup:
+For team repos, copy the agent entrypoint file so all editors auto-load the skills:
 
 ```bash
-ldev ai install --target .
+# Standard ldev-native project:
+cp docs/ai/AGENTS.md ./AGENTS.md
+
+# Liferay Workspace project:
+cp docs/ai/AGENTS.workspace.md ./AGENTS.md
 ```
 
-See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install) for the
-full list of files. In Blade workspaces, `ldev` coexists with the official
-AI folders rather than replacing them.
+Then create `.claude/skills/` so `npx skills add` can place Claude Code symlinks:
+
+```bash
+mkdir -p .claude/skills
+```
+
+See [`docs/ai/`](/ai/) for full setup instructions. In Blade workspaces, `ldev` coexists with the official AI folders rather than replacing them.
 
 ## Context snapshots
 
@@ -71,7 +78,7 @@ tree.
 The AI layer is easier to maintain if each kind of knowledge has one home:
 
 - `.agents/skills/*` — vendor skills from `npx skills add`
-- `.agents/skills/project-*` — project-owned workflows from `ldev ai install`
+- `.agents/skills/project-*` — project-owned workflow skills
 - `docs/ai/project-context.md` — long-form project context
 
 ## Structured portal context for agents
@@ -127,11 +134,7 @@ After pulling a new version of `ldev`, refresh skills:
 npx skills add https://github.com/mordonez/ldev
 ```
 
-To reinstall the base meta-files with updated content:
-
-```bash
-ldev ai install --target . --force
-```
+To update agent meta-files (`AGENTS.md`, etc.), re-copy them from `docs/ai/`.
 
 ## Why this matters
 

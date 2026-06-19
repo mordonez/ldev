@@ -116,6 +116,4 @@ See [Agent workflows](/agentic/) for the full agent contract.
 ## When the shape does not apply
 
 Not every command fits the loop. `project init`, `worktree setup --with-env`,
-`oauth install --write-env` and `ai install` are bootstrap operations — they
-prepare the environment so the rest of the loop can run. Treat them as setup,
-not as steps.
+`oauth install --write-env` is a bootstrap operation — it prepares the environment so the rest of the loop can run. Treat it as setup, not as a step.

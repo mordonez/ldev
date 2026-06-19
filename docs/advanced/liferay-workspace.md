@@ -27,14 +27,14 @@ Even in a workspace, `ldev` still helps with:
 - doctor and environment checks
 - portal discovery
 - resource export and import workflows
-- agent bootstrap with `ldev ai install`
+- agent bootstrap with `ldev ai bootstrap`
 - structured output for scripts and agents
 
 ## AI coexistence
 
 Liferay Workspace already has an official AI-oriented workflow with folders such as `.workspace-rules`.
 
-`ldev ai install` complements that setup. It does not need to replace the workspace model to be useful.
+Copying `docs/ai/AGENTS.workspace.md` into the project as `AGENTS.md` complements that setup. `ldev` does not need to replace the workspace model to be useful.
 
 ## When to choose each model
 
