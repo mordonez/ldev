@@ -7,17 +7,6 @@ description: 'Routes technical Liferay work to the right ldev specialist workflo
 
 This is the domain router for reusable `ldev` Liferay workflows. Classify quickly and hand off; deep playbooks live in specialist skills.
 
-## Direct MCP Requests
-
-If the user explicitly asks for a visible local `ldev` MCP tool or a read-only
-answer with a direct MCP equivalent, call that MCP tool first. Do not run
-bootstrap just to route an already-routed request. Examples: "list sites with
-ldev MCP" -> `liferay_inventory_sites`; "check portal with MCP" ->
-`liferay_check`; "show ldev context with MCP" -> `ldev_context`.
-
-Run bootstrap only when the task needs routing context, project readiness, a
-portal URL/auth check, a mutation gate, or no matching MCP tool is visible.
-
 ## Bootstrap
 
 ```bash
@@ -60,8 +49,6 @@ Do not substitute these commands for each other in plans or handoffs.
 
 Use `inventory structures --with-templates` for structure/template discovery, `inventory page --url <fullUrl> --json --full` only when routing needs expanded page details, and `inventory where-used` when the task starts from a known key and needs impact analysis. Prefer `--site` unless a cross-site answer is required.
 
-MCP equivalents when visible: `liferay_inventory_sites`, `liferay_inventory_page`, `liferay_inventory_structures`, `liferay_inventory_templates`, `liferay_check`, `ldev_context`.
-
 ## AI asset maintenance
 
 To update skills and agent context files, run `npx skills add https://github.com/mordonez/ldev` from the project root. To reinstall the base meta-files (AGENTS.md, CLAUDE.md, etc.), run `ldev ai install --target <project-root> --force`.
@@ -89,7 +76,5 @@ This router does not execute the fix — it classifies and hands off.
 ## Guardrails
 
 - Use `ldev` as the official interface.
-- Prefer local `ldev` MCP tools for read-only discovery when visible; fall back to CLI with `--json`.
-- Honor explicit read-only MCP requests directly before bootstrap when a matching local `ldev` MCP tool is visible.
 - Do not invent portal mutations when an `ldev resource ...` workflow exists.
 - Keep the smallest specialist skill active; do not carry every Liferay skill into the same task unless routing proves it is needed.

@@ -2,7 +2,7 @@ import {z} from 'zod';
 import {doctorReportSchema} from './health.schema.js';
 
 /**
- * Schemas for environment/status/context MCP tool outputs.
+ * Schemas for environment, status, and context CLI outputs.
  * Covers: ldev_status, ldev_logs_diagnose, ldev_context.
  */
 

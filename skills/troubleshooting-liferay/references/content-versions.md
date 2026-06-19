@@ -32,12 +32,7 @@ version on every run), identify which structure is the source:
 ldev portal inventory sites --site /<site> --with-structures --limit 20
 ```
 
-To count versions on a specific article, use MCP or the headless API after
-confirming availability:
-
-```bash
-ldev mcp check --json
-```
+To count versions on a specific article, use the headless API with OAuth credentials from `ldev oauth install --write-env`.
 
 ## Reducing version history via portal UI
 

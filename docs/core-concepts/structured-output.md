@@ -12,7 +12,7 @@ workflow is usable by:
 
 - a developer typing in the terminal
 - a script running in CI
-- an AI agent over MCP
+- an AI agent using installed skills
 
 The output is identical. You build automation against it the same way you
 read it.
@@ -62,8 +62,8 @@ Structured output is what makes everything else in `ldev` composable:
   diff-able against a current one
 - incident notes and snapshots — JSON pasted directly into a ticket or a
   postmortem
-- agent workflows — the MCP server returns the same JSON as the CLI, so an
-  agent does not have to parse human-readable output
+- agent workflows — agent skills call the same CLI and parse `--json` output,
+  so an agent does not have to parse human-readable text
 - CI checks and scripts — `--strict` plus `jq` is enough to fail a pipeline
   on a regression
 

@@ -20,7 +20,7 @@ API covers cleanly:
 - Running one-time cleanup scripts for content that cannot be addressed through the headless API
 
 Do **not** use the portal console to compensate for a missing `ldev resource`
-command. Check `ldev --help` and `ldev mcp check --json` first.
+command. Check `ldev --help` and `ldev portal mcp check --json` first.
 
 ## Gogo shell vs. Groovy console
 
@@ -134,5 +134,4 @@ Before running any Groovy script that mutates portal data:
 - If a script fails with a `ClassNotFoundException`, the service class name may differ
   across Liferay versions. Use `ldev context --json` to identify the runtime version
   and adjust imports accordingly.
-- MCP is preferred over Groovy for service calls when the portal exposes a headless
-  API: `ldev mcp check --json`.
+- Prefer the headless API over Groovy for service calls when the portal exposes one. Use `ldev portal check --json` to verify API readiness.

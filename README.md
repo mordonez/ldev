@@ -31,7 +31,7 @@ npm install -g @mordonezdev/ldev
 | **OAuth in one step** | Install the OAuth app, verify the token, and write credentials locally without clicking. |
 | **Diagnostics** | Group exceptions from recent logs, run environment readiness checks, inspect OSGi bundles. |
 | **Dashboard** | A local browser UI that surfaces environment state and drives the same workflows. |
-| **MCP server (16 tools)** | All of the above, exposed to MCP-capable editors and AI agents — no custom integration needed. |
+| **Agent workflows** | Structured JSON everywhere, installed skills, and project bootstrap — so an agent can run the same workflows you run. |
 
 ---
 
@@ -53,7 +53,7 @@ The same friction that slows a developer — UI-only operations, shared mutable 
 
 `ldev` cleans up that surface with classic developer-experience moves: reproducible environments, isolated runtimes per branch, guardrails before mutation, operations as data, and structured output everywhere. Each of those is worth doing for humans on its own. The agent integration is a consequence of having done them, not a separate product.
 
-That is why this CLI is also an MCP server — not because we built AI features, but because the surface was already clean.
+That is why the agent integration is a consequence of having done them, not a separate product — structured output and installed skills are enough.
 
 For the long version, see [Why ldev Exists](https://mordonez.github.io/ldev/core-concepts/why-ldev-exists).
 
@@ -153,7 +153,7 @@ The dashboard surfaces the same `understand → diagnose → fix → verify` mod
 
 ## Output you can pipe
 
-Every command that returns data supports `--json` (and `--ndjson` for streaming). Same shape for humans, scripts, and MCP-driven agents:
+Every command that returns data supports `--json` (and `--ndjson` for streaming). Same shape for humans, scripts, and agents:
 
 ```bash
 ldev portal inventory sites --json
@@ -174,9 +174,11 @@ Errors normalise to a stable envelope, so `jq` plus `--strict` is enough to fail
 
 ---
 
-## Agents and MCP
+## Agent workflows
 
-Because every workflow has structured output, exposing `ldev` to an agent is free: the same operations are available as MCP tools. Today, without a CLI like this, an AI agent cannot meaningfully operate Liferay — too much of the platform lives behind the admin UI. With `ldev`, an agent can stand up an environment, import a structure, run a migration check, deploy a module, and verify the result.
+Without a CLI like this, an AI agent cannot meaningfully operate Liferay — too much of the platform lives behind the admin UI. With `ldev`, an agent can stand up an environment, import a structure, run a migration check, deploy a module, and verify the result.
+
+The integration is CLI-first: structured `--json` output everywhere, plus installed skills that teach an agent the correct workflow for each task.
 
 ```bash
 # Install skills — the agent knows how to use ldev:
@@ -184,12 +186,7 @@ npx skills add https://github.com/mordonez/ldev
 
 # Optional: commit agent entrypoint files to your project repo:
 ldev ai install --target .
-
-# Optional: wire up the MCP server for your editor:
-ldev ai mcp-setup --target . --tool all
 ```
-
-The MCP server exposes tools covering environment management, portal inspection, resource workflows, structure migration, diagnostics, and deploy — every major workflow in the CLI. The CLI is always the canonical path; MCP is acceleration on top of it.
 
 ---
 
@@ -256,7 +253,7 @@ Full docs: **[mordonez.github.io/ldev](https://mordonez.github.io/ldev/)**
 - [Dashboard workflow](https://mordonez.github.io/ldev/workflows/dashboard)
 - [Structure migration](https://mordonez.github.io/ldev/workflows/resource-migration-pipeline)
 - [Worktrees](https://mordonez.github.io/ldev/advanced/worktrees)
-- [Agents and MCP](https://mordonez.github.io/ldev/agentic/)
+- [Agent workflows](https://mordonez.github.io/ldev/agentic/)
 - [Command reference](https://mordonez.github.io/ldev/commands/)
 
 ## Contributing

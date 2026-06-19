@@ -1,6 +1,6 @@
 # ADR 0002 — Introduce `entrypoints/` layer for long-lived server processes
 
-- **Status:** Accepted
+- **Status:** Accepted, amended by [ADR 0008](./0008-remove-mcp-server.md)
 - **Date:** 2026-05-13
 - **Audience:** maintainers of `ldev`
 - **Related:** [ADR 0001](./0001-monorepo-vs-single-package.md), [Layer Model](../architecture/layers.md)

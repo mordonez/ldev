@@ -60,7 +60,7 @@ export type DashboardTaskListResponseContract = z.infer<typeof dashboardTaskList
 
 /**
  * DashboardTaskAcceptedResponseContract: 202 response body for any queued
- * task action (worktree create, db sync, resource export, mcp doctor, etc.).
+ * task action (worktree create, db sync, resource export, etc.).
  */
 export const dashboardTaskAcceptedResponseSchema = z.object({
   ok: z.literal(true),
@@ -153,33 +153,12 @@ export type DashboardWorktreeContract = z.infer<typeof dashboardWorktreeSchema>;
 // ── Status response ───────────────────────────────────────────────────────────
 
 /**
- * DashboardMcpClientStatusContract: configuration state of a single MCP
- * client tool (claude-code, cursor, vscode).
- */
-export const dashboardMcpClientStatusSchema = z.object({
-  tool: z.enum(['claude-code', 'cursor', 'vscode']),
-  configPath: z.string(),
-  configExists: z.boolean(),
-});
-export type DashboardMcpClientStatusContract = z.infer<typeof dashboardMcpClientStatusSchema>;
-
-/**
- * DashboardMcpStatusContract: aggregate MCP client configuration status.
- */
-export const dashboardMcpStatusSchema = z.object({
-  targetDir: z.string(),
-  clients: z.array(dashboardMcpClientStatusSchema),
-});
-export type DashboardMcpStatusContract = z.infer<typeof dashboardMcpStatusSchema>;
-
-/**
  * DashboardStatusResponseContract: full response body for GET /api/status.
  * Mirrors DashboardStatus from entrypoints/dashboard/dashboard-data.ts.
  */
 export const dashboardStatusResponseSchema = z.object({
   cwd: z.string(),
   refreshedAt: z.string().datetime(),
-  mcp: dashboardMcpStatusSchema,
   worktrees: z.array(dashboardWorktreeSchema),
   defaultWorktreeBase: z.string().optional(),
 });

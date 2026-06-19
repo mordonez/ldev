@@ -1,7 +1,7 @@
 import {z} from 'zod';
 
 /**
- * Schemas for deploy MCP tool outputs.
+ * Schemas for deploy CLI outputs.
  * Covers: liferay_deploy_status.
  */
 

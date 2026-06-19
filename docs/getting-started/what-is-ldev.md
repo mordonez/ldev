@@ -16,7 +16,7 @@ That is fine for occasional clicks. It is a wall for CI, scripts, and AI
 agents.
 
 `ldev` exposes those operations as commands with structured output, plus the
-surrounding scaffolding (Docker, isolated worktrees, MCP) needed to run them
+surrounding scaffolding (Docker, isolated worktrees, agent skills) needed to run them
 safely.
 
 ## What it actually covers
@@ -31,7 +31,7 @@ These are the parts where `ldev` does something Liferay does not do for you:
 | `project init` / `start` | Stand up a working Docker-based Liferay environment from zero. |
 | `worktree setup --with-env` | Each branch with its own Postgres, Liferay and OSGi state. On Linux + Btrfs, swaps are near-instant. |
 | `oauth install --write-env` | Deploy the installer bundle, create the OAuth app, verify the token, write credentials. One command. |
-| `ldev-mcp-server` (18 tools) | The same workflows exposed over MCP, so an agent can run them without a custom integration. |
+| Agent skills (`npx skills add`) | The same workflows packaged as agent skills, so an editor agent can run them without custom integration. |
 
 ## What it does not do
 
@@ -54,10 +54,8 @@ To stay honest:
 
 Without a CLI like this, an AI agent cannot really operate Liferay. The
 critical operations live in the UI, and an agent cannot click. By exposing
-those operations as commands and registering them as MCP tools, `ldev` gives
-agents the execution layer they were missing.
-
-The CLI is always the canonical path. MCP is acceleration on top.
+those operations as commands with `--json` output and packaged agent skills,
+`ldev` gives agents the execution layer they were missing.
 
 The reason this works is not that we built AI features. It is that the
 surface humans need on Liferay — reproducible environments, isolated
@@ -73,4 +71,4 @@ agents need. Fix the system, and both consumers benefit. See
   makes `ldev` different.
 - [Structure migration](/workflows/resource-migration-pipeline) — the
   workflow that does not exist anywhere else.
-- [Agents and MCP](/agentic/) — what changes once `ldev` is in your editor.
+- [Agent workflows](/agentic/) — what changes once `ldev` is in your editor.

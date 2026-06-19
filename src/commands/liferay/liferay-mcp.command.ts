@@ -9,7 +9,6 @@ import {
   runMcpOpenApis,
   runMcpProbe,
 } from '../../features/liferay-mcp/liferay-mcp.js';
-import {formatMcpDoctor, runMcpDoctor, type McpTool} from '../../entrypoints/mcp-server/mcp-server-doctor.js';
 
 type McpAuthCommandOptions = {
   authorizationHeader?: string;
@@ -17,24 +16,14 @@ type McpAuthCommandOptions = {
   password?: string;
 };
 
-type McpDoctorCommandOptions = {
-  target: string;
-  tool?: McpTool;
-  skipHandshake?: boolean;
-  timeout: string;
-};
-
-export function createMcpCommand(): Command {
-  const command = new Command('mcp')
-    .description('Inspect the official Liferay MCP server and its runtime availability')
-    .addHelpText(
-      'after',
-      `
+export function createPortalMcpCommand(): Command {
+  const command = new Command('mcp').description('Inspect the Liferay portal MCP endpoint').addHelpText(
+    'after',
+    `
 Recommended order:
   mcp check      Detect endpoint candidates and feature flag state
   mcp probe      Run a real MCP initialize handshake
   mcp openapis   Query the MCP get-openapis tool after initialize
-  mcp doctor     Validate local ldev MCP client config and list registered tools
 
 Auth options:
   --authorization-header 'Basic ...'
@@ -45,7 +34,7 @@ Environment fallbacks:
   LIFERAY_MCP_USERNAME
   LIFERAY_MCP_PASSWORD
 `,
-    );
+  );
 
   addMcpAuthOptions(
     addOutputFormatOption(
@@ -54,9 +43,7 @@ Environment fallbacks:
   ).action(
     createFormattedAction(
       async (context, options: McpAuthCommandOptions) => runMcpCheck(context.config, toMcpAuthOptions(options)),
-      {
-        text: formatMcpCheck,
-      },
+      {text: formatMcpCheck},
     ),
   );
 
@@ -67,9 +54,7 @@ Environment fallbacks:
   ).action(
     createFormattedAction(
       async (context, options: McpAuthCommandOptions) => runMcpProbe(context.config, toMcpAuthOptions(options)),
-      {
-        text: formatMcpProbe,
-      },
+      {text: formatMcpProbe},
     ),
   );
 
@@ -78,33 +63,7 @@ Environment fallbacks:
   ).action(
     createFormattedAction(
       async (context, options: McpAuthCommandOptions) => runMcpOpenApis(context.config, toMcpAuthOptions(options)),
-      {
-        text: formatMcpOpenApis,
-      },
-    ),
-  );
-
-  addOutputFormatOption(
-    command
-      .command('doctor')
-      .description('Validate local ldev MCP client config, command resolution and stdio list-tools handshake')
-      .option('--target <target>', 'Project root containing MCP client config', '.')
-      .option('--tool <tool>', 'Client config to check: all, claude-code, cursor, or vscode', 'all')
-      .option('--skip-handshake', 'Only validate config and command resolution')
-      .option('--timeout <milliseconds>', 'Timeout for command and MCP handshake checks', '10000'),
-  ).action(
-    createFormattedAction(
-      async (_context, options: McpDoctorCommandOptions) =>
-        runMcpDoctor({
-          targetDir: options.target,
-          tool: options.tool,
-          handshake: !options.skipHandshake,
-          timeoutMs: Number.parseInt(options.timeout, 10) || 10000,
-        }),
-      {
-        text: formatMcpDoctor,
-        exitCode: (result) => (result.ok ? 0 : 1),
-      },
+      {text: formatMcpOpenApis},
     ),
   );
 

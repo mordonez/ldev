@@ -41,21 +41,7 @@ Then verify the workflow and content state in the portal:
 4. If the page still does not show the content, verify page mapping and site
    access, not just the asset status.
 
-If MCP is available, discover workflow-related OpenAPI surfaces before writing
-curl examples:
-
-```bash
-ldev mcp check --json
-# bash/zsh (requires jq)
-ldev mcp openapis --json | jq -r '.[] | select(.name | test("workflow|structured-content"; "i")) | .name'
-```
-
-```powershell
-ldev mcp check --json
-(ldev mcp openapis --json | ConvertFrom-Json) |
-   Where-Object { $_.name -match 'workflow|structured-content' } |
-   Select-Object -ExpandProperty name
-```
+To discover workflow-related OpenAPI surfaces, browse `/o/openapi/` with OAuth credentials from `ldev oauth install --write-env`.
 
 ## Check which workflow is assigned to an asset class
 
@@ -78,7 +64,7 @@ the workflow administration endpoints. The most reliable approach is the UI:
    enable it.
 
 If you need to script this, first discover the exact workflow OpenAPI exposed by
-the current runtime with `ldev mcp openapis --json`. Do not assume a specific
+the current runtime with `ldev portal mcp openapis --json`. Do not assume a specific
 endpoint name or payload shape without that verification.
 
 ## Why an article does not appear published after import
@@ -112,8 +98,7 @@ For a local unblock, prefer the portal UI:
 2. Review the pending item.
 3. Approve or reject it there.
 
-If the task must be automated, discover the workflow task API from MCP first
-and only then script it with OAuth2 or another verified auth flow.
+If the task must be automated, script it with OAuth2 credentials from `ldev oauth install --write-env`.
 
 ## Guardrails
 

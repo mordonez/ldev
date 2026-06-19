@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
 /**
- * Schemas for health/check/doctor MCP tool outputs.
- * Covers: liferay_check, liferay_doctor, liferay_mcp_check.
+ * Schemas for health, check, and doctor CLI outputs.
+ * Covers: liferay_check, liferay_doctor.
  */
 
 // ── liferay_check: LiferayHealthResult ────────────────────────────────────────
@@ -155,29 +155,6 @@ export const doctorReportSchema = z.object({
 });
 
 export type DoctorReportContract = z.infer<typeof doctorReportSchema>;
-
-// ── liferay_mcp_check: McpCheckResult ─────────────────────────────────────────
-
-/**
- * McpCheckResultContract: MCP endpoint reachability result returned by liferay_mcp_check.
- * Mirrors McpCheckResult from features/mcp/mcp.ts.
- */
-export const mcpCheckResultSchema = z.object({
-  ok: z.literal(true),
-  baseUrl: z.string(),
-  configuredFeatureFlag: z.boolean().nullable(),
-  endpoints: z.array(
-    z.object({
-      url: z.string(),
-      status: z.number().int().nullable(),
-      reachable: z.boolean(),
-    }),
-  ),
-  selectedEndpoint: z.string().nullable(),
-  authorizationConfigured: z.boolean(),
-});
-
-export type McpCheckResultContract = z.infer<typeof mcpCheckResultSchema>;
 
 const liferayPreflightSurfaceStatusSchema = z.enum(['ok', 'forbidden', 'unavailable', 'unknown']);
 

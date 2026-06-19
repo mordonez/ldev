@@ -1,22 +1,21 @@
 # ldev — Contract Guide
 
-This document explains what contracts are in `ldev`, where they live, how to write them, and when they are required. The target audience is a contributor adding a new MCP tool, dashboard API route, or CLI command with machine-readable output.
+This document explains what contracts are in `ldev`, where they live, how to write them, and when they are required. The target audience is a contributor adding a new dashboard API route or CLI command with machine-readable output.
 
 ---
 
 ## Why Contracts Exist
 
-`ldev` exposes its functionality through three surfaces:
+`ldev` exposes its functionality through two surfaces:
 
 1. **CLI** (`ldev <command>`) — human-readable text or `--json`/`--ndjson` for scripting
-2. **MCP server** (`ldev-mcp-server`) — structured JSON returned to AI agents via the Model Context Protocol
-3. **Dashboard** (`ldev dashboard`) — a local web UI that calls an HTTP API
+2. **Dashboard** (`ldev dashboard`) — a local web UI that calls an HTTP API
 
-The CLI text output is intentionally informal: format it however serves the human reader. But the MCP server and dashboard are **automation consumers**: they parse JSON programmatically, and they break silently when a field is renamed or its type changes.
+The CLI text output is intentionally informal: format it however serves the human reader. But the dashboard and documented `--json` outputs are **automation consumers**: they parse JSON programmatically, and they break silently when a field is renamed or its type changes.
 
 Contracts solve this problem. A contract is a Zod schema that:
 - Defines the exact shape of a JSON output consumed by automation
-- Is the single source of truth for both the producer (feature function) and the consumers (MCP tool, dashboard route, external scripts)
+- Is the single source of truth for both the producer (feature function) and the consumers (dashboard route, external scripts)
 - Makes breaking changes visible at the type level
 - Can be used to validate actual API responses in tests
 
@@ -57,7 +56,7 @@ Shared payloads used across domains:
 
 ### `inventory.schema.ts`
 
-Inventory domain contracts — used by MCP tools that list Liferay content:
+Inventory domain contracts — used by inventory commands and the dashboard:
 
 | Schema | Type | Description |
 |--------|------|-------------|
@@ -72,7 +71,7 @@ Inventory domain contracts — used by MCP tools that list Liferay content:
 
 ### `resource.schema.ts`
 
-Resource sync contracts — used by MCP tools and dashboard routes that report sync results:
+Resource sync contracts — used by resource commands and dashboard routes that report sync results:
 
 | Schema | Type | Description |
 |--------|------|-------------|
@@ -97,7 +96,7 @@ import {z} from 'zod';
 
 /**
  * ExampleResult: result of running the example action.
- * Consumed by: MCP tool tool-example.ts, dashboard /api/example
+ * Consumed by: dashboard /api/example, ldev example action --json
  */
 export const exampleResultSchema = z.object({
   message: z.string(),
@@ -117,7 +116,7 @@ export type ExampleResult = z.infer<typeof exampleResultSchema>;
 
 Guidelines for schema design:
 - Use `.optional()` on fields that may legitimately be absent — prefer it over `z.union([z.string(), z.undefined()])`.
-- Mark internal-only schemas (used by one feature, not by MCP or dashboard) with a JSDoc comment saying "not a public contract."
+- Mark internal-only schemas (used by one feature only, not by the dashboard or documented `--json` output) with a JSDoc comment saying "not a public contract."
 - Use `z.enum([...] as const)` for string unions; export the const array alongside the schema for iteration.
 - For Liferay API responses that may have alternate field names across versions, use `.optional()` on both variants (see `jsonwsGroupSearchResultSchema`'s `friendlyURL` / `friendlyUrl` pattern).
 
@@ -149,45 +148,9 @@ export async function runExampleAction(config: AppConfig): Promise<ExampleResult
 }
 ```
 
-### Step 4 — Add the schema to the MCP tool catalog
+### Step 4 — Use the contract in the dashboard route (if applicable)
 
-MCP tool files use `runJsonTool` which wraps the feature call. The return value is automatically serialised to JSON. Do not call `exampleResultSchema.parse()` inside the tool handler; instead, attach the schema to the tool catalog so the MCP server validates the output at the external boundary.
-
-```typescript
-// src/entrypoints/mcp-server/tools/tool-example.ts
-import {z} from 'zod';
-import type {AppConfig} from '../../../core/config/schema.js';
-import {runExampleAction} from '../../features/example/example-action.js';
-import {runJsonTool} from './tool-result.js';
-
-export const TOOL_NAME = 'example_action';
-
-export const inputSchema = {
-  filter: z.string().optional().describe('Optional filter string'),
-};
-
-export const description = 'Run the example action and return a structured result.';
-
-export async function handleTool(input: {filter?: string}, config: AppConfig) {
-  return runJsonTool(() => runExampleAction(config));
-}
-```
-
-```typescript
-// src/entrypoints/mcp-server/mcp-server-tools.ts
-import {exampleResultSchema} from '../../core/contracts/index.js';
-import * as exampleTool from './tools/tool-example.js';
-
-export const TOOL_CATALOG = [
-  {
-    module: exampleTool,
-    outputSchema: exampleResultSchema,
-    risk: 'read',
-    writesFiles: false,
-    fallbackCli: 'ldev example action --json',
-  },
-];
-```
+If the new feature is surfaced via the dashboard, the route handler calls the same feature function. Because the feature already returns a type satisfying the schema, the dashboard response is automatically contract-compliant.
 
 ---
 
@@ -195,7 +158,6 @@ export const TOOL_CATALOG = [
 
 | Scenario | Contract required? | Reason |
 |----------|--------------------|--------|
-| MCP tool return value | **Required** | AI agents parse the JSON; shape changes break integrations silently |
 | Dashboard API JSON response | **Required** | Dashboard client code depends on exact field names |
 | `--json` output consumed by external scripts (documented) | **Required** | Once documented as machine-readable, it is a contract |
 | `--json` output of internal/diagnostic commands (`ldev doctor --json`, `ldev context --json`) | **Strongly recommended** | Increasingly used by automation; formalise before the first external consumer |
@@ -229,57 +191,9 @@ There is currently no per-contract versioning (e.g., `v2` namespaces). If the co
 
 ---
 
-## How Contracts Are Used in MCP Tools
+## How Contracts Are Used in Dashboard Routes
 
-Every MCP tool follows the same three-step pattern:
-
-```
-handleTool(input, config) → runJsonTool(() => runFeatureFunction(config, input))
-```
-
-1. `runJsonTool` catches exceptions and wraps them as `{isError: true, content: [{text: message}]}`.
-2. On success, `jsonToolResult(value)` serialises the feature result to JSON and also populates `structuredContent` if the value is a plain object (not an array). This allows MCP clients that support structured content to receive typed responses.
-3. `mcp-server.ts` validates successful tool output against the `outputSchema` declared in `TOOL_CATALOG`. If validation fails, the call is returned as an MCP tool error instead of leaking a malformed payload to the agent.
-4. The Zod schema in `core/contracts/` is the runtime contract. TypeScript return types should align with it, but TypeScript alone is not enough for MCP outputs.
-
-Example — `tool-liferay-inventory-sites.ts`:
-
-```typescript
-import {z} from 'zod';
-import type {AppConfig} from '../../../core/config/schema.js';
-import {runLiferayInventorySites} from '../../features/liferay/inventory/liferay-inventory-sites.js';
-import {runJsonTool} from './tool-result.js';
-
-export const TOOL_NAME = 'liferay_inventory_sites';
-export const inputSchema = {
-  pageSize: z.number().optional().describe('Max sites per request (default 200)'),
-};
-export const description = 'List all accessible Liferay sites with their group IDs and friendly URLs.';
-
-export async function handleTool(input: {pageSize?: number}, config: AppConfig) {
-  return runJsonTool(() => runLiferayInventorySites(config, {pageSize: input.pageSize}));
-}
-```
-
-The `runLiferayInventorySites` function returns `LiferayInventorySite[]`, which is defined by `liferayInventorySitesSchema` in `src/core/contracts/inventory.schema.ts`. The MCP client receives a JSON array matching that schema.
-
-The catalog entry connects the tool to that schema:
-
-```typescript
-{
-  module: sitesTool,
-  outputSchema: liferayInventorySitesSchema,
-  risk: 'read',
-  writesFiles: false,
-  fallbackCli: 'ldev portal inventory sites --json',
-}
-```
-
----
-
-## How Contracts Should Be Used in Dashboard Routes
-
-Dashboard routes (in `src/entrypoints/dashboard/`) are currently thin HTTP handlers. As the dashboard matures, its API responses should align with the same contracts that MCP tools use where the underlying data is the same.
+Dashboard routes (in `src/entrypoints/dashboard/`) are thin HTTP handlers. Their API responses should align with the contracts defined in `core/contracts/` where the underlying data is feature-derived.
 
 The intended pattern (aspirational for routes that return feature data):
 
@@ -300,7 +214,7 @@ async function handleInventorySites(cwd: string, res: http.ServerResponse): Prom
 }
 ```
 
-Because `runLiferayInventorySites` already returns a type that satisfies `liferayInventorySitesSchema`, the dashboard response is automatically contract-compliant without additional validation. The dashboard client and the MCP tool are then guaranteed to receive the same structure.
+Because `runLiferayInventorySites` already returns a type that satisfies `liferayInventorySitesSchema`, the dashboard response is automatically contract-compliant without additional validation.
 
 ---
 
@@ -314,7 +228,7 @@ import {z} from 'zod';
 
 /**
  * Schemas for <domain> surfaces.
- * These define normalised output types consumed by MCP and dashboard.
+ * These define normalised output types consumed by CLI --json and the dashboard.
  */
 
 export const myDomainResultSchema = z.object({

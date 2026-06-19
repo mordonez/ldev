@@ -3,7 +3,7 @@
 ## Display Page Templates
 
 `ldev portal inventory page --url <url> --full --json` exposes Display Page Template
-metadata directly in the default output. No MCP or separate lookup is needed for
+metadata directly in the default output. No separate lookup is needed for
 the most common discovery tasks.
 
 For a display page URL, the result includes:
@@ -27,17 +27,12 @@ Template key. `full.articleDetails.contentFields` contains all structured conten
 `full.contentStructures` exposes the owning structure with its `exportPath`.
 
 For Display Page Template resource management not yet exposed by `ldev` (creating,
-configuring), verify MCP availability:
-
-```bash
-ldev mcp check --json
-```
+configuring), use the headless delivery API directly with OAuth credentials from `ldev oauth install --write-env`.
 
 ## Navigation Menus
 
 `ldev` does not expose dedicated Navigation Menu commands yet.
-Use `ldev mcp check --json` to verify MCP availability and route through
-the headless delivery API (`/o/headless-delivery/v2.0/navigation-menus`).
+Route through the headless delivery API (`/o/headless-delivery/v2.0/navigation-menus`) using OAuth credentials.
 
 For browser issue reproduction, if the project provides localized admin menu maps
 under `docs/ai/menu/*.i18n.json`, prefer those direct paths instead of ad hoc
@@ -100,16 +95,4 @@ If the translation export from the portal UI is failing:
    ```bash
    ldev resource fragments --site /<site> --json
    ```
-5. If the portal exports nothing for a specific content type, use MCP to investigate:
-   ```bash
-   ldev mcp check --json
-   # bash/zsh (requires jq)
-   ldev mcp openapis --json | jq -r '.[] | select(.name | test("translation"; "i")) | .name'
-   ```
-
-   ```powershell
-   ldev mcp check --json
-   (ldev mcp openapis --json | ConvertFrom-Json) |
-     Where-Object { $_.name -match 'translation' } |
-     Select-Object -ExpandProperty name
-   ```
+5. If the portal exports nothing for a specific content type, inspect the available headless API surfaces via `ldev portal check --json` and browse `/o/openapi/` for translation-related endpoints.

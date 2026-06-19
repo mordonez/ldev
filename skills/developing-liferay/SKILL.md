@@ -29,7 +29,7 @@ If the task mentions a site, page, URL, structure, template, ADT, or fragment, r
 
 Preferred discovery commands live in `portal-discovery.md`; use `inventory where-used` when the key is already known and impact must be scoped before editing.
 
-Use local `ldev` MCP tools for read-only inventory when visible. Use the CLI for file exports/imports and file-backed resource mutations. For structured content or site page mutations that do not yet have a dedicated `ldev` command, prefer OAuth-backed Headless APIs plus read-back proof.
+Use the CLI for file exports/imports and file-backed resource mutations. For structured content or site page mutations that do not yet have a dedicated `ldev` command, prefer OAuth-backed Headless APIs plus read-back proof.
 
 ## Choose The Implementation Path
 
