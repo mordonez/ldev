@@ -6,6 +6,12 @@
 
 `ldev` is a CLI-first tool. The MCP server (`src/entrypoints/mcp-server/`, `src/mcp-server.ts`, `ldev-mcp-server` binary) has been removed. The CLI with `--json`/`--ndjson` output plus installed Claude Code skills is the supported agent integration path.
 
+## Context
+
+`ldev` was conceived as a CLI from day one. The original design — operations as commands, structured output via `--json`, reproducible environments, guardrails before mutation — was built for human developers, with agent access coming along as a natural consequence of having clean, scriptable interfaces.
+
+The MCP server was added later, driven by the broader industry excitement around the Model Context Protocol. In practice, it proved to be the wrong shape for this tool: a long-lived stdio process sitting next to a CLI that is invoked and exits is an impedance mismatch, not an integration. The original CLI-first instinct was correct. This ADR formally returns to it.
+
 ## Reasons
 
 **stdio makes no sense for a CLI.** An MCP server connected over stdio is a long-lived process that an editor spawns and keeps alive. `ldev` is a command-line tool designed to be invoked and exit. The stdio transport creates an impedance mismatch with the tool's operational model.
