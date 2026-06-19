@@ -16,6 +16,13 @@
 
 **cli+skills covers the same use cases better.** Agent workflows that previously relied on MCP tools (`liferay_inventory_sites`, `ldev_ai_bootstrap`, etc.) are fully covered by `ldev --json` output and the skills installed by `ldev ai install`. Skills express intent and workflow context that raw tool schemas cannot express.
 
+## References
+
+- [MCP vs CLI — Scalekit](https://www.scalekit.com/blog/mcp-vs-cli-use) — argues that MCP is the right transport when you need model-initiated tool calls at runtime, but CLI remains superior for scripted, auditable, human-reviewable workflows. `ldev` is squarely in the latter category.
+- [MCP vs CLI — Firecrawl](https://www.firecrawl.dev/blog/mcp-vs-cli) — contrasts the two integration styles and notes that CLI+structured output is the better fit when the primary consumers are humans and CI pipelines, with agent access as a secondary concern.
+
+Both sources reinforce the same conclusion: MCP adds value when the agent needs to discover and invoke arbitrary capabilities dynamically. `ldev`'s surface is intentional and bounded — skills express that surface more efficiently than runtime tool schemas.
+
 ## Consequences
 
 - `entrypoints/` layer now has a single entry: `dashboard/`. The layer concept remains valid — the dashboard is still a long-lived server process, not a feature. See ADR 0002.
