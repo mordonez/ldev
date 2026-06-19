@@ -32,7 +32,7 @@ Both sources reinforce the same conclusion: MCP adds value when the agent needs 
 ## Consequences
 
 - `entrypoints/` layer now has a single entry: `dashboard/`. The layer concept remains valid — the dashboard is still a long-lived server process, not a feature. See ADR 0002.
-- `ldev mcp check/probe/openapis` (Liferay portal MCP probe) survive as `ldev portal mcp` subcommands. They are unrelated to ldev's own server role.
+- `ldev portal mcp check/probe/openapis` (Liferay portal MCP probe) are also removed. No active users were identified and the commands were not part of any documented workflow.
 - `core/contracts/` schemas are retained as the contract layer for structured CLI output (`--json`) and dashboard API routes. The description "MCP tool outputs" no longer applies.
 - `ldev mcp doctor` and the `ldev mcp` command namespace are removed entirely.
 - Dashboard MCP status and `/api/mcp/doctor` route are removed.

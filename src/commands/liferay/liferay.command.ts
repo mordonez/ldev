@@ -2,7 +2,6 @@ import {Command} from 'commander';
 
 import {createReindexCommand} from '../reindex/reindex.command.js';
 import {createAuthCommands} from './auth.command.js';
-import {createPortalMcpCommand} from './liferay-mcp.command.js';
 import {createContentCommand} from './content.command.js';
 import {createLiferayConfigCommand} from './config.command.js';
 import {createInventoryCommands} from './inventory.command.js';
@@ -56,7 +55,6 @@ Main groups:
   theme-check  Validate Clay icon coverage in a deployed theme
   reindex      Reindex observation and temporary tuning
   content      Journal/web content management (prune for local environments)
-  mcp          Inspect the Liferay portal MCP endpoint
 `,
     );
 
@@ -69,7 +67,6 @@ Main groups:
   command.addCommand(createLiferaySearchCommand().helpGroup('Portal diagnostics:'));
   command.addCommand(createLiferayThemeCheckCommand().helpGroup('Portal diagnostics:'));
   command.addCommand(createReindexCommand().helpGroup('Portal diagnostics:'));
-  command.addCommand(createPortalMcpCommand().helpGroup('Portal diagnostics:'));
 
   return command;
 }

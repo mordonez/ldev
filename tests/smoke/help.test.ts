@@ -233,15 +233,6 @@ describe('smoke help', () => {
     expect(result.stdout).toContain('--restart-main-after-clone');
   }, 10000);
 
-  test('portal mcp --help documents the Liferay MCP diagnostic flow', async () => {
-    const result = await runCli(['portal', 'mcp', '--help'], {cwd: CLI_CWD});
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('check');
-    expect(result.stdout).toContain('probe');
-    expect(result.stdout).toContain('openapis');
-    expect(result.stdout).toContain('--authorization-header');
-  }, 10000);
-
   test('liferay alias routes to portal (backward compat)', async () => {
     const result = await runCli(['liferay', '--help'], {cwd: CLI_CWD});
     expect(result.exitCode).toBe(0);
