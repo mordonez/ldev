@@ -75,11 +75,7 @@ export default defineConfig({
       },
       {
         text: 'Agentic',
-        items: [
-          {text: 'Agent Workflows', link: '/agentic/'},
-          {text: 'MCP Decision Route', link: '/agentic/mcp-decision-route'},
-          {text: 'MCP Server Inventory', link: '/agentic/mcp-server-inventory'},
-        ],
+        items: [{text: 'Agent Workflows', link: '/agentic/'}],
       },
       {
         text: 'Advanced',
