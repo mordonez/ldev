@@ -96,18 +96,18 @@ both can run the pipeline.
 ### A single surface for humans, scripts and agents
 
 Every command that returns data supports `--json`. Every error has a
-stable code. The same surface is exposed over MCP via 18 tools that wrap
-the same `ldev` workflows.
+stable code. The same surface is consumed by agent skills that wrap the
+same `ldev` workflows.
 
 A developer reads the output. A CI pipeline pipes it to `jq`. An agent
-calls the MCP tool. Three consumers, one contract.
+uses a skill that calls the same command. Three consumers, one contract.
 
 ## Why the agent layer works
 
-There is no separate "AI part" of `ldev`. The MCP server, the
-`AGENTS.md` install, the project skills — all of those are wiring on top
-of the same workflows the CLI already exposes. They are useful because
-the underlying surface was already clean.
+There is no separate "AI part" of `ldev`. The `AGENTS.md` install and
+the project skills — all of that is wiring on top of the same workflows
+the CLI already exposes. They are useful because the underlying surface
+was already clean.
 
 That is the order of operations:
 
@@ -125,7 +125,7 @@ Liferay specifically.
 ## What this changes about how to read the rest of the docs
 
 When you see `ldev` capabilities documented later — resource ops,
-worktrees, migration, MCP — read them as instances of the same idea.
+worktrees, migration, agent workflows — read them as instances of the same idea.
 Each one removes a piece of system-level friction. Each one is useful
 for humans first. The agent benefit comes along for the ride.
 
@@ -142,5 +142,5 @@ same things.
   workflow follows.
 - [Export and Import Resources](/workflows/export-import-resources) —
   the flagship workflow.
-- [Agents and MCP](/agentic/) — what the cleaned-up surface looks like
+- [Agent workflows](/agentic/) — what the cleaned-up surface looks like
   from the agent side.

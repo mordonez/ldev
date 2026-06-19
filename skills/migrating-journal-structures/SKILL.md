@@ -86,7 +86,6 @@ For descriptor fields, mappings, dry-runs, and validation details, read `referen
 
 ## Guardrails
 
-- Use MCP only for read-only inventory/diagnosis.
 - Do not claim Green from structure import alone.
 - Do not use `import-structure --migration-plan` as the normal path.
 - Always keep a descriptor file under version control.

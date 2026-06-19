@@ -23,13 +23,13 @@ Priority meanings:
 
 ### 1. Headless API — discovery without an operational contract
 
-`ldev mcp openapis --json` is mentioned but no guidance on what to do with it:
+`ldev portal mcp openapis --json` is mentioned but no guidance on what to do with it:
 
 - Common endpoints and their purpose: `headless-admin-user`, `headless-delivery`,
   `headless-admin-content`, `object-admin`, `headless-batch-engine`
 - Pagination: `page`, `pageSize`, `totalCount`, `lastPage`
 - Authentication: Basic (manual test) vs. Bearer OAuth (agents and scripts)
-- How to go from `ldev mcp openapis --json` → spec → working endpoint
+- How to go from `ldev portal mcp openapis --json` → spec → working endpoint
 - Common filters and sorts (`filter`, `search`, `sort`)
 
 **Where:** `developing-liferay/references/headless-api.md`
@@ -86,7 +86,7 @@ Service Builder deploy support exists but no guidance on:
 
 ### 5. Modern site building — Display Pages, Collections, Navigation Menus
 
-`liferay-expert` says "ldev has no commands for this, use MCP" but does not give
+`liferay-expert` says "ldev has no commands for this" but does not give
 the alternative flow:
 
 - Display Page Templates: how to assign to an Object or Journal Structure, which
@@ -96,7 +96,7 @@ the alternative flow:
   with authenticated call example
 - When Content Page vs. Widget Page: clear decision tree
 
-**Where:** `developing-liferay/references/site-building.md` + complete MCP flow in `liferay-expert/SKILL.md`
+**Where:** `developing-liferay/references/site-building.md` + API flow examples in `liferay-expert/SKILL.md`
 
 ---
 

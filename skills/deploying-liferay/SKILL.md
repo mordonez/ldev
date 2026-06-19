@@ -88,7 +88,6 @@ For production, include the `ldev resource ...` command and manual UI fallback.
   true or `hotDeployReason` explains why a restart/manual action remains.
 - For theme deploys, use the contract in
   [references/theme-deploy-runtime-proof.md](references/theme-deploy-runtime-proof.md).
-- Use local `ldev` MCP tools only for read-only verification and diagnosis.
 - Do not assume success from build output alone.
 - Do not mark portal resource work done until import, read-back, and browser
   validation have passed.

@@ -1,6 +1,6 @@
 ---
 title: Advanced Commands
-description: Minimal reference for OSGi diagnostics, worktrees, MCP, and specialized tooling.
+description: Minimal reference for OSGi diagnostics, worktrees, portal MCP probe, and specialized tooling.
 ---
 
 # Advanced Commands
@@ -79,27 +79,25 @@ ldev worktree btrfs-refresh-base
 
 Re-seeds `BTRFS_BASE` from the current main env data root. `env restore` uses this as the source when available.
 
-## MCP
+## Portal MCP probe
 
-Inspect Liferay MCP availability and local ldev MCP client configuration.
+Inspect Liferay portal MCP endpoint availability.
 
 ```bash
-ldev mcp check --json
-ldev mcp probe --json
-ldev mcp openapis --json
-ldev mcp doctor --target . --tool all
+ldev portal mcp check --json
+ldev portal mcp probe --json
+ldev portal mcp openapis --json
 ```
 
-- `check` — detect endpoint candidates and feature flag state
-- `probe` — run a real MCP initialize handshake
-- `openapis` — call the MCP `get-openapis` tool after initialize
-- `doctor` — validate local editor MCP config and run the stdio list-tools handshake
+- `check` — detect endpoint candidates and feature flag state on the portal
+- `probe` — run a real MCP initialize handshake against the portal
+- `openapis` — call the portal MCP `get-openapis` tool after initialize
 
-Auth options (`check`, `probe`, `openapis`):
+Auth options:
 
 ```bash
-ldev mcp probe --authorization-header 'Basic ...'
-ldev mcp probe --username admin --password '***'
+ldev portal mcp probe --authorization-header 'Basic ...'
+ldev portal mcp probe --username admin --password '***'
 ```
 
 Environment fallbacks: `LIFERAY_MCP_AUTHORIZATION_HEADER`, `LIFERAY_MCP_USERNAME`, `LIFERAY_MCP_PASSWORD`.

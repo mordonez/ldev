@@ -1,7 +1,7 @@
 import {z} from 'zod';
 
 /**
- * Schemas for OSGi MCP tool outputs.
+ * Schemas for OSGi CLI outputs.
  * Covers: liferay_osgi_status, liferay_osgi_diag, liferay_osgi_thread_dump.
  */
 

@@ -20,7 +20,7 @@ Mental model:
 
 - official AI Workspace files explain the standard Liferay Workspace baseline
 - `ldev` skills add task-shaped workflows, runtime diagnostics, deploy verification,
-  OAuth bootstrap, MCP checks, and agent-oriented shortcuts on top
+  OAuth bootstrap, and agent-oriented shortcuts on top
 
 If both layers speak to the same topic:
 
@@ -34,10 +34,8 @@ Before changing code or runtime state:
 1. Run `ldev ai bootstrap --intent=develop --cache=60 --json`.
 2. Run `ldev doctor --json` only when the task needs extra runtime health,
    installed tooling, browser automation, deploy verification, or diagnosis.
-3. Run `ldev mcp check --json` only when the task depends on MCP or no direct
-   `ldev` command covers the required portal surface.
-4. Read `docs/ai/project-context.md` if it exists.
-5. Invoke the task-specific skill if one applies (skills are installed via `npx skills add https://github.com/mordonez/ldev`).
+3. Read `docs/ai/project-context.md` if it exists.
+4. Invoke the task-specific skill if one applies (skills are installed via `npx skills add https://github.com/mordonez/ldev`).
 
 Use `ldev --help` as the source of truth for the public CLI surface.
 
@@ -125,9 +123,6 @@ Examples:
 - `ldev resource export-structure --site /my-site --structure <key> --json`
 - `ldev resource export-template --site /my-site --template <id> --json`
 
-Use the official Liferay MCP only when it provides something that a direct
-`ldev` command does not already provide.
-
 Prefer atomic commands. Do not use plural resource commands or a broad deploy
 unless a human explicitly asks for a bulk operation and the risk is written down
 first.
@@ -143,14 +138,6 @@ Use vendor skills for the full reusable workflow:
 
 The official AI Workspace rules remain the base layer; `ldev` skills handle
 runtime diagnostics, deploy verification, and portal workflows on top of it.
-
-Before using the Liferay portal MCP server:
-
-- verify it with `ldev mcp check --json`
-- for agents and reusable skills, prefer OAuth2 via `ldev oauth install --write-env` instead of MCP Basic auth with a human username/password
-- treat MCP username/password auth as a quick manual test path, not as the default agent bootstrap
-- prefer the `ldev`-managed MCP guidance if it conflicts with older Workspace template assumptions
-- use MCP for generic OpenAPI discovery and endpoint execution, not as the default replacement for `ldev portal inventory`
 
 ## Default Operating Rules
 
@@ -174,9 +161,7 @@ Before using the Liferay portal MCP server:
   deploy commands. Do not use a broad deploy as a default validation step.
 - Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
   explicitly requires fresh runtime or portal state.
-- Prefer the task-shaped public contract first. If the equivalent local `ldev`
-  MCP tool is visible, use it for explicit read-only MCP requests and structured
-  discovery/diagnosis; otherwise use the CLI fallback:
+- Prefer the task-shaped public contract first:
   - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
@@ -185,7 +170,6 @@ Before using the Liferay portal MCP server:
   - `ldev portal inventory ... --json`
   - `ldev logs diagnose --json` for runtime/deploy diagnosis
   - `ldev doctor --json` when runtime or tool readiness matters
-  - `ldev mcp check --json` when MCP is part of the plan
 
 ## Project-Specific Knowledge
 

@@ -112,9 +112,6 @@ ldev ai install --target .
 This installs the standard agent assets (`AGENTS.md`, vendor skills, rule
 directories for Claude/Cursor/VSCode/etc.).
 
-Then add the MCP server to your editor — see
-[Set up the local MCP server](/agentic/#set-up-the-local-mcp-server).
-
 Optional overlays:
 
 ```bash
@@ -138,4 +135,4 @@ ldev --repo-root ../.. ai bootstrap --intent=develop --json
 - [Resource Migration Pipeline](/workflows/resource-migration-pipeline) — for
   structure changes against existing content.
 - [Worktrees](/advanced/worktrees) — branch-isolated runtimes.
-- [Agents and MCP](/agentic/) — once you have `ai install` done.
+- [Agent workflows](/agentic/) — once you have `ai install` done.

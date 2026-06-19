@@ -7,7 +7,7 @@ description: A CLI for the Liferay operations that today only live in the admin 
 hero:
   name: ldev
   text: Liferay, scriptable.
-  tagline: A CLI for the Liferay operations that today only live in the admin UI — import/export, structure migration, environment bootstrap, isolated worktrees, and an MCP server for AI agents.
+  tagline: A CLI for the Liferay operations that today only live in the admin UI — import/export, structure migration, environment bootstrap, isolated worktrees, and agent workflows.
   image:
     src: /logo.svg
     alt: ldev logo
@@ -28,7 +28,7 @@ features:
     details: Migrate journal articles when a structure changes. A workflow Liferay does not provide.
   - icon: "🤖"
     title: Made for agents
-    details: An MCP server with 18 tools, structured JSON everywhere, project bootstrap. So an AI agent can actually operate Liferay.
+    details: Structured JSON everywhere, installed skills, and project bootstrap. So an AI agent can actually operate Liferay.
 ---
 
 <div class="home-shell">
@@ -96,7 +96,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 <div class="agent-strip">
   <span class="agent-label">Built for agents</span>
-  <p>JSON outputs, project bootstrap and an MCP server with 18 tools — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
+  <p>JSON outputs, installed skills, and project bootstrap — so an agent can run the same workflows you run, without a custom integration. Start with <code>ldev ai install --target .</code>.</p>
   <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
 </div>
 

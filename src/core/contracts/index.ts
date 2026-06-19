@@ -136,13 +136,12 @@ export type {
   AiBootstrapResultContract,
 } from './environment.schema.js';
 
-// Health schemas (liferay_check, liferay_doctor, liferay_mcp_check)
+// Health schemas (liferay_check, liferay_doctor)
 export {
   liferayHealthResultSchema,
   doctorCheckSchema,
   doctorToolStatusSchema,
   doctorReportSchema,
-  mcpCheckResultSchema,
   liferayPreflightResultSchema,
 } from './health.schema.js';
 
@@ -151,7 +150,6 @@ export type {
   DoctorCheckContract,
   DoctorToolStatusContract,
   DoctorReportContract,
-  McpCheckResultContract,
   LiferayPreflightResultContract,
 } from './health.schema.js';
 
@@ -179,8 +177,6 @@ export {
   dashboardAheadBehindSchema,
   dashboardEnvSchema,
   dashboardWorktreeSchema,
-  dashboardMcpClientStatusSchema,
-  dashboardMcpStatusSchema,
   dashboardStatusResponseSchema,
   dashboardLogsResponseSchema,
   dashboardLogStreamEventSchema,
@@ -200,8 +196,6 @@ export type {
   DashboardAheadBehindContract,
   DashboardEnvContract,
   DashboardWorktreeContract,
-  DashboardMcpClientStatusContract,
-  DashboardMcpStatusContract,
   DashboardStatusResponseContract,
   DashboardLogsResponseContract,
   DashboardLogStreamEventContract,

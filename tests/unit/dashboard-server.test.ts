@@ -18,7 +18,6 @@ const resolveSpawnCommandMock = vi.fn((command: string) => command);
 const spawnPipedProcessMock = vi.fn();
 const runEnvStartMock = vi.fn();
 const runEnvStopMock = vi.fn();
-const runMcpDoctorMock = vi.fn();
 const runOAuthInstallMock = vi.fn();
 const runWorktreeCleanMock = vi.fn();
 const runWorktreeSetupMock = vi.fn();
@@ -160,11 +159,6 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-export-fragments.j
   runLiferayResourceExportFragments: runResourceExportFragmentsMock,
 }));
 
-vi.mock('../../src/entrypoints/mcp-server/mcp-server-doctor.js', () => ({
-  formatMcpDoctor: vi.fn(() => 'MCP doctor passed'),
-  runMcpDoctor: runMcpDoctorMock,
-}));
-
 vi.mock('../../src/features/oauth/oauth-install.js', () => ({
   formatOAuthInstall: vi.fn(() => 'OAuth install OK'),
   runOAuthInstall: runOAuthInstallMock,
@@ -236,7 +230,6 @@ describe('createDashboardServer', () => {
     collectDashboardStatusMock.mockResolvedValue({
       cwd: '/repo',
       refreshedAt: new Date().toISOString(),
-      mcp: {targetDir: '/repo', clients: []},
       worktrees: [],
     });
     listGitWorktreeDetailsMock.mockResolvedValue([]);
@@ -525,7 +518,6 @@ describe('createDashboardServer', () => {
     collectDashboardStatusMock.mockResolvedValueOnce({
       cwd: '/repo',
       refreshedAt: new Date().toISOString(),
-      mcp: {targetDir: '/repo', clients: []},
       worktrees: [],
     });
 
@@ -559,41 +551,6 @@ describe('createDashboardServer', () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({error: 'Worktree name is required'});
     expect(runWorktreeSetupMock).not.toHaveBeenCalled();
-  });
-
-  test('queues MCP doctor from the dashboard API', async () => {
-    runMcpDoctorMock.mockResolvedValue({
-      ok: true,
-      targetDir: '/repo',
-      checkedTools: ['claude-code', 'cursor', 'vscode'],
-      results: [],
-    });
-
-    await startServer();
-
-    const response = await postJsonPath(`/api/mcp/doctor`, {tool: 'all'});
-
-    expect(response.status).toBe(202);
-    const body = await readJson<{ok: true; taskId: string; action: string; tool: string}>(response);
-    expect(body).toMatchObject({ok: true, action: 'mcp-doctor', tool: 'all'});
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(runMcpDoctorMock).toHaveBeenCalledWith({
-      targetDir: '/repo',
-      tool: 'all',
-      handshake: true,
-      timeoutMs: 10000,
-    });
-
-    const taskResponse = await fetchPath(`/api/tasks`);
-    const taskPayload = await readJson<{
-      tasks: Array<{id: string; label: string; status: string}>;
-    }>(taskResponse);
-    expect(taskPayload.tasks[0]).toMatchObject({
-      id: body.taskId,
-      label: 'Running MCP doctor (all)',
-      status: 'succeeded',
-    });
   });
 
   test('queues worktree env initialization from the dashboard API', async () => {

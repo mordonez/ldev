@@ -53,7 +53,6 @@ export function buildContextualRootSummary(cwd: string): string {
       '  ldev resource export-structures --site /global',
       '  ldev logs diagnose --json',
       '  ldev oauth install --write-env',
-      '  ldev mcp check --json   # only when MCP is part of the task',
       '',
     );
   } else if (context.projectType === 'blade-workspace') {
@@ -119,7 +118,6 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         notes: [
           'Workspace is the standard project shape.',
           'Run doctor when runtime or tool readiness matters; context is the default first snapshot.',
-          'MCP is the official protocol surface for generic portal interoperability, but not universal bootstrap.',
           'Use ldev for direct task-shaped local workflows and agent context.',
           'db, osgi, and worktree remain more advanced or partial in blade-workspace today.',
         ],
@@ -165,7 +163,7 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
         notes: [
           'Use a standard Liferay Workspace for the public default path.',
           'Use ldev-native only when you intentionally want the docker/ + liferay runtime model.',
-          'The main public agent contract starts with context, then adds doctor or mcp check only when the task actually needs them.',
+          'The main agent entry point is context; add doctor when runtime or tool readiness matters.',
         ],
       };
   }

@@ -13,7 +13,7 @@ Many `ldev` commands work through Liferay APIs rather than through the UI. That 
 - portal checks
 - resource export and import
 - inventory and page inspection
-- MCP and agent-friendly API access
+- agent-driven API access via skills
 
 That means `ldev` needs a valid OAuth2 client for the current portal.
 

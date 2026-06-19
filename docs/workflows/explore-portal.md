@@ -124,8 +124,8 @@ the shape you actually want to read.
 The benefit is twofold:
 
 - a developer or support engineer skips the UI entirely
-- an AI agent gets in one tool call what would otherwise need several, with
-  matching JSON shape across MCP and CLI
+- an AI agent gets in one command what would otherwise need several API calls,
+  with a consistent JSON shape for scripting and skills
 
 ## Reverse lookup from a resource
 

@@ -132,11 +132,11 @@ Discover available Object APIs from the running portal:
 
 ```bash
 # bash/zsh (requires jq)
-ldev mcp openapis --json | jq -r '.[] | select(.name | test("^c/")) | .name'
+ldev portal mcp openapis --json | jq -r '.[] | select(.name | test("^c/")) | .name'
 ```
 
 ```powershell
-(ldev mcp openapis --json | ConvertFrom-Json) |
+(ldev portal mcp openapis --json | ConvertFrom-Json) |
   Where-Object { $_.name -match '^c/' } |
   Select-Object -ExpandProperty name
 ```
@@ -166,11 +166,11 @@ before scripting against them:
 
 ```bash
 # bash/zsh (requires jq)
-ldev mcp openapis --json | jq -r '.[] | select(.name | test("object|^c/"; "i")) | .name'
+ldev portal mcp openapis --json | jq -r '.[] | select(.name | test("object|^c/"; "i")) | .name'
 ```
 
 ```powershell
-(ldev mcp openapis --json | ConvertFrom-Json) |
+(ldev portal mcp openapis --json | ConvertFrom-Json) |
   Where-Object { $_.name -match 'object|^c/' } |
   Select-Object -ExpandProperty name
 ```

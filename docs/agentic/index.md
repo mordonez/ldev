@@ -1,22 +1,20 @@
 ---
-title: Agents and MCP
-description: Why ldev is the missing execution layer for AI agents on Liferay, and how the bootstrap, skills and MCP server fit together.
+title: Agent workflows
+description: Why ldev is the missing execution layer for AI agents on Liferay, and how CLI structured output and installed skills fit together.
 ---
 
-# Agents and MCP
+# Agent workflows
 
 `ldev` is what gives an AI agent an execution layer on Liferay.
 
 That sounds like a marketing line, but it is a technical statement. Most
 critical Liferay operations — importing structures, exporting templates,
 migrating articles, bootstrapping environments — only exist in the admin UI
-or in uneven APIs. An agent cannot click. Liferay's own MCP surface is still
-limited. So without a CLI like this, an agent connected to a Liferay system
-can mostly observe, not operate.
+or in uneven APIs. An agent cannot click. So without a CLI like this, an
+agent connected to a Liferay system can mostly observe, not operate.
 
 `ldev` is the same CLI a developer uses, plus the wiring (bootstrap files,
-managed skills, MCP tools) that lets an agent call the same workflows from
-inside an editor.
+installed skills) that lets an agent call the same workflows from inside an editor.
 
 ## What `ldev` provides for agents
 
@@ -26,7 +24,6 @@ inside an editor.
 | `npx skills add https://github.com/mordonez/ldev` | Installs workflow skills into `.agents/skills/`. The agent knows how to use ldev. | Always |
 | `ldev ai bootstrap --intent=...` | Aggregates project context + intent-specific doctor checks for the agent's first turn. | Recommended |
 | `ldev ai install` | Commits `AGENTS.md` and agent config files to the project repo so all editors auto-load the skills. Also adds the project-scoped issue skill. | For team repos |
-| `ldev-mcp-server` | Structured shortcuts over selected `ldev` workflows. | Optional |
 
 ## Get started
 
@@ -51,48 +48,6 @@ ldev ai install --target .
 See [`ldev ai install`](/commands/project-and-ai#ldev-ai-install) for the
 full list of files. In Blade workspaces, `ldev` coexists with the official
 AI folders rather than replacing them.
-
-## Set up the local MCP server
-
-`ldev-mcp-server` is included in the global `@mordonezdev/ldev` install.
-
-**Claude Code** — one command, available across all projects:
-
-```bash
-claude mcp add ldev --scope user -- ldev-mcp-server
-```
-
-**VSCode** — add to `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "ldev": { "type": "stdio", "command": "ldev-mcp-server" }
-  }
-}
-```
-
-**Cursor** — add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "ldev": { "command": "ldev-mcp-server" }
-  }
-}
-```
-
-If `ldev` is not installed globally, replace `"command": "ldev-mcp-server"` with:
-
-```json
-"command": "npx", "args": ["--package", "@mordonezdev/ldev", "-y", "ldev-mcp-server"]
-```
-
-If the editor does not show the tools:
-
-```bash
-ldev mcp doctor
-```
 
 ## Context snapshots
 
@@ -137,53 +92,16 @@ For structure/template work, `inventory structures --with-templates` is the
 right first call.
 
 For impact analysis, use `inventory where-used` after the resource key is known.
-It gives agents a task-shaped answer to “which Pages use this fragment, widget,
-Structure, Template, or ADT?” before a mutation is proposed.
+It gives agents a task-shaped answer to "which Pages use this fragment, widget,
+Structure, Template, or ADT?" before a mutation is proposed.
 
 Prefer the scoped form with `--site` whenever the Site is already known.
 
-## Decision route
-
-The agent layer follows this rule:
-
-```
-Skills decide what should happen.
-MCP tools execute structured discovery and diagnosis when available.
-CLI remains the source of truth and fallback for every workflow.
-```
-
-For explicit read-only requests that name a visible local `ldev` MCP tool, the
-agent should call that tool directly before bootstrap. Bootstrap is for routing,
-readiness, mutations, and fallback when the MCP tool is not visible.
-
-See [MCP Decision Route](./mcp-decision-route.md) for the maintained
-mapping of MCP tools to CLI fallbacks, and
-[MCP Server Inventory](./mcp-server-inventory.md) for the current and
-candidate tool list.
-
-## Keep skills up to date
-
-After pulling a new version of `ldev`, refresh skills:
-
-```bash
-npx skills add https://github.com/mordonez/ldev
-```
-
-To reinstall the base meta-files with updated content:
-
-```bash
-ldev ai install --target . --force
-```
-
 ## The agent runtime contract
-
-A well-behaved agent follows six phases. Full text in `AGENTS.md` after
-install.
 
 | Phase | When | Commands |
 | --- | --- | --- |
-| Direct MCP fast path | Explicit read-only request has a visible matching local `ldev` MCP tool | Call the MCP tool directly |
-| Pre-flight | Routing, readiness, mutations, or no matching MCP tool | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
+| Pre-flight | Routing, readiness, or mutations | `ldev ai bootstrap --intent=discover --json` or `--intent=develop --json` |
 | Health check | Task touches runtime | `ldev ai bootstrap --intent=deploy --json`, `ldev doctor --json`, `ldev status --json` |
 | Discovery | Task mentions a portal surface | `ldev portal inventory ...` |
 | Pre-mutation check | Before any resource change | `ldev resource import-* --check-only` for supported imports; validate fragment source before `import-fragment` |
@@ -200,6 +118,20 @@ Key invariants (full list in `AGENTS.md → Safety Invariants`):
   imports; prefer read-after-write evidence from `ldev resource` /
   `ldev portal inventory`.
 - Diagnose before retrying a failed command.
+
+## Keep skills up to date
+
+After pulling a new version of `ldev`, refresh skills:
+
+```bash
+npx skills add https://github.com/mordonez/ldev
+```
+
+To reinstall the base meta-files with updated content:
+
+```bash
+ldev ai install --target . --force
+```
 
 ## Why this matters
 

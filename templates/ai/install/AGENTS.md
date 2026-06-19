@@ -19,12 +19,9 @@ Before changing code or runtime state:
    Do not block the task.
 2. Run `ldev doctor --json` only when the task needs extra runtime health,
    installed tooling, browser automation, deploy verification, or diagnosis.
-3. Use local `ldev` MCP tools for structured discovery/diagnosis when they are
-   visible in the active assistant. If they are not visible, continue with the
-   CLI fallback commands in this file; do not block the task.
-4. Read `CLAUDE.md`.
-5. Read the matching skill file directly from `.agents/skills/<skill-name>/SKILL.md` and follow it. Do not rely on any external skill invocation framework or assistant-specific mechanism to load ldev skills.
-6. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
+3. Read `CLAUDE.md`.
+4. Read the matching skill file directly from `.agents/skills/<skill-name>/SKILL.md` and follow it. Do not rely on any external skill invocation framework or assistant-specific mechanism to load ldev skills.
+5. If `.agents/skills/project-issue-engineering/SKILL.md` exists and the task
    mutates code, resources, or runtime state, read it first. A task is
    non-trivial when it touches more than one file, involves any runtime resource,
    or carries reproduction risk (bug fixes, features, migrations). A task scoped
@@ -145,9 +142,7 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
   boundary for the whole task.
 - Use `--cache=60` for read-only bootstrap intents. Omit it only when the task
   explicitly requires fresh runtime or portal state.
-- Prefer the task-shaped public contract first. If the equivalent local `ldev`
-  MCP tool is visible, use it for explicit read-only MCP requests and structured
-  discovery/diagnosis; otherwise use the CLI fallback:
+- Prefer the task-shaped public contract first:
   - `ldev ai bootstrap --intent=discover --cache=60 --json` for read-only discovery
   - `ldev ai bootstrap --intent=develop --cache=60 --json` before code/resource changes
   - `ldev ai bootstrap --intent=deploy --json` before deploy verification
@@ -156,7 +151,6 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
   - `ldev portal inventory ... --json`
   - `ldev logs diagnose --json` for runtime/deploy diagnosis
   - `ldev doctor --json` when runtime or tool readiness matters
-  - `ldev mcp check --json` when MCP is part of the plan
 - For scripting and agents, prefer machine-readable output:
   - `ldev ai bootstrap --intent=develop --cache=60 --json`
   - `ldev doctor --json`
@@ -174,61 +168,6 @@ On Windows Git Bash, protect Liferay friendly URLs such as `/estudis` with
 - Prefix command sequences with an explicit shell-native directory change to the locked worktree root before running discovery, validation, import, deploy, or mutating commands that generate evidence (`cd` in sh/bash/zsh/fish on Linux/macOS, `Set-Location` in PowerShell on Windows).
 - Before reporting any import/deploy/edit as successful, verify in the same locked worktree runtime context (`ldev status --json` and read-after-write evidence).
 - If context appears to point at a different worktree than the locked one, stop and ask for confirmation instead of continuing.
-
-## MCP Usage
-
-There are two different MCP surfaces:
-
-- **Local ldev MCP server:** optional acceleration layer for agent-facing
-  `ldev` workflows.
-- **Liferay portal MCP server:** optional portal feature checked by
-  `ldev mcp check --json`.
-
-Treat local `ldev` MCP as optional. Do not assume it is enabled in every editor
-or assistant. If the tool is visible, prefer it for structured discovery and
-diagnosis; if not, use the CLI fallback and continue. `liferay_osgi_thread_dump`
-writes dump artifacts, so use it only when runtime artifacts are part of the
-diagnosis.
-
-For explicit read-only MCP requests with a visible matching tool, call the tool
-directly before bootstrap. Bootstrap remains the fallback for routing context,
-readiness, mutations, or missing MCP tools.
-
-MCP-to-CLI fallbacks:
-
-- `ldev_context` -> `ldev context --json`
-- `ldev_ai_bootstrap` -> `ldev ai bootstrap --intent <intent> --json`
-- `liferay_check` -> `ldev portal check --json`
-- `ldev_status` -> `ldev status --json`
-- `ldev_logs_diagnose` -> `ldev logs diagnose --since 10m --json`
-- `liferay_inventory_sites` -> `ldev portal inventory sites --json`
-- `liferay_inventory_preflight` -> `ldev portal inventory preflight --json`
-- `liferay_inventory_pages` -> `ldev portal inventory pages --site <site> --json`
-- `liferay_inventory_page` -> `ldev portal inventory page --url <url> --json`
-- `liferay_inventory_where_used` -> `ldev portal inventory where-used --type <type> --key <key> --json`
-- `liferay_inventory_structures` -> `ldev portal inventory structures --site <site> --json`
-- `liferay_inventory_templates` -> `ldev portal inventory templates --site <site> --json`
-- `liferay_deploy_status` -> `ldev deploy status --json`
-- `liferay_osgi_status` -> `ldev osgi status <bundle> --json`
-- `liferay_osgi_diag` -> `ldev osgi diag <bundle> --json`
-- `liferay_osgi_thread_dump` -> `ldev osgi thread-dump --json`
-- `liferay_doctor` -> `ldev doctor --json`
-- `liferay_mcp_check` -> `ldev mcp check --json`
-
-When the user reports that MCP tools are missing or stale, run:
-
-```bash
-ldev mcp doctor --target . --tool all
-```
-
-Keep mutating workflows CLI-first unless a skill explicitly documents a bounded
-MCP mutation path. Skills decide the workflow and guardrails; MCP only executes
-the structured operation when available.
-
-Use the Liferay portal MCP server for generic OpenAPI discovery or endpoint
-execution only when no higher-level `ldev` command covers the portal surface.
-For agents and reusable skills, prefer OAuth2 via `ldev oauth install --write-env`
-instead of MCP Basic auth with a human username/password.
 
 ## Project-Specific Knowledge
 

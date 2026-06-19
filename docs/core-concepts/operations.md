@@ -27,7 +27,7 @@ you cleanly. These are the reason to install it.
 | Local environment bootstrap | `project init` / `start`. Working Docker-based Liferay from zero. |
 | Branch-isolated runtime | `worktree setup --with-env`. Each branch with its own Postgres / Liferay / OSGi state. |
 | OAuth bring-up | `oauth install --write-env`. Bundle deploy + Gogo + token verification + write to local config. |
-| MCP execution layer | `ldev-mcp-server` exposes 18 ldev tools so agents can run real workflows. |
+| Agent skills | Skills installed via `npx skills add` let agents run ldev workflows from within an editor. |
 
 ## The shape layer
 
@@ -111,11 +111,11 @@ The same shape gives agents a predictable contract:
 - mutation: `ldev resource import-*` / `ldev deploy ...`
 - post-mutation verify: read-after-write + `ldev portal check`
 
-See [Agents and MCP](/agentic/) for the full agent contract.
+See [Agent workflows](/agentic/) for the full agent contract.
 
 ## When the shape does not apply
 
 Not every command fits the loop. `project init`, `worktree setup --with-env`,
-`oauth install --write-env`, `ai install` and `ai mcp-setup` are bootstrap
-operations — they prepare the environment so the rest of the loop can run.
-Treat them as setup, not as steps.
+`oauth install --write-env` and `ai install` are bootstrap operations — they
+prepare the environment so the rest of the loop can run. Treat them as setup,
+not as steps.

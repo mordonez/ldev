@@ -37,11 +37,6 @@ vi.mock('../../src/core/platform/process.js', () => ({
   runProcess: runProcessMock,
 }));
 
-vi.mock('../../src/features/mcp-server/mcp-server-setup.js', () => ({
-  MCP_SETUP_TOOLS: [],
-  resolveMcpConfigPath: vi.fn(() => '/unused'),
-}));
-
 const {collectDashboardStatus} = await import('../../src/entrypoints/dashboard/dashboard-data.js');
 
 function normalizeForMatch(value: string): string {

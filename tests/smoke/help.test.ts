@@ -127,7 +127,6 @@ describe('smoke help', () => {
     'worktree',
     'osgi',
     'oauth',
-    'mcp',
     'portal',
     'resource',
     'liferay',
@@ -232,15 +231,6 @@ describe('smoke help', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('--stop-main-for-clone');
     expect(result.stdout).toContain('--restart-main-after-clone');
-  }, 10000);
-
-  test('mcp --help documents the MCP diagnostic flow', async () => {
-    const result = await runCli(['mcp', '--help'], {cwd: CLI_CWD});
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('check');
-    expect(result.stdout).toContain('probe');
-    expect(result.stdout).toContain('openapis');
-    expect(result.stdout).toContain('--authorization-header');
   }, 10000);
 
   test('liferay alias routes to portal (backward compat)', async () => {

@@ -49,15 +49,13 @@ npm run docs:check-links  # Fail on broken internal docs links
 ```
 src/
 ├── index.ts                    # CLI binary entrypoint
-├── mcp-server.ts               # MCP binary entrypoint
 ├── cli/                        # Commander wiring (only place that knows Commander)
-├── entrypoints/                # External runtime surfaces (dashboard, MCP server)
+├── entrypoints/                # External runtime surfaces (dashboard)
 ├── commands/                   # Thin CLI registrations (one folder per namespace)
 │   └── [domain]/               # One folder per command namespace
 ├── features/                   # Business logic per domain
 │   └── [domain]/               # One folder per feature domain
 │       # ai/ = installer for AI tooling into a project
-│       # agent/ = runtime context exposed to ldev's own MCP tools
 ├── core/                       # Shared abstractions (config, http, output, platform, contracts)
 │   ├── config/                 # Project detection and config loading
 │   ├── contracts/              # Versioned schemas for JSON consumed by automation
@@ -75,9 +73,9 @@ These principles describe what the codebase already does. They exist so reviewer
 2. **`cli/` is the only place that knows Commander** — no feature, no entrypoint other than the CLI, may import `commander`.
 3. **`commands/` is thin** — a command file registers options, parses args, and calls one feature function. No business logic, no I/O orchestration.
 4. **`features/` is pure-ish** — features take config and dependencies as parameters, return data, and may have side effects (HTTP, FS, Docker) at the leaves. No feature imports `cli/` or `commands/`.
-5. **`entrypoints/` hosts non-CLI runtime surfaces** — currently dashboard and MCP server. Entrypoints may import `features/` and `core/`. Entrypoints do not import each other and do not import `cli/` or `commands/`.
+5. **`entrypoints/` hosts non-CLI runtime surfaces** — currently the dashboard. Entrypoints may import `features/` and `core/`. Entrypoints do not import each other and do not import `cli/` or `commands/`.
 6. **`core/` is shared infra** — no domain knowledge. Things in `core/contracts/` are versioned in spirit (additive within a major).
-7. **Output is feature-local for text, schema-versioned for JSON consumed by automation** — anything exposed via MCP or dashboard JSON must have a contract under `core/contracts/`.
+7. **Output is feature-local for text, schema-versioned for JSON consumed by automation** — anything exposed via dashboard JSON or CLI `--json` must have a contract under `core/contracts/`.
 8. **Errors carry codes** — per-feature error registries exist for db and deploy. Extend the pattern, do not unify into a global enum.
 9. **Destructive commands support dry-run** — already true for most; make it the default expectation.
 10. **Naming is concrete, not generic** — `liferay-mcp` not `mcp`; `dashboard-task-routes` not `routes`. Avoid `manager`, `handler`, `helper` as suffixes unless there is genuinely no better word.
@@ -135,16 +133,6 @@ Add the command to the appropriate group in `src/cli/command-groups.ts`.
 - Unit test in `tests/unit/` for the feature logic
 - Integration test in `tests/integration/` for CLI execution
 - Smoke test in `tests/smoke/` if it's a user-facing workflow
-
-## How to Expose a Feature via MCP
-
-To add a new MCP tool that wraps an existing (or new) feature:
-
-1. **Create the tool file** at `src/entrypoints/mcp-server/tools/tool-<name>.ts`. The tool file is responsible for parameter validation, calling the feature function, and returning the MCP response.
-2. **Register the tool** in `src/entrypoints/mcp-server/mcp-server-tools.ts` so the MCP server includes it in its tool manifest.
-3. **Keep business logic in `features/`** — the feature function the tool calls must live in `src/features/`. The tool file should be thin (parse → call → return), not a second implementation of the logic.
-4. **Add a contract** under `src/core/contracts/` if the tool returns structured JSON that automation or the dashboard will consume. MCP tool outputs are part of the versioned JSON contract surface.
-5. **Add tests**: a unit test for the feature function and, if the MCP integration path is non-trivial, an integration test that invokes the tool through the server.
 
 ## Conventions
 

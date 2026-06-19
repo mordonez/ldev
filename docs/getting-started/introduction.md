@@ -33,8 +33,7 @@ The docs are organised in three layers:
 2. **Workflows** — full walkthroughs for the things `ldev` is built around:
    resources as files, structure migration, branch-isolated runtimes,
    reproducing production locally.
-3. **Reference and advanced** — flags, configuration, MCP tools, OSGi probes,
-   troubleshooting.
+3. **Reference and advanced** — flags, configuration, OSGi probes, troubleshooting.
 
 If you only have ten minutes, read [What is ldev](/getting-started/what-is-ldev)
 and [Export and Import Resources](/workflows/export-import-resources).
@@ -59,7 +58,7 @@ streaming makes sense). That matters because the same workflow is used by:
 
 - developers running commands by hand
 - scripts in CI
-- AI agents over MCP
+- AI agents using installed skills
 
 The output is identical. You build automation against it the same way you
 read it.
@@ -81,4 +80,4 @@ A few things to set expectations for:
 - [Quickstart](/getting-started/quickstart)
 - [Export and Import Resources](/workflows/export-import-resources)
 - [Resource Migration Pipeline](/workflows/resource-migration-pipeline)
-- [Agents and MCP](/agentic/)
+- [Agent workflows](/agentic/)

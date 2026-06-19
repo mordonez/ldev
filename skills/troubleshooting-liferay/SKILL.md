@@ -87,7 +87,6 @@ Root cause is identified and documented. Route to the fix skill (`developing-lif
 
 - Do not jump straight to rebuild, clean, or restore.
 - Prefer `ldev logs diagnose --json` before raw logs.
-- Use MCP only as an optional read-only diagnosis layer.
 - Do not parse human text when JSON exists.
 - If the issue depends on production data, reproduce that state locally before
   proposing fixes.

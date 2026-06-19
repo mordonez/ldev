@@ -27,7 +27,7 @@ If you want to understand what `ldev` is for, start with:
   migration
 - [Project and AI](/commands/project-and-ai) — project init, ai
   install/update/status/bootstrap
-- [Advanced](/commands/advanced) — OSGi, worktrees, MCP, reindex, search,
+- [Advanced](/commands/advanced) — OSGi, worktrees, portal MCP probe, reindex, search,
   page-layout, theme-check
 
 ## Namespace overview
@@ -50,7 +50,7 @@ Namespaces:
 - `ldev osgi` — Gogo Shell wrappers and runtime diagnostics
 - `ldev worktree` — isolated branch worktrees with their own runtime state
 - `ldev oauth` — OAuth2 app installation
-- `ldev mcp` — local Liferay MCP server inspection
+- `ldev portal mcp` — Liferay portal MCP endpoint probe
 - `ldev project` — project scaffold
 - `ldev ai` — managed AI assets and skills
 
