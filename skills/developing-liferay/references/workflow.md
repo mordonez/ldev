@@ -64,8 +64,9 @@ the workflow administration endpoints. The most reliable approach is the UI:
    enable it.
 
 If you need to script this, first discover the exact workflow OpenAPI exposed by
-the current runtime with `ldev portal mcp openapis --json`. Do not assume a specific
-endpoint name or payload shape without that verification.
+the current runtime by browsing `/o/openapi/` with OAuth credentials from
+`ldev oauth install --write-env`. Do not assume a specific endpoint name or
+payload shape without that verification.
 
 ## Why an article does not appear published after import
 

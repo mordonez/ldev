@@ -128,18 +128,9 @@ curl.exe -s -X POST -H "Authorization: Bearer <token>" -H "Content-Type: applica
 curl.exe -s -H "Authorization: Bearer <token>" "$PortalUrl/o/c/customerrequests/v1.0/<id>"
 ```
 
-Discover available Object APIs from the running portal:
-
-```bash
-# bash/zsh (requires jq)
-ldev portal mcp openapis --json | jq -r '.[] | select(.name | test("^c/")) | .name'
-```
-
-```powershell
-(ldev portal mcp openapis --json | ConvertFrom-Json) |
-  Where-Object { $_.name -match '^c/' } |
-  Select-Object -ExpandProperty name
-```
+Discover available Object APIs from the running portal by browsing `/o/openapi/`
+with OAuth credentials from `ldev oauth install --write-env`. Object routes follow
+the `c/<objectName>/` naming pattern.
 
 ### Pagination
 
@@ -162,18 +153,8 @@ All list endpoints support:
 | `nestedFields` | `nestedFields=relatedObjectName` | Embed related Object entries inline |
 
 Discover the exact supported fields and operations from the running portal
-before scripting against them:
-
-```bash
-# bash/zsh (requires jq)
-ldev portal mcp openapis --json | jq -r '.[] | select(.name | test("object|^c/"; "i")) | .name'
-```
-
-```powershell
-(ldev portal mcp openapis --json | ConvertFrom-Json) |
-  Where-Object { $_.name -match 'object|^c/' } |
-  Select-Object -ExpandProperty name
-```
+before scripting against them by browsing `/o/openapi/` with OAuth credentials
+from `ldev oauth install --write-env`.
 
 ## Object Actions
 

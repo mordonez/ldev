@@ -20,7 +20,7 @@ API covers cleanly:
 - Running one-time cleanup scripts for content that cannot be addressed through the headless API
 
 Do **not** use the portal console to compensate for a missing `ldev resource`
-command. Check `ldev --help` and `ldev portal mcp check --json` first.
+command. Check `ldev --help` first.
 
 ## Gogo shell vs. Groovy console
 
