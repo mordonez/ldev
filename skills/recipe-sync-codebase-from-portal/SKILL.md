@@ -35,6 +35,8 @@ ldev doctor --portal --json
 ldev portal inventory sites --json
 ldev portal inventory structures --all-sites --json
 ldev portal inventory templates --all-sites --json
+ldev portal inventory adts --all-sites --json
+ldev portal inventory fragments --all-sites --json
 ```
 
 Use the inventory output to build the list of (site, key) pairs to export. Do not guess keys from the local filesystem — derive them from the running portal.

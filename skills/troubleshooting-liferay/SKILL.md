@@ -24,7 +24,6 @@ Inspect:
 - `doctor.checks[]`
 - `doctor.readiness.*`
 
-
 ## First Diagnosis Loop
 
 ```bash

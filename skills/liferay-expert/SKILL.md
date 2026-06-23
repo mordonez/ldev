@@ -22,7 +22,6 @@ Use `bootstrap.context` to route:
 - `context.liferay.auth.oauth2.*.status` for configured credentials.
 - `context.paths.resources.*` for local resource directories.
 
-
 ## Resolve Runtime Context
 
 If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [references/portal-discovery.md](references/portal-discovery.md) before searching or editing.

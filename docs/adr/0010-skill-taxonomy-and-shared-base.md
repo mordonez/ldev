@@ -34,7 +34,7 @@ A new skill containing: how to run and interpret `ldev ai bootstrap`, universal 
 
 **Separate `AGENTS.md` from `CONTEXT.md`.** Rejected. `CONTEXT.md` remains the single architecture document. Splitting adds maintenance surface without benefit at current scale.
 
-**Retroactively add prerequisites to existing skills.** Rejected. Existing skills are not touched now; prerequisites are added only when a skill is edited for another reason.
+**Defer prerequisites to existing skills.** Considered but rejected. Adding `ldev-shared` as prerequisite only when skills are edited for another reason would leave the catalogue inconsistent for an indefinite period. Since the review of all existing skills was already in scope, prerequisites and See Also cross-references were applied uniformly in this PR.
 
 ## Consequences
 

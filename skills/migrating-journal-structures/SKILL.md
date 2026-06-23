@@ -37,7 +37,7 @@ Existing-content and new-content validation are both required.
 ldev ai bootstrap --intent=migrate-resources --json
 ```
 
-Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`.
+Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`. If any are missing, stop — the installed `ldev` AI assets are out of sync with the CLI; do not proceed.
 
 ## Pipeline
 

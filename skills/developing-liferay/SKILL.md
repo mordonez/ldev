@@ -23,7 +23,6 @@ Inspect:
 - `context.commands.*`
 - `doctor.readiness.*`
 
-
 ## Discover Before Editing
 
 If the task mentions a site, page, URL, structure, template, ADT, or fragment, resolve it with the portal discovery contract in [references/portal-discovery.md](references/portal-discovery.md) before code search or edits.

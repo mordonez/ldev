@@ -56,6 +56,20 @@ These three commands are not interchangeable:
 
 Use `ldev status` to check if the env is up. Use `ldev doctor` to check if it is healthy. Use `ldev context` when you only need repo metadata and the portal may be down.
 
+## OAuth2 Prerequisite
+
+Most portal and resource commands require OAuth2 credentials. If `context.liferay.auth.oauth2.clientId.status` is not `"present"` after bootstrap, set up credentials before continuing:
+
+```bash
+ldev oauth install --write-env
+```
+
+If the admin account is in password-reset state, unblock it first:
+
+```bash
+ldev oauth admin-unblock
+```
+
 ## Safety Invariants
 
 Follow these on every session:

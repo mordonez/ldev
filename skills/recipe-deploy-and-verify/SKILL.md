@@ -11,7 +11,7 @@ description: 'Deploys a single Liferay module and verifies it is active in OSGi.
 
 The module code is already written. The task is: build, deploy, confirm it is ACTIVE, and confirm no regressions in logs.
 
-For portal resources (structures, templates, ADTs, fragments) use `recipe-resource-import-and-verify` instead.
+For portal resources (structures, templates, ADTs, fragments) use `recipe-resource-import-and-verify` instead. For theme deploys, use `deploying-liferay` directly.
 
 ## Steps
 
