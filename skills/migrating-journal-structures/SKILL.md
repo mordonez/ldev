@@ -5,6 +5,8 @@ description: 'Runs controlled Journal structure/template migrations with descrip
 
 # Migrating Journal Structures
 
+> **Prerequisites:** [`ldev-shared`](../ldev-shared/SKILL.md), [`isolating-worktrees`](../isolating-worktrees/SKILL.md)
+
 Use when a Journal structure change requires migration Liferay cannot handle automatically.
 Plain imports cover more than additive-only changes — read the Hard Gate first.
 
@@ -35,17 +37,11 @@ Existing-content and new-content validation are both required.
 ldev ai bootstrap --intent=migrate-resources --json
 ```
 
-Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`. If any are missing, report that installed `ldev` AI assets are out of sync.
-
-## Isolation
-
-Never run migrations against the main environment. Use `isolating-worktrees`
-first, lock the root, start the worktree runtime, and reproduce there.
+Required fields: `context.paths.resources.migrations`, `context.paths.resources.structures`, and `context.liferay.auth.oauth2.*.status`. If any are missing, stop — the installed `ldev` AI assets are out of sync with the CLI; do not proceed.
 
 ## Pipeline
 
-1. Inspect portal state with `portal inventory structures` and
-   `resource structure`.
+1. Inspect portal state: `ldev portal inventory structures` and `ldev resource structure`.
 
 2. Scaffold, then edit the descriptor:
 
@@ -75,7 +71,7 @@ separate user-confirmed step after read-after-write and render proof.
 
 For descriptor fields, mappings, dry-runs, and validation details, read `references/pipeline.md`.
 
-## Minimum Green
+## Done When
 
 - Migration pipeline completes without unexpected errors.
 - Read-after-write confirms the target structure and templates.
@@ -96,3 +92,8 @@ For descriptor fields, mappings, dry-runs, and validation details, read `referen
 - Do not document migration-pipeline as a mandatory two-run sequence.
 - Treat `--check-only` as plan validation, not persistence proof.
 - Use `../developing-liferay/references/structure-field-catalog.md`.
+
+## See Also
+
+- [`portal-resource-workflow`](../portal-resource-workflow/SKILL.md) — for additive or same-structure changes that do not require migration
+- [`recipe-resource-import-and-verify`](../recipe-resource-import-and-verify/SKILL.md) — for the import + verify loop after migration completes

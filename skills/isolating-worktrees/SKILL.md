@@ -5,6 +5,8 @@ description: 'Use when an ldev-native task needs an isolated worktree with its o
 
 # Isolating Worktrees
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Use this skill for reusable `ldev worktree` setup, edit-root lock, recovery,
 and cleanup.
 
@@ -56,3 +58,8 @@ is verified. Report the locked root to the caller before any further edits.
 
 Read `references/worktree-flow.md` for setup variants, recovery paths,
 inspection, and cleanup details.
+
+## See Also
+
+- [`migrating-journal-structures`](../migrating-journal-structures/SKILL.md) — always requires an isolated worktree before running a migration pipeline
+- [`runtime-change-workflow`](../runtime-change-workflow/SKILL.md) — outer loop that decides when worktree isolation is needed

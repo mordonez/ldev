@@ -5,6 +5,8 @@ description: 'Captures durable project learnings that prevent repeated agent mis
 
 # Capturing Session Knowledge
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Use this skill to distil what the session revealed that a fresh agent should
 know before starting the next one. The goal is to avoid repeating mistakes and
 to carry forward project-specific knowledge that is not obvious from the code.

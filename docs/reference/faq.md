@@ -67,4 +67,4 @@ Because they let you export, review, import, and migrate structures, templates, 
 
 ## How do I set up agent meta-files for a project?
 
-Copy `AGENTS.md` from `docs/ai/` into the project root, create `.claude/skills/`, and run `npx skills add https://github.com/mordonez/ldev`. See [docs/ai/README.md](../ai/README.md) for the full setup steps.
+Copy `AGENTS.md` from `docs/ai/` into the project root, create `.claude/skills/`, and run `npx skills add https://github.com/mordonez/ldev`. See [do../ai/index.md](../ai/index.md) for the full setup steps.

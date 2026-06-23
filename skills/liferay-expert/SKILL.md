@@ -5,6 +5,8 @@ description: 'Routes technical Liferay work to the right ldev specialist workflo
 
 # Liferay Expert
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 This is the domain router for reusable `ldev` Liferay workflows. Classify quickly and hand off; deep playbooks live in specialist skills.
 
 ## Bootstrap
@@ -19,8 +21,6 @@ Use `bootstrap.context` to route:
 - `context.liferay.portalUrl` for the effective local portal URL.
 - `context.liferay.auth.oauth2.*.status` for configured credentials.
 - `context.paths.resources.*` for local resource directories.
-
-If required fields are missing, stop and report that the installed `ldev` AI assets are out of sync with the CLI.
 
 ## Resolve Runtime Context
 

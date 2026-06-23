@@ -5,6 +5,8 @@ description: 'Guides implementation changes in Liferay projects that run with ld
 
 # Developing Liferay
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Use this skill after the affected surface is clear. For issue-scale work, the outer gate owner should be `runtime-change-workflow`.
 
 ## Bootstrap
@@ -20,8 +22,6 @@ Inspect:
 - `context.liferay.auth.oauth2.*.status`
 - `context.commands.*`
 - `doctor.readiness.*`
-
-If these fields are missing, stop and report that the installed `ldev` AI assets are out of sync with the CLI.
 
 ## Discover Before Editing
 
@@ -67,7 +67,7 @@ Prefer `--site` by default so discovery stays fast and scoped to the Site you ar
 For production promotion notes for runtime-backed resources, use
 `references/runtime-resource-production-handoff.md`.
 
-## Minimum Verification
+## Done When
 
 - Changed artifact builds, imports, or validates successfully.
 - Fresh logs do not show the original error pattern.
@@ -83,3 +83,9 @@ For production promotion notes for runtime-backed resources, use
 - Do not guess IDs, keys, site names, or property keys when `ldev` can resolve them.
 - Before deployment or runtime proof, switch to `deploying-liferay` when that is
   the only remaining work.
+
+## See Also
+
+- [`deploying-liferay`](../deploying-liferay/SKILL.md) — when implementation is done and the remaining task is runtime proof
+- [`portal-resource-workflow`](../portal-resource-workflow/SKILL.md) — for structures, templates, ADTs, and fragments
+- [`runtime-change-workflow`](../runtime-change-workflow/SKILL.md) — outer Red → Green loop for non-trivial mutating work

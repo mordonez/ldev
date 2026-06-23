@@ -174,6 +174,7 @@ Architecture Decision Records in `docs/adr/`. Read before changing the patterns 
 | [0007](docs/adr/0007-sync-engine-strategy.md) | ImportEngine/ImportStrategy for resource sync |
 | [0008](docs/adr/0008-remove-mcp-server.md) | Remove ldev MCP server; cli+skills is the agent integration path |
 | [0009](docs/adr/0009-remove-ai-install.md) | Remove `ldev ai install`; skills delivered via copy-paste or `npx skills add` |
+| [0010](docs/adr/0010-skill-taxonomy-and-shared-base.md) | Skill taxonomy: Workflow vs Recipe, and `ldev-shared` as shared base skill |
 
 ## Output And Error Contracts
 

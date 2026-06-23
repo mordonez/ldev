@@ -5,6 +5,8 @@ description: 'Diagnoses unhealthy or incorrect local Liferay runtimes before pro
 
 # Troubleshooting Liferay
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Use this skill for diagnosis first, not speculative fixes. After the root cause
 is known, switch to the workflow that owns the fix path.
 
@@ -21,9 +23,6 @@ Inspect:
 - `context.liferay.auth.oauth2.*.status`
 - `doctor.checks[]`
 - `doctor.readiness.*`
-
-If these fields are missing, stop and report that the installed `ldev` AI assets
-are out of sync with the CLI.
 
 ## First Diagnosis Loop
 
@@ -91,3 +90,9 @@ Root cause is identified and documented. Route to the fix skill (`developing-lif
 - If the issue depends on production data, reproduce that state locally before
   proposing fixes.
 - If isolation matters, use `isolating-worktrees` instead of ad hoc branch switching.
+
+## See Also
+
+- [`developing-liferay`](../developing-liferay/SKILL.md) — once root cause is known and implementation is needed
+- [`portal-resource-workflow`](../portal-resource-workflow/SKILL.md) — if root cause is a stale or incorrect portal resource
+- [`isolating-worktrees`](../isolating-worktrees/SKILL.md) — when the incident needs isolation from the main runtime

@@ -5,6 +5,8 @@ description: 'Changes Liferay portal resources through the canonical ldev file-b
 
 # Portal Resource Workflow
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Owns the canonical file-backed workflow for structures, templates, ADTs, and
 fragments. Deploy commands do not apply these resources.
 
@@ -59,9 +61,6 @@ plain import — Liferay handles it automatically. Only route to
 `migrating-journal-structures` when saved values must appear at a new field
 path in a different structure or under a renamed field.
 
-When editing a Journal structure, every new field must also be placed in
-`defaultDataLayout` at the requested visual position.
-
 ## 4. Validate And Apply
 
 Use the mutation gates in
@@ -76,25 +75,26 @@ ldev resource import-adt --site /<site> --file <path> --widget-type <type>
 ldev resource import-fragment --site /<site> --fragment <KEY>
 ```
 
-On Windows, run `/site` arguments from PowerShell argv arrays or set
-`MSYS_NO_PATHCONV=1` in Git Bash. A rewritten value like
-`C:/Program Files/Git/<site>` is shell path conversion, not a Liferay site.
+## Done When
 
-For fragments, a read-back/hash mismatch is not a request to update a checksum
-file. It means the runtime content returned after import differs from the local
-fragment source; verify the active source directory, key, site, and normalized
-html/css/js/configuration before changing anything else. Do not search hidden
-ldev/editor caches or `fragment.json` for a hash, and do not look for a force
-flag.
+- Imported resource reads back from the portal matching the expected change.
+- `ldev portal check --json` and `ldev logs diagnose --since 5m --json` are clean.
+- Browser validation passes for any visible behavior change.
+- For structure authoring changes: both existing-content visibility and a new-content scenario with the new field shape are proven.
 
-## 5. Prove Green
+## Guardrails
 
-- Read back the changed resource with `ldev resource structure/template/adt` or
-  a focused export.
-- Run `ldev portal check --json` and `ldev logs diagnose --since 5m --json`.
-- For visible behavior, validate the affected local URL in the browser.
-- For structure authoring changes, prove both existing-content visibility and a
-  saved new-content scenario that exercises the new field shape. Editor labels
-  or duplicate buttons alone are not Green.
+- Always export the current version before editing — never edit a local file you haven't exported first.
+- Always run `--check-only` before any resource import.
+- Do not use deploy commands for structures, templates, ADTs, or fragments.
+- Resolve origin site from the portal inventory before editing. Do not assume from filesystem layout.
+- For cross-site ambiguity, resolve the source-of-truth site before touching any file.
+- On Windows, set `MSYS_NO_PATHCONV=1` in Git Bash to prevent `/site` path conversion.
+- A fragment read-back/hash mismatch means the runtime content differs from local source; verify source directory, key, site, and normalized html/css/js before changing anything else.
+- Always place new Journal structure fields in `defaultDataLayout` at the requested visual position. Editor labels or duplicate buttons alone are not Green — prove a saved new-content scenario.
 
-Do not claim Green from import success alone.
+## See Also
+
+- [`recipe-resource-import-and-verify`](../recipe-resource-import-and-verify/SKILL.md) — recipe for the focused import + verify loop
+- [`recipe-sync-codebase-from-portal`](../recipe-sync-codebase-from-portal/SKILL.md) — recipe for exporting all resources from a restored prod DB
+- [`migrating-journal-structures`](../migrating-journal-structures/SKILL.md) — for field renames, type changes, and cross-structure moves
