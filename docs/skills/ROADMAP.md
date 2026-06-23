@@ -23,13 +23,13 @@ Priority meanings:
 
 ### 1. Headless API — discovery without an operational contract
 
-`ldev portal mcp openapis --json` is mentioned but no guidance on what to do with it:
+Browsing `/o/openapi/` with OAuth credentials is mentioned but no guidance on what to do with it:
 
 - Common endpoints and their purpose: `headless-admin-user`, `headless-delivery`,
   `headless-admin-content`, `object-admin`, `headless-batch-engine`
 - Pagination: `page`, `pageSize`, `totalCount`, `lastPage`
 - Authentication: Basic (manual test) vs. Bearer OAuth (agents and scripts)
-- How to go from `ldev portal mcp openapis --json` → spec → working endpoint
+- How to go from `/o/openapi/` → spec → working endpoint
 - Common filters and sorts (`filter`, `search`, `sort`)
 
 **Where:** `developing-liferay/references/headless-api.md`

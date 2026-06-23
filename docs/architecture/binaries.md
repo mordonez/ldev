@@ -59,7 +59,6 @@ The Commander CLI. The only binary that exposes ldev's functionality interactive
 - All of `src/features/` (business logic)
 - All of `src/core/` (shared abstractions)
 - `commander` (Commander.js)
-- `@modelcontextprotocol/sdk` **client** imports — acceptable because `ldev portal mcp check/probe/openapis` are MCP _clients_ that talk to Liferay's MCP endpoint. The SDK client code in `dist/index.js` is intentional.
 - Dashboard HTTP server code is **lazy-loaded** via the `ldev dashboard` subcommand. The dashboard's runtime deps (e.g., `hono` overrides) are only imported when the command executes.
 
 ### What must NOT be bundled

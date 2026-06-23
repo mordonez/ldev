@@ -131,7 +131,6 @@ entrypoints/  (dashboard)    cli/
 | `commands/doctor/` | `ldev doctor` | Environment diagnostics |
 | `commands/env/` | `ldev env` | Advanced Docker lifecycle operations |
 | `commands/liferay/` | `ldev liferay` | Portal API tooling (inventory, audit, resources) |
-| `commands/liferay/` (mcp subcommand) | `ldev portal mcp` | Liferay portal MCP probe (check/probe/openapis) |
 | `commands/oauth/` | `ldev oauth` | OAuth2 bundle install |
 | `commands/osgi/` | `ldev osgi` | OSGi diagnostics |
 | `commands/project/` | `ldev project` | Project scaffolding |

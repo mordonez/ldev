@@ -79,29 +79,6 @@ ldev worktree btrfs-refresh-base
 
 Re-seeds `BTRFS_BASE` from the current main env data root. `env restore` uses this as the source when available.
 
-## Portal MCP probe
-
-Inspect Liferay portal MCP endpoint availability.
-
-```bash
-ldev portal mcp check --json
-ldev portal mcp probe --json
-ldev portal mcp openapis --json
-```
-
-- `check` — detect endpoint candidates and feature flag state on the portal
-- `probe` — run a real MCP initialize handshake against the portal
-- `openapis` — call the portal MCP `get-openapis` tool after initialize
-
-Auth options:
-
-```bash
-ldev portal mcp probe --authorization-header 'Basic ...'
-ldev portal mcp probe --username admin --password '***'
-```
-
-Environment fallbacks: `LIFERAY_MCP_AUTHORIZATION_HEADER`, `LIFERAY_MCP_USERNAME`, `LIFERAY_MCP_PASSWORD`.
-
 ## Reindex
 
 Inspect or temporarily tune portal reindex execution.

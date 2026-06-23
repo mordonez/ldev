@@ -50,7 +50,6 @@ Namespaces:
 - `ldev osgi` — Gogo Shell wrappers and runtime diagnostics
 - `ldev worktree` — isolated branch worktrees with their own runtime state
 - `ldev oauth` — OAuth2 app installation
-- `ldev portal mcp` — Liferay portal MCP endpoint probe
 - `ldev project` — project scaffold
 - `ldev ai` — managed AI assets and skills
 
