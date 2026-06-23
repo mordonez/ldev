@@ -5,6 +5,8 @@ description: 'Runs Playwright-based checks and captures visual evidence against 
 
 # Automating Browser Tests
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Use `ldev` for portal discovery and runtime state, and `playwright-cli` for
 browser actions. Read [references/browser-automation.md](references/browser-automation.md) for exact command syntax, browser
 installation, login scripts, page layout mutations, mobile viewports, and
@@ -75,3 +77,8 @@ validates the targeted behavior. Report evidence paths to the caller.
 - Keep browser commands sequential per session.
 - If Chrome is unavailable but another browser works, report that explicitly.
 - If a session reports `session-busy`, wait and retry sequentially.
+
+## See Also
+
+- [`deploying-liferay`](../deploying-liferay/SKILL.md) — verify module or theme state before opening a browser
+- [`portal-resource-workflow`](../portal-resource-workflow/SKILL.md) — for resource-level validation before browser proof

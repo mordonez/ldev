@@ -5,6 +5,8 @@ description: 'Runs the canonical reproducible Red -> Green loop for mutating lde
 
 # Runtime Change Workflow
 
+> **Prerequisite:** [`ldev-shared`](../ldev-shared/SKILL.md)
+
 Owns the reusable gate order for mutating work. Project skills may add naming,
 issue artifacts, reviewers, or handoff rules, but they must not redefine these
 technical gates.
