@@ -1,9 +1,9 @@
 # Boundary Rules
 
-Use this reference only when you need to decide whether `issue-engineering`
+Use this reference only when you need to decide whether `project-issue-engineering`
 owns a step or whether the work belongs in a vendor skill.
 
-## What stays in issue-engineering
+## What stays in project-issue-engineering
 
 - issue intake and scope notes
 - issue naming conventions for branches or worktrees

@@ -1,5 +1,5 @@
 ---
-name: issue-engineering
+name: project-issue-engineering
 description: 'Wraps reusable ldev workflows with project issue intake, artifacts, review expectations, and handoff. Use when non-trivial repository issue work mutates code, resources, or runtime state.'
 ---
 
