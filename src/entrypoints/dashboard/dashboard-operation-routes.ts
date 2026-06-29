@@ -6,7 +6,8 @@ import {formatDeployStatus, runDeployStatus} from '../../features/deploy/deploy-
 import {formatDoctor, runDoctor} from '../../features/doctor/doctor.service.js';
 import {runEnvRecreate, formatEnvRecreate} from '../../features/env/env-recreate.js';
 import {runEnvRestart, formatEnvRestart} from '../../features/env/env-restart.js';
-import {runEnvStart} from '../../features/env/env-start.js';
+import {formatEnvRestore, runEnvRestore} from '../../features/env/env-restore.js';
+import {formatEnvStart, runEnvStart} from '../../features/env/env-start.js';
 import {runEnvStop} from '../../features/env/env-stop.js';
 import {formatOAuthInstall, runOAuthInstall} from '../../features/oauth/oauth-install.js';
 import {runWorktreeClean} from '../../features/worktree/worktree-clean.js';
@@ -60,6 +61,8 @@ const QUEUED_OPERATION_RUNNERS: Partial<Record<DashboardOperationKey, QueuedOper
     runWorktreeOAuthInstall(deps.worktrees, requireWorktreeName(operation), printer),
   'worktree-repair': (operation, deps, printer, signal) =>
     runRepairOperation(deps.worktrees, requireWorktreeName(operation), operation.repairAction!, printer, signal),
+  'worktree-restore': (operation, deps, printer, signal) =>
+    runRestoreOperation(deps.worktrees, requireWorktreeName(operation), printer, signal),
   'worktree-start': (operation, deps, printer, signal) =>
     runWorktreeStart(deps.worktrees, requireWorktreeName(operation), printer, signal),
   'worktree-stop': (operation, deps, printer, signal) =>
@@ -238,6 +241,19 @@ async function previewDoctorOperation(resolver: DashboardWorktreeResolver, workt
     env: process.env,
     scopes: ['basic', 'runtime', 'portal'],
   });
+}
+
+async function runRestoreOperation(
+  resolver: DashboardWorktreeResolver,
+  worktreeName: string,
+  printer: Printer,
+  signal: AbortSignal,
+): Promise<void> {
+  const config = await resolver.resolveConfig(worktreeName);
+  const restoreResult = await runEnvRestore(config, {printer});
+  writeTaskLines(printer, formatEnvRestore(restoreResult));
+  const startResult = await runEnvStart(config, {printer, signal});
+  writeTaskLines(printer, formatEnvStart(startResult));
 }
 
 async function runRepairOperation(

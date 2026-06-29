@@ -24,7 +24,7 @@ import {cx} from '../lib/cx.js';
 import {CopyBtn} from './copy-btn.jsx';
 import {StatusPill} from './status-pill.jsx';
 
-export function DetailSheet({wt, tasks, onClose, onAction, onDb, onLogs, onResource, onDelete, onCopy, copiedPath}) {
+export function DetailSheet({wt, tasks, onClose, onAction, onDb, onLogs, onResource, onDelete, onRestore, onCopy, copiedPath}) {
   const running = isRunning(wt);
   const reasons = attentionReasons(wt);
   const ab = wt.aheadBehind || {};
@@ -244,6 +244,13 @@ export function DetailSheet({wt, tasks, onClose, onAction, onDb, onLogs, onResou
               {wt.env && (
                 <button class="btn" type="button" onClick={() => onAction(wt.name, 'recreate', null)}>
                   <IconRotateCcw size={14} />Recreate
+                </button>
+              )}
+              {wt.env && (
+                <button class="btn" type="button"
+                  style={{color: 'var(--red)'}}
+                  onClick={() => { onClose(); onRestore(wt.name); }}>
+                  <IconRotateCcw size={14} />Restore
                 </button>
               )}
               {!wt.isMain && (

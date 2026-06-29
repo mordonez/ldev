@@ -26,6 +26,7 @@ const ACTION_BUTTONS: Partial<Record<string, Pick<WorktreeButton, 'className' | 
   delete: {className: 'btn-delete', label: 'Delete', target: 'delete'},
   'oauth-install': {className: 'btn-ghost', label: 'OAuth install', target: 'action'},
   recreate: {className: 'btn-ghost', label: 'Recreate', target: 'action'},
+  restore: {className: 'btn-ghost', label: 'Restore', target: 'restore'},
   start: {className: 'btn-start', label: 'Start', target: 'action'},
   stop: {className: 'btn-stop', label: 'Stop', target: 'action'},
 };

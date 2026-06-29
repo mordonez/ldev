@@ -32,6 +32,7 @@ const ACTION_ICONS = {
   doctor: <IconSearch size={12} />,
   recreate: <IconRotateCcw size={12} />,
   restart: <IconPlay size={12} />,
+  restore: <IconRotateCcw size={12} />,
   start: <IconPlay size={12} />,
   stop: <IconSquare size={12} />,
 };
@@ -45,7 +46,7 @@ function actionIcon(action) {
   return null;
 }
 
-export function WorktreeCard({onAction, onCopy, onDelete, onDb, onLogs, onResource, onSelect, tasks, wt}) {
+export function WorktreeCard({onAction, onCopy, onDelete, onDb, onLogs, onResource, onRestore, onSelect, tasks, wt}) {
   const presentation = buildWorktreePresentation(wt, tasks);
   const running = isRunning(wt);
   const isStarting = isWorktreeStarting(tasks, wt.name);
@@ -143,7 +144,7 @@ export function WorktreeCard({onAction, onCopy, onDelete, onDb, onLogs, onResour
           </button>
         )}
         <MoreMenu actions={presentation.advancedActions} wt={wt}
-          onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} />
+          onAction={onAction} onDb={onDb} onDelete={onDelete} onLogs={onLogs} onResource={onResource} onRestore={onRestore} />
       </div>
     </article>
   );
@@ -186,7 +187,7 @@ function CopyPathBtn({path, onCopy}) {
   );
 }
 
-function MoreMenu({actions, wt, onAction, onDb, onDelete, onLogs, onResource}) {
+function MoreMenu({actions, wt, onAction, onDb, onDelete, onLogs, onResource, onRestore}) {
   const detailsRef = useRef(null);
 
   useEffect(() => {
@@ -216,6 +217,7 @@ function MoreMenu({actions, wt, onAction, onDb, onDelete, onLogs, onResource}) {
     else if (action.target === 'resource') onResource(wt.name);
     else if (action.target === 'logs') onLogs(wt.name);
     else if (action.target === 'delete') onDelete(wt.name, wt.branch);
+    else if (action.target === 'restore') onRestore(wt.name);
   };
 
   return (

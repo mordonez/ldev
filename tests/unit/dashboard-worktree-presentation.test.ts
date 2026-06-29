@@ -50,6 +50,7 @@ describe('buildWorktreePresentation', () => {
       'Deploy status',
       'Cache update',
       'Recreate',
+      'Restore',
       'Delete',
     ]);
   });

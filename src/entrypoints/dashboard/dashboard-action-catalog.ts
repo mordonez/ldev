@@ -8,6 +8,7 @@ export type DashboardOperationKey =
   | 'worktree-env-init'
   | 'worktree-oauth-install'
   | 'worktree-repair'
+  | 'worktree-restore'
   | 'worktree-start'
   | 'worktree-stop';
 

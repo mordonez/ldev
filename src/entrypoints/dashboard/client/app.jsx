@@ -170,6 +170,7 @@ function App() {
                     onDelete={actions.deleteWorktree}
                     onLogs={actions.openLogs}
                     onResource={actions.openResourceModal}
+                    onRestore={actions.restoreWorktree}
                     onSelect={setSelectedWt}
                     tasks={tasks}
                     wt={wt}
@@ -196,6 +197,7 @@ function App() {
           onDelete={(name, branch) => { setSelectedWt(null); actions.deleteWorktree(name, branch); }}
           onLogs={actions.openLogs}
           onResource={actions.openResourceModal}
+          onRestore={(name) => { setSelectedWt(null); actions.restoreWorktree(name); }}
           tasks={tasks}
           wt={sheetWt}
         />

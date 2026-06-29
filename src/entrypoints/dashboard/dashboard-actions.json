@@ -66,6 +66,15 @@
     "taskKind": "env-recreate"
   },
   {
+    "id": "restore",
+    "key": "worktree-restore",
+    "label": "Restoring environment for {worktree}",
+    "method": "POST",
+    "queueAction": "restore",
+    "route": "/api/worktrees/{worktree}/env/restore",
+    "taskKind": "env-restore"
+  },
+  {
     "id": "deploy-status",
     "deployAction": "status",
     "key": "worktree-deploy",
