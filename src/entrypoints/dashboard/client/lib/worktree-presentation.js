@@ -90,6 +90,10 @@ function worktreeActions(wt, running, stopped, primary, busy, activeWorktreeTask
         disabled: busyWorktree,
         label: busyWorktree ? busyLabel : 'Recreate',
       }),
+      worktreeButton('restore', {
+        disabled: busyWorktree,
+        label: busyWorktree ? busyLabel : 'Restore',
+      }),
     );
   }
 

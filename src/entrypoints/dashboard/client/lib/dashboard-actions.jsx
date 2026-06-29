@@ -17,6 +17,7 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
   const [dbWorktree, setDbWorktree] = useState(null);
   const [deleteModal, setDeleteModal] = useState(null);
   const [infoModal, setInfoModal] = useState(null);
+  const [restoreModal, setRestoreModal] = useState(null);
   const [logModal, setLogModal] = useState(null);
   const [logText, setLogText] = useState('');
   const [resourceWorktree, setResourceWorktree] = useState(null);
@@ -125,6 +126,24 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
     return true;
   };
 
+  const restoreWorktree = (name) => {
+    setRestoreModal({name, busy: false});
+  };
+
+  const confirmRestoreWorktree = async () => {
+    if (!restoreModal?.name || restoreModal.busy) return;
+    setRestoreModal((current) => (current ? {...current, busy: true} : current));
+    try {
+      await postJson(actionUrl(restoreModal.name, 'restore'));
+      setRestoreModal(null);
+      showToast(`Queued: restore ${restoreModal.name}`);
+      setTimeout(fetchStatus, 400);
+    } catch (err) {
+      setRestoreModal((current) => (current ? {...current, busy: false} : current));
+      showToast(`Error: ${String(err.message || err)}`);
+    }
+  };
+
   const confirmDeleteWorktree = async () => {
     if (!deleteModal?.name || deleteModal.busy) {
       return;
@@ -159,15 +178,19 @@ export function useDashboardActions({fetchStatus, postJson, showToast}) {
     dbWorktree,
     deleteModal,
     deleteWorktree,
-    hasOpenModal: Boolean(dbWorktree || deleteModal || infoModal || logModal || resourceWorktree),
+    hasOpenModal: Boolean(dbWorktree || deleteModal || infoModal || logModal || resourceWorktree || restoreModal),
     infoModal,
     logModal,
     logText,
+    closeRestoreModal: () => setRestoreModal(null),
+    confirmRestoreWorktree,
     openDbModal: setDbWorktree,
     openDoctor,
     openLogs,
     openResourceModal: setResourceWorktree,
     resourceWorktree,
+    restoreModal,
+    restoreWorktree,
     runAction,
     setDeleteModal,
   };
@@ -206,6 +229,12 @@ export function DashboardActionModals({actions, postJson, showToast}) {
           actions.setDeleteModal((current) => (current ? {...current, deleteBranch: checked} : current))
         }
         value={actions.deleteModal}
+      />
+      <RestoreWorktreeModal
+        isOpen={Boolean(actions.restoreModal)}
+        onClose={actions.closeRestoreModal}
+        onConfirm={actions.confirmRestoreWorktree}
+        value={actions.restoreModal}
       />
       <Modal
         footer={`${actions.logText.split('\n').filter(Boolean).length} lines`}
@@ -264,6 +293,34 @@ function DeleteWorktreeModal({isOpen, onClose, onConfirm, onToggleDeleteBranch, 
           </button>
           <button class="btn-primary btn-danger" disabled={value.busy} type="submit">
             {value.busy ? 'Queueing...' : 'Delete worktree'}
+          </button>
+        </div>
+      </form>
+    </ModalFrame>
+  );
+}
+
+function RestoreWorktreeModal({isOpen, onClose, onConfirm, value}) {
+  if (!isOpen || !value) return null;
+
+  return (
+    <ModalFrame maxWidth="560px" onClose={value.busy ? () => {} : onClose} subtitle={value.name} title="Restore environment">
+      <form
+        class="create-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void onConfirm();
+        }}
+      >
+        <div class="field-hint">
+          This will replace all environment data (database, Liferay data, Elasticsearch, Document Library) with data from the main environment. The environment will restart automatically. This action cannot be undone.
+        </div>
+        <div class="create-actions">
+          <button class="btn-secondary" disabled={value.busy} type="button" onClick={onClose}>
+            Cancel
+          </button>
+          <button class="btn-primary btn-danger" disabled={value.busy} type="submit">
+            {value.busy ? 'Queueing...' : 'Restore environment'}
           </button>
         </div>
       </form>
