@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.2](https://github.com/mordonez/ldev/compare/ldev-v0.9.1...ldev-v0.9.2) (2026-06-29)
+
+
+### Bug Fixes
+
+* remove stale ldev portal mcp references from developing-liferay skills ([2a1ab94](https://github.com/mordonez/ldev/commit/2a1ab945b6746843cc14f23e0eb34bd2469dcc09))
+* remove stale ldev portal mcp references from docs ([e3f34c0](https://github.com/mordonez/ldev/commit/e3f34c00997d57426269201cfca0cb7ab1eb61c6))
+* update stale sync comment path in AGENTS.workspace.md ([4044126](https://github.com/mordonez/ldev/commit/4044126af9f3a0d4ef38890abfb7627d981b1226))
+
 ## [0.9.1](https://github.com/mordonez/ldev/compare/ldev-v0.9.0...ldev-v0.9.1) (2026-06-16)
 
 
