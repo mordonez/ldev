@@ -54,7 +54,7 @@ Then create `.claude/skills/` so `npx skills add` can place Claude Code symlinks
 mkdir -p .claude/skills
 ```
 
-See [`docs/ai/`](/ai/) for full setup instructions. In Blade workspaces, `ldev` coexists with the official AI folders rather than replacing them.
+See [`docs/ai/`](/ai/AGENTS) for full setup instructions. In Blade workspaces, `ldev` coexists with the official AI folders rather than replacing them.
 
 ## Context snapshots
 
