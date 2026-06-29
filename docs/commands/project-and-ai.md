@@ -75,4 +75,4 @@ prefer the global form `ldev --repo-root <path> ai bootstrap ...`.
 ldev ai bootstrap --intent=develop --cache=60 --json
 ```
 
-To set up agent meta-files (`AGENTS.md`, `CLAUDE.md`, etc.) and skills in a project, see [`docs/ai/`](../ai/README.md).
+To set up agent meta-files (`AGENTS.md`, `CLAUDE.md`, etc.) and skills in a project, see [`docs/ai/`](/ai/AGENTS).
