@@ -26,7 +26,13 @@ export function createPrinter(format: OutputFormat): Printer {
       }
 
       if (format === 'ndjson') {
-        process.stdout.write(`${JSON.stringify(value)}\n`);
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            process.stdout.write(`${JSON.stringify(item)}\n`);
+          }
+        } else {
+          process.stdout.write(`${JSON.stringify(value)}\n`);
+        }
         return;
       }
 
