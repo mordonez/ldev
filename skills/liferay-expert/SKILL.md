@@ -36,6 +36,14 @@ If the task mentions a site, page, URL, structure, template, ADT, or fragment, r
 - Journal structure field rename, type change, cross-structure move, or repeatability conversion where saved values must move -> `migrating-journal-structures` (same-structure reorganizations with unchanged field `name` values are plain imports handled by `portal-resource-workflow`)
 - Browser reproduction or visual proof -> `automating-browser-tests`
 
+**Action-level shortcuts (use directly for quick targeted operations):**
+- Portal auth + connectivity check only -> `ldev-portal-health`
+- Discover what sites, structures, templates, fragments, or ADTs exist -> `ldev-portal-inventory`
+- Monitor or accelerate a reindex -> `ldev-reindex`
+- Diagnose OSGi bundle failures or hanging portal -> `ldev-osgi-debug`
+- Read or export one portal resource (structure/template/ADT/fragment) -> `ldev-resource-read`
+- Resolve auth or site before any portal command -> `liferay-discovery`
+
 For deeper routing examples, read `references/routing.md`. For Display Page Templates, Navigation Menus, multi-site ownership, and content volume checks, read `references/site-objects.md`.
 
 ## Command Boundaries
