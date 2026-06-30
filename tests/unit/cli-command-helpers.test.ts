@@ -12,7 +12,11 @@ import type {CommandContext} from '../../src/cli/command-context.js';
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {ProjectContext} from '../../src/core/config/project-context.js';
 
-const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): CommandContext => ({
+const createMockContext = (
+  format: 'text' | 'json' | 'ndjson',
+  strict = false,
+  fields: string[] = [],
+): CommandContext => ({
   cwd: '/repo',
   config: {} as AppConfig,
   project: {} as ProjectContext,
@@ -23,6 +27,7 @@ const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): 
     info: vi.fn(),
   },
   strict,
+  fields,
 });
 
 describe('addOutputFormatOption', () => {
@@ -160,6 +165,22 @@ describe('renderCommandResult', () => {
       ok: true,
       data: {data: 'result'},
     });
+  });
+
+  test('applies --fields projection before writing JSON output', () => {
+    const mockContext = createMockContext('json', false, ['id', 'name']);
+
+    renderCommandResult(mockContext, {id: 1, name: 'Site A', url: '/a'});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({id: 1, name: 'Site A'});
+  });
+
+  test('applies --fields projection after json render transform', () => {
+    const mockContext = createMockContext('json', false, ['name']);
+
+    renderCommandResult(mockContext, {raw: true}, {json: () => ({id: 1, name: 'Site A', url: '/a'})});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({name: 'Site A'});
   });
 });
 

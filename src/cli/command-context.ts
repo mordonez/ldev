@@ -12,6 +12,7 @@ export type CommandContext = {
   project: ProjectContext;
   printer: Printer;
   strict: boolean;
+  fields: string[];
 };
 
 type CommandContextOptions = {
@@ -21,6 +22,7 @@ type CommandContextOptions = {
   strict?: boolean;
   json?: boolean;
   ndjson?: boolean;
+  fields?: string;
   liferayUrl?: string;
   liferayClientId?: string;
   liferayClientSecret?: string;
@@ -45,6 +47,7 @@ export function createCommandContext(options?: CommandContextOptions): CommandCo
   const resolvedFormat = resolveOutputFormatOption(options);
   const format = outputFormatSchema.parse(resolvedFormat);
   const strict = resolveStrictMode(options);
+  const fields = resolveFields(options);
 
   return {
     cwd,
@@ -52,6 +55,7 @@ export function createCommandContext(options?: CommandContextOptions): CommandCo
     project,
     printer: createPrinter(format),
     strict,
+    fields,
   };
 }
 
@@ -63,6 +67,15 @@ export function resolveCommandRoot(
   const repoRootOverride = resolveRepoRootOverride(options?.repoRoot, argv, env);
 
   return repoRootOverride || options?.cwd || process.cwd();
+}
+
+function resolveFields(options?: {fields?: string}): string[] {
+  const raw = options?.fields?.trim() ?? '';
+  if (raw === '') return [];
+  return raw
+    .split(',')
+    .map((f) => f.trim())
+    .filter(Boolean);
 }
 
 function resolveStrictMode(options?: {strict?: boolean}): boolean {
