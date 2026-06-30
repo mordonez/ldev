@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portal Inventory"
+  short_description: "List and resolve Liferay portal resources: sites, structures, templates, pages, fragments, ADTs. Use when discovering what exists in the portal or resolving a key before editing."
+  default_prompt: "Use $ldev-portal-inventory to list portal resources and resolve site friendly URLs, structure keys, template keys, or fragment keys before editing or importing."

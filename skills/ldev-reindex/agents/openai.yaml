@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reindex"
+  short_description: "Monitor, accelerate, and manage Elasticsearch reindex operations. Use when a Liferay reindex is needed, running, stalled, or search results are stale."
+  default_prompt: "Use $ldev-reindex to check reindex status, accelerate a new reindex, or monitor reindex progress."
