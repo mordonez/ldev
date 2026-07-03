@@ -1,4 +1,4 @@
-import type {Command} from 'commander';
+import {InvalidArgumentError, type Command} from 'commander';
 
 import {
   collectRepeatableOption,
@@ -32,6 +32,16 @@ import {
   formatLiferayResourceImportTemplate,
   runLiferayResourceImportTemplate,
 } from '../../features/liferay/resource/liferay-resource-import-template.js';
+
+type FragmentImportTransport = 'auto' | 'jsonws' | 'deploy-zip';
+
+function parseFragmentImportTransport(value: string): FragmentImportTransport {
+  if (value === 'auto' || value === 'jsonws' || value === 'deploy-zip') {
+    return value;
+  }
+
+  throw new InvalidArgumentError('Expected one of: auto, jsonws, deploy-zip');
+}
 
 export function registerResourceImportCommands(resource: Command): void {
   registerResourceWorkflow(resource, {
@@ -150,7 +160,13 @@ export function registerResourceImportCommands(resource: Command): void {
         cmd
           .option('--site-id <siteId>', 'Target Liferay site groupId; overrides --site')
           .option('--dir <dir>', 'Fragments project directory, or parent directory for per-site projects')
-          .option('--fragment <fragment>', 'Single fragment slug, name or collection/fragments/slug to import'),
+          .option('--fragment <fragment>', 'Single fragment slug, name or collection/fragments/slug to import')
+          .option(
+            '--transport <transport>',
+            'Import transport: auto, jsonws, deploy-zip',
+            parseFragmentImportTransport,
+            'auto',
+          ),
     ),
     run: async (context, options) =>
       runLiferayResourceImportFragments(context.config, {
@@ -159,6 +175,7 @@ export function registerResourceImportCommands(resource: Command): void {
         allSites: Boolean(options.allSites),
         dir: options.dir,
         fragment: options.fragment,
+        transport: options.transport,
       }),
     render: {
       text: formatLiferayResourceImportFragments,
