@@ -1,9 +1,9 @@
 ---
-name: liferay-expert
+name: routing-liferay-work
 description: 'Routes technical Liferay work to the right ldev specialist workflow. Use when the task involves Liferay and it is not yet clear whether the next step is diagnosis, implementation, deployment, resource import, or migration.'
 ---
 
-# Liferay Expert
+# Routing Liferay Work
 
 This is the domain router for reusable `ldev` Liferay workflows. Classify quickly and hand off; deep playbooks live in specialist skills.
 

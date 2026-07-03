@@ -190,6 +190,12 @@ npx skills add https://github.com/mordonez/ldev
 
 ---
 
+## Related projects
+
+- **[liferay-docs-scraper](https://github.com/mordonez/liferay-docs-scraper)** — scrapes `learn.liferay.com` into local Markdown and installs a `liferay-expert` skill so Claude Code can answer Liferay DXP conceptual and how-to questions grounded in the official docs. Complementary to `ldev`: `ldev`'s skills execute Liferay operations (build, deploy, import, migrate); `liferay-expert` answers "how does X work" questions by reading the scraped docs. Safe to install both in the same project.
+
+---
+
 ## Quick install
 
 ```bash

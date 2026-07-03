@@ -129,7 +129,7 @@ first.
 
 Use vendor skills for the full reusable workflow:
 
-- `liferay-expert`
+- `routing-liferay-work`
 - `troubleshooting-liferay`
 - `developing-liferay`
 - `deploying-liferay`
@@ -193,7 +193,7 @@ execution itself.
 
 Use these as the standard reusable entrypoints:
 
-- `liferay-expert`
+- `routing-liferay-work`
 - `developing-liferay`
 - `isolating-worktrees`
 - `deploying-liferay`

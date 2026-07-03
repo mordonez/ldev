@@ -67,7 +67,7 @@ diagnose them:
   portlet with Guest access disabled
 - How to grant permissions programmatically vs. UI
 
-**Where:** `troubleshooting-liferay/references/permissions.md` + entry in `liferay-expert/SKILL.md`
+**Where:** `troubleshooting-liferay/references/permissions.md` + entry in `routing-liferay-work/SKILL.md`
 
 ---
 
@@ -86,7 +86,7 @@ Service Builder deploy support exists but no guidance on:
 
 ### 5. Modern site building — Display Pages, Collections, Navigation Menus
 
-`liferay-expert` says "ldev has no commands for this" but does not give
+`routing-liferay-work` says "ldev has no commands for this" but does not give
 the alternative flow:
 
 - Display Page Templates: how to assign to an Object or Journal Structure, which
@@ -96,7 +96,7 @@ the alternative flow:
   with authenticated call example
 - When Content Page vs. Widget Page: clear decision tree
 
-**Where:** `developing-liferay/references/site-building.md` + API flow examples in `liferay-expert/SKILL.md`
+**Where:** `developing-liferay/references/site-building.md` + API flow examples in `routing-liferay-work/SKILL.md`
 
 ---
 
@@ -171,7 +171,7 @@ and cannot choose:
 - Object + headless vs. Web Content — selection criteria
 - Asset Library vs. site-scoped — when to share resources across sites
 
-**Where:** `liferay-expert/references/content-type-guide.md` + routing entry in `liferay-expert/SKILL.md`
+**Where:** `routing-liferay-work/references/content-type-guide.md` + routing entry in `routing-liferay-work/SKILL.md`
 
 ---
 

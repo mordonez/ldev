@@ -7,6 +7,7 @@ import {
   formatLiferayResourceImportFragments,
   runLiferayResourceImportFragments,
 } from '../../src/features/liferay/resource/liferay-resource-import-fragments.js';
+import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
 
@@ -97,6 +98,9 @@ describe('liferay resource fragments-import', () => {
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
           return new Response('{"companyId":10157}', {status: 200});
         }
+        if (url.includes('/api/jsonws/company/get-company-by-id?companyId=10157')) {
+          return new Response('{"webId":"liferay.com"}', {status: 200});
+        }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
           return new Response('[]', {status: 200});
         }
@@ -131,6 +135,64 @@ describe('liferay resource fragments-import', () => {
       fragment: 'hero-banner',
       status: 'imported',
     });
+  });
+
+  test('falls back to auto-deploy ZIP when fragment JSONWS actions are unavailable', async () => {
+    const {config, repoRoot} = await createRepoFixture();
+    const projectDir = path.join(repoRoot, 'liferay', 'fragments', 'sites', 'global');
+    await writeFragmentProject(projectDir);
+
+    const fakeDockerBin = await createFakeDockerBin();
+    const originalPath = process.env.PATH;
+    process.env.PATH = `${fakeDockerBin}${path.delimiter}${originalPath ?? ''}`;
+
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((url) => {
+        if (url.includes('/by-friendly-url-path/global')) {
+          return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
+          return new Response('{"companyId":10157}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/company/get-company-by-id?companyId=10157')) {
+          return new Response('{"webId":"liferay.com"}', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
+          return new Response('[]', {status: 200});
+        }
+        if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
+          return new Response(
+            '{"message":"No JSON web service action with path /fragment.fragmentcollection/add-fragment-collection"}',
+            {status: 404},
+          );
+        }
+
+        throw new Error(`Unexpected URL ${url}`);
+      }),
+    });
+
+    try {
+      const result = await runLiferayResourceImportFragments(
+        config,
+        {site: '/global'},
+        {apiClient, tokenClient: TOKEN_CLIENT},
+      );
+
+      expect(result.mode).toBe('auto-deploy-zip-import');
+      if (result.mode !== 'auto-deploy-zip-import') {
+        throw new Error('unexpected mode');
+      }
+      expect(result.summary.importedFragments).toBe(1);
+      expect(result.summary.errors).toBe(0);
+      expect(result.zipPath).toBeTruthy();
+      expect(await fs.pathExists(result.zipPath!)).toBe(true);
+
+      const dockerCalls = await readFakeDockerCalls(fakeDockerBin);
+      expect(dockerCalls.some((call) => call.includes('compose ps -q liferay'))).toBe(true);
+      expect(dockerCalls.some((call) => call.includes('compose cp'))).toBe(true);
+    } finally {
+      process.env.PATH = originalPath;
+    }
   });
 
   test('updates an existing fragment from a local fragments project', async () => {

@@ -36,10 +36,11 @@ export type LiferayResourceImportFragmentItemResult = {
 };
 
 export type LiferayResourceImportFragmentsSingleResult = {
-  mode: 'oauth-jsonws-import';
+  mode: 'oauth-jsonws-import' | 'auto-deploy-zip-import';
   site: string;
   siteId: number;
   projectDir: string;
+  zipPath?: string;
   summary: {
     importedFragments: number;
     fragmentResults: number;
