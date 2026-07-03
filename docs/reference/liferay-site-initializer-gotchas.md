@@ -216,8 +216,8 @@ mechanically once you know the resource-permission API to query.
 
 ## 7. `ldev portal page-layout export` is genuinely useful for this class of bug
 
-`ldev portal page-layout export --site <friendlyUrl> --friendly-url
-<path>` (already exists) dumps the live page's actual stored
+`ldev portal page-layout export --site <friendlyUrl>
+--friendly-url <path>` (already exists) dumps the live page's actual stored
 `fragmentFields` mapping as normalized JSON. This was the single most
 useful diagnostic step in the whole session — it let me compare "what I
 declared in the site initializer source" against "what Liferay actually
