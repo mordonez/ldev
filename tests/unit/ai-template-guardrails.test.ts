@@ -184,7 +184,7 @@ describe('AI template guardrails', () => {
   });
 
   test('routing references point to canonical workflows instead of duplicating them', async () => {
-    const routing = await readTemplate('skills/liferay-expert/references/routing.md');
+    const routing = await readTemplate('skills/routing-liferay-work/references/routing.md');
     const resourceCompatibility = await readTemplate('skills/developing-liferay/references/resource-workflow.md');
 
     expect(routing).toContain('runtime-change-workflow');

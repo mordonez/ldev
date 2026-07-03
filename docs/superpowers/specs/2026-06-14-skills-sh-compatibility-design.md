@@ -74,7 +74,7 @@ Shared docs that get absorbed per-skill (exact mapping from `grep '../../docs/'`
 
 | Doc | Skills that reference it | Target path inside each skill |
 |-----|--------------------------|-------------------------------|
-| `PORTAL_DISCOVERY.md` | `developing-liferay`, `troubleshooting-liferay`, `runtime-change-workflow`, `portal-resource-workflow`, `liferay-expert` | `references/portal-discovery.md` |
+| `PORTAL_DISCOVERY.md` | `developing-liferay`, `troubleshooting-liferay`, `runtime-change-workflow`, `portal-resource-workflow`, `routing-liferay-work` | `references/portal-discovery.md` |
 | `THEME_DEPLOY_RUNTIME_PROOF.md` | `deploying-liferay` (SKILL.md ×2), `developing-liferay` (via `references/theme.md` ×1 — 3-level ref) | `references/theme-deploy-runtime-proof.md` |
 | `RESOURCE_MUTATION_GATES.md` | `runtime-change-workflow`, `portal-resource-workflow` | `references/resource-mutation-gates.md` |
 

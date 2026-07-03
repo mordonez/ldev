@@ -15,7 +15,7 @@ An asset belongs in `ldev` only if all of these are true:
 
 Typical examples:
 
-- domain routers such as `liferay-expert`
+- domain routers such as `routing-liferay-work`
 - local deploy and troubleshooting playbooks
 - resource migration guidance based on stable `ldev portal ...` and `ldev resource ...` commands
 - canonical Red -> Green gates for mutating `ldev` work

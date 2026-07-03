@@ -194,7 +194,7 @@ Read order:
 
 Use these as the standard reusable entrypoints when the task needs a deeper playbook:
 
-- `liferay-expert`: router for technical Liferay work.
+- `routing-liferay-work`: router for technical Liferay work.
 - `developing-liferay`: implementation guidance for code, themes, content resources and fragments.
 - `isolating-worktrees`: isolated `ldev-native` worktree setup, edit-root lock, recovery and cleanup.
 - `deploying-liferay`: build, deploy and runtime verification flow.
