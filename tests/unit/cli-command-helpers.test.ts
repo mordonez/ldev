@@ -182,6 +182,28 @@ describe('renderCommandResult', () => {
 
     expect(mockContext.printer.write).toHaveBeenCalledWith({name: 'Site A'});
   });
+
+  test('wraps each array element in its own envelope under ndjson strict mode', () => {
+    const mockContext = createMockContext('ndjson', true);
+
+    renderCommandResult(mockContext, [{id: 1}, {id: 2}]);
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith([
+      {ok: true, data: {id: 1}},
+      {ok: true, data: {id: 2}},
+    ]);
+  });
+
+  test('warns on stderr when --fields is combined with text output', () => {
+    const mockContext = createMockContext('text', false, ['id']);
+
+    renderCommandResult(mockContext, {id: 1, name: 'A'}, {text: 'Text output'});
+
+    expect(mockContext.printer.info).toHaveBeenCalledWith(
+      '--fields applies only to json/ndjson output; showing full text output.',
+    );
+    expect(mockContext.printer.write).toHaveBeenCalledWith('Text output');
+  });
 });
 
 describe('withCommandContext', () => {

@@ -57,7 +57,7 @@ When the portal is unresponsive or a request hangs indefinitely:
 ldev osgi thread-dump
 ```
 
-Collects 3 JVM thread snapshots (configurable with `--count`). Prints to stdout.
+Collects 6 JVM thread snapshots by default (configurable with `--count`). Prints to stdout.
 Look for threads stuck in `WAITING` or `BLOCKED` state with a Liferay or custom module frame.
 
 ## Collect Heap Dump (Memory Issues / OOM)

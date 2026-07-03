@@ -28,16 +28,21 @@ export function renderCommandResult<TResult>(
   options?: RenderOptions<TResult>,
 ): void {
   if (context.printer.format === 'text') {
+    if (context.fields.length > 0) {
+      context.printer.info('--fields applies only to json/ndjson output; showing full text output.');
+    }
     const text = typeof options?.text === 'function' ? options.text(result) : options?.text;
     context.printer.write(text ?? result);
   } else {
     const rawValue = options?.json ? options.json(result) : result;
     const outputValue = context.fields.length > 0 ? pickFields(rawValue, context.fields) : rawValue;
 
-    if (context.strict) {
-      context.printer.write(toCliSuccessPayload(outputValue));
-    } else {
+    if (!context.strict) {
       context.printer.write(outputValue);
+    } else if (context.printer.format === 'ndjson' && Array.isArray(outputValue)) {
+      context.printer.write(outputValue.map((item) => toCliSuccessPayload(item)));
+    } else {
+      context.printer.write(toCliSuccessPayload(outputValue));
     }
   }
 

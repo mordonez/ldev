@@ -39,7 +39,7 @@ If the task mentions a site, page, URL, structure, template, ADT, or fragment, r
 **Action-level shortcuts (use directly for quick targeted operations):**
 - Portal auth + connectivity check only -> `ldev-portal-health`
 - Discover what sites, structures, templates, fragments, or ADTs exist -> `ldev-portal-inventory`
-- Monitor or accelerate a reindex -> `ldev-reindex`
+- Stale search results needing reindex readiness checks and verification -> `ldev-reindex`
 - Diagnose OSGi bundle failures or hanging portal -> `ldev-osgi-debug`
 - Read or export one portal resource (structure/template/ADT/fragment) -> `ldev-resource-read`
 - Resolve auth or site before any portal command -> `liferay-discovery`

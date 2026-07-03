@@ -39,16 +39,22 @@ describe('createPrinter', () => {
   });
 
   test('write outputs one NDJSON line per array element when format is ndjson', () => {
-    const calls: string[] = [];
-    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation((s) => {
-      calls.push(s as string);
-      return true;
-    });
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     const printer = createPrinter('ndjson');
 
     printer.write([{id: 1}, {id: 2}]);
 
-    expect(calls).toEqual(['{"id":1}\n', '{"id":2}\n']);
+    expect(stdout).toHaveBeenCalledWith('{"id":1}\n{"id":2}\n');
+    stdout.mockRestore();
+  });
+
+  test('write outputs nothing for an empty array when format is ndjson', () => {
+    const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const printer = createPrinter('ndjson');
+
+    printer.write([]);
+
+    expect(stdout).toHaveBeenCalledWith('');
     stdout.mockRestore();
   });
 

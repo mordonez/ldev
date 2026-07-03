@@ -36,7 +36,7 @@ If the task mentions a site, page, or scoped resource, resolve the site first:
 ldev portal inventory sites --json
 ```
 
-From the result, extract `friendlyUrlPath` for the target site. Never guess site IDs or friendly URLs. Use the resolved `friendlyUrlPath` as `--site` for all subsequent commands.
+From the result, extract `siteFriendlyUrl` for the target site. Never guess site IDs or friendly URLs. Use the resolved `siteFriendlyUrl` as `--site` for all subsequent commands.
 
 For the full site resolution protocol including display pages and ownership edge cases, see [references/site-resolution.md](references/site-resolution.md).
 
@@ -53,7 +53,7 @@ This probes `adminSite`, `adminUser`, and `jsonws` in parallel and caches result
 ## Done When
 
 - `ldev portal check --json` returns a success status
-- Target site is identified with its exact `friendlyUrlPath`
+- Target site is identified with its exact `siteFriendlyUrl`
 - `portalUrl` is read from bootstrap output, not assumed
 
 ## Guardrails

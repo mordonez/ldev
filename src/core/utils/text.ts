@@ -26,6 +26,17 @@ export function parseLines(text: string, options?: {ignoreComments?: boolean}): 
 }
 
 /**
+ * Split a comma-separated list into non-empty trimmed entries.
+ */
+export function splitCsvList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '');
+}
+
+/**
  * Return the first non-blank string value from a list.
  */
 export function firstNonBlank(...values: Array<string | undefined>): string {

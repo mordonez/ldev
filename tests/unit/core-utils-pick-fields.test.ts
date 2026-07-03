@@ -56,6 +56,34 @@ describe('pickFields', () => {
     });
   });
 
+  test('merges multiple nested fields when the parent is an array', () => {
+    const input = {
+      items: [
+        {id: 1, name: 'A', url: '/a'},
+        {id: 2, name: 'B', url: '/b'},
+      ],
+    };
+    expect(pickFields(input, ['items.id', 'items.name'])).toEqual({
+      items: [
+        {id: 1, name: 'A'},
+        {id: 2, name: 'B'},
+      ],
+    });
+  });
+
+  test('bare key wins over dotted sub-fields of the same key', () => {
+    const input = {site: {id: 9, name: 'N', url: '/x'}};
+    expect(pickFields(input, ['site', 'site.name'])).toEqual({site: {id: 9, name: 'N', url: '/x'}});
+    expect(pickFields(input, ['site.name', 'site'])).toEqual({site: {id: 9, name: 'N', url: '/x'}});
+  });
+
+  test('ignores __proto__, constructor, and prototype field names', () => {
+    const input = JSON.parse('{"__proto__": {"x": 1}, "a": 2}') as Record<string, unknown>;
+    const result = pickFields(input, ['__proto__', 'constructor.name', 'a']) as Record<string, unknown>;
+    expect(result).toEqual({a: 2});
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+  });
+
   test('returns primitives unchanged regardless of fields', () => {
     expect(pickFields('hello', ['id'])).toBe('hello');
     expect(pickFields(42, ['id'])).toBe(42);

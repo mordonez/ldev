@@ -4,6 +4,7 @@ import {CliError} from '../core/errors.js';
 import {resolveOutputFormatFromArgv} from './errors.js';
 import {outputFormatSchema, type OutputFormat} from '../core/output/formats.js';
 import {createPrinter, type Printer} from '../core/output/printer.js';
+import {splitCsvList} from '../core/utils/text.js';
 import {DEFAULT_OAUTH_SCOPE_ALIASES_STRING} from '../features/oauth/oauth-scope-aliases.js';
 
 export type CommandContext = {
@@ -47,7 +48,7 @@ export function createCommandContext(options?: CommandContextOptions): CommandCo
   const resolvedFormat = resolveOutputFormatOption(options);
   const format = outputFormatSchema.parse(resolvedFormat);
   const strict = resolveStrictMode(options);
-  const fields = resolveFields(options);
+  const fields = splitCsvList(options?.fields);
 
   return {
     cwd,
@@ -67,15 +68,6 @@ export function resolveCommandRoot(
   const repoRootOverride = resolveRepoRootOverride(options?.repoRoot, argv, env);
 
   return repoRootOverride || options?.cwd || process.cwd();
-}
-
-function resolveFields(options?: {fields?: string}): string[] {
-  const raw = options?.fields?.trim() ?? '';
-  if (raw === '') return [];
-  return raw
-    .split(',')
-    .map((f) => f.trim())
-    .filter(Boolean);
 }
 
 function resolveStrictMode(options?: {strict?: boolean}): boolean {

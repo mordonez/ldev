@@ -122,7 +122,7 @@ All import commands that support `--check-only` must use it before the real impo
 ldev resource import-structure --site /<site> --structure <KEY> --check-only
 ldev resource import-template --site /<site> --template <KEY> --check-only
 ldev resource import-adt --site /<site> --file <path> --widget-type <type> --check-only
-ldev resource migration-pipeline --descriptor <file> --check-only
+ldev resource migration-pipeline --migration-file <file> --check-only
 ```
 
 `import-fragment` has no `--check-only`; validate the fragment source and run a focused singular import.

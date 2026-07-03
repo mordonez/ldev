@@ -33,6 +33,12 @@ function isOutputPath(result: unknown): result is {outputPath: string} {
   return typeof result === 'object' && result !== null && 'outputPath' in result;
 }
 
+function resolveOutOption(out: string | boolean | undefined): {enabled: boolean; path?: string} {
+  if (out === undefined) return {enabled: false};
+  const path = typeof out === 'string' ? out.trim() : '';
+  return {enabled: true, path: path === '' ? undefined : path};
+}
+
 export function registerResourceReadCommands(resource: Command): void {
   registerResourceWorkflow(resource, {
     name: 'structure',
@@ -44,12 +50,12 @@ export function registerResourceReadCommands(resource: Command): void {
         .option('--out [file]', 'Write structure JSON to a file; omit path to use the default structures layout'),
     run: async (context, options): Promise<StructureReadResult> => {
       const structure = requireResourceValue(options.structure as string | undefined, 'structure requires --structure');
-      const outFile = options.out;
-      if (outFile !== undefined) {
+      const out = resolveOutOption(options.out);
+      if (out.enabled) {
         return runLiferayResourceExportStructure(context.config, {
           site: options.site,
           key: structure,
-          output: typeof outFile === 'string' ? outFile : undefined,
+          output: out.path,
           pretty: true,
         });
       }
@@ -73,12 +79,12 @@ export function registerResourceReadCommands(resource: Command): void {
         .option('--out [file]', 'Write template FTL to a file; omit path to use the default templates layout'),
     run: async (context, options): Promise<TemplateReadResult> => {
       const id = requireResourceValue(options.template as string | undefined, 'template requires --template');
-      const outFile = options.out;
-      if (outFile !== undefined) {
+      const out = resolveOutOption(options.out);
+      if (out.enabled) {
         return runLiferayResourceExportTemplate(context.config, {
           site: options.site,
           id,
-          output: typeof outFile === 'string' ? outFile : undefined,
+          output: out.path,
         });
       }
       return runLiferayResourceGetTemplate(context.config, {

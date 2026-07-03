@@ -71,7 +71,7 @@ DRIFT DETECTED in skills/portal-resource-workflow/SKILL.md:
   Status: Command `export-structure` still exists but prefer `resource structure --out`
   Action: Update skill to use `ldev resource structure --site /<site> --structure <KEY> --out`
 
-DRIFT DETECTED in skills/ldev-reindex/SKILL.md:
-  Line 31: `ldev portal reindex speedup-on`
-  Status: Command verified ✓
+DRIFT DETECTED in skills/ldev-portal-inventory/SKILL.md:
+  Line 38: `ldev portal inventory structures --with-templates --site /<site> --json`
+  Status: Command and flags verified ✓
 ```
