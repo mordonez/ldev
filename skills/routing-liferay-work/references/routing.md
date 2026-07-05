@@ -1,6 +1,6 @@
 # Routing Reference
 
-Use this reference when `liferay-expert` has already determined that the task is
+Use this reference when `routing-liferay-work` has already determined that the task is
 technical Liferay work and the next skill is still ambiguous.
 
 ## Canonical Choices

@@ -24,10 +24,11 @@ export type LiferayResourceImportFragmentItemResult = z.infer<typeof liferayReso
  * Includes mode (import strategy), site info, project directory, and detailed results.
  */
 export const liferayResourceSyncFragmentsSingleResultSchema = z.object({
-  mode: z.literal('oauth-jsonws-import'),
+  mode: z.enum(['oauth-jsonws-import', 'auto-deploy-zip-import']),
   site: z.string(),
   siteId: z.number().int(),
   projectDir: z.string(),
+  zipPath: z.string().optional(),
   summary: z.object({
     importedFragments: z.number().int().nonnegative(),
     fragmentResults: z.number().int().nonnegative(),

@@ -50,6 +50,7 @@ export type ResourceCommandOptionBag = {
   structure?: string | string[];
   template?: string | string[];
   templates?: boolean;
+  transport?: 'auto' | 'jsonws' | 'deploy-zip';
   widgetType?: string;
 };
 

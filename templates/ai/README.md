@@ -29,7 +29,7 @@ After install, skills live under `.agents/skills/` and can be invoked from promp
 Router style:
 
 ```text
-Use the liferay-expert skill to route this task:
+Use the routing-liferay-work skill to route this task:
 "I need to export a structure and review dependencies before importing into another environment."
 ```
 

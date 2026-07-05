@@ -315,6 +315,14 @@ if (args[0] === 'compose' && args[1] === 'ps' && args[2] === '-q') {
   process.exit(0);
 }
 
+if (args[0] === 'compose' && args[1] === 'cp') {
+  process.exit(0);
+}
+
+if (args[0] === 'compose' && args[1] === 'exec' && args.includes('liferay')) {
+  process.exit(0);
+}
+
 if (args[0] === 'inspect' && args[1] === '-f') {
   const format = args[2] ?? '';
   const container = args[3] ?? '';

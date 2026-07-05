@@ -12,6 +12,7 @@ import {
   toErrorMessage,
 } from './liferay-resource-import-fragments-local.js';
 import {createFragmentSyncRuntimeState} from './liferay-resource-import-fragments-api.js';
+import {deployFragmentsProjectZip} from './liferay-resource-import-fragments-zip.js';
 import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import type {
   LiferayResourceImportFragmentItemResult,
@@ -40,6 +41,7 @@ export async function runLiferayResourceImportFragments(
     allSites?: boolean;
     dir?: string;
     fragment?: string;
+    transport?: 'auto' | 'jsonws' | 'deploy-zip';
   },
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsResult> {
@@ -48,7 +50,7 @@ export async function runLiferayResourceImportFragments(
   }
 
   if (options?.allSites) {
-    return runAllSitesImport(config, options.dir, dependencies);
+    return runAllSitesImport(config, options.dir, options.transport ?? 'auto', dependencies);
   }
 
   const site = options?.groupId?.trim()
@@ -56,7 +58,14 @@ export async function runLiferayResourceImportFragments(
     : await resolveResourceSite(config, options?.site ?? '/global', dependencies);
   const projectDir = resolveFragmentsProjectDir(config, options?.dir, resolveSiteToken(site.friendlyUrlPath));
 
-  return runFragmentsImport(config, site.id, site.friendlyUrlPath, projectDir, options?.fragment ?? '', dependencies);
+  return runFragmentsImport(
+    config,
+    site,
+    projectDir,
+    options?.fragment ?? '',
+    options?.transport ?? 'auto',
+    dependencies,
+  );
 }
 
 export function formatLiferayResourceImportFragments(result: LiferayResourceImportFragmentsResult): string {
@@ -74,6 +83,7 @@ export function getLiferayResourceImportFragmentsExitCode(result: LiferayResourc
 async function runAllSitesImport(
   config: AppConfig,
   dir: string | undefined,
+  transport: 'auto' | 'jsonws' | 'deploy-zip',
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsAllSitesResult> {
   const sites = await runLiferayInventorySitesIncludingGlobal(config, undefined, dependencies);
@@ -89,10 +99,10 @@ async function runAllSitesImport(
 
     const siteResult = await runFragmentsImport(
       config,
-      site.groupId,
-      site.siteFriendlyUrl,
+      toResolvedSite(site.groupId, site.siteFriendlyUrl, site.name),
       projectDir,
       '',
+      transport,
       dependencies,
     );
     siteResults.push(siteResult);
@@ -111,14 +121,56 @@ async function runAllSitesImport(
 
 async function runFragmentsImport(
   config: AppConfig,
-  groupId: number,
-  siteFriendlyUrl: string,
+  site: ResolvedSite,
   projectDir: string,
   fragmentFilter: string,
+  transport: 'auto' | 'jsonws' | 'deploy-zip',
   dependencies?: ResourceDependencies,
 ): Promise<LiferayResourceImportFragmentsSingleResult> {
   const project = await readLocalFragmentsProject(projectDir, fragmentFilter);
-  const site = toResolvedSite(groupId, siteFriendlyUrl);
+
+  if (transport === 'deploy-zip') {
+    return deployFragmentsProjectZip(
+      config,
+      {
+        companyId: getSiteCompanyId(site),
+        groupId: site.id,
+        groupKey: resolveFragmentDeployGroupKey(site),
+        project,
+        projectDir,
+        siteFriendlyUrl: site.friendlyUrlPath,
+      },
+      dependencies,
+    );
+  }
+
+  const jsonwsResult = await runJsonwsFragmentsImport(config, site, projectDir, project, dependencies);
+
+  if (transport === 'auto' && isJsonwsFragmentsUnsupported(jsonwsResult)) {
+    return deployFragmentsProjectZip(
+      config,
+      {
+        companyId: getSiteCompanyId(site),
+        groupId: site.id,
+        groupKey: resolveFragmentDeployGroupKey(site),
+        project,
+        projectDir,
+        siteFriendlyUrl: site.friendlyUrlPath,
+      },
+      dependencies,
+    );
+  }
+
+  return jsonwsResult;
+}
+
+async function runJsonwsFragmentsImport(
+  config: AppConfig,
+  site: ResolvedSite,
+  projectDir: string,
+  project: Awaited<ReturnType<typeof readLocalFragmentsProject>>,
+  dependencies?: ResourceDependencies,
+): Promise<LiferayResourceImportFragmentsSingleResult> {
   const runtimeState = createFragmentSyncRuntimeState();
   let imported = 0;
   let errors = 0;
@@ -174,8 +226,8 @@ async function runFragmentsImport(
 
   return {
     mode: 'oauth-jsonws-import',
-    site: siteFriendlyUrl,
-    siteId: groupId,
+    site: site.friendlyUrlPath,
+    siteId: site.id,
     projectDir,
     summary: {
       importedFragments: imported,
@@ -232,6 +284,45 @@ async function syncFragmentEntry(
   return Number.isFinite(fragmentEntryId) ? fragmentEntryId : -1;
 }
 
-function toResolvedSite(groupId: number, siteFriendlyUrl: string): ResolvedSite {
-  return {id: groupId, friendlyUrlPath: siteFriendlyUrl, name: siteFriendlyUrl};
+function toResolvedSite(groupId: number, siteFriendlyUrl: string, name?: string): ResolvedSite {
+  return {id: groupId, friendlyUrlPath: siteFriendlyUrl, name: name ?? siteFriendlyUrl};
+}
+
+function resolveFragmentDeployGroupKey(site: ResolvedSite): string {
+  const name = site.name.trim();
+  if (name !== '') {
+    return name;
+  }
+
+  const token = site.friendlyUrlPath.replace(/^\/+/, '').trim();
+  if (token === '') {
+    return 'Guest';
+  }
+
+  return token
+    .split(/[-_\s]+/)
+    .filter((part) => part !== '')
+    .map((part) => `${part[0].toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+function getSiteCompanyId(site: ResolvedSite): number | undefined {
+  const companyId = (site as ResolvedSite & {companyId?: number}).companyId;
+  const normalizedCompanyId = Number(companyId);
+  return Number.isFinite(normalizedCompanyId) && normalizedCompanyId > 0 ? normalizedCompanyId : undefined;
+}
+
+function isJsonwsFragmentsUnsupported(result: LiferayResourceImportFragmentsSingleResult): boolean {
+  if (result.mode !== 'oauth-jsonws-import' || result.summary.errors === 0) {
+    return false;
+  }
+
+  return result.fragmentResults.every((item) => {
+    const error = item.error ?? '';
+    return (
+      error.includes('/api/jsonws/fragment.fragmentcollection/') ||
+      error.includes('/api/jsonws/fragment.fragmententry/') ||
+      error.includes('No JSON web service action with path /fragment.fragment')
+    );
+  });
 }
