@@ -835,7 +835,7 @@ Impacto Bajo   / Esfuerzo Bajo:   persona skills
 
 | Skill | Nivel actual | Gap principal |
 |---|---|---|
-| `liferay-expert` | Router | Necesita routing a skills de Action cuando estén creadas |
+| `routing-liferay-work` (antes `liferay-expert`) | Router | Necesita routing a skills de Action cuando estén creadas |
 | `developing-liferay` | Playbook | Paths hardcodeados, references muy largas |
 | `isolating-worktrees` | Playbook | Sin gaps críticos |
 | `deploying-liferay` | Playbook | Referencia externa a THEME_DEPLOY (OK, absorbida en spec) |
