@@ -118,6 +118,12 @@ export const LiferayErrors = {
     createLiferayError(message, LiferayErrorCode.GATEWAY_ERROR, options),
 
   /**
+   * Headless API discovery operation failed (spec resolution, schema lookup, example generation).
+   */
+  apiDiscoverError: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.API_DISCOVER_ERROR, options),
+
+  /**
    * Configuration error.
    */
   configError: (message: string, options?: LiferayErrorOptions): CliError =>

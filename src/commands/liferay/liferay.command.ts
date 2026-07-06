@@ -1,6 +1,7 @@
 import {Command} from 'commander';
 
 import {createReindexCommand} from '../reindex/reindex.command.js';
+import {createApiCommands} from './api.command.js';
 import {createAuthCommands} from './auth.command.js';
 import {createContentCommand} from './content.command.js';
 import {createLiferayConfigCommand} from './config.command.js';
@@ -39,16 +40,19 @@ For resource export, import and migration workflows, use the top-level 'resource
 Recommended starting points:
   check, auth   Connectivity and API access checks
   inventory     Main discovery workflow for agents and humans
+  api discover  Headless REST API discovery (endpoints, schemas, examples)
 
 Discovery examples:
   ldev portal inventory sites --json
   ldev portal inventory page --url /web/guest/home --json
+  ldev portal api discover headless-delivery
 
 Main groups:
   check        OAuth2 verification and basic API reachability
   auth         OAuth2 token retrieval for scripting
   config       Effective local portal-ext and OSGi config inspection
   inventory    Sites, pages, structures and templates
+  api          Headless REST API discovery (openapi specs, endpoints, schemas)
   audit        Minimal runtime audit of a site and API reachability
   page-layout  Export and diff of content pages
   search       Elasticsearch inspection and test queries
@@ -61,6 +65,7 @@ Main groups:
   createAuthCommands(command);
   command.addCommand(createLiferayConfigCommand().helpGroup('Portal diagnostics:'));
   createInventoryCommands(command);
+  createApiCommands(command);
   command.addCommand(createContentCommand().helpGroup('Content management:'));
   createLiferayAuditCommands(command);
   createPageLayoutCommands(command);

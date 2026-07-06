@@ -28,6 +28,9 @@ export enum LiferayErrorCode {
   // Gateway/HTTP errors
   GATEWAY_ERROR = 'LIFERAY_GATEWAY_ERROR',
 
+  // Headless API discovery errors
+  API_DISCOVER_ERROR = 'LIFERAY_API_DISCOVER_ERROR',
+
   // Configuration errors
   CONFIG_ERROR = 'LIFERAY_CONFIG_ERROR',
   CONFIG_REPO_REQUIRED = 'LIFERAY_CONFIG_REPO_REQUIRED',
@@ -67,6 +70,8 @@ export const errorCodeMetadata: Record<
   [LiferayErrorCode.CONTENT_JOURNAL_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
 
   [LiferayErrorCode.GATEWAY_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
+
+  [LiferayErrorCode.API_DISCOVER_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
 
   [LiferayErrorCode.CONFIG_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.CONFIG_REPO_REQUIRED]: {severity: 'error', retryable: false, logFullMessage: false},
