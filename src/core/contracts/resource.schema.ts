@@ -67,6 +67,44 @@ export const liferayResourceSyncFragmentsResultSchema = z.discriminatedUnion('mo
 export type LiferayResourceImportFragmentsResult = z.infer<typeof liferayResourceSyncFragmentsResultSchema>;
 
 /**
+ * ResourceLintSeverity: severity level of a static lint finding.
+ */
+export const resourceLintSeveritySchema = z.enum(['error', 'warning']);
+
+export type ResourceLintSeverity = z.infer<typeof resourceLintSeveritySchema>;
+
+/**
+ * ResourceLintFinding: one static lint finding against a local resource file.
+ * `location` is an optional pointer inside the file (JSON path or line number).
+ */
+export const resourceLintFindingSchema = z.object({
+  file: z.string(),
+  rule: z.string(),
+  severity: resourceLintSeveritySchema,
+  message: z.string(),
+  location: z.string().optional(),
+});
+
+export type ResourceLintFinding = z.infer<typeof resourceLintFindingSchema>;
+
+/**
+ * ResourceLintResult: aggregate result of a static lint run.
+ * `ok` is false when at least one error-severity finding exists.
+ */
+export const resourceLintResultSchema = z.object({
+  target: z.string(),
+  filesScanned: z.number().int().nonnegative(),
+  findings: z.array(resourceLintFindingSchema),
+  summary: z.object({
+    errors: z.number().int().nonnegative(),
+    warnings: z.number().int().nonnegative(),
+  }),
+  ok: z.boolean(),
+});
+
+export type ResourceLintResult = z.infer<typeof resourceLintResultSchema>;
+
+/**
  * LiferayResourceImportFailure: result of a failed import.
  */
 export const liferayResourceImportFailureSchema = z.object({

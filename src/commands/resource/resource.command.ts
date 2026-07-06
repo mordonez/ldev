@@ -8,6 +8,7 @@ import {LiferayErrors} from '../../features/liferay/errors/index.js';
 import {runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
 import {registerResourceExportCommands} from './resource-export-commands.js';
 import {registerResourceImportCommands} from './resource-import-commands.js';
+import {registerResourceLintCommands} from './resource-lint-commands.js';
 import {registerResourceMigrationCommand} from './resource-migration-command.js';
 import {registerResourceReadCommands} from './resource-read-commands.js';
 
@@ -164,6 +165,7 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
   registerResourceExportCommands(resource);
   registerResourceImportCommands(resource);
   registerResourceMigrationCommand(resource);
+  registerResourceLintCommands(resource);
 
   return resource;
 }
@@ -186,6 +188,9 @@ Import:
 
 Migration:
   migration-init, migration-pipeline
+
+Lint (static, no network access):
+  lint-page-definition, lint-fragments
 
 Recommended:
   migration-pipeline for normal end-to-end migrations
