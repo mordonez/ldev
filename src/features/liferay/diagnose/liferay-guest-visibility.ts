@@ -6,7 +6,7 @@ import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
 import {fetchPagedItems} from '../inventory/liferay-inventory-shared.js';
 import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
-import {resolveSite} from '../portal/site-resolution.js';
+import {resolveSite, type ResolvedSite} from '../portal/site-resolution.js';
 
 const REPORT_KIND = 'liferay-guest-visibility-diagnosis';
 const REPORT_SCHEMA_VERSION = 1;
@@ -33,6 +33,12 @@ type PermissionEntry = {
   actionIds?: string[];
 };
 
+// The Headless Delivery `.../permissions` endpoint returns a page-shaped
+// object ({items, page, lastPage, ...}), not a bare array.
+type PermissionsPage = {
+  items?: PermissionEntry[];
+};
+
 export type GuestVisibilityGap = {
   resourceType: GuestVisibilityResourceType;
   id: number;
@@ -47,11 +53,23 @@ export type GuestVisibilityGap = {
 };
 
 export type GuestVisibilityPageCheck = {
-  url: string;
   friendlyUrl: string;
+  renderedUrl: string;
+  /**
+   * Whether the OAuth2-authenticated caller can see the page through the
+   * headless page-metadata API. OAuth2 Bearer tokens do not authenticate the
+   * normal theme-rendering pipeline (confirmed: an authenticated Bearer
+   * request and an anonymous request return byte-identical rendered pages),
+   * so this is the only "authenticated" signal available without a
+   * cookie-based portal session.
+   */
   visibleAuthenticated: boolean;
-  anonymousStatus: number;
-  visibleAnonymously: boolean;
+  /** Anonymous access to the headless page-metadata API (`/o/headless-delivery/...`). */
+  headlessAnonymousStatus: number;
+  headlessVisibleAnonymously: boolean;
+  /** Anonymous access to the real rendered page URL — the ground truth for guest visibility. */
+  renderedAnonymousStatus: number;
+  renderedVisibleAnonymously: boolean;
 };
 
 export type GuestVisibilityReport = {
@@ -137,7 +155,7 @@ export async function runGuestVisibilityDiagnosis(
     if (target.pageFriendlyUrl === '/') {
       notes.push('Site root URLs are not checked at page level; content scan still runs for the whole site.');
     } else {
-      page = await checkPageGuestVisibility(config, apiClient, gateway, site.id, target.pageFriendlyUrl);
+      page = await checkPageGuestVisibility(config, apiClient, gateway, site, target.pageFriendlyUrl, notes);
     }
   }
 
@@ -152,7 +170,7 @@ export async function runGuestVisibilityDiagnosis(
     gaps.push(...result.gaps);
   }
 
-  const pageOk = page === undefined || page.visibleAnonymously || !page.visibleAuthenticated;
+  const pageOk = page === undefined || page.renderedVisibleAnonymously || !page.visibleAuthenticated;
 
   return {
     kind: REPORT_KIND,
@@ -223,23 +241,40 @@ async function checkPageGuestVisibility(
   config: AppConfig,
   apiClient: HttpApiClient,
   gateway: LiferayGateway,
-  siteId: number,
+  site: ResolvedSite,
   friendlyUrl: string,
+  notes: string[],
 ): Promise<GuestVisibilityPageCheck> {
   const slug = trimLeadingSlash(friendlyUrl);
-  const pagePath = `/o/headless-delivery/v1.0/sites/${siteId}/site-pages/${slug}`;
+  const pagePath = `/o/headless-delivery/v1.0/sites/${site.id}/site-pages/${slug}`;
+  const renderedUrl = `/web${site.friendlyUrlPath}${friendlyUrl}`;
 
-  const authenticatedResponse = await gateway.getRaw<unknown>(pagePath);
-  const anonymousResponse = await apiClient.get<unknown>(config.liferay.url, pagePath, {
-    timeoutSeconds: config.liferay.timeoutSeconds,
-  });
+  const [authenticatedApiResponse, anonymousApiResponse, anonymousRenderedResponse] = await Promise.all([
+    gateway.getRaw<unknown>(pagePath),
+    apiClient.get<unknown>(config.liferay.url, pagePath, {timeoutSeconds: config.liferay.timeoutSeconds}),
+    apiClient.get<unknown>(config.liferay.url, renderedUrl, {timeoutSeconds: config.liferay.timeoutSeconds}),
+  ]);
+
+  if (authenticatedApiResponse.ok && anonymousApiResponse.ok !== anonymousRenderedResponse.ok) {
+    notes.push(
+      anonymousRenderedResponse.ok
+        ? `The headless page API (${pagePath}) is blocked for anonymous users (status=${anonymousApiResponse.status}) ` +
+            `but the rendered page itself (${renderedUrl}) is visible anonymously (status=${anonymousRenderedResponse.status}); ` +
+            'this usually reflects an instance-level restriction on the headless API, not a Guest View gap on the page.'
+        : `The rendered page (${renderedUrl}) is hidden for anonymous users (status=${anonymousRenderedResponse.status}) ` +
+            `even though the headless page API reports it as accessible (status=${anonymousApiResponse.status}); ` +
+            'check page-level and layout permissions.',
+    );
+  }
 
   return {
-    url: friendlyUrl,
     friendlyUrl,
-    visibleAuthenticated: authenticatedResponse.ok,
-    anonymousStatus: anonymousResponse.status,
-    visibleAnonymously: anonymousResponse.ok,
+    renderedUrl,
+    visibleAuthenticated: authenticatedApiResponse.ok,
+    headlessAnonymousStatus: anonymousApiResponse.status,
+    headlessVisibleAnonymously: anonymousApiResponse.ok,
+    renderedAnonymousStatus: anonymousRenderedResponse.status,
+    renderedVisibleAnonymously: anonymousRenderedResponse.ok,
   };
 }
 
@@ -292,9 +327,9 @@ async function buildGapForItem(
   const title = item.title ?? item.fileName ?? `#${id}`;
   const permissionsPath = `${kind.itemBasePath}/${id}/permissions`;
 
-  const permissionsResponse = await gateway.getRaw<PermissionEntry[]>(permissionsPath);
+  const permissionsResponse = await gateway.getRaw<PermissionsPage>(permissionsPath);
   const permissions =
-    permissionsResponse.ok && Array.isArray(permissionsResponse.data) ? permissionsResponse.data : null;
+    permissionsResponse.ok && Array.isArray(permissionsResponse.data?.items) ? permissionsResponse.data.items : null;
 
   if (permissions === null) {
     // Without readable permissions we can only report a gap when the anonymous
@@ -358,9 +393,12 @@ async function buildGapForItem(
 function buildFixSuggestion(baseUrl: string, permissionsPath: string, guestActionIds: string[]): string {
   const fixedActionIds = JSON.stringify([...guestActionIds, VIEW_ACTION_ID]);
   return (
-    `Grant role ${GUEST_ROLE_NAME} the ${VIEW_ACTION_ID} action: PUT ${baseUrl}${permissionsPath} ` +
-    `with the current role entries plus {"roleName":"${GUEST_ROLE_NAME}","actionIds":${fixedActionIds}} ` +
-    `(UI equivalent: Permissions action on the resource, check View for Guest).`
+    `Grant role ${GUEST_ROLE_NAME} the ${VIEW_ACTION_ID} action: GET ${baseUrl}${permissionsPath} to read the ` +
+    `current "items" array, then PUT ${baseUrl}${permissionsPath} with that same array as a bare JSON array ` +
+    `(not wrapped in "items" — the replace endpoint expects a top-level array, unlike the GET response shape), ` +
+    `replacing the ${GUEST_ROLE_NAME} entry's actionIds with ${fixedActionIds} (or adding ` +
+    `{"roleName":"${GUEST_ROLE_NAME}","actionIds":${fixedActionIds}} if Guest has no entry at all). ` +
+    `UI equivalent: Permissions action on the resource, check View for Guest.`
   );
 }
 
@@ -408,10 +446,16 @@ export function formatGuestVisibilityReport(report: GuestVisibilityReport): stri
 
   if (report.page) {
     const authenticatedLabel = report.page.visibleAuthenticated ? 'visible' : 'hidden';
-    const anonymousLabel = report.page.visibleAnonymously ? 'visible' : 'hidden';
+    const renderedLabel = report.page.renderedVisibleAnonymously ? 'visible' : 'hidden';
     lines.push(
-      `page ${report.page.friendlyUrl}: authenticated=${authenticatedLabel} anonymous=${anonymousLabel} (anonymousStatus=${report.page.anonymousStatus})`,
+      `page ${report.page.renderedUrl}: authenticated(headlessApi)=${authenticatedLabel} anonymous(rendered)=${renderedLabel} (status=${report.page.renderedAnonymousStatus})`,
     );
+    if (report.page.headlessVisibleAnonymously !== report.page.renderedVisibleAnonymously) {
+      const headlessLabel = report.page.headlessVisibleAnonymously ? 'visible' : 'hidden';
+      lines.push(
+        `  headlessApi anonymous=${headlessLabel} (status=${report.page.headlessAnonymousStatus}) differs from the rendered page — see notes`,
+      );
+    }
   }
 
   lines.push(
