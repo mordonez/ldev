@@ -20,6 +20,10 @@ export enum LiferayErrorCode {
   RESOURCE_FILE_AMBIGUOUS = 'LIFERAY_RESOURCE_FILE_AMBIGUOUS',
   RESOURCE_REPO_NOT_FOUND = 'LIFERAY_REPO_NOT_FOUND',
 
+  // Batch engine errors (headless-batch-engine import/export tasks)
+  BATCH_ERROR = 'LIFERAY_BATCH_ERROR',
+  BATCH_TIMEOUT = 'LIFERAY_BATCH_TIMEOUT',
+
   // Content errors
   CONTENT_PRUNE_ERROR = 'LIFERAY_CONTENT_PRUNE_ERROR',
   CONTENT_STATS_ERROR = 'LIFERAY_CONTENT_STATS_ERROR',
@@ -61,6 +65,9 @@ export const errorCodeMetadata: Record<
   [LiferayErrorCode.RESOURCE_FILE_NOT_FOUND]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.RESOURCE_FILE_AMBIGUOUS]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.RESOURCE_REPO_NOT_FOUND]: {severity: 'error', retryable: false, logFullMessage: false},
+
+  [LiferayErrorCode.BATCH_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
+  [LiferayErrorCode.BATCH_TIMEOUT]: {severity: 'warning', retryable: true, logFullMessage: false},
 
   [LiferayErrorCode.CONTENT_PRUNE_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.CONTENT_STATS_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
