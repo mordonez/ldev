@@ -123,3 +123,24 @@ Validate Clay icon coverage for a deployed theme.
 ```bash
 ldev portal theme-check --theme ub-theme --json
 ```
+
+## Batch Engine
+
+Wraps the Liferay headless-batch-engine API (the async import/export
+mechanism behind LAR Mirror imports for Pages, Object Entries, and other
+entities): submits a job, polls `executeStatus` until it reaches a terminal
+state, and reports failures with a read-back verification, following the same
+evidence-based contract as `ldev resource import-*`.
+
+```bash
+ldev portal batch import --class-name com.liferay.object.model.ObjectEntry --file entries.json
+ldev portal batch import --class-name com.liferay.object.model.ObjectEntry --file entries.json --no-poll
+ldev portal batch export --class-name com.liferay.object.model.ObjectEntry --poll
+ldev portal batch status --task 12345
+```
+
+- `import` — `--file` or `--data` (inline JSON), `--create-strategy` (`INSERT`/`UPSERT`), `--import-strategy` (`ON_ERROR_CONTINUE`/`ON_ERROR_FAIL`), `--external-reference-code`, `--field-name-mapping`, `--task-item-delegate-name`
+- `export` — `--content-type` (default `JSON`), `--field-names`, `--task-item-delegate-name`, `--poll` to wait for completion
+- `status` — `--task <id>` and `--operation import|export` to fetch the current `executeStatus` of a previously submitted task
+- `--poll-interval <seconds>` / `--poll-timeout <seconds>` — tune polling cadence; import polls by default, export requires `--poll` explicitly
+- `import` supports `--no-poll` to submit and return immediately without waiting
