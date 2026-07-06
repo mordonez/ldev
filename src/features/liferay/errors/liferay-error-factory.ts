@@ -94,6 +94,18 @@ export const LiferayErrors = {
     ),
 
   /**
+   * Batch engine operation failed (import-tasks/export-tasks).
+   */
+  batchError: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.BATCH_ERROR, options),
+
+  /**
+   * Batch engine polling timed out; the task may still complete server-side.
+   */
+  batchTimeout: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.BATCH_TIMEOUT, options),
+
+  /**
    * Content prune operation failed.
    */
   contentPruneError: (message: string, options?: LiferayErrorOptions): CliError =>
