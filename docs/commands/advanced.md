@@ -123,3 +123,28 @@ Validate Clay icon coverage for a deployed theme.
 ```bash
 ldev portal theme-check --theme ub-theme --json
 ```
+
+## Verify page
+
+Browser-driven post-change visual verification, replacing the manual
+login/navigate/screenshot/console-check sequence with one command. Requires
+`playwright` as a local dependency (`npm install --save-dev playwright && npx
+playwright install chromium`) — it is intentionally not a hard `ldev`
+dependency, so installing `ldev` never forces a Chromium download.
+
+```bash
+ldev verify page --url /web/guest/home
+ldev verify page --url /web/guest/home --skip-login --json
+ldev verify page --url /web/guest/home --screenshot .tmp/verify/home.png
+```
+
+- `--url <friendlyUrl>` — required; a friendly URL or full http(s) URL
+- `--skip-login` — for public pages that do not require authentication
+- `--login-email` / `--login-password` — override `LDEV_VERIFY_LOGIN_EMAIL` / `LDEV_VERIFY_LOGIN_PASSWORD` (default `test@liferay.com` / `test`)
+- `--screenshot <path>` — output path (default `.tmp/verify/<slug>-<timestamp>.png`)
+
+Runs login, navigation, console error capture, a screenshot, and DOM sanity
+checks, then — when the project tracks a local resource catalog under
+`liferay/resources` — diffs the rendered page's structures/templates/adts/fragments
+against those files. Returns a structured pass/fail report and exits non-zero
+on failure.

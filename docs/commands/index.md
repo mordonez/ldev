@@ -28,7 +28,7 @@ If you want to understand what `ldev` is for, start with:
 - [Project and AI](/commands/project-and-ai) — project init, ai
   install/update/status/bootstrap
 - [Advanced](/commands/advanced) — OSGi, worktrees, portal MCP probe, reindex, search,
-  page-layout, theme-check
+  page-layout, theme-check, verify page
 
 ## Namespace overview
 
