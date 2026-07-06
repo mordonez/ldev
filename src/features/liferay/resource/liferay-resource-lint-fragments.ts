@@ -130,7 +130,10 @@ export function lintFragmentHtml(file: string, html: string): ResourceLintFindin
   const seenEditableIds = new Map<string, number>();
   let rawTextUntil: string | undefined;
 
-  const tagPattern = /<!--[\s\S]*?-->|<\/?[a-zA-Z][^\s/>]*(?:"[^"]*"|'[^']*'|[^"'>])*>/g;
+  // Tag name alternatives cover plain HTML tag names and FreeMarker dynamic tag
+  // names (e.g. `<${configuration.headingLevel}>`), which real Liferay fragments
+  // use for configurable heading levels and similar cases.
+  const tagPattern = /<!--[\s\S]*?-->|<\/?(?:[a-zA-Z][^\s/>]*|\$\{[^}]*\})(?:"[^"]*"|'[^']*'|[^"'>])*>/g;
 
   for (const match of html.matchAll(tagPattern)) {
     const tag = match[0];
@@ -301,14 +304,14 @@ function findNearestEditableAncestor(stack: OpenElement[]): EditableInfo | undef
 // ── HTML tokenizer helpers ────────────────────────────────────────────────────
 
 function parseTagName(afterAngle: string): string | undefined {
-  const match = /^([a-zA-Z][-a-zA-Z0-9_:]*)/.exec(afterAngle);
+  const match = /^([a-zA-Z][-a-zA-Z0-9_:]*|\$\{[^}]*\})/.exec(afterAngle);
   return match?.[1]?.toLowerCase();
 }
 
 function parseAttributes(tag: string): Map<string, string> {
   const attributes = new Map<string, string>();
   const attributePattern = /([a-zA-Z_:@][-a-zA-Z0-9_:.@]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
-  const body = tag.replace(/^<\/?[a-zA-Z][^\s/>]*/, '').replace(/\/?>$/, '');
+  const body = tag.replace(/^<\/?(?:[a-zA-Z][^\s/>]*|\$\{[^}]*\})/, '').replace(/\/?>$/, '');
 
   for (const match of body.matchAll(attributePattern)) {
     const groups = match as unknown as Array<string | undefined>;

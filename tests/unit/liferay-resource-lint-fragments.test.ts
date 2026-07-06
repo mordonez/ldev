@@ -104,6 +104,31 @@ describe('lintFragmentHtml (pure rules)', () => {
     expect(findings).toContainEqual(expect.objectContaining({rule: 'duplicate-editable-id', severity: 'error'}));
   });
 
+  test('detects nesting through a FreeMarker dynamic tag name (e.g. configurable heading level)', () => {
+    // Real Liferay fragments commonly use `<${configuration.headingLevel}>` for a
+    // configurable h1-h6 wrapper; the tokenizer must not silently skip these tags.
+    const html = `
+      <\${configuration.headingLevel} data-lfr-editable-id="outer-heading" data-lfr-editable-type="link">
+        <img data-lfr-editable-id="inner-image" data-lfr-editable-type="image" />
+      </\${configuration.headingLevel}>
+    `;
+
+    const findings = lintFragmentHtml('index.html', html);
+
+    expect(findings).toContainEqual(expect.objectContaining({rule: 'nested-editable', severity: 'error'}));
+  });
+
+  test('does not flag a non-nested editable declared directly on a FreeMarker dynamic tag', () => {
+    const html = `
+      <\${configuration.headingLevel} data-lfr-editable-id="title" data-lfr-editable-type="text">
+        Title
+      </\${configuration.headingLevel}>
+      <img data-lfr-editable-id="image" data-lfr-editable-type="image" />
+    `;
+
+    expect(lintFragmentHtml('index.html', html)).toHaveLength(0);
+  });
+
   test('ignores editable-looking attributes inside comments and script/style blocks', () => {
     const html = `
       <!-- <img data-lfr-editable-id="commented" data-lfr-editable-type="image" /> -->
