@@ -19,19 +19,32 @@ hero:
       text: Quickstart
       link: /getting-started/quickstart
 
-features:
-  - icon: "📁"
-    title: Resource ops as files
-    details: Export and import structures, templates, ADTs and fragments. Liferay only lets you do this through the UI — ldev makes it scriptable.
-  - icon: "🔀"
-    title: Structure migration
-    details: Migrate journal articles when a structure changes. A workflow Liferay does not provide.
-  - icon: "🤖"
-    title: Made for agents
-    details: Structured JSON everywhere, installed skills, and project bootstrap. So an AI agent can actually operate Liferay.
 ---
 
+<script setup>
+import {withBase} from 'vitepress';
+</script>
+
 <div class="home-shell">
+
+<section class="primary-demo" aria-labelledby="primary-demo-title">
+  <div class="primary-demo-copy">
+    <span class="agent-label">Resolve an issue</span>
+    <h2 id="primary-demo-title">Watch an agent use ldev end to end</h2>
+    <p>The agent inspects the task, changes the repo, and drives the fix through the ldev workflow.</p>
+  </div>
+  <video
+    class="primary-demo-video"
+    autoplay
+    muted
+    loop
+    playsinline
+    controls
+    preload="metadata"
+    :src="withBase('/demo/demo-ldev-fix-issue.mp4')"
+    title="Agent resolving an issue with ldev"
+  ></video>
+</section>
 
 <div class="install-band">
 
@@ -102,26 +115,18 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 <section class="demo-band" aria-labelledby="agent-demo-title">
   <div class="demo-band-header">
-    <span class="agent-label">Agent demos</span>
+    <span class="agent-label">More agent workflows</span>
     <div>
-      <h2 id="agent-demo-title">See an agent work through ldev</h2>
-      <p>Two short runs: resolving an issue end to end, and creating an isolated worktree to start issue work.</p>
+      <h2 id="agent-demo-title">Start issue work without touching main</h2>
+      <p>Create an isolated worktree so the agent can begin safely from the current repository.</p>
     </div>
   </div>
-  <div class="demo-grid">
-    <article class="demo-card">
-      <video controls muted playsinline preload="metadata" src="/demo/demo-ldev-fix-issue.mp4" title="Agent resolving an issue with ldev"></video>
-      <h3>Resolve an issue</h3>
-      <p>The agent inspects the task, changes the repo, and drives the fix through the ldev workflow.</p>
-      <a href="/demo/demo-ldev-fix-issue.mp4">Open video</a>
-    </article>
-    <article class="demo-card">
-      <video controls muted playsinline preload="metadata" src="/demo/demo-ldev-worktree.mp4" title="Agent creating an ldev worktree for issue work"></video>
-      <h3>Start in a worktree</h3>
-      <p>The agent creates an isolated worktree so issue work can begin without disturbing the main checkout.</p>
-      <a href="/demo/demo-ldev-worktree.mp4">Open video</a>
-    </article>
-  </div>
+  <article class="demo-card">
+    <video controls muted playsinline preload="metadata" :src="withBase('/demo/demo-ldev-worktree.mp4')" title="Agent creating an ldev worktree for issue work"></video>
+    <h3>Start in a worktree</h3>
+    <p>The agent creates an isolated worktree so issue work can begin without disturbing the main checkout.</p>
+    <a :href="withBase('/demo/demo-ldev-worktree.mp4')">Open video</a>
+  </article>
 </section>
 
 <div class="final-cta">
@@ -152,6 +157,10 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 }
 
 /* ── Hero ────────────────────────────────────────── */
+.VPHome .VPHero {
+  padding-bottom: 28px !important;
+}
+
 .VPHome .VPHero .container { max-width: 1180px; }
 
 .VPHome .VPHero .name {
@@ -217,7 +226,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 /* ── Install band ────────────────────────────────── */
 .install-band {
-  margin: 32px auto 48px;
+  margin: 40px auto 48px;
   max-width: 440px;
   text-align: center;
 }
@@ -226,6 +235,47 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
   border-radius: 14px !important;
   border: 1px solid var(--ldev-line);
   box-shadow: 0 4px 20px rgba(15,23,42,0.08);
+}
+
+/* ── Primary demo ───────────────────────────────── */
+.primary-demo {
+  margin: 0 auto 56px;
+}
+
+.primary-demo-copy {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+  margin-bottom: 20px;
+}
+
+.primary-demo-copy h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ldev-ink);
+  font-size: clamp(2rem, 4.6vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.primary-demo-copy p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--ldev-ink-soft);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.primary-demo-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 1px solid var(--ldev-line);
+  border-radius: 8px;
+  background: #020617;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
 }
 
 /* ── Feature blocks ──────────────────────────────── */
@@ -376,12 +426,6 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
   line-height: 1.55;
 }
 
-.demo-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
 .demo-card {
   border: 1px solid var(--ldev-line);
   border-radius: 8px;
@@ -474,7 +518,6 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 960px) {
   .features-band { grid-template-columns: 1fr; }
-  .demo-grid { grid-template-columns: 1fr; }
 
   .VPHome .VPHero .name { font-size: 3rem !important; }
   .VPHome .VPHero .text { font-size: 1.3rem !important; }
