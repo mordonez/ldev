@@ -39,7 +39,8 @@ Use the CLI for file exports/imports and file-backed resource mutations. For str
 - Liferay Objects -> `references/objects.md`
 - Structured content or site page mutation -> `references/site-building.md`
 - Workflow or publication state -> `references/workflow.md`
-- Headless/Groovy/OAuth2 support -> related files under `references/`
+- Headless REST contract discovery -> `references/headless-openapi.md` (`ldev portal api discover`)
+- Groovy console/OAuth2 support -> related files under `references/`
 - Structures/templates/ADTs/fragments -> `portal-resource-workflow`
 - Journal data movement or incompatible structure change -> `migrating-journal-structures`
 
