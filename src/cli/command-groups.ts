@@ -19,6 +19,7 @@ import {createOAuthCommand} from '../commands/oauth/oauth.command.js';
 import {createProjectCommand} from '../commands/project/project.command.js';
 import {createResourceCommand} from '../commands/resource/resource.command.js';
 import {createDashboardCommand} from '../commands/dashboard/dashboard.command.js';
+import {createVerifyCommand} from '../commands/verify/verify.command.js';
 import {createWorktreeCommand} from '../commands/worktree/worktree.command.js';
 
 export const coreGroup: CommandGroup = {
@@ -48,6 +49,7 @@ export const portalGroup: CommandGroup = {
   register(program) {
     program.addCommand(createPortalCommand().helpGroup(this.group!));
     program.addCommand(createOAuthCommand().helpGroup(this.group!));
+    program.addCommand(createVerifyCommand().helpGroup(this.group!));
   },
 };
 
