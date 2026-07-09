@@ -35,6 +35,7 @@ declare module 'playwright' {
     evaluate<T>(pageFunction: () => T): Promise<T>;
     on(event: 'console', listener: (message: ConsoleMessage) => void): void;
     waitForLoadState(state?: 'load' | 'domcontentloaded' | 'networkidle'): Promise<void>;
+    waitForNavigation(options?: {waitUntil?: 'load' | 'domcontentloaded' | 'networkidle'}): Promise<Response | null>;
     close(): Promise<void>;
   }
 

@@ -47,8 +47,15 @@ export async function createPlaywrightBrowserRunner(cwd: string): Promise<Browse
       await page.goto(loginUrl, {waitUntil: 'domcontentloaded'});
       await page.locator(LIFERAY_LOGIN_EMAIL_SELECTOR).fill(credentials.email);
       await page.locator(LIFERAY_LOGIN_PASSWORD_SELECTOR).fill(credentials.password);
-      await page.locator(LIFERAY_LOGIN_SUBMIT_SELECTOR).first().click();
-      await page.waitForLoadState('domcontentloaded');
+      // waitForLoadState('domcontentloaded') right after click() is unreliable here: if that
+      // load state is already satisfied on the pre-click page, it resolves immediately instead
+      // of waiting for the login form's own navigation, so callers would race the next
+      // page.goto() against Liferay's still in-flight post-login redirect (net::ERR_ABORTED).
+      // Pairing the click with waitForNavigation closes that window.
+      await Promise.all([
+        page.waitForNavigation({waitUntil: 'domcontentloaded'}),
+        page.locator(LIFERAY_LOGIN_SUBMIT_SELECTOR).first().click(),
+      ]);
       return readNavigationResult(page, null);
     },
 
