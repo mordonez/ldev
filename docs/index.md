@@ -239,14 +239,18 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 /* ── Primary demo ───────────────────────────────── */
 .primary-demo {
+  display: grid;
+  justify-items: center;
   margin: 0 auto 56px;
 }
 
 .primary-demo-copy {
   display: grid;
+  justify-items: center;
   gap: 10px;
-  max-width: 760px;
+  width: min(760px, 100%);
   margin-bottom: 20px;
+  text-align: center;
 }
 
 .primary-demo-copy h2 {
@@ -269,7 +273,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 .primary-demo-video {
   display: block;
-  width: 100%;
+  width: min(1024px, 100%);
   aspect-ratio: 16 / 9;
   height: auto;
   border: 1px solid var(--ldev-line);
