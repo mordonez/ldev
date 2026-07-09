@@ -183,6 +183,41 @@ This is especially useful before changing a shared portal resource: it gives you
 read-before-write impact analysis without opening the UI or guessing where a
 resource might be referenced.
 
+## `ldev portal api discover`
+
+Resolve the OpenAPI spec of a Liferay Headless app and list its endpoints, schemas,
+filter/sort parameters, pagination support, and (optionally) a working curl/JS example.
+This is the operational bridge between "I need this entity" and a working request.
+
+```bash
+ldev portal api discover
+ldev portal api discover headless-delivery
+ldev portal api discover headless-delivery --path structured-contents
+ldev portal api discover headless-delivery --schema StructuredContent
+ldev portal api discover headless-delivery --example /sites/{siteId}/structured-contents
+ldev portal api discover headless-admin-user --json
+```
+
+Without an app name, it lists every Headless app registered at `/o/openapi`. With an app
+name, it resolves the spec (first from the `/o/openapi` catalog, then by the
+`/o/<app>/v1.0/openapi.json` pattern), then reports:
+
+- Every endpoint's path, method, and which of `page`/`pageSize`, `filter`, `sort`, and
+  `search` query parameters it accepts
+- Available schemas, with `--schema <name>` to inspect one schema's properties in full
+- Fixed pagination/auth/filter/sort conventions for the whole Headless surface
+- With `--example <path>`, a ready-to-run `curl` command and `fetch()` snippet for the
+  matching endpoint, authenticated with a Bearer token
+
+Options:
+
+- `--path <substring>` — only show endpoints whose path contains this substring
+- `--method <verb>` — only show endpoints with this HTTP method (also selects the `--example` method)
+- `--schema <name>` — show full property details for one schema
+- `--example <path>` — emit a curl + fetch example for the endpoint matching this path
+
+Pair this with `ldev portal auth token --raw` to get a token for the emitted examples.
+
 ## `ldev portal audit`
 
 Minimal runtime audit of accessible site metadata and API reachability. Defaults to JSON.

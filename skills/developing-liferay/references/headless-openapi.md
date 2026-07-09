@@ -1,25 +1,31 @@
 # Liferay Headless OpenAPI Catalog
 
-Use `ldev context --json` and read `liferay.portalUrl`; replace `<portalUrl>` with
-that value instead of hardcoding a host or port. In a local runtime,
-`<portalUrl>` is often `http://127.0.0.1:8080` or `http://localhost:8080`.
+Prefer `ldev portal api discover` over raw `curl` for resolving a Headless
+app's contract:
 
-These URLs expose the OpenAPI specs for the headless REST modules available in
-the portal. Use them to inspect exact paths, schemas and operation IDs before
-writing ad hoc REST calls.
+```bash
+ldev portal api discover
+ldev portal api discover headless-delivery
+ldev portal api discover headless-delivery --schema StructuredContent
+ldev portal api discover headless-delivery --example /sites/{siteId}/structured-contents
+```
 
-## Useful workflow
+It resolves the spec (via the `/o/openapi` catalog, falling back to
+`/o/<app>/v1.0/openapi.json`), lists endpoints with their pagination/filter/sort
+support, and `--example` emits a ready-to-run curl + fetch snippet
+authenticated with a Bearer token from `ldev portal auth token --raw`. Use
+`--json` for agent consumption.
+
+Fall back to raw `curl` only when the app is not yet registered in the
+catalog or a spec detail is missing:
 
 ```bash
 ldev context --json
 curl "<portalUrl>/o/headless-delivery/v1.0/openapi.json"
-curl "<portalUrl>/o/headless-admin-site/v1.0/openapi.json"
-curl "<portalUrl>/o/data-engine/v2.0/openapi.json"
 ```
 
-If a spec endpoint requires authentication, use the OAuth2 configuration from
-`ldev context --json` or prefer the existing `ldev portal` and `ldev resource`
-commands when they already cover the workflow.
+Replace `<portalUrl>` with `liferay.portalUrl` from `ldev context --json`
+instead of hardcoding a host or port.
 
 ## OpenAPI endpoints
 
