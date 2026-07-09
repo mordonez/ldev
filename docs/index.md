@@ -100,6 +100,30 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
   <a href="/ldev/agentic/" class="agent-link">Learn more →</a>
 </div>
 
+<section class="demo-band" aria-labelledby="agent-demo-title">
+  <div class="demo-band-header">
+    <span class="agent-label">Agent demos</span>
+    <div>
+      <h2 id="agent-demo-title">See an agent work through ldev</h2>
+      <p>Two short runs: resolving an issue end to end, and creating an isolated worktree to start issue work.</p>
+    </div>
+  </div>
+  <div class="demo-grid">
+    <article class="demo-card">
+      <video controls muted playsinline preload="metadata" src="/demo/demo-ldev-fix-issue.mp4" title="Agent resolving an issue with ldev"></video>
+      <h3>Resolve an issue</h3>
+      <p>The agent inspects the task, changes the repo, and drives the fix through the ldev workflow.</p>
+      <a href="/demo/demo-ldev-fix-issue.mp4">Open video</a>
+    </article>
+    <article class="demo-card">
+      <video controls muted playsinline preload="metadata" src="/demo/demo-ldev-worktree.mp4" title="Agent creating an ldev worktree for issue work"></video>
+      <h3>Start in a worktree</h3>
+      <p>The agent creates an isolated worktree so issue work can begin without disturbing the main checkout.</p>
+      <a href="/demo/demo-ldev-worktree.mp4">Open video</a>
+    </article>
+  </div>
+</section>
+
 <div class="final-cta">
   <strong>ldev fills the automation gaps that Liferay does not.</strong>
   <div class="cta-actions">
@@ -319,6 +343,86 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 
 .agent-link:hover { text-decoration: underline; }
 
+/* ── Demo band ───────────────────────────────────── */
+.demo-band {
+  margin: 0 0 28px;
+  padding: 24px;
+  border: 1px solid var(--ldev-line);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.72);
+  box-shadow: 0 8px 32px rgba(15,23,42,0.06);
+}
+
+.demo-band-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.demo-band-header h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--ldev-ink);
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.demo-band-header p {
+  margin: 6px 0 0;
+  color: var(--ldev-ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.demo-card {
+  border: 1px solid var(--ldev-line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.demo-card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #020617;
+}
+
+.demo-card h3 {
+  margin: 14px 16px 0;
+  padding: 0;
+  border: 0;
+  color: var(--ldev-ink);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.demo-card p {
+  margin: 8px 16px 0;
+  color: var(--ldev-ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.demo-card a {
+  display: inline-flex;
+  margin: 12px 16px 16px;
+  color: var(--ldev-accent);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.demo-card a:hover { text-decoration: underline; }
+
 /* ── Final CTA ───────────────────────────────────── */
 .final-cta {
   text-align: center;
@@ -370,6 +474,7 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
 /* ── Responsive ──────────────────────────────────── */
 @media (max-width: 960px) {
   .features-band { grid-template-columns: 1fr; }
+  .demo-grid { grid-template-columns: 1fr; }
 
   .VPHome .VPHero .name { font-size: 3rem !important; }
   .VPHome .VPHero .text { font-size: 1.3rem !important; }
@@ -381,6 +486,8 @@ ldev resource migration-pipeline --migration-file STR_ARTICLE.migration.json
   .home-shell { margin-bottom: 48px; }
   .install-band { margin-bottom: 32px; }
   .features-band { margin-bottom: 32px; }
+  .demo-band { padding: 18px; }
+  .demo-band-header { flex-direction: column; gap: 10px; }
   .final-cta { padding: 28px 20px; }
 
   .VPHome .VPHero .image,

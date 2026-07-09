@@ -180,6 +180,22 @@ Without a CLI like this, an AI agent cannot meaningfully operate Liferay — too
 
 The integration is CLI-first: structured `--json` output everywhere, plus installed skills that teach an agent the correct workflow for each task.
 
+### Agent demos
+
+Watch a fast end-to-end agent loop: first resolving an issue, then preparing an isolated worktree to start issue work.
+
+<video src="docs/public/demo/demo-ldev-fix-issue.mp4" controls muted playsinline width="100%" title="Agent resolving an issue with ldev"></video>
+
+<p>
+  <a href="docs/public/demo/demo-ldev-fix-issue.mp4">Download the issue resolution demo</a>
+</p>
+
+<video src="docs/public/demo/demo-ldev-worktree.mp4" controls muted playsinline width="100%" title="Agent creating an ldev worktree for issue work"></video>
+
+<p>
+  <a href="docs/public/demo/demo-ldev-worktree.mp4">Download the worktree setup demo</a>
+</p>
+
 ```bash
 # Install skills — the agent knows how to use ldev:
 npx skills add https://github.com/mordonez/ldev
