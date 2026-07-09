@@ -70,7 +70,7 @@ export async function runVerifyPage(
 
   const target = resolveVerifyTarget(portalUrl, options.url);
   const screenshotPath = options.screenshotPath ?? defaultScreenshotPath(project.cwd, target.friendlyPath);
-  const createRunner = dependencies?.createRunner ?? createPlaywrightBrowserRunner;
+  const createRunner = dependencies?.createRunner ?? (() => createPlaywrightBrowserRunner(project.cwd));
 
   let login: VerifyLoginResult = options.skipLogin
     ? {status: 'skipped', detail: 'Login skipped (--skip-login).'}

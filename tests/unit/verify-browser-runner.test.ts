@@ -4,7 +4,7 @@ import {createPlaywrightBrowserRunner} from '../../src/features/verify/verify-br
 
 describe('createPlaywrightBrowserRunner', () => {
   test('throws a clear, actionable error when playwright is not installed', async () => {
-    await expect(createPlaywrightBrowserRunner()).rejects.toThrow(/Playwright is not installed/);
-    await expect(createPlaywrightBrowserRunner()).rejects.toThrow(/npm install --save-dev playwright/);
+    await expect(createPlaywrightBrowserRunner(process.cwd())).rejects.toThrow(/Playwright is not installed/);
+    await expect(createPlaywrightBrowserRunner(process.cwd())).rejects.toThrow(/npm install --save-dev playwright/);
   });
 });

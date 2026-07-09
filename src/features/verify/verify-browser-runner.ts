@@ -1,3 +1,5 @@
+import {createRequire} from 'node:module';
+
 import {CliError} from '../../core/errors.js';
 import type * as PlaywrightModule from 'playwright';
 import type {Browser, ConsoleMessage, Page} from 'playwright';
@@ -21,9 +23,15 @@ const LIFERAY_LOGIN_SUBMIT_SELECTOR = 'button[type=submit]';
  * detected, optionally-installed capability: `doctor` already reports on
  * `playwright-cli` in the same spirit. Users who want `verify page` install
  * `playwright` themselves once; everyone else pays no cost.
+ *
+ * Because ldev runs from its own global install location, a bare
+ * `import('playwright')` would resolve node_modules relative to *that*
+ * location, not the Liferay project the user installed playwright into.
+ * `cwd` (the project directory) is threaded through so resolution is rooted
+ * where the user actually ran `npm install --save-dev playwright`.
  */
-export async function createPlaywrightBrowserRunner(): Promise<BrowserRunner> {
-  const playwright = await loadPlaywrightModule();
+export async function createPlaywrightBrowserRunner(cwd: string): Promise<BrowserRunner> {
+  const playwright = loadPlaywrightModule(cwd);
   const browser = await playwright.chromium.launch({headless: true});
   const page = await browser.newPage();
   const consoleErrors: string[] = [];
@@ -99,9 +107,15 @@ async function closeBrowserQuietly(browser: Browser): Promise<void> {
   }
 }
 
-async function loadPlaywrightModule(): Promise<typeof PlaywrightModule> {
+function loadPlaywrightModule(cwd: string): typeof PlaywrightModule {
   try {
-    return await import('playwright');
+    const require = createRequire(import.meta.url);
+    const resolvedEntry = require.resolve('playwright', {paths: [cwd]});
+    // A plain CJS require (not a dynamic import) here: playwright's entry point
+    // re-exports a runtime object via `module.exports = require(...).inprocess.playwright`,
+    // a pattern cjs-module-lexer can't follow, so ESM interop would only expose it
+    // as `.default` and leave `.chromium` undefined on the namespace object.
+    return require(resolvedEntry) as typeof PlaywrightModule;
   } catch {
     throw new CliError(
       "Playwright is not installed. 'ldev verify page' drives a real browser and needs it as a local dependency.\n" +
