@@ -4,9 +4,9 @@ Use this reference for versioned fragments and controlled fragment imports.
 
 ## Source of truth
 
-- Fragments project under `liferay/ub-fragments/` or the repo's configured fragments path
-
-Do not create parallel fragment sources outside the versioned project layout.
+- Fragments project: read `context.paths.resources.fragments` from `ldev context --json`. Commonly under `liferay/fragments/` or a project-specific path like `liferay/ub-fragments/`.
+- Do not create parallel fragment sources outside the versioned project layout.
+- Do not guess the fragments path from the file system. Always read it from `ldev context --json`.
 
 ## Recommended flow
 

@@ -25,14 +25,14 @@ or the user proves they are active.
 
 ## 2. Export Before Editing
 
-Use focused singular exports:
-
 ```bash
-ldev resource export-structure --site /<site> --structure <KEY>
-ldev resource export-template --site /<site> --template <KEY>
+ldev resource structure --site /<site> --structure <KEY> --out [path]
+ldev resource template --site /<site> --template <KEY> --out [path]
 ldev resource export-adt --site /<site> --adt <KEY> --widget-type <type>
 ldev resource export-fragment --site /<site> --fragment <KEY>
 ```
+
+Omit `[path]` to write to the default layout path; provide a path to write elsewhere.
 
 ## 3. Decide Import vs Migration
 

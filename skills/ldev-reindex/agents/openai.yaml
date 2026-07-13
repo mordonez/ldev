@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reindex"
+  short_description: "Guides readiness checks before a human-triggered Liferay reindex and verifies search behavior afterwards. Use when search results are stale or recently imported content is missing from search."
+  default_prompt: "Use $ldev-reindex to confirm the portal is ready, ask a human to trigger the reindex from the Liferay Control Panel, and verify search results afterwards."

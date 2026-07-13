@@ -26,7 +26,8 @@ export function createPrinter(format: OutputFormat): Printer {
       }
 
       if (format === 'ndjson') {
-        process.stdout.write(`${JSON.stringify(value)}\n`);
+        const records = Array.isArray(value) ? value : [value];
+        process.stdout.write(records.map((record) => `${JSON.stringify(record)}\n`).join(''));
         return;
       }
 

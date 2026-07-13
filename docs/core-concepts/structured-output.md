@@ -22,11 +22,14 @@ read it.
 - `--format text` (default for most) — human-readable output
 - `--json` / `--format json` — pretty-printed JSON, one object per command
   run
-- `--ndjson` / `--format ndjson` — newline-delimited JSON; most commands
-  still emit one final JSON value, while streaming-style commands may emit
-  multiple lines
-- `--strict` — return a non-zero exit code when the result indicates
-  something is wrong (even if the command itself succeeded)
+- `--ndjson` / `--format ndjson` — newline-delimited JSON; array results
+  emit one line per element (an empty array emits no lines), single-object
+  results emit one line
+- `--fields <fields>` — comma-separated projection applied to JSON/NDJSON
+  output (dot notation for nested fields, e.g. `--fields id,site.name`)
+- `--strict` — wrap success output in a `{ "ok": true, "data": ... }`
+  envelope; combined with `--ndjson`, array results emit one envelope per
+  line
 
 Some commands default to JSON because their output is primarily structured:
 

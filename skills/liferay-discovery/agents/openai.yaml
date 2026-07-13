@@ -1,0 +1,4 @@
+interface:
+  display_name: "Liferay Discovery"
+  short_description: "Resolve Liferay portal auth, site identity, and API surface. Use when starting any task that touches a site, page, structure, template, ADT, fragment, or search index."
+  default_prompt: "Use $liferay-discovery to verify auth, resolve the target site, and confirm portal availability before running any portal or resource command."

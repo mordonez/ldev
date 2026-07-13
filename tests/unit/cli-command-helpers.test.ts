@@ -12,7 +12,11 @@ import type {CommandContext} from '../../src/cli/command-context.js';
 import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {ProjectContext} from '../../src/core/config/project-context.js';
 
-const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): CommandContext => ({
+const createMockContext = (
+  format: 'text' | 'json' | 'ndjson',
+  strict = false,
+  fields: string[] = [],
+): CommandContext => ({
   cwd: '/repo',
   config: {} as AppConfig,
   project: {} as ProjectContext,
@@ -23,6 +27,7 @@ const createMockContext = (format: 'text' | 'json' | 'ndjson', strict = false): 
     info: vi.fn(),
   },
   strict,
+  fields,
 });
 
 describe('addOutputFormatOption', () => {
@@ -160,6 +165,44 @@ describe('renderCommandResult', () => {
       ok: true,
       data: {data: 'result'},
     });
+  });
+
+  test('applies --fields projection before writing JSON output', () => {
+    const mockContext = createMockContext('json', false, ['id', 'name']);
+
+    renderCommandResult(mockContext, {id: 1, name: 'Site A', url: '/a'});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({id: 1, name: 'Site A'});
+  });
+
+  test('applies --fields projection after json render transform', () => {
+    const mockContext = createMockContext('json', false, ['name']);
+
+    renderCommandResult(mockContext, {raw: true}, {json: () => ({id: 1, name: 'Site A', url: '/a'})});
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith({name: 'Site A'});
+  });
+
+  test('wraps each array element in its own envelope under ndjson strict mode', () => {
+    const mockContext = createMockContext('ndjson', true);
+
+    renderCommandResult(mockContext, [{id: 1}, {id: 2}]);
+
+    expect(mockContext.printer.write).toHaveBeenCalledWith([
+      {ok: true, data: {id: 1}},
+      {ok: true, data: {id: 2}},
+    ]);
+  });
+
+  test('warns on stderr when --fields is combined with text output', () => {
+    const mockContext = createMockContext('text', false, ['id']);
+
+    renderCommandResult(mockContext, {id: 1, name: 'A'}, {text: 'Text output'});
+
+    expect(mockContext.printer.info).toHaveBeenCalledWith(
+      '--fields applies only to json/ndjson output; showing full text output.',
+    );
+    expect(mockContext.printer.write).toHaveBeenCalledWith('Text output');
   });
 });
 

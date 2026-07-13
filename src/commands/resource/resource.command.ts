@@ -37,6 +37,7 @@ export type ResourceCommandOptionBag = {
   migrationPhase?: string;
   migrationPlan?: string;
   name?: string;
+  out?: string | boolean;
   output?: string;
   overwrite?: boolean;
   pretty?: boolean;

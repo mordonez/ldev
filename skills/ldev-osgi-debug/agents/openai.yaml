@@ -1,0 +1,4 @@
+interface:
+  display_name: "OSGi Debug"
+  short_description: "Diagnose OSGi bundle failures, missing services, hanging threads, and memory issues. Use when a module is not ACTIVE, the portal hangs, or deploy succeeds but the bundle fails."
+  default_prompt: "Use $ldev-osgi-debug to check bundle state, diagnose missing services, collect thread dumps, or trigger a heap dump."
