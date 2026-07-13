@@ -41,6 +41,9 @@ export enum LiferayErrorCode {
   // Theme/Page errors
   THEME_ERROR = 'LIFERAY_THEME_ERROR',
   PAGE_LAYOUT_ERROR = 'LIFERAY_PAGE_LAYOUT_ERROR',
+
+  // Diagnose errors
+  DIAGNOSE_ERROR = 'LIFERAY_DIAGNOSE_ERROR',
 }
 
 /**
@@ -80,6 +83,8 @@ export const errorCodeMetadata: Record<
 
   [LiferayErrorCode.THEME_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.PAGE_LAYOUT_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
+
+  [LiferayErrorCode.DIAGNOSE_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
 };
 
 /**

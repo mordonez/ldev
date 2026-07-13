@@ -167,6 +167,28 @@ the Pages whose evidence matches the requested resource.
 Prefer `--site` whenever you already know the owning Site. Without it,
 `where-used` scans every accessible Site and can take much longer.
 
+## `ldev portal diagnose guest-visibility`
+
+Content created via Headless APIs does not always inherit the default Guest
+View permission the way UI-created content does, which breaks anonymous
+rendering silently. This command compares authenticated vs anonymous access
+and reports the exact permission gap instead of requiring a manual
+Playwright-vs-curl comparison.
+
+```bash
+ldev portal diagnose guest-visibility --url /web/guest/some-page
+ldev portal diagnose guest-visibility --site /global --page-size 50
+ldev portal diagnose guest-visibility --url /web/guest/some-page --json
+```
+
+- `--url <friendlyUrl>` — compares the authenticated vs anonymous render of one page
+- `--site <site>` — scans the site's structured contents and documents, comparing authenticated vs anonymous listings item by item
+- `--page-size <n>` — Headless page size for the `--site` scan (default `100`)
+
+Exits non-zero when a gap is found. Each finding names the missing permission
+(`VIEW` for role `Guest`) on the affected resource and, where possible, the
+permissions endpoint to call to fix it.
+
 Options:
 
 - `--type <fragment|widget|structure|template|adt>` — resource type to trace

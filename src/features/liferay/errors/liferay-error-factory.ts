@@ -158,6 +158,12 @@ export const LiferayErrors = {
     createLiferayError(message, LiferayErrorCode.PAGE_LAYOUT_ERROR, options),
 
   /**
+   * Diagnose command operation failed (invalid input, unsupported target, etc.).
+   */
+  diagnoseError: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.DIAGNOSE_ERROR, options),
+
+  /**
    * Convert a code string to metadata and check if retryable.
    */
   isRetryable: (code: string): boolean => {
