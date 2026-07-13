@@ -118,3 +118,27 @@ Flags worth remembering:
 - `--liferay-timeout-seconds 300` is useful for slow structure/migration calls; repeated runs can use `LIFERAY_CLI_HTTP_TIMEOUT_SECONDS` or `liferay.oauth2.timeoutSeconds`
 
 See the [Resource Migration Pipeline workflow](/workflows/resource-migration-pipeline) for an end-to-end example.
+
+## Lint
+
+Static, network-free checks against local files — catch silent Liferay authoring traps before a deploy cycle:
+
+```bash
+ldev resource lint-page-definition --dir liferay/resources
+ldev resource lint-page-definition --file liferay/resources/layouts/news/page-definition.json
+ldev resource lint-fragments --dir liferay/fragments
+ldev resource lint-fragments --file liferay/fragments/sites/global/src/news/fragments/news-card/index.html
+```
+
+- `lint-page-definition` scans `page-definition.json` files (and `ddm-structures/*.xml` descriptors) for:
+  - a missing `"type": "Root"` on the top-level `pageElement` (page deploys but renders completely empty, no log line)
+  - a `fieldKey` that looks like a miscased reserved Info Item field, e.g. `"Title"` instead of the reserved lowercase `"title"`
+  - a DDM structure field `name` colliding with a reserved `JournalArticle` Info Item field (silently shadowed in `CollectionItem`/`DisplayPageItem` mappings)
+  - `numberOfItems` set lower than `numberOfItemsPerPage` in a Collection Display config (silent cap on visible items)
+- `lint-fragments` parses fragment HTML for:
+  - `data-lfr-editable-*` elements nested inside another editable (invisible to field mapping at render time, even though `fragmentFields` mappings are accepted at deploy time)
+  - editables missing an `id` or `type` attribute, unknown editable types, and duplicate editable ids within one fragment
+
+Both commands accept `--file <file>` for a single target or `--dir <dir>` (default `.`) to scan recursively, report one finding per line with file/rule/severity, and exit non-zero when any `error`-severity finding exists. Use `--json` for machine-readable output.
+
+See [`docs/reference/liferay-site-initializer-gotchas.md`](https://github.com/mordonez/ldev/blob/main/docs/reference/liferay-site-initializer-gotchas.md) for the full field-notes writeup these rules are based on.
