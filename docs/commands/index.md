@@ -24,7 +24,7 @@ If you want to understand what `ldev` is for, start with:
 - [Data and Deploy](/commands/data-and-deploy) — db sync/import, document
   library, deploy module/theme/all, content prune
 - [Resources](/commands/resources) — structures, templates, ADTs, fragments,
-  migration
+  migration, plan
 - [Project and AI](/commands/project-and-ai) — project init, ai
   install/update/status/bootstrap
 - [Advanced](/commands/advanced) — OSGi, worktrees, portal MCP probe, reindex, search,

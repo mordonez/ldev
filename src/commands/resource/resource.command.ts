@@ -9,6 +9,7 @@ import {runLiferayPreflight} from '../../features/liferay/liferay-preflight.js';
 import {registerResourceExportCommands} from './resource-export-commands.js';
 import {registerResourceImportCommands} from './resource-import-commands.js';
 import {registerResourceMigrationCommand} from './resource-migration-command.js';
+import {registerResourcePlanCommand} from './resource-plan-command.js';
 import {registerResourceReadCommands} from './resource-read-commands.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -164,6 +165,7 @@ export function buildResourceCommand(options: ResourceCommandOptions): Command {
   registerResourceExportCommands(resource);
   registerResourceImportCommands(resource);
   registerResourceMigrationCommand(resource);
+  registerResourcePlanCommand(resource);
 
   return resource;
 }
@@ -187,8 +189,12 @@ Import:
 Migration:
   migration-init, migration-pipeline
 
+Plan:
+  plan <resource-id-or-key>  Owner, duplicates, where-used impact and suggested import command in one report
+
 Recommended:
   migration-pipeline for normal end-to-end migrations
+  plan before changing a structure/template/ADT/fragment when the owner or usage is uncertain
 `,
   });
 }
