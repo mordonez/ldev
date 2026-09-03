@@ -50,6 +50,7 @@ describe('liferay check', () => {
       status: 200,
       permissionDenied: false,
       probeUnavailable: false,
+      remedy: null,
     });
     expect(formatLiferayHealth(result)).toContain('HEALTH_OK');
     expect(formatLiferayHealth(result)).toContain('status=200');
@@ -65,8 +66,10 @@ describe('liferay check', () => {
     expect(result.permissionDenied).toBe(true);
     expect(result.status).toBe(403);
     expect(result.probeUnavailable).toBe(false);
+    expect(result.remedy).toMatch(/ldev oauth admin-unblock/);
     expect(formatLiferayHealth(result)).toContain('HEALTH_PARTIAL');
     expect(formatLiferayHealth(result)).toContain('status=403');
+    expect(formatLiferayHealth(result)).toContain('ldev oauth admin-unblock');
   });
 
   test('reports partial health when the user probe is unavailable on the runtime', async () => {
@@ -79,6 +82,7 @@ describe('liferay check', () => {
     expect(result.permissionDenied).toBe(false);
     expect(result.probeUnavailable).toBe(true);
     expect(result.status).toBe(404);
+    expect(result.remedy).toBeNull();
     expect(formatLiferayHealth(result)).toContain('HEALTH_PARTIAL');
     expect(formatLiferayHealth(result)).toContain('status=404');
   });

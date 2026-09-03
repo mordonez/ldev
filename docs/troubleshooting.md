@@ -108,7 +108,23 @@ Common causes:
 
 ```bash
 ldev oauth install --write-env     # Re-register apps
-ldev oauth admin-unblock           # Clear password-reset gate
+ldev portal check                  # Retry
+```
+
+### Portal check fails: "403 Forbidden" (`permissionDenied: true`)
+
+**Cause**: The OAuth token is valid — this is not a scope problem. On a freshly
+bootstrapped company (ldev's Docker templates set `setup.wizard.enabled=false`,
+so no one ever completes the browser setup wizard), the auto-provisioned admin
+user keeps a pending forced password-reset flag, which blocks headless REST
+access entirely, admin role or not. `oauth install` itself reports success
+because it only checks that a token can be issued — the 403 only shows up on
+the next authenticated call.
+
+**Fix**:
+
+```bash
+ldev oauth admin-unblock           # Clear the password-reset gate
 ldev portal check                  # Retry
 ```
 
@@ -127,6 +143,7 @@ ldev context --json
 ldev portal check
 ldev portal auth token --raw
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ldev portal check
 ```
 

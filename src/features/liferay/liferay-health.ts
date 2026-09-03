@@ -16,7 +16,11 @@ export type LiferayHealthResult = {
   status: number;
   permissionDenied: boolean;
   probeUnavailable: boolean;
+  remedy: string | null;
 };
+
+const PERMISSION_DENIED_REMEDY =
+  "OAuth token retrieval succeeded, but the available health probes were denied by this runtime. On a freshly bootstrapped company (setup.wizard.enabled=false), this is most often a pending forced password-reset on the admin user blocking all headless REST access -- run 'ldev oauth admin-unblock' and retry. If that is not it, the OAuth client may need broader API scopes.";
 
 type HealthDependencies = {
   apiClient?: HttpApiClient;
@@ -42,6 +46,7 @@ export async function runLiferayHealth(
     status: health.status,
     permissionDenied: health.permissionDenied,
     probeUnavailable: health.probeUnavailable,
+    remedy: health.permissionDenied ? PERMISSION_DENIED_REMEDY : null,
   };
 }
 
@@ -93,10 +98,8 @@ export function formatLiferayHealth(result: LiferayHealthResult): string {
     `expiresIn=${result.expiresIn}`,
   ];
 
-  if (result.permissionDenied) {
-    lines.push(
-      'note=OAuth token retrieval succeeded, but the available health probes were denied by this runtime. Portal auth is working; inventory and other API workflows may still require broader API scopes.',
-    );
+  if (result.remedy) {
+    lines.push(`note=${result.remedy}`);
   }
 
   if (result.probeUnavailable) {

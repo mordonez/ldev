@@ -84,10 +84,13 @@ Most `ldev` commands talk to Liferay over OAuth2. Install it once:
 
 ```bash
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ldev portal check
 ```
 
-`--write-env` writes the local credentials to `.liferay-cli.local.yml`.
+`--write-env` writes the local credentials to `.liferay-cli.local.yml`. `admin-unblock` clears
+a forced password-reset flag left over from the disabled setup wizard; skip it and
+`portal check` (and everything else that talks to a portal API) fails with a 403.
 
 See [OAuth](/core-concepts/oauth) for the full model and remote setup options.
 

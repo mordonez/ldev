@@ -15,10 +15,20 @@ export function createOAuthCommand(): Command {
 Recommended flow:
   1. ldev start
   2. ldev oauth install --write-env
+  3. ldev oauth admin-unblock
 
 This command deploys the bundled OAuth installer bundle if needed, invokes it
 through the supported runtime path for the current project type, and can
 persist the resulting credentials into .liferay-cli.local.yml.
+
+Why step 3 matters: a freshly bootstrapped Liferay company (setup.wizard.enabled=false,
+the default in ldev's Docker templates) creates its admin user with a pending
+forced password-reset flag. That flag blocks headless REST access for the
+account, admin role or not, so a fresh install/oauth-install with no admin-unblock
+run will pass 'oauth install' but then fail 'ldev portal check' and every other
+authenticated command with a 403, even though the OAuth2 client and scopes are
+correct. 'ldev oauth admin-unblock' clears the flag through the same OSGi path
+used by 'oauth install'.
 `,
   );
 

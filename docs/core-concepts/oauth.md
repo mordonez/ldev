@@ -19,15 +19,18 @@ That means `ldev` needs a valid OAuth2 client for the current portal.
 
 ## The normal user flow
 
-Once the portal is up and the setup wizard is complete, install OAuth once:
+Once the portal is up, install OAuth once:
 
 ```bash
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
-That command creates or refreshes the managed OAuth app used by `ldev`, then writes the read-write client credentials into:
+`oauth install` creates or refreshes the managed OAuth app used by `ldev`, then writes the read-write client credentials into:
 
 - `.liferay-cli.local.yml`
+
+`oauth admin-unblock` matters because ldev's Docker templates set `setup.wizard.enabled=false` — no one ever completes the browser-based setup wizard, so the auto-provisioned admin user keeps a pending forced password-reset flag. That flag blocks headless REST access entirely, admin role or not: `oauth install` itself will report success (it only checks that a token can be issued), but every authenticated command after it — `portal check` included — fails with a 403 until you run `admin-unblock`.
 
 After that, commands such as these can authenticate directly against the portal APIs:
 
@@ -154,6 +157,7 @@ Start with:
 ```bash
 ldev doctor
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ldev portal check
 ```
 

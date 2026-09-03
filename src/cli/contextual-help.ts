@@ -53,6 +53,7 @@ export function buildContextualRootSummary(cwd: string): string {
       '  ldev resource export-structures --site /global',
       '  ldev logs diagnose --json',
       '  ldev oauth install --write-env',
+      '  ldev oauth admin-unblock',
       '',
     );
   } else if (context.projectType === 'blade-workspace') {
@@ -133,6 +134,7 @@ function resolveContextualHelp(cwd: string): ContextualHelp {
           'ldev doctor --json',
           'ldev start',
           'ldev oauth install --write-env',
+          'ldev oauth admin-unblock',
           'ldev portal check --json',
           'ldev portal inventory page --url /web/guest/home --json',
           'ldev resource export-structures --site /global',

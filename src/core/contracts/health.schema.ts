@@ -21,6 +21,7 @@ export const liferayHealthResultSchema = z.object({
   status: z.number().int(),
   permissionDenied: z.boolean(),
   probeUnavailable: z.boolean(),
+  remedy: z.string().nullable(),
 });
 
 export type LiferayHealthResultContract = z.infer<typeof liferayHealthResultSchema>;
