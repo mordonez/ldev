@@ -122,6 +122,53 @@ This matches the broader thesis that
 not an AI feature problem. `ldev` is the application of that thesis to
 Liferay specifically.
 
+## Doesn't better browser automation change this?
+
+Agents that drive a real browser (Claude in Chrome, Playwright MCP
+servers, and similar) have gotten a lot more capable. It's a fair
+question whether that erodes `ldev`'s reason to exist — if an agent can
+just click through the admin panel now, why script anything?
+
+It doesn't, for the same reason a human wouldn't trade a REST call for a
+form-filling macro:
+
+- **One HTTP call vs. many round trips.** `ldev resource export-structures
+  --site /global` reads every structure on a site in one command. The
+  same task through the UI is: open the page, wait for it to render,
+  click into each structure, screenshot or read the DOM, repeat per
+  structure. The gap gets worse, not better, as the number of items
+  grows — batch operations are `ldev`'s home turf.
+- **A file, not a screenshot.** Exporting a structure produces a JSON
+  file that lands in Git, gets a real diff, and can be reviewed in a PR.
+  A browser session driving the same admin form produces nothing
+  durable once the tab closes — there is no artifact to hand to the next
+  step of a workflow, human or agent.
+- **Structured data vs. rendered UI.** `ldev portal inventory` /
+  `api discover` return exact JSON straight from the Headless REST APIs.
+  A browser-driving agent reading the same information off a rendered
+  Control Panel page is parsing a UI that was designed for a human eye,
+  not a stable contract — a copy change or a layout shift is a script
+  failure waiting to happen.
+- **It's not always a browser problem.** `ldev start`, `doctor`, `deploy`,
+  `worktree`, and the Gogo/OSGi diagnostics operate on Docker, git, the
+  local filesystem, and a container's process — none of that is reachable
+  from a browser tab at all, however capable the agent driving it is.
+
+None of this makes browser automation useless — it makes it the right
+tool for a narrower job than the one it's being asked about here.
+`ldev`'s own [browser-testing skill](https://github.com/mordonez/ldev/blob/main/skills/automating-browser-tests/SKILL.md)
+already scopes browser automation to exactly that job: visual
+regressions, page-editor mutations with no headless equivalent, login
+flows, mobile viewports — the things that are genuinely about what
+renders, not about reading or writing data. `ldev verify page` covers
+the scriptable, CI-friendly slice of that same need (screenshot, console
+errors, DOM checks after a change) without requiring a live interactive
+agent session to run it.
+
+The rule of thumb: if the task is "get or change some data," reach for
+`ldev` and a headless API call. If the task is "does this look right
+when it renders," reach for a browser.
+
 ## What this changes about how to read the rest of the docs
 
 When you see `ldev` capabilities documented later — resource ops,

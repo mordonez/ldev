@@ -216,6 +216,34 @@ All commands support three output formats: `text`, `json`, `ndjson`.
 - Keep messages short, technical, and explicit about the next useful action
 - Avoid mixing languages in the same workflow, even for internal tooling commands that are user-visible
 
+## Maintaining Skills
+
+Skills (`skills/*/SKILL.md`) are distributed to every project that runs
+`npx skills add https://github.com/mordonez/ldev`. Most usage happens in
+those consumer projects, not in this repo, so most of the evidence that a
+skill is wrong, incomplete, or missing a step never reaches here on its
+own — it gets worked around silently and forgotten.
+
+The `capturing-session-knowledge` skill instructs agents to file that class
+of finding as a GitHub issue (`skill-feedback` label, using the
+`skill_feedback.yml` template) instead of only recording it in the
+consuming project's own `project-learnings.md`. When triaging incoming
+issues:
+
+- Treat `skill-feedback` issues as a queue to fold into the relevant
+  `skills/*/SKILL.md`, `AGENTS.md`, or command `--help` text — not just as
+  a one-off bug to close.
+- If the same gap could recur, prefer fixing the CLI's own output (an error
+  message, a `--help` example, a `nextSteps` hint) over only fixing the
+  skill text, so agents and humans who never loaded the skill still get it
+  right. The `oauth admin-unblock` step is the template case: it existed in
+  `routing-liferay-work` before it was added to `ldev oauth --help`,
+  `ldev --help`'s recommended steps, and `project init`'s `nextSteps` — the
+  skill knew, the CLI didn't, and only the CLI is guaranteed to be read.
+- After editing a skill, bump anything version-pinned in its frontmatter if
+  present and mention the change in the PR description so consumers know to
+  re-run `npx skills add` to pick it up.
+
 ## Support Levels And Scope Guardrails
 
 Before adding or expanding a command, classify it:

@@ -1,0 +1,52 @@
+name: Skill / agent-workflow feedback
+description: An installed ldev skill (or AGENTS.md, or a command's --help) gave wrong, incomplete, or missing guidance
+title: '[Skill]: '
+labels:
+  - skill-feedback
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For agents: file this when a shipped `ldev` skill, AGENTS.md, or a command's
+        documented flow led you (or the human you were assisting) to a wrong result,
+        a step that turned out to be unexpectedly required, or a gap only found by
+        actually running the workflow -- not something specific to the project you
+        were working in. Project-specific learnings belong in that project's own
+        `docs/ai/project-learnings.md` (see the capturing-session-knowledge skill)
+        instead of here.
+  - type: input
+    id: skill_name
+    attributes:
+      label: Skill, doc, or command
+      description: Which skill directory (skills/<name>/SKILL.md), doc page, or `ldev ... --help` output was wrong or incomplete
+      placeholder: skills/routing-liferay-work/SKILL.md
+    validations:
+      required: true
+  - type: textarea
+    id: what_it_said
+    attributes:
+      label: What the skill/doc said to do
+      description: Quote the relevant instruction as written
+    validations:
+      required: true
+  - type: textarea
+    id: what_actually_happened
+    attributes:
+      label: What actually happened
+      description: The concrete failure or gap -- error text, unexpected result, or the step that was silently required but never mentioned
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal repro
+      description: The exact command sequence that surfaces the gap, ideally from a fresh `ldev project init`
+    validations:
+      required: false
+  - type: input
+    id: ldev_version
+    attributes:
+      label: ldev version
+      description: Output of `ldev --version`
+    validations:
+      required: true

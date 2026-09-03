@@ -59,6 +59,7 @@ export default defineConfig({
           {text: 'Discovery', link: '/core-concepts/discovery'},
           {text: 'Structured Output', link: '/core-concepts/structured-output'},
           {text: 'OAuth', link: '/core-concepts/oauth'},
+          {text: "Liferay's Native MCP Server", link: '/core-concepts/liferay-native-mcp'},
         ],
       },
       {

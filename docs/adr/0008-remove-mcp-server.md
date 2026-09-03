@@ -29,6 +29,15 @@ The MCP server was added later, driven by the broader industry excitement around
 
 Both sources reinforce the same conclusion: MCP adds value when the agent needs to discover and invoke arbitrary capabilities dynamically. `ldev`'s surface is intentional and bounded — skills express that surface more efficiently than runtime tool schemas.
 
+## Update — 2026-09 (Liferay DXP 2026.Q3)
+
+Liferay DXP 2026.Q3 shipped its own native MCP server (`/o/mcp`, feature flag
+`LPD-63311`). This validates rather than reopens this decision: it wraps
+live Headless REST APIs for a running portal, which has no overlap with
+what `ldev` does (local environment lifecycle, file-based resource
+workflows). See [Liferay's Native MCP Server](/core-concepts/liferay-native-mcp)
+for what it is, how to enable it, and a full comparison table.
+
 ## Consequences
 
 - `entrypoints/` layer now has a single entry: `dashboard/`. The layer concept remains valid — the dashboard is still a long-lived server process, not a feature. See ADR 0002.

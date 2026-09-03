@@ -78,3 +78,4 @@ This router does not execute the fix — it classifies and hands off.
 - Use `ldev` as the official interface.
 - Do not invent portal mutations when an `ldev resource ...` workflow exists.
 - Keep the smallest specialist skill active; do not carry every Liferay skill into the same task unless routing proves it is needed.
+- If a skill's documented steps turn out wrong or incomplete for reasons unrelated to this project, file it upstream (see `capturing-session-knowledge`'s "When the learning is about ldev itself" section) instead of only noting it locally.

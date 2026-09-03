@@ -74,15 +74,25 @@ then the **action** or **fact**. Keep each entry to 1–3 lines.
 <When / situation>: <what to do or know>.
 ```
 
-Example:
-
-```markdown
-## OSGi cache after portlet-model-hints change
-
-After editing portlet-model-hints.xml, clear the OSGi cache before deploying
-or the change will not take effect: record the required project cleanup command
-in `docs/ai/project-context.md` before future agents repeat the deploy.
-```
+E.g. `## OSGi cache after portlet-model-hints change` / "After editing
+portlet-model-hints.xml, clear the OSGi cache before deploying or the change
+will not take effect."
 
 Do not write more than 5–6 new entries per session. Fewer, sharper entries are
 more useful than an exhaustive log.
+
+## When the learning is about `ldev` itself, not this project
+
+Some learnings fail the "helps a fresh agent on this project" test but matter
+more broadly: a shipped skill gave wrong or incomplete guidance, or a
+command's `--help` didn't mention a step that turned out to be required.
+Trapped in one project's `project-learnings.md`, that never reaches `ldev`'s
+maintainer or any other project using the same skill. File it upstream too:
+
+```bash
+gh issue create --repo mordonez/ldev --template skill_feedback.yml --title "[Skill]: <summary>"
+```
+
+No `gh` access? Tell the user to file it at
+https://github.com/mordonez/ldev/issues/new?template=skill_feedback.yml
+instead of letting the gap disappear into a silent workaround.
