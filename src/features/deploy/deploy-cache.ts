@@ -269,17 +269,24 @@ async function withStorageLock<T>(storage: RuntimeStorage, run: () => Promise<T>
   const lockPath = path.join(storage.bindPath, CACHE_LOCK_FILE);
 
   for (let attempt = 0; attempt < CACHE_LOCK_ATTEMPTS; attempt += 1) {
+    // Only a failure to acquire the lock (the file already exists) should
+    // retry. `run()` errors must propagate as-is instead of being retried
+    // and eventually masked behind a misleading "lock timeout" -- e.g. "no
+    // deployable artifacts found" used to disappear entirely after 5s of
+    // pointless retries.
+    let fd: number;
     try {
-      const fd = await fs.open(lockPath, 'wx');
-
-      try {
-        return await run();
-      } finally {
-        await fs.close(fd).catch(() => undefined);
-        await fs.remove(lockPath).catch(() => undefined);
-      }
+      fd = await fs.open(lockPath, 'wx');
     } catch {
       await delay(CACHE_LOCK_DELAY_MS);
+      continue;
+    }
+
+    try {
+      return await run();
+    } finally {
+      await fs.close(fd).catch(() => undefined);
+      await fs.remove(lockPath).catch(() => undefined);
     }
   }
 
