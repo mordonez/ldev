@@ -15,6 +15,15 @@ export type OAuthClientCredentialsConfig = {
   oauth2ClientSecret: string;
   scopeAliases: string;
   timeoutSeconds: number;
+  /**
+   * RFC 8707 resource indicator. Liferay's OAuth2 authorization server binds
+   * the issued token's audience to this value and its own MCP server
+   * (/o/mcp) rejects any bearer token whose audience doesn't include it --
+   * a token requested without `resource` works for Headless REST but not
+   * for MCP. Same OAuth2 application either way, no separate app or scope
+   * needed; see docs/core-concepts/liferay-native-mcp.md.
+   */
+  resource?: string;
 };
 
 export type TokenResponse = {
@@ -104,6 +113,7 @@ async function requestWithFallback(apiClient: HttpApiClient, settings: OAuthClie
   const baseForm = {
     grant_type: 'client_credentials',
     ...(scope === '' ? {} : {scope}),
+    ...(settings.resource ? {resource: settings.resource} : {}),
   };
 
   const basicAttempt = await apiClient.postForm(settings.url, '/o/oauth2/token', baseForm, {
@@ -264,6 +274,7 @@ function tokenCacheFile(cacheDir: string, settings: OAuthClientCredentialsConfig
       JSON.stringify({
         url: settings.url,
         scopeAliases: settings.scopeAliases,
+        resource: settings.resource ?? '',
       }),
     )
     .digest('hex');

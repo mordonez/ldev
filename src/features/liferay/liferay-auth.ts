@@ -12,6 +12,7 @@ export type LiferayAuthCheckResult = {
 export type LiferayAuthTokenResult = LiferayAuthCheckResult & {
   accessToken: string;
   accessTokenMasked: string;
+  resource: string | null;
 };
 
 export async function runLiferayAuthCheck(
@@ -31,7 +32,7 @@ export async function runLiferayAuthCheck(
 
 export async function runLiferayAuthToken(
   config: AppConfig,
-  dependencies?: {tokenClient?: OAuthTokenClient},
+  dependencies?: {tokenClient?: OAuthTokenClient; resource?: string},
 ): Promise<LiferayAuthTokenResult> {
   const token = await fetchToken(config, dependencies);
 
@@ -43,6 +44,7 @@ export async function runLiferayAuthToken(
     expiresIn: token.expiresIn,
     accessToken: token.accessToken,
     accessTokenMasked: maskToken(token.accessToken),
+    resource: dependencies?.resource ?? null,
   };
 }
 
@@ -70,6 +72,10 @@ export function formatLiferayAuthToken(result: LiferayAuthTokenResult, options?:
     `accessTokenMasked=${result.accessTokenMasked}`,
   ];
 
+  if (result.resource) {
+    lines.push(`resource=${result.resource}`);
+  }
+
   return lines.join('\n');
 }
 
@@ -80,7 +86,13 @@ function maskToken(value: string): string {
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
-async function fetchToken(config: AppConfig, dependencies?: {tokenClient?: OAuthTokenClient}): Promise<TokenResponse> {
+async function fetchToken(
+  config: AppConfig,
+  dependencies?: {tokenClient?: OAuthTokenClient; resource?: string},
+): Promise<TokenResponse> {
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
-  return tokenClient.fetchClientCredentialsToken(config.liferay);
+  return tokenClient.fetchClientCredentialsToken({
+    ...config.liferay,
+    ...(dependencies?.resource ? {resource: dependencies.resource} : {}),
+  });
 }

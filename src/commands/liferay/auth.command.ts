@@ -6,6 +6,8 @@ import {formatLiferayHealth, runLiferayHealth} from '../../features/liferay/life
 
 type LiferayAuthTokenCommandOptions = {
   raw?: boolean;
+  resource?: string;
+  mcp?: boolean;
 };
 
 export function createAuthCommands(parent: Command): void {
@@ -16,10 +18,30 @@ export function createAuthCommands(parent: Command): void {
     auth
       .command('token')
       .description('Fetch an OAuth2 access token for scripting')
-      .option('--raw', 'Print only the access token in text format'),
+      .option('--raw', 'Print only the access token in text format')
+      .option('--resource <url>', 'RFC 8707 resource indicator to bind the token audience to (e.g. an MCP server URL)')
+      .option('--mcp', "Shorthand for --resource <portalUrl>/o/mcp, for Liferay's native MCP server")
+      .addHelpText(
+        'after',
+        `
+By default the token works for Headless REST but Liferay's native MCP server
+(/o/mcp, DXP 2026.Q3+) rejects it: it requires the token's audience to
+include the MCP resource URI. Use the same 'ldev'-managed OAuth2 app for
+both by requesting an MCP-bound token instead:
+
+  ldev portal auth token --mcp --raw
+
+Paste that into an MCP client config (Claude Desktop, Cursor, ...) as the
+Bearer token. It expires with the token lifetime like any other access
+token -- re-run this command to get a fresh one.
+`,
+      ),
   ).action(
     createFormattedAction(
-      async (context) => runLiferayAuthToken(context.config),
+      async (context, options: LiferayAuthTokenCommandOptions) =>
+        runLiferayAuthToken(context.config, {
+          resource: options.mcp ? `${context.config.liferay.url}/o/mcp` : options.resource,
+        }),
       (options: LiferayAuthTokenCommandOptions) => ({
         text: (result: Awaited<ReturnType<typeof runLiferayAuthToken>>) =>
           formatLiferayAuthToken(result, {raw: Boolean(options.raw)}),

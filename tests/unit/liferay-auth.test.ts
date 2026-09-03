@@ -82,6 +82,47 @@ describe('liferay auth', () => {
     expect(seenBodies.at(-1)).toBe('grant_type=client_credentials');
   });
 
+  test('includes the resource indicator in the token request when set, for MCP audience binding', async () => {
+    const seenBodies: string[] = [];
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl((_url, init) => {
+        seenBodies.push(toTestRequestBody(init?.body));
+        return new Response('{"access_token":"token-abcdefgh","token_type":"Bearer","expires_in":120}', {status: 200});
+      }),
+    });
+    const tokenClient = createOAuthTokenClient({apiClient, cacheDir: createTempDir('ldev-oauth-test-resource-')});
+
+    await tokenClient.fetchClientCredentialsToken({
+      ...SETTINGS,
+      resource: 'http://localhost:8080/o/mcp',
+    });
+
+    expect(seenBodies[0]).toContain('resource=http%3A%2F%2Flocalhost%3A8080%2Fo%2Fmcp');
+  });
+
+  test('caches a resource-bound token separately from an unbound one for the same client', async () => {
+    let requests = 0;
+    const apiClient = createLiferayApiClient({
+      fetchImpl: createTestFetchImpl(() => {
+        requests += 1;
+        return new Response(`{"access_token":"token-${requests}","token_type":"Bearer","expires_in":3600}`, {
+          status: 200,
+        });
+      }),
+    });
+    const cacheDir = createTempDir('ldev-oauth-test-resource-cache-');
+    const tokenClient = createOAuthTokenClient({apiClient, cacheDir});
+
+    const unbound = await tokenClient.fetchClientCredentialsToken(SETTINGS);
+    const mcpBound = await tokenClient.fetchClientCredentialsToken({
+      ...SETTINGS,
+      resource: 'http://localhost:8080/o/mcp',
+    });
+
+    expect(unbound.accessToken).not.toBe(mcpBound.accessToken);
+    expect(requests).toBe(2);
+  });
+
   test('formats raw and masked token output', () => {
     const result = {
       ok: true as const,
@@ -91,10 +132,15 @@ describe('liferay auth', () => {
       expiresIn: 3600,
       accessToken: 'token-12345678',
       accessTokenMasked: 'toke...5678',
+      resource: null,
     };
 
     expect(formatLiferayAuthToken(result, {raw: true})).toBe('token-12345678');
     expect(formatLiferayAuthToken(result, {raw: false})).toContain('accessTokenMasked=toke...5678');
+    expect(formatLiferayAuthToken(result, {raw: false})).not.toContain('resource=');
+    expect(formatLiferayAuthToken({...result, resource: 'http://localhost:8080/o/mcp'}, {raw: false})).toContain(
+      'resource=http://localhost:8080/o/mcp',
+    );
   });
 
   test('reuses a cached token across client instances', async () => {

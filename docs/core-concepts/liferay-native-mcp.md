@@ -90,11 +90,22 @@ Two schemes are accepted, and they behave differently in practice:
 - **OAuth 2.0 Bearer** — Liferay's MCP server validates the token itself and
   rejects any token whose audience doesn't include the MCP resource URI
   (`<baseUrl>/o/mcp`). A plain client-credentials token from
-  `ldev oauth install` does **not** work against `/o/mcp` out of the box —
-  it comes back `401 invalid_token: "Access token is not bound to this MCP
-  server"`. A client must explicitly request that `resource` when getting
-  the token; `ldev`'s OAuth client does not do this today, since the OAuth
-  app `ldev` provisions is for Headless REST directly, not for `/o/mcp`.
+  `ldev oauth install` does **not** work against `/o/mcp` — it comes back
+  `401 invalid_token: "Access token is not bound to this MCP server"`.
+
+  The same `ldev`-provisioned OAuth2 app works for both, though: request the
+  token with the `resource` parameter set to the MCP URI and Liferay issues
+  one whose audience includes it. `ldev portal auth token` does this for you:
+
+  ```bash
+  ldev portal auth token --mcp --raw
+  # equivalent: ldev portal auth token --resource "$(ldev context --json | jq -r .liferay.portalUrl)/o/mcp" --raw
+  ```
+
+  Paste the result into an MCP client config (Claude Desktop, Cursor, ...) as
+  the Bearer token. It expires with the normal token lifetime — re-run the
+  command for a fresh one when it does. No separate OAuth2 application, no
+  extra scopes: it's the exact same client `oauth install` already created.
 
 ## Why this doesn't replace anything in `ldev`
 
