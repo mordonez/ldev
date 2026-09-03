@@ -10,4 +10,11 @@ export const EnvErrors = {
 
   startTimeout: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, EnvErrorCode.START_TIMEOUT, options),
+
+  startFailed: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(
+      `${message}\n\nIf a previous 'ldev start' was interrupted mid-boot, the bind-mounted runtime data can be left half-initialized (e.g. postgres never finishing its first-run setup). Run 'ldev env clean' to reset local runtime data, then retry 'ldev start'.`,
+      EnvErrorCode.START_FAILED,
+      options,
+    ),
 };

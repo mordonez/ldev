@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 
+import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
@@ -72,6 +73,11 @@ export async function runEnvStart(
   } catch (error) {
     if (signal?.aborted) {
       await rollbackStartedEnvironment();
+      throw error;
+    }
+
+    if (error instanceof CliError && error.code === 'DOCKER_COMPOSE_ERROR') {
+      throw EnvErrors.startFailed(error.message);
     }
 
     throw error;

@@ -132,6 +132,27 @@ describe('env integration', () => {
     expect(calls).toEqual(expect.arrayContaining(['compose up -d', 'compose stop', 'compose down']));
   }, 30000);
 
+  test('env start points to `ldev env clean` when the initial compose up fails', async () => {
+    const repoRoot = await createEnvRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {
+      ...process.env,
+      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_COMPOSE_UP_FAIL_MESSAGE: 'dependency failed to start: container demo-postgres is unhealthy',
+    };
+    const config = loadConfig({cwd: repoRoot, env: process.env});
+
+    let caught: unknown;
+    try {
+      await runEnvStart(config, {wait: false, processEnv});
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({code: 'ENV_START_FAILED'});
+    expect((caught as Error).message).toMatch(/ldev env clean/);
+  }, 15000);
+
   test('env start respects DOCLIB_PATH and does not remount doclib to the default bind path', async () => {
     const repoRoot = await createEnvRepoFixture();
     const fakeBinDir = await createFakeDockerBin();

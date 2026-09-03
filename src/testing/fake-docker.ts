@@ -77,6 +77,10 @@ function println(text = '') {
   process.stdout.write(text + '\\n');
 }
 
+function printErr(text = '') {
+  process.stderr.write(text + '\\n');
+}
+
 function fail(message) {
   process.stderr.write(message + '\\n');
   process.exit(1);
@@ -114,6 +118,10 @@ if (
 ) {
   if (args[1] === 'up' && process.env.FAKE_DOCKER_DELAY_COMPOSE_UP_MS) {
     await sleep(Number(process.env.FAKE_DOCKER_DELAY_COMPOSE_UP_MS));
+  }
+  if (args[1] === 'up' && process.env.FAKE_DOCKER_COMPOSE_UP_FAIL_MESSAGE) {
+    printErr(decodeEscapes(process.env.FAKE_DOCKER_COMPOSE_UP_FAIL_MESSAGE));
+    process.exit(1);
   }
   if (args[1] === 'logs' && process.env.FAKE_DOCKER_LOGS_OUTPUT) {
     print(decodeEscapes(process.env.FAKE_DOCKER_LOGS_OUTPUT));

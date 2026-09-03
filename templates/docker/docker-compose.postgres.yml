@@ -28,10 +28,17 @@ services:
     networks:
       - liferay-network
     healthcheck:
+      # Postgres restarts itself once internally after initdb runs the
+      # docker-entrypoint-initdb.d scripts, and pg_isready fails during that
+      # brief window. A short interval + more retries (matching the other
+      # services' healthchecks) rides that out instead of racing it: a 60s
+      # interval with only 2 retries could previously call the service
+      # unhealthy from a single unlucky check, aborting `docker compose up`
+      # mid-init and leaving the bind-mounted data directory half-initialized.
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-liferay} -d ${POSTGRES_DB:-liferay}"]
-      interval: 60s
-      timeout: 10s
-      retries: 2
+      interval: 5s
+      timeout: 5s
+      retries: 10
       start_period: 30s
 
   liferay:
