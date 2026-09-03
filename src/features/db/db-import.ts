@@ -24,6 +24,9 @@ import {
   resolveEnvContext,
   resolvePostgresStorage,
 } from '../../core/runtime/env-context.js';
+import {resolveBackupFile, resolvePostImportFiles} from './db-import-backups.js';
+
+export {resolveBackupFile, findBackupFiles} from './db-import-backups.js';
 
 export type DbImportResult = {
   ok: true;
@@ -151,76 +154,6 @@ export function formatDbImport(result: DbImportResult): string {
   ].join('\n');
 }
 
-async function resolvePostImportFiles(dockerDir: string): Promise<string[]> {
-  const postImportDir = path.join(dockerDir, 'sql', 'post-import.d');
-  if (!(await fs.pathExists(postImportDir))) {
-    return [];
-  }
-
-  const entries = await fs.readdir(postImportDir, {withFileTypes: true});
-  return entries
-    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.sql'))
-    .map((entry) => path.join(postImportDir, entry.name))
-    .sort((left, right) => path.basename(left).localeCompare(path.basename(right)));
-}
-
-export async function resolveBackupFile(dockerDir: string, explicitFile?: string): Promise<string> {
-  if (explicitFile && explicitFile.trim() !== '') {
-    const candidate = path.resolve(explicitFile);
-    if (!(await fs.pathExists(candidate))) {
-      throw new CliError(`Backup does not exist: ${candidate}`, {code: 'DB_BACKUP_NOT_FOUND'});
-    }
-    return candidate;
-  }
-
-  const backupsDir = path.join(dockerDir, 'backups');
-  const candidates = await findBackupFiles(backupsDir);
-  if (candidates.length === 0) {
-    throw new CliError('No backup was found in docker/backups/. Use --file path/to/file.gz', {
-      code: 'DB_BACKUP_NOT_FOUND',
-    });
-  }
-
-  candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);
-  return candidates[0].file;
-}
-
-export async function findBackupFiles(root: string): Promise<Array<{file: string; mtimeMs: number}>> {
-  if (!(await fs.pathExists(root))) {
-    return [];
-  }
-
-  const matches: Array<{file: string; mtimeMs: number}> = [];
-  const queue = [root];
-  while (queue.length > 0) {
-    const current = queue.shift();
-    if (!current) {
-      continue;
-    }
-
-    const entries = await fs.readdir(current, {withFileTypes: true});
-    for (const entry of entries) {
-      const entryPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === 'doclib') {
-          continue;
-        }
-        queue.push(entryPath);
-        continue;
-      }
-
-      if (!entry.isFile() || !/\.(gz|sql|dump)$/i.test(entry.name)) {
-        continue;
-      }
-
-      const stat = await fs.stat(entryPath);
-      matches.push({file: entryPath, mtimeMs: stat.mtimeMs});
-    }
-  }
-
-  return matches;
-}
-
 async function hasDirectoryContents(directory: string, processEnv?: NodeJS.ProcessEnv): Promise<boolean> {
   if (!(await fs.pathExists(directory))) {
     return false;
@@ -344,7 +277,7 @@ export async function streamSqlIntoPostgres(
   } catch (error) {
     // EPIPE / ERR_STREAM_PREMATURE_CLOSE: the child closed its stdin before we
     // finished writing (e.g. fake docker in tests or a quick psql exit).
-    // This is expected â€” wait for the actual exit code rather than aborting.
+    // This is expected — wait for the actual exit code rather than aborting.
     const errorCode = error instanceof Error ? (error as NodeJS.ErrnoException).code : undefined;
     const isExpected = errorCode === 'EPIPE' || errorCode === 'ERR_STREAM_PREMATURE_CLOSE';
     if (!isExpected) {
