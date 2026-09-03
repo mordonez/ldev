@@ -135,10 +135,10 @@ async function applyProjectTooling(options: {
   liferayRelease: LiferayReleaseSelection | null;
 }): Promise<ProjectCommandResult> {
   const dockerCreated = await ensureDockerScaffold(options.targetDir, options.assets, options.services);
-  const liferayCreated = await ensureLiferayScaffold(options.targetDir, options.assets);
+  const liferayCreated = await ensureLiferayScaffold(options.targetDir, options.assets, options.services);
   const dockerenvCreated = liferayCreated
     ? false
-    : await ensureLiferayDockerenvScaffold(options.targetDir, options.assets);
+    : await ensureLiferayDockerenvScaffold(options.targetDir, options.assets, options.services);
   const scaffoldFilesCopied = await copyProjectScaffoldFiles(options.targetDir, options.assets);
   await configureGeneratedProjectFiles(
     options.targetDir,

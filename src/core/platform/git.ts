@@ -86,6 +86,11 @@ export async function isGitRepository(cwd: string): Promise<boolean> {
   return result.ok && result.stdout.trim() === 'true';
 }
 
+export async function hasCommits(cwd: string): Promise<boolean> {
+  const result = await runProcess('git', ['rev-parse', '--verify', '--quiet', 'HEAD'], {cwd});
+  return result.ok;
+}
+
 export async function isWorktree(cwd: string): Promise<boolean> {
   if (resolveLinkedGitWorktree(cwd)) {
     return true;

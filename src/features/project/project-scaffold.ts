@@ -92,7 +92,11 @@ export async function ensureDockerScaffold(
   return true;
 }
 
-export async function ensureLiferayScaffold(targetDir: string, assets: ProjectAssets): Promise<boolean> {
+export async function ensureLiferayScaffold(
+  targetDir: string,
+  assets: ProjectAssets,
+  services: DockerService[] = [],
+): Promise<boolean> {
   const destination = path.join(targetDir, 'liferay');
   if (await fs.pathExists(destination)) {
     return false;
@@ -110,12 +114,16 @@ export async function ensureLiferayScaffold(targetDir: string, assets: ProjectAs
   await fs.copy(path.join(assets.liferayDir, 'configs', 'common'), path.join(destination, 'configs', 'common'), {
     overwrite: true,
   });
-  await ensureLiferayDockerenvScaffold(targetDir, assets);
+  await ensureLiferayDockerenvScaffold(targetDir, assets, services);
   await ensureFile(path.join(destination, 'modules', '.gitkeep'));
   return true;
 }
 
-export async function ensureLiferayDockerenvScaffold(targetDir: string, assets: ProjectAssets): Promise<boolean> {
+export async function ensureLiferayDockerenvScaffold(
+  targetDir: string,
+  assets: ProjectAssets,
+  services: DockerService[] = [],
+): Promise<boolean> {
   const liferayDir = path.join(targetDir, 'liferay');
   if (!(await fs.pathExists(liferayDir))) {
     return false;
@@ -133,6 +141,19 @@ export async function ensureLiferayDockerenvScaffold(targetDir: string, assets: 
     liferayDir,
     'configs/dockerenv/osgi/configs/com.liferay.portal.store.file.system.configuration.AdvancedFileSystemStoreConfiguration.config',
   );
+
+  if (services.includes('elasticsearch')) {
+    // Without this, Liferay ignores the docker-compose elasticsearch service
+    // entirely and falls back to its own bundled "sidecar" Elasticsearch
+    // process inside the container -- the compose service comes up healthy
+    // but sits unused, and `ldev portal search`/`reindex` against it always
+    // report empty.
+    await copyAsset(
+      assets.liferayDir,
+      liferayDir,
+      'configs/dockerenv/osgi/configs/com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
+    );
+  }
   await ensureFile(path.join(dockerenvDir, 'osgi', 'configs', '.gitkeep'));
   await ensureFile(path.join(dockerenvDir, 'osgi', 'modules', '.gitkeep'));
   return true;

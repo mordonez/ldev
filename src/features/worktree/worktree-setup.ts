@@ -3,7 +3,7 @@
 import {loadConfig} from '../../core/config/load-config.js';
 import {readEnvFile} from '../../core/config/env-file.js';
 import {resolveEnvContext} from '../../core/runtime/env-context.js';
-import {addGitWorktree, areSamePath, listGitWorktreeDetails} from '../../core/platform/git.js';
+import {addGitWorktree, areSamePath, hasCommits, listGitWorktreeDetails} from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {WorktreeErrors} from './errors/worktree-error-factory.js';
@@ -111,6 +111,13 @@ export async function runWorktreeSetup(options: {
       throw WorktreeErrors.pathConflict(`The path exists but is not a registered git worktree: ${target.worktreeDir}`);
     }
   } else {
+    if (!options.baseRef && !(await hasCommits(context.mainRepoRoot))) {
+      throw WorktreeErrors.noCommits(
+        'This repository has no commits yet, so there is no HEAD to branch a worktree from. ' +
+          "Commit at least once (e.g. 'git add -A && git commit') and retry, or pass an explicit --base <ref>.",
+      );
+    }
+
     const createWorktree = async () => {
       await addGitWorktree({
         cwd: context.mainRepoRoot,

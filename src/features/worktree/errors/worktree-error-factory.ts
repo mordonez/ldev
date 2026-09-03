@@ -22,4 +22,7 @@ export const WorktreeErrors = {
 
   forceRequired: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, WorktreeErrorCode.FORCE_REQUIRED, options),
+
+  noCommits: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(message, WorktreeErrorCode.NO_COMMITS, options),
 };

@@ -6,6 +6,7 @@ export const WorktreeErrorCode = {
   NOT_REGISTERED: 'WORKTREE_NOT_REGISTERED',
   PATH_CONFLICT: 'WORKTREE_PATH_CONFLICT',
   FORCE_REQUIRED: 'WORKTREE_FORCE_REQUIRED',
+  NO_COMMITS: 'WORKTREE_NO_COMMITS',
 } as const;
 
 export type WorktreeErrorCode = (typeof WorktreeErrorCode)[keyof typeof WorktreeErrorCode];

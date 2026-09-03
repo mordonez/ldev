@@ -120,6 +120,46 @@ describe('project integration', () => {
     }
   });
 
+  test('init only wires the Elasticsearch OSGi config when elasticsearch is a selected service', async () => {
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const esConfigRelativePath = path.join(
+        'liferay',
+        'configs',
+        'dockerenv',
+        'osgi',
+        'configs',
+        'com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
+      );
+
+      const withoutEs = createTempDir('dev-cli-project-init-noes-');
+      await runProjectInit(
+        {name: 'no-es', targetDir: withoutEs, printer: silentPrinter},
+        {assets: resolveProjectAssets(repoRoot)},
+      );
+      // Without elasticsearch selected, Liferay must not be pointed at a
+      // compose service that was never created -- and without this file it
+      // silently falls back to its own bundled sidecar Elasticsearch anyway,
+      // so there is no config to omit either way. This asserts the omission
+      // explicitly so a future change can't reintroduce it unconditionally.
+      expect(await fs.pathExists(path.join(withoutEs, esConfigRelativePath))).toBe(false);
+
+      const withEs = createTempDir('dev-cli-project-init-es-');
+      await runProjectInit(
+        {name: 'with-es', targetDir: withEs, printer: silentPrinter, services: ['elasticsearch']},
+        {assets: resolveProjectAssets(repoRoot)},
+      );
+      // With elasticsearch selected, the docker-compose service comes up but
+      // is unused by Liferay (which falls back to its bundled sidecar
+      // Elasticsearch) unless this OSGi config points it at the compose
+      // service in REMOTE mode.
+      expect(await fs.pathExists(path.join(withEs, esConfigRelativePath))).toBe(true);
+    } finally {
+      restoreGitIdentityEnv();
+    }
+  });
+
   test('init propagates BIND_IP from the host environment into docker/.env', async () => {
     setupGitIdentityEnv();
     const previousBindIp = process.env.BIND_IP;

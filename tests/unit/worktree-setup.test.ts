@@ -15,6 +15,7 @@ const resolveWorktreeContextMock = vi.fn();
 const resolveWorktreeTargetForContextMock = vi.fn();
 const resolveBtrfsConfigMock = vi.fn();
 const assertSafeMainEnvCloneMock = vi.fn();
+const hasCommitsMock = vi.fn();
 
 vi.mock('../../src/core/config/load-config.js', () => ({
   loadConfig: loadConfigMock,
@@ -29,6 +30,7 @@ vi.mock('../../src/core/platform/git.js', () => ({
   isGitRepository: isGitRepositoryMock,
   listGitWorktreeDetails: listGitWorktreeDetailsMock,
   addGitWorktree: addGitWorktreeMock,
+  hasCommits: hasCommitsMock,
 }));
 
 vi.mock('../../src/core/config/env-file.js', () => ({
@@ -67,6 +69,7 @@ describe('runWorktreeSetup', () => {
     isGitRepositoryMock.mockResolvedValue(true);
     listGitWorktreeDetailsMock.mockResolvedValue([]);
     addGitWorktreeMock.mockResolvedValue(undefined);
+    hasCommitsMock.mockResolvedValue(true);
     readEnvFileMock.mockReturnValue({});
     resolveEnvContextMock.mockReturnValue(mainEnvContext);
     resolveWorktreeContextMock.mockReturnValue(worktreeContext);
@@ -97,6 +100,31 @@ describe('runWorktreeSetup', () => {
     expect(prepareWorktreeEnv).toHaveBeenCalledWith({cwd: externalWorktreeDir, printer: undefined});
     expect(result.reused).toBe(true);
     expect(result.worktreeDir).toBe(externalWorktreeDir);
+  });
+
+  test('rejects creating a new worktree with a clear message when the repo has no commits yet', async () => {
+    hasCommitsMock.mockResolvedValue(false);
+
+    await expect(
+      runWorktreeSetup({
+        cwd: '/repo',
+        name: 'feature-test',
+      }),
+    ).rejects.toMatchObject({code: 'WORKTREE_NO_COMMITS'});
+    expect(addGitWorktreeMock).not.toHaveBeenCalled();
+  });
+
+  test('an explicit --base skips the no-commits guard', async () => {
+    hasCommitsMock.mockResolvedValue(false);
+
+    const result = await runWorktreeSetup({
+      cwd: '/repo',
+      name: 'feature-test',
+      baseRef: 'origin/main',
+    });
+
+    expect(addGitWorktreeMock).toHaveBeenCalledWith(expect.objectContaining({startRef: 'origin/main'}));
+    expect(result.ok).toBe(true);
   });
 
   test('stops and restarts main env around with-env clone handoff', async () => {

@@ -23,13 +23,17 @@ export function createDoctorCommand(): Command {
       .option('--runtime', 'Include runtime-oriented checks')
       .option('--portal', 'Include portal-oriented checks')
       .option('--osgi', 'Include OSGi-oriented checks')
-      .option('--list-checks', 'Print available check ids and scopes')
+      .option('--list-checks', 'Run doctor and print only each check id/scope/summary (still runs every check)')
       .option('--readiness <command>', 'Exit non-zero unless the selected command readiness is ready')
       .addHelpText(
         'after',
         `
 Use this when you need to know whether the environment is ready.
 For offline project description, use ldev context.
+
+--list-checks does not skip any check or lower cost -- it runs the same
+checks --scope/--deep/--runtime/--portal/--osgi would select (basic by
+default) and reshapes the report to id/scope/summary/remedy per check.
 
 Examples:
   ldev doctor --json
