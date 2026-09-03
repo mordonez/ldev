@@ -123,6 +123,10 @@ if (
     printErr(decodeEscapes(process.env.FAKE_DOCKER_COMPOSE_UP_FAIL_MESSAGE));
     process.exit(1);
   }
+  if (args[1] === 'down' && process.env.FAKE_DOCKER_COMPOSE_DOWN_FAIL_MESSAGE) {
+    printErr(decodeEscapes(process.env.FAKE_DOCKER_COMPOSE_DOWN_FAIL_MESSAGE));
+    process.exit(1);
+  }
   if (args[1] === 'logs' && process.env.FAKE_DOCKER_LOGS_OUTPUT) {
     print(decodeEscapes(process.env.FAKE_DOCKER_LOGS_OUTPUT));
   }
@@ -257,6 +261,10 @@ if (args[0] === 'volume' && args[1] === 'rm') {
     if (!/^compose rm .* postgres$/m.test(calls)) {
       fail('volume is in use');
     }
+  }
+  const notFoundList = (process.env.FAKE_DOCKER_VOLUME_RM_NOT_FOUND ?? '').split(',');
+  if (notFoundList.includes(args[2] ?? '')) {
+    fail('Error response from daemon: get ' + (args[2] ?? '') + ': no such volume');
   }
   fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.device'), {force: true});
   fs.rmSync(path.join(volumeDir, (args[2] ?? '') + '.type'), {force: true});

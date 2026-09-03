@@ -5,7 +5,7 @@ import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {removePathRobust} from '../../core/platform/fs.js';
-import {runDockerOrThrow, runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 import {buildComposeEnv, resolveEnvContext, resolveManagedStorages} from './env-files.js';
 
@@ -33,8 +33,12 @@ export async function runEnvClean(
     throw EnvErrors.capabilityMissing('Docker and docker compose are required for env clean.');
   }
 
+  // These steps use the non-throwing runDocker/runDockerCompose (not the
+  // *OrThrow variants) and only inspect `.ok`: env clean is meant to be
+  // idempotent, so a volume that was already removed by a prior clean (or by
+  // hand) must not abort the rest of the cleanup.
   const cleanTask = async () => {
-    await runDockerComposeOrThrow(context.dockerDir, ['down', '-v'], {
+    await runDockerCompose(context.dockerDir, ['down', '-v'], {
       env: buildComposeEnv(context, {baseEnv: options?.processEnv}),
     });
   };
@@ -46,20 +50,14 @@ export async function runEnvClean(
   }
 
   const doclibVolume = context.envValues.DOCLIB_VOLUME_NAME || `${context.composeProjectName}-doclib`;
-  const volumeResult = await runDockerOrThrow(['volume', 'rm', doclibVolume], {
-    env: options?.processEnv,
-    reject: false,
-  });
+  const volumeResult = await runDocker(['volume', 'rm', doclibVolume], {env: options?.processEnv});
   const doclibVolumeRemoved = volumeResult.ok;
 
   for (const storage of resolveManagedStorages(context)) {
     if (storage.mode !== 'volume') {
       continue;
     }
-    await runDockerOrThrow(['volume', 'rm', storage.volumeName], {
-      env: options?.processEnv,
-      reject: false,
-    });
+    await runDocker(['volume', 'rm', storage.volumeName], {env: options?.processEnv});
   }
 
   let dataRootDeleted = false;

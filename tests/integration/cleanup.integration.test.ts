@@ -47,6 +47,23 @@ describe('cleanup integration', () => {
     expect(calls).toEqual(expect.arrayContaining(['compose down -v', 'volume rm demo-doclib']));
   }, 45000);
 
+  test('env clean is idempotent when compose teardown or a volume was already removed', async () => {
+    const repoRoot = await createRepoWithEnv();
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {
+      ...process.env,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_COMPOSE_DOWN_FAIL_MESSAGE: 'Error response from daemon: get demo-postgres-data: no such volume',
+      FAKE_DOCKER_VOLUME_RM_NOT_FOUND: 'demo-doclib',
+    };
+
+    const result = await runCli(['env', 'clean', '--force', '--format', 'json'], {cwd: repoRoot, env});
+
+    expect(result.exitCode).toBe(0);
+    const payload = parseTestJson<EnvCleanPayload & {doclibVolumeRemoved: boolean}>(result.stdout);
+    expect(payload.doclibVolumeRemoved).toBe(false);
+  }, 45000);
+
   test('env clean preserves ENV_DATA_ROOT outside the repo perimeter', async () => {
     const repoRoot = createTempDir('dev-cli-clean-env-external-');
     const externalRoot = createTempDir('dev-cli-clean-external-data-');
