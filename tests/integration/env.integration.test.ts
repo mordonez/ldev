@@ -151,6 +151,29 @@ describe('env integration', () => {
 
     expect(caught).toMatchObject({code: 'ENV_START_FAILED'});
     expect((caught as Error).message).toMatch(/ldev env clean/);
+    expect((caught as Error).message).toMatch(/POSTGRES_DATA_MODE=volume/);
+  }, 15000);
+
+  test('env start omits the postgres volume-mode hint when the failure is unrelated to postgres', async () => {
+    const repoRoot = await createEnvRepoFixture();
+    const fakeBinDir = await createFakeDockerBin();
+    const processEnv = {
+      ...process.env,
+      PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_COMPOSE_UP_FAIL_MESSAGE: 'network demo-network declared as external, but could not be found',
+    };
+    const config = loadConfig({cwd: repoRoot, env: process.env});
+
+    let caught: unknown;
+    try {
+      await runEnvStart(config, {wait: false, processEnv});
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({code: 'ENV_START_FAILED'});
+    expect((caught as Error).message).toMatch(/ldev env clean/);
+    expect((caught as Error).message).not.toMatch(/POSTGRES_DATA_MODE/);
   }, 15000);
 
   test('env start respects DOCLIB_PATH and does not remount doclib to the default bind path', async () => {
