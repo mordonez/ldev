@@ -4,6 +4,7 @@ import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
 import {runProcess} from '../../src/core/platform/process.js';
+import {normalizePathForComparison} from '../../src/core/platform/git.js';
 import {loadConfig} from '../../src/core/config/load-config.js';
 import {runEnvStart} from '../../src/features/env/env-start.js';
 import {runWorktreeBtrfsRefreshBase} from '../../src/features/worktree/worktree-btrfs-refresh-base.js';
@@ -168,7 +169,7 @@ describe('worktree integration', () => {
     expect(result.ok).toBe(true);
     expect(result.reused).toBe(true);
     expect(result.branch).toBe('fix/external-issue');
-    expect(path.normalize(result.worktreeDir)).toBe(path.normalize(externalRoot));
+    expect(normalizePathForComparison(result.worktreeDir)).toBe(normalizePathForComparison(externalRoot));
     expect(await fs.pathExists(path.join(externalRoot, 'docker', '.env'))).toBe(true);
     expect(await fs.pathExists(path.join(externalRoot, 'docker', 'data', 'envs', 'external-issue'))).toBe(true);
   }, 15000);
@@ -196,7 +197,7 @@ describe('worktree integration', () => {
     expect(result.ok).toBe(true);
     expect(result.reused).toBe(true);
     expect(result.branch).toBe('feat/external-testworktree');
-    expect(path.normalize(result.worktreeDir)).toBe(path.normalize(externalRoot));
+    expect(normalizePathForComparison(result.worktreeDir)).toBe(normalizePathForComparison(externalRoot));
     expect(await fs.pathExists(path.join(externalRoot, 'docker', '.env'))).toBe(true);
     expect(await fs.pathExists(path.join(externalRoot, 'docker', 'data', 'envs', 'testworktree'))).toBe(true);
   }, 15000);
@@ -542,7 +543,7 @@ describe('worktree integration', () => {
     const calls = await readFakeDockerCalls(fakeBinDir);
     expect(calls).toEqual(
       expect.arrayContaining([
-        `volume create --driver local --opt type=none --opt device=${path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib')} --opt o=bind demo-doclib`,
+        `volume create --driver local --opt type=none --opt device=${normalizePathForComparison(path.join(repoRoot, 'docker', 'data', 'default', 'liferay-doclib'))} --opt o=bind demo-doclib`,
       ]),
     );
   }, 45000);

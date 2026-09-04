@@ -26,7 +26,7 @@ you cleanly. These are the reason to install it.
 | Structure migration | `resource migration-init` + `migration-pipeline`. Liferay has no native migration of articles when a structure changes. |
 | Local environment bootstrap | `project init` / `start`. Working Docker-based Liferay from zero. |
 | Branch-isolated runtime | `worktree setup --with-env`. Each branch with its own Postgres / Liferay / OSGi state. |
-| OAuth bring-up | `oauth install --write-env`. Bundle deploy + Gogo + token verification + write to local config. |
+| OAuth bring-up | `oauth install --write-env` + `oauth admin-unblock`. Provision credentials, then clear the fresh admin's API gate. |
 | Agent skills | Skills installed via `npx skills add` let agents run ldev workflows from within an editor. |
 
 ## The shape layer
@@ -116,4 +116,4 @@ See [Agent workflows](/agentic/) for the full agent contract.
 ## When the shape does not apply
 
 Not every command fits the loop. `project init`, `worktree setup --with-env`,
-`oauth install --write-env` is a bootstrap operation — it prepares the environment so the rest of the loop can run. Treat it as setup, not as a step.
+`oauth install --write-env` and `oauth admin-unblock` are bootstrap operations — they prepare the environment so the rest of the loop can run. Treat them as setup, not as loop steps.

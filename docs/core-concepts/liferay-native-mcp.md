@@ -8,7 +8,7 @@ description: What Liferay DXP's built-in MCP server actually is, how to turn it 
 Liferay DXP 2026.Q3 ships an MCP (Model Context Protocol) server built into
 the portal itself, at [Release feature status](https://learn.liferay.com/w/dxp/ai/using-liferay-as-an-mcp-server).
 This page documents what it is, exactly how to turn it on for local testing,
-and — because `ldev` [removed its own MCP server](/adr/0008-remove-mcp-server)
+and — because `ldev` removed its own MCP server (ADR 0008)
 in June 2026 — why the two are not in competition.
 
 Everything here was verified hands-on against a real DXP 2026.Q3.1 instance
@@ -132,7 +132,7 @@ extra.
 
 ## Why this doesn't replace anything in `ldev`
 
-[ADR 0008](/adr/0008-remove-mcp-server) removed `ldev`'s own MCP server in
+ADR 0008 removed `ldev`'s own MCP server in
 June 2026 — before this Liferay feature existed — on the grounds that a
 CLI + skills already covered agent integration better than a stdio MCP
 server for a CLI-shaped tool. Liferay now shipping a native MCP server

@@ -20,6 +20,7 @@ ldev project init ~/projects/my-project
 cd ~/projects/my-project
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 Or, if you already have a repo that uses the `ldev` runtime layout:

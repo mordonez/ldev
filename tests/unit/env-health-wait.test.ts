@@ -52,4 +52,13 @@ describe('waitForServiceHealthy', () => {
       code: 'ENV_SERVICE_FAILED_TO_START',
     });
   });
+
+  test('does not rewrite inspection failures as health timeouts', async () => {
+    runDockerComposeMock.mockResolvedValue(ok('container-123\n'));
+    runDockerMock.mockRejectedValue(new Error('Docker daemon unavailable'));
+
+    await expect(waitForServiceHealthy(context, 'liferay', {timeoutSeconds: 1})).rejects.toThrow(
+      'Docker daemon unavailable',
+    );
+  });
 });

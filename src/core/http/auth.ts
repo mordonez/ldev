@@ -15,14 +15,7 @@ export type OAuthClientCredentialsConfig = {
   oauth2ClientSecret: string;
   scopeAliases: string;
   timeoutSeconds: number;
-  /**
-   * RFC 8707 resource indicator. Liferay's OAuth2 authorization server binds
-   * the issued token's audience to this value and its own MCP server
-   * (/o/mcp) rejects any bearer token whose audience doesn't include it --
-   * a token requested without `resource` works for Headless REST but not
-   * for MCP. Same OAuth2 application either way, no separate app or scope
-   * needed; see docs/core-concepts/liferay-native-mcp.md.
-   */
+  /** Optional RFC 8707 resource indicator for audience-bound tokens. */
   resource?: string;
 };
 

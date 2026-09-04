@@ -59,37 +59,39 @@ export async function ensureDockerScaffold(
   services: DockerService[] = [],
 ): Promise<boolean> {
   const destination = path.join(targetDir, 'docker');
-  if (await fs.pathExists(destination)) {
-    return false;
+  const created = !(await fs.pathExists(destination));
+
+  if (created) {
+    await fs.ensureDir(destination);
+    await copyAsset(assets.dockerDir, destination, '.env.example');
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.yml');
+    await copyAsset(assets.dockerDir, destination, 'docker-compose.liferay.volume.yml');
+    await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
   }
 
-  await fs.ensureDir(destination);
-  await copyAsset(assets.dockerDir, destination, '.env.example');
-  await copyAsset(assets.dockerDir, destination, 'docker-compose.yml');
-  await copyAsset(assets.dockerDir, destination, 'docker-compose.liferay.volume.yml');
-  await ensureFile(path.join(destination, 'sql', 'post-import.d', '.gitkeep'));
-
   if (services.includes('postgres')) {
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.yml');
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.postgres.volume.yml');
+    await copyAssetIfMissing(assets.dockerDir, destination, 'docker-compose.postgres.yml');
+    await copyAssetIfMissing(assets.dockerDir, destination, 'docker-compose.postgres.volume.yml');
     await ensureFile(path.join(destination, 'postgres', 'init', '.gitkeep'));
   }
 
   if (services.includes('elasticsearch')) {
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
-    await copyAsset(assets.dockerDir, destination, 'docker-compose.elasticsearch.volume.yml');
-    await copyAsset(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
+    await copyAssetIfMissing(assets.dockerDir, destination, 'docker-compose.elasticsearch.yml');
+    await copyAssetIfMissing(assets.dockerDir, destination, 'docker-compose.elasticsearch.volume.yml');
+    await copyAssetIfMissing(assets.dockerDir, destination, 'elasticsearch/Dockerfile');
   }
 
-  await fs.copy(path.join(assets.dockerDir, 'liferay-configs-full'), path.join(destination, 'liferay-configs-full'), {
-    overwrite: true,
-  });
-  await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/configure-session-cookie.sh');
-  await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/install-activation-key.sh');
-  await ensureFile(path.join(destination, 'patching', '.gitkeep'));
-  await ensureFile(path.join(destination, 'dumps', '.gitkeep'));
-  await fs.copy(path.join(assets.dockerDir, '.env.example'), path.join(destination, '.env'), {overwrite: true});
-  return true;
+  if (created) {
+    await fs.copy(path.join(assets.dockerDir, 'liferay-configs-full'), path.join(destination, 'liferay-configs-full'), {
+      overwrite: true,
+    });
+    await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/configure-session-cookie.sh');
+    await copyAsset(assets.dockerDir, destination, 'liferay-scripts/pre-startup/install-activation-key.sh');
+    await ensureFile(path.join(destination, 'patching', '.gitkeep'));
+    await ensureFile(path.join(destination, 'dumps', '.gitkeep'));
+    await fs.copy(path.join(assets.dockerDir, '.env.example'), path.join(destination, '.env'), {overwrite: true});
+  }
+  return created;
 }
 
 export async function ensureLiferayScaffold(
@@ -130,17 +132,17 @@ export async function ensureLiferayDockerenvScaffold(
   }
 
   const dockerenvDir = path.join(liferayDir, 'configs', 'dockerenv');
-  if (await fs.pathExists(dockerenvDir)) {
-    return false;
-  }
+  const created = !(await fs.pathExists(dockerenvDir));
 
-  await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-ext.properties');
-  await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-setup-wizard.properties');
-  await copyAsset(
-    assets.liferayDir,
-    liferayDir,
-    'configs/dockerenv/osgi/configs/com.liferay.portal.store.file.system.configuration.AdvancedFileSystemStoreConfiguration.config',
-  );
+  if (created) {
+    await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-ext.properties');
+    await copyAsset(assets.liferayDir, liferayDir, 'configs/dockerenv/portal-setup-wizard.properties');
+    await copyAsset(
+      assets.liferayDir,
+      liferayDir,
+      'configs/dockerenv/osgi/configs/com.liferay.portal.store.file.system.configuration.AdvancedFileSystemStoreConfiguration.config',
+    );
+  }
 
   if (services.includes('elasticsearch')) {
     // Without this, Liferay ignores the docker-compose elasticsearch service
@@ -148,15 +150,17 @@ export async function ensureLiferayDockerenvScaffold(
     // process inside the container -- the compose service comes up healthy
     // but sits unused, and `ldev portal search`/`reindex` against it always
     // report empty.
-    await copyAsset(
+    await copyAssetIfMissing(
       assets.liferayDir,
       liferayDir,
       'configs/dockerenv/osgi/configs/com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
     );
   }
-  await ensureFile(path.join(dockerenvDir, 'osgi', 'configs', '.gitkeep'));
-  await ensureFile(path.join(dockerenvDir, 'osgi', 'modules', '.gitkeep'));
-  return true;
+  if (created) {
+    await ensureFile(path.join(dockerenvDir, 'osgi', 'configs', '.gitkeep'));
+    await ensureFile(path.join(dockerenvDir, 'osgi', 'modules', '.gitkeep'));
+  }
+  return created;
 }
 
 function getDefaultRepoRoot(): string {
@@ -189,6 +193,13 @@ async function copyMissingFileFromCandidates(sourceCandidates: string[], destina
 
 async function copyAsset(sourceRoot: string, destinationRoot: string, relativePath: string): Promise<void> {
   await fs.copy(path.join(sourceRoot, relativePath), path.join(destinationRoot, relativePath), {overwrite: true});
+}
+
+async function copyAssetIfMissing(sourceRoot: string, destinationRoot: string, relativePath: string): Promise<void> {
+  const destination = path.join(destinationRoot, relativePath);
+  if (!(await fs.pathExists(destination))) {
+    await fs.copy(path.join(sourceRoot, relativePath), destination);
+  }
 }
 
 async function copyAssetFromCandidates(

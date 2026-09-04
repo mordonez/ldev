@@ -277,7 +277,10 @@ async function withStorageLock<T>(storage: RuntimeStorage, run: () => Promise<T>
     let fd: number;
     try {
       fd = await fs.open(lockPath, 'wx');
-    } catch {
+    } catch (error) {
+      if (!isFileExistsError(error)) {
+        throw error;
+      }
       await delay(CACHE_LOCK_DELAY_MS);
       continue;
     }
@@ -293,6 +296,10 @@ async function withStorageLock<T>(storage: RuntimeStorage, run: () => Promise<T>
   throw new CliError(`Timed out waiting for deploy cache lock at ${lockPath}.`, {
     code: 'DEPLOY_ARTIFACTS_NOT_FOUND',
   });
+}
+
+function isFileExistsError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && 'code' in error && error.code === 'EEXIST';
 }
 
 function delay(ms: number): Promise<void> {

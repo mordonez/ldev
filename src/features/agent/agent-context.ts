@@ -15,9 +15,8 @@ import {
   detectLiferayEdition,
   normalizeLiferayVersion,
   presence,
-  resolveClientIdSource,
-  resolveClientSecretSource,
-} from './agent-context-format.js';
+  resolveOAuthCredentialSource,
+} from './agent-context-values.js';
 import type {AgentContextIssue, AgentContextReport, CommandStatus} from './agent-context-types.js';
 
 export type {AgentContextReport};
@@ -66,8 +65,11 @@ export async function runAgentContext(
       portalUrl: project.env.portalUrl ?? config.liferay.url,
       auth: {
         oauth2: {
-          clientId: presence(config.liferay.oauth2ClientId, resolveClientIdSource(project)),
-          clientSecret: presence(config.liferay.oauth2ClientSecret, resolveClientSecretSource(project)),
+          clientId: presence(config.liferay.oauth2ClientId, resolveOAuthCredentialSource(project, 'clientId')),
+          clientSecret: presence(
+            config.liferay.oauth2ClientSecret,
+            resolveOAuthCredentialSource(project, 'clientSecret'),
+          ),
           scopes: project.liferay.scopeAliasesList.length,
         },
       },

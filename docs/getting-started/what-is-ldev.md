@@ -30,7 +30,7 @@ These are the parts where `ldev` does something Liferay does not do for you:
 | `portal inventory ...` | One structured call returns sites, pages, structures and templates together — the consolidated context a developer or agent needs first. |
 | `project init` / `start` | Stand up a working Docker-based Liferay environment from zero. |
 | `worktree setup --with-env` | Each branch with its own Postgres, Liferay and OSGi state. On Linux + Btrfs, swaps are near-instant. |
-| `oauth install --write-env` | Deploy the installer bundle, create the OAuth app, verify the token, write credentials. One command. |
+| `oauth install --write-env` + `oauth admin-unblock` | Create the OAuth app, write credentials, and clear the fresh admin's API gate. |
 | Agent skills (`npx skills add`) | The same workflows packaged as agent skills, so an editor agent can run them without custom integration. |
 
 ## What it does not do

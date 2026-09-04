@@ -6,6 +6,7 @@ import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {removePathRobust} from '../../core/platform/fs.js';
 import {runDocker, runDockerCompose} from '../../core/platform/docker.js';
+import {formatProcessError, type RunProcessResult} from '../../core/platform/process.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 import {buildComposeEnv, resolveEnvContext, resolveManagedStorages} from './env-files.js';
 
@@ -33,14 +34,11 @@ export async function runEnvClean(
     throw EnvErrors.capabilityMissing('Docker and docker compose are required for env clean.');
   }
 
-  // These steps use the non-throwing runDocker/runDockerCompose (not the
-  // *OrThrow variants) and only inspect `.ok`: env clean is meant to be
-  // idempotent, so a volume that was already removed by a prior clean (or by
-  // hand) must not abort the rest of the cleanup.
   const cleanTask = async () => {
-    await runDockerCompose(context.dockerDir, ['down', '-v'], {
+    const result = await runDockerCompose(context.dockerDir, ['down', '-v'], {
       env: buildComposeEnv(context, {baseEnv: options?.processEnv}),
     });
+    assertCleanupSucceeded(result, 'Could not remove Compose containers and volumes.');
   };
 
   if (options?.printer) {
@@ -51,13 +49,15 @@ export async function runEnvClean(
 
   const doclibVolume = context.envValues.DOCLIB_VOLUME_NAME || `${context.composeProjectName}-doclib`;
   const volumeResult = await runDocker(['volume', 'rm', doclibVolume], {env: options?.processEnv});
+  assertCleanupSucceeded(volumeResult, `Could not remove Docker volume ${doclibVolume}.`);
   const doclibVolumeRemoved = volumeResult.ok;
 
   for (const storage of resolveManagedStorages(context)) {
     if (storage.mode !== 'volume') {
       continue;
     }
-    await runDocker(['volume', 'rm', storage.volumeName], {env: options?.processEnv});
+    const result = await runDocker(['volume', 'rm', storage.volumeName], {env: options?.processEnv});
+    assertCleanupSucceeded(result, `Could not remove Docker volume ${storage.volumeName}.`);
   }
 
   let dataRootDeleted = false;
@@ -80,6 +80,21 @@ export async function runEnvClean(
     dataRootSkipped,
     doclibVolumeRemoved,
   };
+}
+
+function assertCleanupSucceeded(result: RunProcessResult, fallbackMessage: string): void {
+  if (result.ok || isMissingDockerResource(result)) {
+    return;
+  }
+
+  throw EnvErrors.cleanFailed(formatProcessError(result, fallbackMessage));
+}
+
+function isMissingDockerResource(result: RunProcessResult): boolean {
+  const output = `${result.stderr}\n${result.stdout}`;
+  return /(?:no such (?:container|network|volume)|(?:container|network|volume).*?(?:does not exist|not found))/i.test(
+    output,
+  );
 }
 
 export function formatEnvClean(result: EnvCleanResult): string {

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import path from 'node:path';
 
-import {CliError} from '../../core/errors.js';
+import {DbErrors} from './errors/db-error-factory.js';
 
 export async function resolvePostImportFiles(dockerDir: string): Promise<string[]> {
   const postImportDir = path.join(dockerDir, 'sql', 'post-import.d');
@@ -20,7 +20,7 @@ export async function resolveBackupFile(dockerDir: string, explicitFile?: string
   if (explicitFile && explicitFile.trim() !== '') {
     const candidate = path.resolve(explicitFile);
     if (!(await fs.pathExists(candidate))) {
-      throw new CliError(`Backup does not exist: ${candidate}`, {code: 'DB_BACKUP_NOT_FOUND'});
+      throw DbErrors.backupNotFound(`Backup does not exist: ${candidate}`);
     }
     return candidate;
   }
@@ -28,9 +28,7 @@ export async function resolveBackupFile(dockerDir: string, explicitFile?: string
   const backupsDir = path.join(dockerDir, 'backups');
   const candidates = await findBackupFiles(backupsDir);
   if (candidates.length === 0) {
-    throw new CliError('No backup was found in docker/backups/. Use --file path/to/file.gz', {
-      code: 'DB_BACKUP_NOT_FOUND',
-    });
+    throw DbErrors.backupNotFound('No backup was found in docker/backups/. Use --file path/to/file.gz');
   }
 
   candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);

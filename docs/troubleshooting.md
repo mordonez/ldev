@@ -168,12 +168,12 @@ If it persists, check for conflicting shell variables overriding local config an
 
 #### `403 Forbidden` on API calls after successful token fetch
 
-**Cause**: OAuth app exists but scopes/permissions are incomplete for the endpoint.
+**Cause**: On a fresh ldev runtime, the admin may still have its forced password-reset flag. Otherwise, the OAuth app's scopes or permissions are incomplete for the endpoint.
 
 **Fix**:
-1. Re-run `ldev oauth install --write-env`.
-2. Retry the failing command.
-3. If still failing, confirm portal-side OAuth app permissions for the target API.
+1. Run `ldev oauth admin-unblock` on a fresh runtime.
+2. Re-run `ldev oauth install --write-env` and retry the failing command.
+3. If it still fails, confirm portal-side OAuth app permissions for the target API.
 
 #### Connection refused / timeout during OAuth install
 

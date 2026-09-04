@@ -43,7 +43,12 @@ export async function syncWorktreeLocalArtifacts(mainRepoRoot: string, worktreeD
     if (artifact.kind === 'file') {
       await fs.copy(sourcePath, targetPath, {overwrite: false, errorOnExist: true});
     } else {
-      const relativeSourcePath = path.relative(path.dirname(targetPath), sourcePath);
+      // macOS exposes the temp directory through both /var and /private/var.
+      // Canonicalize both ends before computing a relative link so an alias
+      // mismatch cannot produce a link that walks to /var/private/var/....
+      const canonicalSourcePath = await fs.realpath(sourcePath);
+      const canonicalTargetParent = await fs.realpath(path.dirname(targetPath));
+      const relativeSourcePath = path.relative(canonicalTargetParent, canonicalSourcePath);
       await fs.symlink(relativeSourcePath, targetPath, process.platform === 'win32' ? 'junction' : 'dir');
     }
 
