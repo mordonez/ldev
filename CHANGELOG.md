@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.0](https://github.com/mordonez/ldev/compare/ldev-v0.9.2...ldev-v0.10.0) (2026-09-04)
+
+
+### Features
+
+* **cli:** add portal api discover for Headless REST contract discovery ([#178](https://github.com/mordonez/ldev/issues/178)) ([f18f24d](https://github.com/mordonez/ldev/commit/f18f24d6d5919902a8f946925db4f79ac3216fc2))
+* **oauth:** add mcp scope profile, document it's independent of resource ([a02e1c2](https://github.com/mordonez/ldev/commit/a02e1c2260e7bd7d764390f8182aa87109a16c01))
+* **oauth:** support MCP-audience-bound tokens from the same OAuth2 app ([1ae450b](https://github.com/mordonez/ldev/commit/1ae450bc2eb72cf0bcfeefb60bff5b0692135f3b))
+* **verify:** add unified visual page verification command ([#179](https://github.com/mordonez/ldev/issues/179)) ([aff04fc](https://github.com/mordonez/ldev/commit/aff04fc70a7b43573a7f11ce82a69971402d61e7))
+
+
+### Bug Fixes
+
+* address post-merge review findings ([#180](https://github.com/mordonez/ldev/issues/180)) ([ffaad2c](https://github.com/mordonez/ldev/commit/ffaad2cfbd7b312573a1541cf3577287fdaec06a))
+* **deploy:** stop masking real errors as a bogus lock timeout ([346fc7d](https://github.com/mordonez/ldev/commit/346fc7dee5b65b6c3661b86d7db6aead8d6591a3))
+* **env:** make env clean idempotent when a volume was already removed ([8d21483](https://github.com/mordonez/ldev/commit/8d21483fea4ad8662250d208f71d1c39f256888e))
+* **env:** point start failures at POSTGRES_DATA_MODE=volume when postgres is the unhealthy dependency ([a9e9e5f](https://github.com/mordonez/ldev/commit/a9e9e5fd76626936fad7191f57d2e9168f0aa144))
+* **env:** surface actionable errors on env start failures instead of raw noise ([ff9c895](https://github.com/mordonez/ldev/commit/ff9c895f797db269c9a0f07d6ccd80e52647e77d))
+* fragment ZIP deploy fallback, site-initializer notes, and liferay-expert rename ([#165](https://github.com/mordonez/ldev/issues/165)) ([508d883](https://github.com/mordonez/ldev/commit/508d883b59e0e0ce0ea94cf4cfc3bb4ade3e4faa))
+* **oauth:** surface the admin-unblock step everywhere the oauth flow is documented ([6df2ab2](https://github.com/mordonez/ldev/commit/6df2ab20b6416d6dba4fcbd3a7c3c2e9a21bc46d))
+* **project:** wire elasticsearch OSGi config, add worktree/doctor UX fixes ([4a58790](https://github.com/mordonez/ldev/commit/4a5879038db6a4068143cd80f759859457ced811))
+
 ## [0.9.2](https://github.com/mordonez/ldev/compare/ldev-v0.9.1...ldev-v0.9.2) (2026-06-29)
 
 
