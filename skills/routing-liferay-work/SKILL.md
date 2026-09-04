@@ -60,6 +60,7 @@ Most portal and resource commands require OAuth2 credentials. If `context.lifera
 ```bash
 ldev start
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 `--write-env` persists the credentials to `.liferay-cli.local.yml`. If the admin account is in password-reset state, unblock it first:

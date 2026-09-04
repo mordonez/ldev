@@ -1,4 +1,4 @@
-import pWaitFor from 'p-wait-for';
+import pWaitFor, {TimeoutError} from 'p-wait-for';
 
 import {CliError} from '../errors.js';
 import {runDocker, runDockerCompose} from '../platform/docker.js';
@@ -94,11 +94,7 @@ export async function waitForServiceHealthy(
       {timeout: timeoutSeconds * 1000, interval: pollIntervalSeconds * 1000},
     );
   } catch (error) {
-    // Only the explicit "failed to start" CliError above should bypass the
-    // friendlier timeout message below. Everything else reaching this catch
-    // is p-wait-for's timeout (its TimeoutError message is "Promise timed
-    // out", not "Timed out...", so do not match on that wording).
-    if (error instanceof Error && error.message.includes('failed to start')) {
+    if (!(error instanceof TimeoutError)) {
       throw error;
     }
 

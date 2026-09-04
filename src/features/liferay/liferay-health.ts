@@ -20,7 +20,7 @@ export type LiferayHealthResult = {
 };
 
 const PERMISSION_DENIED_REMEDY =
-  "OAuth token retrieval succeeded, but the available health probes were denied by this runtime. On a freshly bootstrapped company (setup.wizard.enabled=false), this is most often a pending forced password-reset on the admin user blocking all headless REST access -- run 'ldev oauth admin-unblock' and retry. If that is not it, the OAuth client may need broader API scopes.";
+  "The runtime denied the health probe. Run 'ldev oauth admin-unblock' and retry; otherwise check the OAuth scopes.";
 
 type HealthDependencies = {
   apiClient?: HttpApiClient;

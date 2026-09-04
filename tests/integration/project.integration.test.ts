@@ -155,6 +155,20 @@ describe('project integration', () => {
       // Elasticsearch) unless this OSGi config points it at the compose
       // service in REMOTE mode.
       expect(await fs.pathExists(path.join(withEs, esConfigRelativePath))).toBe(true);
+
+      const upgraded = createTempDir('dev-cli-project-init-upgrade-es-');
+      await runProjectInit(
+        {name: 'upgrade-es', targetDir: upgraded, printer: silentPrinter},
+        {
+          assets: resolveProjectAssets(repoRoot),
+        },
+      );
+      await runProjectInit(
+        {name: 'upgrade-es', targetDir: upgraded, printer: silentPrinter, services: ['elasticsearch']},
+        {assets: resolveProjectAssets(repoRoot)},
+      );
+      expect(await fs.pathExists(path.join(upgraded, 'docker', 'docker-compose.elasticsearch.yml'))).toBe(true);
+      expect(await fs.pathExists(path.join(upgraded, esConfigRelativePath))).toBe(true);
     } finally {
       restoreGitIdentityEnv();
     }

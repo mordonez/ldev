@@ -69,6 +69,7 @@ use automatically.
 
 ```bash
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 The default `ldev` install is intended to be agent-usable for local authoring.
@@ -144,12 +145,12 @@ in Liferay). When a token expires:
 |---|---|
 | `ldev context --json` shows OAuth2 credential status as `"missing"` after install | `ldev oauth install --write-env` was not run, or the local profile/env values are still missing |
 | `401 Unauthorized` on API call | Token expired or wrong scopes — verify scopes cover the endpoint being called |
-| `403 Forbidden` on API call | Token is valid but the OAuth2 application lacks the required scope, or the service account lacks the portal role |
+| `403 Forbidden` on API call | On a fresh ldev runtime, first run `ldev oauth admin-unblock`; otherwise check the OAuth scope and service-account role |
 | `invalid_client` on token request | Client ID or Secret is wrong — re-check against the portal OAuth2 application |
 | OAuth2 application not found | The portal was reset or the application was deleted — re-create and re-run `ldev oauth install --write-env` |
 
 For page/content authoring failures, separate `401`/`403` from payload errors:
 
-1. `401` or `403`: inspect the OAuth app scopes first.
+1. `401`: inspect credentials and OAuth app scopes. For `403`, run `ldev oauth admin-unblock` first on a fresh runtime, then inspect scopes and roles.
 2. `500` with a valid token: inspect the exact request body against the runtime
   OpenAPI in `/o/api` or `/o/<api>/openapi.json`; do not keep retrying blind.

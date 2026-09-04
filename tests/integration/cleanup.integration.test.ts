@@ -64,6 +64,25 @@ describe('cleanup integration', () => {
     expect(payload.doclibVolumeRemoved).toBe(false);
   }, 45000);
 
+  test('env clean reports Docker failures that are not missing resources', async () => {
+    const repoRoot = await createRepoWithEnv();
+    const dataRoot = path.join(repoRoot, 'docker', 'data', 'default');
+    await fs.ensureDir(dataRoot);
+    await fs.writeFile(path.join(dataRoot, 'marker.txt'), 'keep');
+    const fakeBinDir = await createFakeDockerBin();
+    const env = {
+      ...process.env,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      FAKE_DOCKER_COMPOSE_DOWN_FAIL_MESSAGE: 'permission denied while connecting to the Docker daemon',
+    };
+
+    const result = await runCli(['env', 'clean', '--force', '--format', 'json'], {cwd: repoRoot, env});
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('ENV_CLEAN_FAILED');
+    expect(await fs.pathExists(path.join(dataRoot, 'marker.txt'))).toBe(true);
+  }, 45000);
+
   test('env clean preserves ENV_DATA_ROOT outside the repo perimeter', async () => {
     const repoRoot = createTempDir('dev-cli-clean-env-external-');
     const externalRoot = createTempDir('dev-cli-clean-external-data-');

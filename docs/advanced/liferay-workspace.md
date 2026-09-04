@@ -18,6 +18,7 @@ cd ai-workspace
 ldev doctor
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 ## What you still get

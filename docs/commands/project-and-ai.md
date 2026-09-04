@@ -37,6 +37,7 @@ After scaffold:
 cd my-project
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 `ldev setup` is optional. Use it only when you want to pre-pull Docker images

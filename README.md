@@ -113,12 +113,13 @@ ldev deploy client-extension build/client-extension.zip
 ldev deploy war build/my-portlet.war
 ```
 
-### OAuth in one command
+### OAuth setup
 
 `oauth install --write-env` deploys the installer bundle, creates the OAuth application via Gogo Shell, verifies the token, and writes credentials to the local environment file.
 
 ```bash
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 ### Local environments from zero
@@ -130,6 +131,7 @@ ldev project init ~/projects/my-project
 cd ~/projects/my-project
 ldev start --activation-key-file /path/to/activation-key.xml
 ldev oauth install --write-env
+ldev oauth admin-unblock
 ```
 
 ---

@@ -38,8 +38,8 @@ function parsePackFilename(stdout) {
   return filename;
 }
 
-function getInstalledCliEntry(prefixDir) {
-  return path.join(prefixDir, 'node_modules', '@mordonezdev', 'ldev', 'dist', 'index.js');
+function getInstalledCliEntry(globalModulesDir) {
+  return path.join(globalModulesDir, '@mordonezdev', 'ldev', 'dist', 'index.js');
 }
 
 async function run() {
@@ -50,10 +50,11 @@ async function run() {
   const packageFile = parsePackFilename(packResult.stdout);
   const packagePath = path.join(packDir, packageFile);
   const installPrefix = await mkdtemp(path.join(tmpdir(), 'ldev-pack-'));
-  const installedCliEntry = getInstalledCliEntry(installPrefix);
 
   try {
-    await runCommand('npm', ['install', '-g', '--prefix', installPrefix, packagePath]);
+    await runCommand('npm', ['install', '-g', '--ignore-scripts', '--prefix', installPrefix, packagePath]);
+    const globalRoot = await runCommand('npm', ['root', '--global', '--prefix', installPrefix]);
+    const installedCliEntry = getInstalledCliEntry(globalRoot.stdout.trim());
     await runCommand('node', [installedCliEntry, '--help']);
     await runCommand('node', [installedCliEntry, '--version']);
   } finally {

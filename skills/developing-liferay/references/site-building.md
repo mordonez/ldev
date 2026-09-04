@@ -196,6 +196,6 @@ Before blaming the payload, classify the failure:
 - `500 Internal Server Error`: likely bad payload shape, unsupported field,
   or runtime defect
 
-For agentic local work, `ldev oauth install --write-env` should be the default
-bootstrap. If content/page mutations still return `403`, inspect the installed
-OAuth scopes before switching to UI automation.
+For agentic local work, run `ldev oauth install --write-env` followed by
+`ldev oauth admin-unblock`. If content/page mutations still return `403`,
+inspect the installed OAuth scopes before switching to UI automation.
