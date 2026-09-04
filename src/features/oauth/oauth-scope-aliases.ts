@@ -24,6 +24,17 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Headless.Admin.Content.everything.write',
   ],
   'site-admin': ['Liferay.Headless.Admin.Site.everything.write', 'Liferay.Headless.Admin.User.everything.write'],
+  // Grants everything the token's user is permitted to do through Liferay's
+  // native MCP server (/o/mcp, DXP 2026.Q3+), regardless of which Headless
+  // REST app a given MCP tool call happens to proxy to. Not required for
+  // `ldev portal auth token --mcp` itself -- that already works with the
+  // narrower default scopes for anything they cover. Use this profile when
+  // an external MCP client (Claude Desktop, Cursor, ...) needs to call
+  // Headless apps outside `ldev`'s default scope list without hand-picking
+  // every scope alias involved. Still requires the token to be requested
+  // with `resource=<baseUrl>/o/mcp`; the scope alone does not bind the
+  // audience Liferay's MCP server checks.
+  mcp: ['Liferay.MCP.Server.everything'],
   objects: [
     'Liferay.Object.Admin.REST.everything.read',
     'Liferay.Object.Admin.REST.everything.write',

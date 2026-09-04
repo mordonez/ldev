@@ -104,8 +104,31 @@ Two schemes are accepted, and they behave differently in practice:
 
   Paste the result into an MCP client config (Claude Desktop, Cursor, ...) as
   the Bearer token. It expires with the normal token lifetime — re-run the
-  command for a fresh one when it does. No separate OAuth2 application, no
-  extra scopes: it's the exact same client `oauth install` already created.
+  command for a fresh one when it does. No separate OAuth2 application
+  needed: it's the exact same client `oauth install` already created.
+
+### Scope: two independent things, don't confuse them with `resource`
+
+Liferay also ships dedicated `Liferay.MCP.Server` / `.everything` /
+`.everything.read` / `.everything.write` OAuth2 scopes. Tested directly:
+they do **not** substitute for `resource` — a token scoped to
+`Liferay.MCP.Server.everything` but requested without `resource=<mcp-uri>`
+still gets the same `401 invalid_token: "not bound to this MCP server"`.
+`resource` binds the audience; scope authorizes what the token can do once
+inside. They're independent, both matter, and confusing one for the other
+looks like it should work and doesn't.
+
+Once `resource` is set, either scope source authorizes a tool call — tested
+by invoking `headless-admin-user-v1.0`'s `getMyUserAccount` through MCP with
+each: the specific Headless scope for that operation
+(`Liferay.Headless.Admin.User.everything.read`, already in `ldev`'s default
+scope list) works, and so does the blanket `Liferay.MCP.Server.everything`
+with no Headless scopes at all. Use `ldev oauth install --scope-profile mcp`
+for the latter when an MCP client needs to reach Headless apps outside
+`ldev`'s default list (there are dozens — commerce, batch planner, dispatch,
+...) without hand-picking a scope alias per app. For anything already
+covered by the default scopes, `ldev portal auth token --mcp` needs nothing
+extra.
 
 ## Why this doesn't replace anything in `ldev`
 

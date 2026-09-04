@@ -86,6 +86,7 @@ describe('resolveOAuthScopeProfileNames', () => {
     expect(names).toContain('site-admin');
     expect(names).toContain('objects');
     expect(names).toContain('max-test');
+    expect(names).toContain('mcp');
   });
 });
 
@@ -101,6 +102,12 @@ describe('resolveOAuthScopeProfileAliases', () => {
     const result = resolveOAuthScopeProfileAliases(['site-admin']);
 
     expect(result).toContain(PORTAL_INVENTORY_SCOPE_ALIAS);
+  });
+
+  test('mcp profile grants the blanket MCP scope', () => {
+    const result = resolveOAuthScopeProfileAliases(['mcp']);
+
+    expect(result).toContain('Liferay.MCP.Server.everything');
   });
 
   test('max-test profile contains aliases from all other profiles', () => {
