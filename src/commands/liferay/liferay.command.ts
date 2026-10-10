@@ -5,6 +5,7 @@ import {createApiCommands} from './api.command.js';
 import {createAuthCommands} from './auth.command.js';
 import {createContentCommand} from './content.command.js';
 import {createLiferayConfigCommand} from './config.command.js';
+import {createDiagnoseCommands} from './diagnose.command.js';
 import {createInventoryCommands} from './inventory.command.js';
 import {createLiferayAuditCommands} from './liferay-audit.command.js';
 import {createPageLayoutCommands} from './page-layout.command.js';
@@ -55,6 +56,7 @@ Main groups:
   api          Headless REST API discovery (openapi specs, endpoints, schemas)
   audit        Minimal runtime audit of a site and API reachability
   page-layout  Export and diff of content pages
+  diagnose     Runtime diagnostics for common content bugs (e.g. guest-visibility)
   search       Elasticsearch inspection and test queries
   theme-check  Validate Clay icon coverage in a deployed theme
   reindex      Reindex observation and temporary tuning
@@ -69,6 +71,7 @@ Main groups:
   command.addCommand(createContentCommand().helpGroup('Content management:'));
   createLiferayAuditCommands(command);
   createPageLayoutCommands(command);
+  createDiagnoseCommands(command);
   command.addCommand(createLiferaySearchCommand().helpGroup('Portal diagnostics:'));
   command.addCommand(createLiferayThemeCheckCommand().helpGroup('Portal diagnostics:'));
   command.addCommand(createReindexCommand().helpGroup('Portal diagnostics:'));

@@ -20,7 +20,7 @@ If you want to understand what `ldev` is for, start with:
 
 - [Runtime](/commands/runtime) — start, stop, doctor, logs, env lifecycle
 - [Discovery](/commands/discovery) — context, portal check, inventory,
-  preflight, OAuth
+  preflight, OAuth, guest-visibility diagnostics
 - [Data and Deploy](/commands/data-and-deploy) — db sync/import, document
   library, deploy module/theme/all, content prune
 - [Resources](/commands/resources) — structures, templates, ADTs, fragments,
