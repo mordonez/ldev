@@ -11,6 +11,33 @@ The `ldev resource` namespace treats structures, templates, ADTs and fragments a
 ldev resource --preflight export-structures --all-sites
 ```
 
+## Plan
+
+Compose the read-before-write investigation an agent would otherwise chain by
+hand (owner lookup, duplicate check, `where-used`, import command) into one
+report:
+
+```bash
+ldev resource plan BASIC
+ldev resource plan UB_TPL_DESTACATS_MULTIMEDIA --type template
+ldev resource plan card-hero --type fragment --site /guest
+ldev resource plan UB_ADT_STUDIES_SEARCH --skip-usage --json
+```
+
+- `<resource>` — structure/template/ADT/fragment key, ERC, or numeric id
+- `--type <structure|template|adt|fragment>` — inferred when omitted
+- `--site <site>` — repeatable; limits discovery and the `where-used` scan (defaults to all accessible sites)
+- `--skip-usage` — skip the `where-used` impact scan and only report owner/duplicates/suggested command
+- `--include-private`, `--site-limit`, `--max-depth`, `--concurrency`, `--page-size` — tune the underlying `where-used` scan
+
+The report includes: the real owner (resolved via runtime inventory, not
+grep), any duplicate occurrences across sites, `where-used` page impact, a
+suggested `import-*` command with `--check-only` where available, and the
+expected read-back/validation steps. When a key exists in more than one site,
+all occurrences are reported as duplicates and the `/global` site (or the
+first found site) is reported as the owner — confirm the intended site before
+importing.
+
 ## Read and inspect
 
 ```bash
