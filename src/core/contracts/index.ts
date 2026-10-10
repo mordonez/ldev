@@ -98,6 +98,9 @@ export {
   liferayResourceImportAdtItemResultSchema,
   liferayResourceImportStructureItemResultSchema,
   liferayResourceImportTemplateItemResultSchema,
+  resourceLintSeveritySchema,
+  resourceLintFindingSchema,
+  resourceLintResultSchema,
 } from './resource.schema.js';
 
 export type {
@@ -109,6 +112,9 @@ export type {
   LiferayResourceImportAdtItemResult,
   LiferayResourceImportStructureItemResult,
   LiferayResourceImportTemplateItemResult,
+  ResourceLintSeverity,
+  ResourceLintFinding,
+  ResourceLintResult,
 } from './resource.schema.js';
 
 // Environment schemas (ldev_status, ldev_logs_diagnose, ldev_context)
