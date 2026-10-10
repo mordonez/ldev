@@ -3,6 +3,7 @@ import type {Command} from 'commander';
 import {createCommandContext, type CommandContext} from './command-context.js';
 import {toCliSuccessPayload} from './errors.js';
 import type {OutputFormat} from '../core/output/formats.js';
+import {pickFields} from '../core/utils/pick-fields.js';
 
 const OUTPUT_FORMAT_OPTION_DESCRIPTION = 'Output format: text, json, ndjson';
 
@@ -17,7 +18,8 @@ export function addOutputFormatOption(command: Command, defaultFormat: OutputFor
     .option('--format <format>', OUTPUT_FORMAT_OPTION_DESCRIPTION, defaultFormat)
     .option('--json', 'Alias of --format json')
     .option('--ndjson', 'Alias of --format ndjson')
-    .option('--strict', 'Wrap success output in envelope: { ok: true, data: ... }');
+    .option('--strict', 'Wrap success output in envelope: { ok: true, data: ... }')
+    .option('--fields <fields>', 'Comma-separated list of fields to include in JSON output');
 }
 
 export function renderCommandResult<TResult>(
@@ -26,15 +28,21 @@ export function renderCommandResult<TResult>(
   options?: RenderOptions<TResult>,
 ): void {
   if (context.printer.format === 'text') {
+    if (context.fields.length > 0) {
+      context.printer.info('--fields applies only to json/ndjson output; showing full text output.');
+    }
     const text = typeof options?.text === 'function' ? options.text(result) : options?.text;
     context.printer.write(text ?? result);
   } else {
-    const outputValue = options?.json ? options.json(result) : result;
+    const rawValue = options?.json ? options.json(result) : result;
+    const outputValue = context.fields.length > 0 ? pickFields(rawValue, context.fields) : rawValue;
 
-    if (context.strict) {
-      context.printer.write(toCliSuccessPayload(outputValue));
-    } else {
+    if (!context.strict) {
       context.printer.write(outputValue);
+    } else if (context.printer.format === 'ndjson' && Array.isArray(outputValue)) {
+      context.printer.write(outputValue.map((item) => toCliSuccessPayload(item)));
+    } else {
+      context.printer.write(toCliSuccessPayload(outputValue));
     }
   }
 
@@ -55,6 +63,7 @@ export async function withCommandContext<TOptions extends object>(
     strict: (normalizedOptions as {strict?: boolean}).strict,
     json: (normalizedOptions as {json?: boolean}).json,
     ndjson: (normalizedOptions as {ndjson?: boolean}).ndjson,
+    fields: (normalizedOptions as {fields?: string}).fields,
   });
   await run(context);
 }

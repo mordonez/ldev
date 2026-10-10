@@ -1,6 +1,22 @@
 import {describe, expect, test} from 'vitest';
 
-import {parseLines} from '../../src/core/utils/text.js';
+import {parseLines, splitCsvList} from '../../src/core/utils/text.js';
+
+describe('splitCsvList', () => {
+  test('splits comma-separated values and trims whitespace', () => {
+    expect(splitCsvList('id, name ,url')).toEqual(['id', 'name', 'url']);
+  });
+
+  test('drops empty entries', () => {
+    expect(splitCsvList('id,,name,')).toEqual(['id', 'name']);
+  });
+
+  test('returns empty array for undefined or blank input', () => {
+    expect(splitCsvList(undefined)).toEqual([]);
+    expect(splitCsvList('')).toEqual([]);
+    expect(splitCsvList('  ')).toEqual([]);
+  });
+});
 
 describe('parseLines', () => {
   test('splits text into lines and trims whitespace', () => {

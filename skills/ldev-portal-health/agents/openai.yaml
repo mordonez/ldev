@@ -1,0 +1,4 @@
+interface:
+  display_name: "Portal Health"
+  short_description: "Verify local Liferay portal connectivity, OAuth auth, and API surface readiness. Use when checking if the portal is up and authenticated before starting any task."
+  default_prompt: "Use $ldev-portal-health to confirm the portal is reachable, OAuth is working, and the API surface is ready."

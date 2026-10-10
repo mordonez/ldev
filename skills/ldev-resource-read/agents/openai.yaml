@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resource Read"
+  short_description: "Read the live state of a Liferay structure, template, ADT, or fragment from the running portal. Use before editing, comparing, or exporting a resource."
+  default_prompt: "Use $ldev-resource-read to inspect the current live version of a Journal structure, template, ADT, or fragment before editing or importing."

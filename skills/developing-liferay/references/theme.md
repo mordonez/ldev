@@ -4,7 +4,7 @@ Use this reference for global visual changes in theme SCSS, theme FTLs, or share
 
 ## Typical surface
 
-- Theme under `liferay/themes/`
+- Theme directory: read `context.paths.theme` from `ldev context --json`, or locate it under the project's `liferay/` directory (commonly `liferay/themes/<theme-name>/`)
 - Theme SCSS and templates
 - Visual overrides for Liferay widgets
 - Global layout, navigation, or shell styling
