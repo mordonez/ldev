@@ -34,6 +34,10 @@ import {
   runLiferayInventoryTemplates,
 } from '../../features/liferay/inventory/liferay-inventory-templates.js';
 import {
+  formatLiferayInventoryRedirects,
+  runLiferayInventoryRedirects,
+} from '../../features/liferay/redirects/liferay-inventory-redirects.js';
+import {
   formatLiferayInventoryWhereUsed,
   runLiferayInventoryWhereUsed,
   type WhereUsedResourceType,
@@ -332,6 +336,19 @@ Notes:
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
         }),
       {text: formatLiferayInventoryTemplates},
+    ),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('redirects')
+      .description('List redirect entries (Liferay Redirect) of a site, keyed by source URL')
+      .requiredOption('--site <site>', 'Site friendly URL or numeric ID'),
+    'json',
+  ).action(
+    createFormattedAction(
+      async (context, options: {site: string}) => runLiferayInventoryRedirects(context.config, {site: options.site}),
+      {text: formatLiferayInventoryRedirects},
     ),
   );
 

@@ -42,6 +42,7 @@ export type ResourceCommandOptionBag = {
   overwrite?: boolean;
   picklist?: string;
   pretty?: boolean;
+  probe?: boolean;
   runCleanup?: boolean;
   site?: string;
   siteErc?: string;
@@ -189,7 +190,7 @@ Export:
   export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments, export-object, export-picklist
 
 Import:
-  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist
+  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist, import-redirects
 
 Sites:
   apply-site-initializer

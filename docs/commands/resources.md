@@ -175,6 +175,29 @@ ldev resource apply-site-initializer --source ub-facultat --site-erc FAC_FILOLOG
   (and their item counts) and display page templates. Display page templates are
   read through `headless-admin-site`, which needs feature flag `LPD-35443`;
   without it the result says they could not be verified.
+## Redirects
+
+`import-redirects` applies a redirect map, such as the 301 map a content
+migrator generates, to one site (Liferay Redirect, JSONWS
+`redirect.redirectentry`). Entries are keyed by (site, source URL).
+
+```bash
+ldev portal inventory redirects --site /facultat-filologia
+ldev resource import-redirects --site /facultat-filologia --file redirects.csv --check-only
+ldev resource import-redirects --site /facultat-filologia --file redirects.csv --probe
+```
+
+- `--file` is a CSV `source,destination[,permanent]` (header optional) or a JSON
+  array of `{sourceURL, destinationURL, permanent}`. `permanent` defaults to true
+  (301); `false`, `0`, `302` or `no` make it a 302.
+- Source URLs are stored relative to the site without the leading slash and are
+  served at `/web/<site>/<source>`; ldev normalises `/old/page` to `old/page`.
+- The map is validated first: duplicate sources, empty sources or destinations,
+  and redirects to themselves are rejected before touching the portal.
+- `--check-only` reports `create`, `update`, `unchanged`, and `remoteOnly`
+  (redirects in the site that the map does not mention; they are never deleted).
+- After applying, every entry is read back; `--probe` also requests each source
+  URL without following redirects and expects 301/302 to the destination.
 
 ## Migration
 

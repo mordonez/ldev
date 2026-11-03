@@ -146,6 +146,15 @@ List web content templates for a site.
 ldev portal inventory templates --site /global --json
 ```
 
+## `ldev portal inventory redirects`
+
+List the redirect entries of one site: source URL, destination, 301/302 and
+expiration. See [`import-redirects`](/commands/resources#redirects) to apply a map.
+
+```bash
+ldev portal inventory redirects --site /facultat-filologia --json
+```
+
 ## `ldev portal inventory where-used`
 
 Reverse lookup for portal resources. Use it when you already know the fragment,
