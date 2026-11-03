@@ -263,7 +263,7 @@ ldev portal audit --site /global --page-size 200
 Inspect and update local Liferay config files (portal properties and OSGi PIDs).
 
 ```bash
-ldev portal config get com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration
+ldev portal config get com.liferay.portal.search.elasticsearch8.configuration.ElasticsearchConfiguration  # elasticsearch7 on DXP 2025 and earlier
 ldev portal config get companyDefaultLanguageId --source effective
 ldev portal config set com.liferay.portal.search.... --key networkHostAddresses --value '["host:9200"]'
 ```
