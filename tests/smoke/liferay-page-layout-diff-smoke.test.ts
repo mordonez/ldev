@@ -87,7 +87,6 @@ describe('liferay page-layout diff smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'page-layout', 'diff', '--url', '/web/guest/home', '--file', filePath], {
         from: 'user',
       });
@@ -167,7 +166,6 @@ describe('liferay page-layout diff smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['liferay', 'page-layout', 'diff', '--url', '/web/guest/home', '--reference-url', '/web/global/home'],
         {from: 'user'},

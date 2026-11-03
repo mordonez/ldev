@@ -25,8 +25,8 @@ read it.
 - `--ndjson` / `--format ndjson` — newline-delimited JSON; most commands
   still emit one final JSON value, while streaming-style commands may emit
   multiple lines
-- `--strict` — return a non-zero exit code when the result indicates
-  something is wrong (even if the command itself succeeded)
+- `--strict` — wrap successful JSON output in an envelope,
+  `{"ok": true, "data": ...}`, so success and failure share one shape
 
 Some commands default to JSON because their output is primarily structured:
 
@@ -69,27 +69,38 @@ Structured output is what makes everything else in `ldev` composable:
 
 ## Exit codes and error shapes
 
-`ldev` normalises errors into a stable envelope:
+Results go to stdout; errors go to stderr. With `--json` or `--ndjson`, every
+failure — including an unknown command or option — is written to stderr as
+one envelope:
 
 ```json
 {
-  "code": "OAUTH_INSTALL_OPTION_INVALID",
-  "exitCode": 2,
-  "message": "--user-id requires --company-id."
+  "ok": false,
+  "error": {
+    "code": "LIFERAY_GATEWAY_ERROR",
+    "message": "fetch-structure failed with status=404 path=/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/BASIC. No DataDefinition exists with the key BASIC",
+    "details": {"status": 404, "path": "/o/data-engine/v2.0/sites/20121/data-definitions/by-content-type/journal/by-data-definition-key/BASIC"}
+  }
 }
 ```
 
-Error codes come from per-feature factories (`EnvErrors`, `WorktreeErrors`,
-`DeployErrors`, `DbErrors`, `OAuthErrors`, `LiferayErrors`). The `code` field
-is stable and meant for scripts; the `message` is safe to display (secrets
-are sanitised).
+In text mode the same error prints as `CODE: message`.
 
-Common exit codes:
+- `code` is stable and meant for branching in scripts and agents. Codes come
+  from per-feature factories (`EnvErrors`, `WorktreeErrors`, `DeployErrors`,
+  `DbErrors`, `OAuthErrors`, `LiferayErrors`); invalid invocations use
+  `CLI_USAGE_ERROR`.
+- `message` is safe to display (secrets are sanitised). For Liferay API
+  failures it ends with the portal's own explanation when one was returned.
+- `details` is optional structured context. Liferay API failures
+  (`LIFERAY_GATEWAY_ERROR`) always carry the HTTP `status` and request `path`.
+
+Exit codes:
 
 - `0` — success
-- `1` — generic failure (or result-derived, for example `env is-healthy` on
+- `1` — failure (or result-derived, for example `env is-healthy` on
   unhealthy state, `page-layout diff` when pages differ)
-- `2` — invalid CLI option or contract error
+- `2` — invalid invocation: unknown command or option, missing argument
 
 ## Capture once, reuse everywhere
 

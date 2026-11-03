@@ -30,4 +30,14 @@ describe('error json integration', () => {
       },
     });
   }, 30000);
+
+  test('usage errors use the json error envelope when json output is requested', async () => {
+    const result = await runCli(['context', '--bogus', '--json'], {cwd: createTempDir('dev-cli-usage-json-')});
+
+    expect(result.exitCode).toBe(2);
+    expect(parseTestJson<ErrorPayload>(result.stderr)).toEqual({
+      ok: false,
+      error: {code: 'CLI_USAGE_ERROR', message: "unknown option '--bogus'"},
+    });
+  }, 30000);
 });

@@ -35,7 +35,10 @@ const createMockGateway = (responses: Map<string, unknown> = new Map()): MockGat
       if (responses.has(path)) {
         return responses.get(path);
       }
-      throw new CliError('mock request failed with status=404.', {code: 'LIFERAY_GATEWAY_ERROR'});
+      throw new CliError('mock request failed with status=404.', {
+        code: 'LIFERAY_GATEWAY_ERROR',
+        details: {status: 404},
+      });
     }),
     postJson: vi.fn(),
     postForm: vi.fn(),
@@ -209,7 +212,10 @@ describe('createByIdStep', () => {
     const gateway = {
       getJson: vi.fn(async () => {
         await Promise.resolve();
-        throw new CliError('resolve-site-by-id failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
+        throw new CliError('resolve-site-by-id failed with status=500.', {
+          code: 'LIFERAY_GATEWAY_ERROR',
+          details: {status: 500},
+        });
       }),
       postJson: vi.fn(),
       postForm: vi.fn(),
@@ -304,7 +310,10 @@ describe('createJsonwsFallbackStep', () => {
       getJson: vi.fn(async (path: string) => {
         await Promise.resolve();
         if (path === '/api/jsonws/company/get-companies') {
-          throw new CliError('list-jsonws-companies failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('list-jsonws-companies failed with status=500.', {
+            code: 'LIFERAY_GATEWAY_ERROR',
+            details: {status: 500},
+          });
         }
         throw new Error(`Unexpected path ${path}`);
       }),
@@ -505,12 +514,18 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         .addStep('step1', async () => {
           await Promise.resolve();
           callOrder.push('step1');
-          throw new CliError('mock request failed with status=404.', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('mock request failed with status=404.', {
+            code: 'LIFERAY_GATEWAY_ERROR',
+            details: {status: 404},
+          });
         })
         .addStep('step2', async () => {
           await Promise.resolve();
           callOrder.push('step2');
-          throw new CliError('mock request failed with status=403.', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('mock request failed with status=403.', {
+            code: 'LIFERAY_GATEWAY_ERROR',
+            details: {status: 403},
+          });
         })
         .addStep('step3', async () => {
           await Promise.resolve();
@@ -528,7 +543,10 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const pipeline = new SiteResolutionPipeline();
       pipeline.addStep('step1', async () => {
         await Promise.resolve();
-        throw new CliError('resolve-site-by-id failed with status=500.', {code: 'LIFERAY_GATEWAY_ERROR'});
+        throw new CliError('resolve-site-by-id failed with status=500.', {
+          code: 'LIFERAY_GATEWAY_ERROR',
+          details: {status: 500},
+        });
       });
 
       await expect(pipeline.execute('test')).rejects.toThrow('status=500');
@@ -543,11 +561,11 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         })
         .addStep('step2', async () => {
           await Promise.resolve();
-          throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR', details: {status: 404}});
         })
         .addStep('step3', async () => {
           await Promise.resolve();
-          throw new CliError('status=403', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('status=403', {code: 'LIFERAY_GATEWAY_ERROR', details: {status: 403}});
         });
 
       await expect(pipeline.execute('missing')).rejects.toThrow('Site not found: missing.');
@@ -591,7 +609,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       const onStepFailure = vi.fn();
 
       const pipeline = new SiteResolutionPipeline({onStepFailure});
-      const customError = new CliError('status=500', {code: 'LIFERAY_GATEWAY_ERROR'});
+      const customError = new CliError('status=500', {code: 'LIFERAY_GATEWAY_ERROR', details: {status: 500}});
       pipeline.addStep('step1', async () => {
         await Promise.resolve();
         throw customError;
@@ -610,7 +628,7 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
       pipeline
         .addStep('step1', async () => {
           await Promise.resolve();
-          throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR'});
+          throw new CliError('status=404', {code: 'LIFERAY_GATEWAY_ERROR', details: {status: 404}});
         })
         .addStep('step2', async () => {
           await Promise.resolve();
@@ -678,7 +696,10 @@ describe('SiteResolutionPipeline: Regression-hardening (R15)', () => {
         getJson: vi.fn(async (path: string) => {
           await Promise.resolve();
           if (path === '/api/jsonws/company/get-companies') {
-            throw new CliError('list-jsonws-companies failed with status=404.', {code: 'LIFERAY_GATEWAY_ERROR'});
+            throw new CliError('list-jsonws-companies failed with status=404.', {
+              code: 'LIFERAY_GATEWAY_ERROR',
+              details: {status: 404},
+            });
           }
           throw new Error(`Unexpected path ${path}`);
         }),

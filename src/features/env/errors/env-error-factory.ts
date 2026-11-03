@@ -14,6 +14,9 @@ export const EnvErrors = {
   startTimeout: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, EnvErrorCode.START_TIMEOUT, options),
 
+  startCanceled: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(message, EnvErrorCode.START_CANCELED, options),
+
   startFailed: (message: string, options?: DomainErrorOptions): CliError => {
     const isPostgresDependencyFailure = /\bpostgres\b.*\bunhealthy\b/i.test(message);
     const remedy = isPostgresDependencyFailure

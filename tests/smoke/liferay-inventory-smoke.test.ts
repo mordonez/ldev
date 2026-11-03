@@ -209,7 +209,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'sites'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -265,7 +264,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'pages', '--site', '/guest', '--format', 'json'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -314,7 +312,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'structures', '--site', '/global'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -357,7 +354,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'templates', '--site', '20121'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -471,7 +467,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'page', '--url', '/web/guest/home'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -515,7 +510,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'page', '--url', '/web/guest/', '--json'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -645,7 +639,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'page', '--url', '/web/guest/home', '--json'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -798,7 +791,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'inventory', 'page', '--url', '/web/guest/home', '--json', '--full'], {
         from: 'user',
       });
@@ -1003,7 +995,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['liferay', 'inventory', 'page', '--site', 'guest', '--friendly-url', '/w/news-article', '--format', 'json'],
         {from: 'user'},
@@ -1209,7 +1200,6 @@ describe('liferay inventory smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['liferay', 'inventory', 'page', '--site', 'guest', '--friendly-url', '/w/news-article', '--json', '--full'],
         {from: 'user'},

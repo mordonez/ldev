@@ -1,8 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
-import type {LiferayGateway} from '../liferay-gateway.js';
+import {getGatewayStatus, isGatewayError, isGatewayStatus, type LiferayGateway} from '../liferay-gateway.js';
 import {LiferayErrors} from '../errors/index.js';
 import {fetchPagedItems} from '../inventory/liferay-inventory-shared.js';
 import {normalizeLocalizedName} from '../portal/site-resolution.js';
@@ -197,20 +196,4 @@ function dedupeJournalRows(rows: JsonwsJournalArticleRow[]): JsonwsJournalArticl
   return [...unique.values()];
 }
 
-export function isGatewayError(error: unknown): error is CliError {
-  return error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR';
-}
-
-export function isGatewayStatus(error: unknown, status: number): boolean {
-  return isGatewayError(error) && error.message.includes(`status=${status}`);
-}
-
-export function getGatewayStatus(error: CliError): number | undefined {
-  const match = /status=(\d+)/.exec(error.message);
-  if (!match) {
-    return undefined;
-  }
-
-  const value = Number(match[1]);
-  return Number.isFinite(value) ? value : undefined;
-}
+export {getGatewayStatus, isGatewayError, isGatewayStatus};

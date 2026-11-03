@@ -1178,7 +1178,7 @@ describe('liferay resource structure-import', () => {
         {apiClient, tokenClient: TOKEN_CLIENT},
       ),
     ).rejects.toThrow(
-      'Structure migration failed for 1 content item(s): ARTICLE-001: structure-migrate update failed with status=500.',
+      'Structure migration failed for 1 content item(s): ARTICLE-001: structure-migrate update failed with status=500 path=/o/headless-delivery/v1.0/structured-contents/700. update failed',
     );
   });
 });

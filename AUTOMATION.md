@@ -4,8 +4,8 @@ This file is a short entry point.
 
 The canonical automation contract lives in:
 
-- [docs/automation.md](docs/automation.md)
-- Public docs: [mordonez.github.io/ldev/automation](https://mordonez.github.io/ldev/automation)
+- [docs/core-concepts/structured-output.md](docs/core-concepts/structured-output.md)
+- Public docs: [mordonez.github.io/ldev/core-concepts/structured-output](https://mordonez.github.io/ldev/core-concepts/structured-output)
 
 Use the canonical page for:
 

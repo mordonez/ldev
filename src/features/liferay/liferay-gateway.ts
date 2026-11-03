@@ -1,222 +1,180 @@
 import type {AppConfig} from '../../core/config/load-config.js';
-import {CliError} from '../../core/errors.js';
+import {CliError, createDomainError} from '../../core/errors.js';
 import type {OAuthTokenClient} from '../../core/http/auth.js';
 import {createOAuthTokenClient} from '../../core/http/auth.js';
 import type {HttpRequestOptions, HttpResponse, HttpApiClient} from '../../core/http/client.js';
 import {createLiferayApiClient} from '../../core/http/client.js';
-import {buildAuthOptions, expectJsonSuccess} from './liferay-http-shared.js';
+import {parseJsonRecord} from '../../core/utils/json.js';
+import {buildAuthOptions} from './liferay-http-shared.js';
+
+export const GATEWAY_ERROR_CODE = 'LIFERAY_GATEWAY_ERROR';
+
+/** Structured details attached to every error thrown by the gateway. */
+export type GatewayErrorDetails = {
+  status: number;
+  path: string;
+};
+
+const MAX_SERVER_MESSAGE_LENGTH = 300;
+
+/** Refresh tokens slightly before the portal expires them to avoid a wasted 401 round-trip. */
+const TOKEN_EXPIRY_SKEW_MS = 30_000;
+
+type CachedToken = {
+  value: string;
+  /** Epoch ms after which the token must be refreshed; `null` when the portal did not report an expiry. */
+  expiresAt: number | null;
+};
 
 /**
- * LiferayGateway: Centralized HTTP abstraction for Liferay API calls.
+ * Single typed HTTP client for Liferay API calls (ADR 0005).
  *
- * Encapsulates:
- * - Automatic Bearer token acquisition (with caching)
- * - Consistent Authorization header injection
- * - Timeout propagation from config
- * - Unified error handling (4xx/5xx status checks)
- *
- * Design for incremental adoption:
- * - Dependency injection for apiClient and tokenClient (testable, mockable)
- * - No breaking changes to existing authedGetJson, authedPostForm patterns
- * - Coexists with liferay-http-shared utilities during migration phase
+ * Owns Bearer token acquisition and caching (honouring the token's `expires_in`),
+ * one forced token refresh on 401, timeout propagation from config, and conversion
+ * of non-2xx responses into `LIFERAY_GATEWAY_ERROR` with `{status, path}` details.
  *
  * Usage:
  *   const gateway = createLiferayGateway(config);
  *   const template = await gateway.getJson<Template>('/path', 'fetch-template');
  */
 export class LiferayGateway {
-  private accessTokenCache: Map<string, {token: string; cachedAt: number}> = new Map();
-  private readonly tokenCacheTTL = 3600000; // 1 hour
+  private token: CachedToken | null = null;
 
   constructor(
     private config: AppConfig,
     private apiClient: HttpApiClient,
     private tokenClient: OAuthTokenClient,
+    private now: () => number = Date.now,
   ) {}
 
-  private getCacheKey(): string {
-    return [this.config.liferay.url, this.config.liferay.oauth2ClientId, this.config.liferay.oauth2ClientSecret].join(
-      '|',
+  /** Seed the token cache with a token the caller already holds. It is used until the portal rejects it. */
+  seedAccessToken(accessToken: string): void {
+    this.token = {value: accessToken, expiresAt: null};
+  }
+
+  /** Drop the in-memory token; the next request acquires one from the token client. */
+  clearTokenCache(): void {
+    this.token = null;
+  }
+
+  /** GET and return the parsed JSON body. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async getJson<T>(path: string, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
+    return this.expectData(
+      await this.send<T>(requestOptions, (opts) => this.apiClient.get<T>(this.config.liferay.url, path, opts)),
+      label,
+      path,
     );
   }
 
-  /**
-   * Fetch or return cached access token.
-   * Cache key includes url + clientId + clientSecret to support multi-instance scenarios.
-   * TTL: 1 hour (refreshed when expired).
-   */
-  private async getAccessToken(): Promise<string> {
-    const cacheKey = this.getCacheKey();
+  /** POST a JSON payload and return the parsed JSON body. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async postJson<T>(path: string, payload: unknown, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
+    return this.expectData(
+      await this.send<T>(requestOptions, (opts) =>
+        this.apiClient.postJson<T>(this.config.liferay.url, path, payload, opts),
+      ),
+      label,
+      path,
+    );
+  }
 
-    const now = Date.now();
-    const cached = this.accessTokenCache.get(cacheKey);
+  /** POST a urlencoded form and return the parsed JSON body. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async postForm<T>(
+    path: string,
+    form: Record<string, string>,
+    label: string,
+    requestOptions?: HttpRequestOptions,
+  ): Promise<T> {
+    return this.expectData(await this.postFormRaw<T>(path, form, requestOptions), label, path);
+  }
 
-    if (cached && now - cached.cachedAt < this.tokenCacheTTL) {
-      return cached.token;
+  /** POST multipart form data and return the parsed JSON body. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async postMultipart<T>(path: string, form: FormData, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
+    return this.expectData(
+      await this.send<T>(requestOptions, (opts) =>
+        this.apiClient.postMultipart<T>(this.config.liferay.url, path, form, opts),
+      ),
+      label,
+      path,
+    );
+  }
+
+  /** PUT a JSON payload and return the parsed JSON body. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async putJson<T>(path: string, payload: unknown, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
+    return this.expectData(
+      await this.send<T>(requestOptions, (opts) =>
+        this.apiClient.putJson<T>(this.config.liferay.url, path, payload, opts),
+      ),
+      label,
+      path,
+    );
+  }
+
+  /** DELETE and return the parsed JSON body, if any. @throws CliError `LIFERAY_GATEWAY_ERROR` on non-2xx. */
+  async deleteJson<T>(path: string, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
+    return this.expectData(
+      await this.send<T>(requestOptions, (opts) => this.apiClient.delete<T>(this.config.liferay.url, path, opts)),
+      label,
+      path,
+    );
+  }
+
+  /** GET without asserting the status, for callers that branch on specific status codes. */
+  async getRaw<T>(path: string, requestOptions?: HttpRequestOptions): Promise<HttpResponse<T>> {
+    return this.send<T>(requestOptions, (opts) => this.apiClient.get<T>(this.config.liferay.url, path, opts));
+  }
+
+  /** POST a form without asserting the status, for callers that try several payload candidates. */
+  async postFormRaw<T>(
+    path: string,
+    form: Record<string, string>,
+    requestOptions?: HttpRequestOptions,
+  ): Promise<HttpResponse<T>> {
+    return this.send<T>(requestOptions, (opts) =>
+      this.apiClient.postForm<T>(this.config.liferay.url, path, form, opts),
+    );
+  }
+
+  private async send<T>(
+    requestOptions: HttpRequestOptions | undefined,
+    request: (options: HttpRequestOptions) => Promise<HttpResponse<T>>,
+  ): Promise<HttpResponse<T>> {
+    const withToken = (accessToken: string): HttpRequestOptions => {
+      const auth = buildAuthOptions(this.config, accessToken);
+      return {...auth, ...requestOptions, headers: {...auth.headers, ...requestOptions?.headers}};
+    };
+
+    const response = await request(withToken(await this.getAccessToken()));
+    if (response.status !== 401) {
+      return response;
     }
 
-    const {accessToken} = await this.tokenClient.fetchClientCredentialsToken(this.config.liferay);
-    this.accessTokenCache.set(cacheKey, {token: accessToken, cachedAt: now});
+    // The cached token may be revoked (portal restarted, OAuth app re-created): bypass every cache once.
+    return request(withToken(await this.getAccessToken({forceRefresh: true})));
+  }
 
+  private async getAccessToken(options?: {forceRefresh?: boolean}): Promise<string> {
+    const cached = this.token;
+    if (!options?.forceRefresh && cached && (cached.expiresAt === null || this.now() < cached.expiresAt)) {
+      return cached.value;
+    }
+
+    const issuedAt = this.now();
+    const {accessToken, expiresIn} = await this.tokenClient.fetchClientCredentialsToken(this.config.liferay, options);
+    this.token = {
+      value: accessToken,
+      expiresAt: expiresIn > 0 ? issuedAt + Math.max(0, expiresIn * 1000 - TOKEN_EXPIRY_SKEW_MS) : null,
+    };
     return accessToken;
   }
 
-  /**
-   * Seed the gateway token cache with a caller-provided access token.
-   * Useful during incremental migration from helpers that already receive a token.
-   */
-  seedAccessToken(accessToken: string): void {
-    this.accessTokenCache.set(this.getCacheKey(), {token: accessToken, cachedAt: Date.now()});
-  }
-
-  private async requestWith401Retry<T>(
-    request: (accessToken: string) => Promise<HttpResponse<T>>,
-  ): Promise<HttpResponse<T>> {
-    const firstToken = await this.getAccessToken();
-    const firstResponse = await request(firstToken);
-
-    if (firstResponse.status !== 401) {
-      return firstResponse;
+  private expectData<T>(response: HttpResponse<T>, label: string, path: string): T {
+    if (!response.ok) {
+      throw createGatewayError(label, response.status, path, response.body);
     }
-
-    // Token may be stale/revoked; refresh once and retry the same request.
-    this.clearTokenCache();
-    const refreshedToken = await this.getAccessToken();
-    return request(refreshedToken);
-  }
-
-  /**
-   * GET /path, parse JSON, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async getJson<T>(path: string, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) => {
-      const authOptions = buildAuthOptions(this.config, accessToken);
-      return this.apiClient.get<T>(this.config.liferay.url, path, {
-        ...authOptions,
-        ...requestOptions,
-        headers: {
-          ...authOptions.headers,
-          ...requestOptions?.headers,
-        },
-      });
-    });
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * POST JSON /path, parse JSON response, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async postJson<T>(path: string, payload: unknown, label: string): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) =>
-      this.apiClient.postJson<T>(this.config.liferay.url, path, payload, buildAuthOptions(this.config, accessToken)),
-    );
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * POST form /path, parse JSON response, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async postForm<T>(path: string, form: Record<string, string>, label: string): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) =>
-      this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
-    );
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * POST multipart /path, parse JSON response, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async postMultipart<T>(path: string, form: FormData, label: string): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) =>
-      this.apiClient.postMultipart<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
-    );
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * PUT JSON /path, parse JSON response, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async putJson<T>(path: string, payload: unknown, label: string, requestOptions?: HttpRequestOptions): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) => {
-      const authOpts = buildAuthOptions(this.config, accessToken);
-      return this.apiClient.putJson<T>(this.config.liferay.url, path, payload, {
-        ...authOpts,
-        ...requestOptions,
-        headers: {
-          ...authOpts.headers,
-          ...requestOptions?.headers,
-        },
-      });
-    });
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * GET /path, return the raw HTTP response without asserting ok status.
-   * Use when the caller needs to inspect specific status codes (e.g., 403, 404) instead of a unified error throw.
-   */
-  async getRaw<T>(path: string): Promise<HttpResponse<T>> {
-    return this.requestWith401Retry((accessToken) => {
-      const authOptions = buildAuthOptions(this.config, accessToken);
-      return this.apiClient.get<T>(this.config.liferay.url, path, authOptions);
-    });
-  }
-
-  /**
-   * POST form /path, return the raw HTTP response without asserting ok status.
-   * Use when callers need to inspect status/body across multiple fallback payload candidates.
-   */
-  async postFormRaw<T>(path: string, form: Record<string, string>): Promise<HttpResponse<T>> {
-    return this.requestWith401Retry((accessToken) =>
-      this.apiClient.postForm<T>(this.config.liferay.url, path, form, buildAuthOptions(this.config, accessToken)),
-    );
-  }
-
-  /**
-   * DELETE /path, parse JSON response if present, assert ok status, return data.
-   * @throws CliError if response not ok
-   */
-  async deleteJson<T>(path: string, label: string): Promise<T> {
-    const response = await this.requestWith401Retry((accessToken) =>
-      this.apiClient.delete<T>(this.config.liferay.url, path, buildAuthOptions(this.config, accessToken)),
-    );
-
-    const success = expectGatewayJsonSuccess(response, label, path);
-    return (success.data ?? null) as T;
-  }
-
-  /**
-   * Clear the access token cache (useful for testing or explicit refresh).
-   */
-  clearTokenCache(): void {
-    this.accessTokenCache.clear();
+    return (response.data ?? null) as T;
   }
 }
 
-/**
- * Factory to create LiferayGateway with optional DI for clients.
- * Allows injection of mock/custom apiClient and tokenClient for testing.
- *
- * @param config AppConfig with liferay auth settings
- * @param apiClient Optional LiferayApiClient; creates default if omitted
- * @param tokenClient Optional OAuthTokenClient; creates default if omitted
- * @returns New LiferayGateway instance
- */
 export function createLiferayGateway(
   config: AppConfig,
   apiClient?: HttpApiClient,
@@ -225,13 +183,57 @@ export function createLiferayGateway(
   return new LiferayGateway(config, apiClient ?? createLiferayApiClient(), tokenClient ?? createOAuthTokenClient());
 }
 
-function expectGatewayJsonSuccess<T>(response: HttpResponse<T>, label: string, path: string): HttpResponse<T> {
-  try {
-    return expectJsonSuccess(response, label, 'LIFERAY_GATEWAY_ERROR');
-  } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && !error.message.includes(' path=')) {
-      error.message = `${error.message} path=${path}`;
-    }
-    throw error;
+/**
+ * Build the error the gateway throws for a non-2xx response.
+ * The message keeps the stable `<label> failed with status=<n> path=<path>` prefix and appends the
+ * portal's own explanation when it returned one, which is usually what a human or agent needs to act.
+ */
+export function createGatewayError(label: string, status: number, path: string, body = ''): CliError {
+  const serverMessage = extractServerMessage(body);
+  const details: GatewayErrorDetails = {status, path};
+  return createDomainError(
+    `${label} failed with status=${status} path=${path}.${serverMessage ? ` ${serverMessage}` : ''}`,
+    GATEWAY_ERROR_CODE,
+    {details},
+  );
+}
+
+export function isGatewayError(error: unknown): error is CliError {
+  return error instanceof CliError && error.code === GATEWAY_ERROR_CODE;
+}
+
+/** HTTP status of a gateway error, or `undefined` for any other error. */
+export function getGatewayStatus(error: unknown): number | undefined {
+  if (!isGatewayError(error)) {
+    return undefined;
   }
+  const status = (error.details as Partial<GatewayErrorDetails> | undefined)?.status;
+  return typeof status === 'number' ? status : undefined;
+}
+
+/** True when `error` is a gateway error with one of the given HTTP statuses. */
+export function isGatewayStatus(error: unknown, ...statuses: number[]): boolean {
+  const status = getGatewayStatus(error);
+  return status !== undefined && statuses.includes(status);
+}
+
+/** Extract a short human message from Headless (`title`/`detail`) or JSONWS (`exception`, `error.message`) bodies. */
+function extractServerMessage(body: string): string {
+  const record = parseJsonRecord(body);
+  if (!record) {
+    return '';
+  }
+
+  const nested = record.error && typeof record.error === 'object' ? (record.error as Record<string, unknown>) : {};
+  const candidate = [record.title, record.detail, nested.message, record.exception, record.message].find(
+    (value): value is string => typeof value === 'string' && value.trim() !== '',
+  );
+  if (!candidate) {
+    return '';
+  }
+
+  const normalized = candidate.replaceAll(/\s+/g, ' ').trim();
+  return normalized.length > MAX_SERVER_MESSAGE_LENGTH
+    ? `${normalized.slice(0, MAX_SERVER_MESSAGE_LENGTH)}…`
+    : normalized;
 }

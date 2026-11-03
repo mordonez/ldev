@@ -4,7 +4,7 @@ import type {AppConfig} from '../../src/core/config/load-config.js';
 import type {OAuthTokenClient, TokenResponse} from '../../src/core/http/auth.js';
 import type {HttpResponse, HttpApiClient} from '../../src/core/http/client.js';
 import {CliError} from '../../src/core/errors.js';
-import {LiferayGateway} from '../../src/features/liferay/liferay-gateway.js';
+import {LiferayGateway, getGatewayStatus, isGatewayStatus} from '../../src/features/liferay/liferay-gateway.js';
 
 const mockConfig: AppConfig = {
   cwd: '/repo',
@@ -182,6 +182,27 @@ describe('LiferayGateway', () => {
 
       expect(result).toEqual({id: 1});
       expect(apiClient.get).toHaveBeenCalledTimes(2);
+      expect(tokenClient.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
+      expect(vi.mocked(tokenClient.fetchClientCredentialsToken).mock.calls[1]?.[1]).toEqual({forceRefresh: true});
+      expect(requireCall(vi.mocked(apiClient.get).mock.calls[1])[2]?.headers?.Authorization).toBe('Bearer fresh-token');
+    });
+
+    test('refreshes the token once it reaches its reported expiry', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      vi.mocked(tokenClient.fetchClientCredentialsToken).mockResolvedValue({...mockToken, expiresIn: 600});
+      vi.mocked(apiClient.get).mockResolvedValue(mockHttpResponse(true, 200, {}));
+
+      let now = 0;
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient, () => now);
+
+      await gateway.getJson('/api/test', 'test');
+      now = 500_000;
+      await gateway.getJson('/api/test', 'test');
+      expect(tokenClient.fetchClientCredentialsToken).toHaveBeenCalledTimes(1);
+
+      now = 590_000;
+      await gateway.getJson('/api/test', 'test');
       expect(tokenClient.fetchClientCredentialsToken).toHaveBeenCalledTimes(2);
     });
   });
@@ -498,6 +519,27 @@ describe('LiferayGateway', () => {
         expect(error).toBeInstanceOf(CliError);
         expect((error as CliError).code).toBe('LIFERAY_GATEWAY_ERROR');
       }
+    });
+
+    test('exposes status and path as details and appends the portal message', async () => {
+      const apiClient = createMockApiClient();
+      const tokenClient = createMockTokenClient();
+      vi.mocked(apiClient.get).mockResolvedValue({
+        ...mockHttpResponse(false, 404, null),
+        body: JSON.stringify({status: 'NOT_FOUND', title: 'No DataDefinition exists with the key BASIC'}),
+      });
+
+      const gateway = new LiferayGateway(mockConfig, apiClient, tokenClient);
+      const error = await gateway
+        .getJson('/api/structures/BASIC', 'fetch-structure')
+        .catch((caught: unknown) => caught);
+
+      expect(getGatewayStatus(error)).toBe(404);
+      expect(isGatewayStatus(error, 403, 404)).toBe(true);
+      expect((error as CliError).details).toEqual({status: 404, path: '/api/structures/BASIC'});
+      expect((error as CliError).message).toBe(
+        'fetch-structure failed with status=404 path=/api/structures/BASIC. No DataDefinition exists with the key BASIC',
+      );
     });
 
     test('handles all 4xx status codes', async () => {

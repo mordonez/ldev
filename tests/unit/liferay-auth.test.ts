@@ -188,4 +188,27 @@ describe('liferay auth', () => {
     expect(second.accessToken).toBe('token-2');
     expect(calls).toBe(2);
   });
+
+  test('bypasses the cached token when forceRefresh is set', async () => {
+    let calls = 0;
+    const cacheDir = createTempDir('ldev-oauth-cache-force-');
+    const apiClient = createLiferayApiClient({
+      fetchImpl: async () => {
+        await Promise.resolve();
+        calls += 1;
+        return new Response(`{"access_token":"token-${calls}","token_type":"Bearer","expires_in":3600}`, {status: 200});
+      },
+    });
+
+    const tokenClient = createOAuthTokenClient({apiClient, cacheDir, now: () => 1_000});
+
+    const first = await tokenClient.fetchClientCredentialsToken(SETTINGS);
+    const forced = await tokenClient.fetchClientCredentialsToken(SETTINGS, {forceRefresh: true});
+    const cached = await tokenClient.fetchClientCredentialsToken(SETTINGS);
+
+    expect(first.accessToken).toBe('token-1');
+    expect(forced.accessToken).toBe('token-2');
+    expect(cached.accessToken).toBe('token-2');
+    expect(calls).toBe(2);
+  });
 });

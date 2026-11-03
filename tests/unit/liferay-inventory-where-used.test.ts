@@ -1121,7 +1121,12 @@ describe('where-used display page sources', () => {
       {
         origin: 'headlessStructuredContent',
         collect: () =>
-          Promise.reject(new CliError('structured contents failed with status=404', {code: 'LIFERAY_GATEWAY_ERROR'})),
+          Promise.reject(
+            new CliError('structured contents failed with status=404', {
+              code: 'LIFERAY_GATEWAY_ERROR',
+              details: {status: 404},
+            }),
+          ),
       },
       {
         origin: 'jsonwsJournal',
@@ -1145,7 +1150,12 @@ describe('where-used display page sources', () => {
 
   test('stops retrying a display page source after it returns a skippable portal error', async () => {
     const collectHeadless = vi.fn<DisplayPageSource['collect']>(() =>
-      Promise.reject(new CliError('structured contents failed with status=404', {code: 'LIFERAY_GATEWAY_ERROR'})),
+      Promise.reject(
+        new CliError('structured contents failed with status=404', {
+          code: 'LIFERAY_GATEWAY_ERROR',
+          details: {status: 404},
+        }),
+      ),
     );
     const collectJsonws = vi.fn<DisplayPageSource['collect']>(() =>
       Promise.resolve([{fullUrl: '/web/actualitat/w/article', origin: 'jsonwsJournal'}]),
@@ -1172,7 +1182,12 @@ describe('where-used display page sources', () => {
       {
         origin: 'headlessStructuredContent',
         collect: () =>
-          Promise.reject(new CliError('structured contents failed with status=403', {code: 'LIFERAY_GATEWAY_ERROR'})),
+          Promise.reject(
+            new CliError('structured contents failed with status=403', {
+              code: 'LIFERAY_GATEWAY_ERROR',
+              details: {status: 403},
+            }),
+          ),
       },
     ];
 

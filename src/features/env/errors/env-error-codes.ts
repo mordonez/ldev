@@ -4,6 +4,7 @@ export const EnvErrorCode = {
   FORCE_REQUIRED: 'ENV_FORCE_REQUIRED',
   START_TIMEOUT: 'ENV_START_TIMEOUT',
   START_FAILED: 'ENV_START_FAILED',
+  START_CANCELED: 'ENV_START_CANCELED',
 } as const;
 
 export type EnvErrorCode = (typeof EnvErrorCode)[keyof typeof EnvErrorCode];

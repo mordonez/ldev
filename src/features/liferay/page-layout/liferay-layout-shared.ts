@@ -1,7 +1,6 @@
-import {CliError} from '../../../core/errors.js';
 import {firstNonBlank, trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
-import type {LiferayGateway} from '../liferay-gateway.js';
+import {isGatewayError, type LiferayGateway} from '../liferay-gateway.js';
 
 export type Layout = {
   layoutId?: number;
@@ -49,7 +48,7 @@ export async function fetchLayoutsByParent(
     );
     return Array.isArray(layouts) ? layouts : [];
   } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    if (isGatewayError(error)) {
       throw LiferayErrors.inventoryError(error.message);
     }
     throw error;

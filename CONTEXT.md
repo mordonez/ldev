@@ -129,7 +129,7 @@ See [ADR 0001–0004](docs/adr/) for the rationale behind this layout.
 
 ### LiferayGateway — single typed HTTP client for all Liferay API calls
 
-`src/features/liferay/liferay-gateway.ts`. All features call `gateway.getJson<T>()`, `postJson<T>()`, etc. The gateway owns OAuth token caching, 401-retry, and error conversion. No direct `fetch()` calls against Liferay endpoints anywhere else. See [ADR 0005](docs/adr/0005-liferay-gateway.md).
+`src/features/liferay/liferay-gateway.ts`. All features call `gateway.getJson<T>()`, `postJson<T>()`, etc. The gateway owns OAuth token caching (honouring `expires_in`), a forced-refresh retry on 401, and error conversion: non-2xx responses become `LIFERAY_GATEWAY_ERROR` with `details: {status, path}`. Branch on them with `isGatewayStatus(error, 404)` / `getGatewayStatus(error)`, never by matching message text. No direct `fetch()` calls against authenticated Liferay endpoints anywhere else. See [ADR 0005](docs/adr/0005-liferay-gateway.md).
 
 ### Domain error factories — typed, coded, secret-sanitized throws
 
@@ -183,7 +183,7 @@ Automation should consume structured output:
 - `--ndjson` emits one JSON value per line for streaming-capable workflows.
 - `--strict` wraps success as `{ "ok": true, "data": ... }`.
 
-All errors should flow through CLI error normalization. Domain error factories provide stable error codes; messages must be safe to display and must not leak secrets.
+All errors should flow through CLI error normalization (`src/cli/errors.ts`). Domain error factories provide stable error codes; messages must be safe to display and must not leak secrets. Commander usage failures become `CLI_USAGE_ERROR` (exit code 2) and, in `--json`/`--ndjson` mode, use the same `{ok: false, error}` envelope on stderr as every other failure. Code that maps errors to behaviour (HTTP status in the dashboard, retry or skip decisions) must branch on `error.code` or `error.details`, not on message text.
 
 ## Configuration Model
 
