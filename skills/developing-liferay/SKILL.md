@@ -36,7 +36,8 @@ Use the CLI for file exports/imports and file-backed resource mutations. For str
 - Theme SCSS, JS, or theme FreeMarker -> `references/theme.md`
 - OSGi module or Java code -> `references/osgi.md`
 - Extension point selection -> `references/extending-liferay.md`
-- Liferay Objects -> `references/objects.md`
+- Liferay Objects, picklists, batch data -> `references/objects.md`, then `portal-resource-workflow`
+- Client extensions (batch, siteInitializer, globalCSS, ...) -> `deploying-liferay` (`ldev deploy client-extension`)
 - Structured content or site page mutation -> `references/site-building.md`
 - Workflow or publication state -> `references/workflow.md`
 - Headless REST contract discovery -> `references/headless-openapi.md` (`ldev portal api discover`)
@@ -53,6 +54,8 @@ File edits alone are still Red. After editing, run the smallest matching action:
 - changed deployable module -> `ldev deploy module <module-name>`
 - changed theme assets/templates -> `ldev deploy theme`
 - changed Journal structure/template/ADT/fragment -> `portal-resource-workflow`
+- changed client extension -> `ldev deploy client-extension <name>`
+- changed Object/picklist/site initializer/redirect map/style book -> `portal-resource-workflow`
 - changed portal properties or source OSGi config -> restart, then read back
 
 If more than one surface changed, apply and verify each surface separately.
