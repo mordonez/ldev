@@ -35,6 +35,10 @@ import {
   runLiferayResourceImportPicklist,
 } from '../../features/liferay/resource/liferay-resource-import-picklist.js';
 import {
+  formatApplySiteInitializer,
+  runApplySiteInitializer,
+} from '../../features/liferay/site-initializer/site-initializer-apply.js';
+import {
   formatLiferayResourceImportStructure,
   runLiferayResourceImportStructure,
 } from '../../features/liferay/resource/liferay-resource-import-structure.js';
@@ -360,5 +364,31 @@ export function registerResourceImportCommands(resource: Command): void {
       });
     },
     render: {text: formatLiferayResourceImportPicklist},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'apply-site-initializer',
+    description: 'Create a site from a site initializer by site ERC and read back its pages, menus and display pages',
+    configure: configure(o.checkOnly(), (cmd) =>
+      cmd
+        .requiredOption('--source <source>', 'Client extension name, client extension dir, or site-initializer dir')
+        .option('--site-erc <erc>', 'Target site ERC; defaults to siteExternalReferenceCode in client-extension.yaml')
+        .option('--site-name <name>', 'Site name; defaults to siteName in client-extension.yaml')
+        .option('--friendly-url-path <path>', 'Site friendly URL, e.g. /facultat-x')
+        .option(
+          '--recreate',
+          'Delete the existing site and its content, then recreate it (site initializers are create-only)',
+        ),
+    ),
+    run: async (context, options) =>
+      runApplySiteInitializer(context.config, {
+        source: requireResourceValue(options.source, 'apply-site-initializer requires --source'),
+        siteErc: options.siteErc,
+        siteName: options.siteName,
+        friendlyUrlPath: options.friendlyUrlPath,
+        recreate: Boolean(options.recreate),
+        checkOnly: Boolean(options.checkOnly),
+      }),
+    render: {text: formatApplySiteInitializer},
   });
 }

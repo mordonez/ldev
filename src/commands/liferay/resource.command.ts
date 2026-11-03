@@ -19,6 +19,9 @@ Export:
 Import:
   import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist
 
+Sites:
+  apply-site-initializer
+
 Migration:
   migration-init, migration-pipeline
 

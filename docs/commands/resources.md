@@ -145,6 +145,37 @@ ldev resource import-picklist --picklist UB_LEVELS --create-missing
 - Removing an entry from the file would delete it remotely and orphan stored
   values; the import refuses unless `--allow-breaking-change`.
 
+## Site initializers
+
+`apply-site-initializer` creates a site from a site initializer (a
+`siteInitializer` client extension or a `site-initializer/` folder) by site ERC,
+then reads back what it declared.
+
+```bash
+ldev resource apply-site-initializer --source ub-facultat --check-only
+ldev resource apply-site-initializer --source ub-facultat
+ldev resource apply-site-initializer --source ub-facultat --site-erc FAC_FILOLOGIA --site-name "Facultat de Filologia" --friendly-url-path /filologia
+ldev resource apply-site-initializer --source ub-facultat --site-erc FAC_FILOLOGIA --recreate
+```
+
+- `--site-erc`/`--site-name` default to `siteExternalReferenceCode`/`siteName` in
+  the client extension's `client-extension.yaml`; pass other values to apply the
+  same initializer to N sites.
+- Site initializers are create-only: only creating a site runs them, redeploys
+  and site updates do not re-apply pages, menus or templates. An existing site
+  is refused unless `--recreate`, which **deletes the site and its content** and
+  creates it again.
+- Before touching the portal it lints silent failures: `page-definition.json`
+  without `"type": "Root"` (error), navigation menus using
+  `siteNavigationMenuItems` instead of `menuItems`, `numberOfItems` below
+  `numberOfItemsPerPage`, and `fieldKey: "Title"` (warnings).
+- `--check-only` reports the declared pages, menus and display page templates,
+  the lint, and whether the site would be created, recreated or is blocked.
+- After creating the site it reads back pages (by friendly URL), navigation menus
+  (and their item counts) and display page templates. Display page templates are
+  read through `headless-admin-site`, which needs feature flag `LPD-35443`;
+  without it the result says they could not be verified.
+
 ## Migration
 
 ```bash

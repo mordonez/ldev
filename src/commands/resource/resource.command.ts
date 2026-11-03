@@ -44,7 +44,12 @@ export type ResourceCommandOptionBag = {
   pretty?: boolean;
   runCleanup?: boolean;
   site?: string;
+  siteErc?: string;
   siteId?: string;
+  siteName?: string;
+  source?: string;
+  friendlyUrlPath?: string;
+  recreate?: boolean;
   skipUpdate?: boolean;
   skipValidation?: boolean;
   stage?: string;
@@ -185,6 +190,9 @@ Export:
 
 Import:
   import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist
+
+Sites:
+  apply-site-initializer
 
 Migration:
   migration-init, migration-pipeline
