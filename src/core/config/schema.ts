@@ -24,6 +24,7 @@ export const appConfigSchema = z.object({
       adts: z.string(),
       fragments: z.string(),
       migrations: z.string().optional(),
+      objects: z.string().optional(),
     })
     .optional(),
 });

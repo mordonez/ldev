@@ -1,12 +1,12 @@
 ---
 name: portal-resource-workflow
-description: 'Changes Liferay portal resources through the canonical ldev file-backed workflow. Use when editing Journal structures, Journal templates, ADTs, or fragments.'
+description: 'Changes Liferay portal resources through the canonical ldev file-backed workflow. Use when editing Journal structures, Journal templates, ADTs, fragments, or Liferay Object Definitions.'
 ---
 
 # Portal Resource Workflow
 
-Owns the canonical file-backed workflow for structures, templates, ADTs, and
-fragments. Deploy commands do not apply these resources.
+Owns the canonical file-backed workflow for structures, templates, ADTs,
+fragments, and Liferay Object Definitions. Deploy commands do not apply these resources.
 
 ## 1. Resolve Origin
 
@@ -32,6 +32,7 @@ ldev resource export-structure --site /<site> --structure <KEY>
 ldev resource export-template --site /<site> --template <KEY>
 ldev resource export-adt --site /<site> --adt <KEY> --widget-type <type>
 ldev resource export-fragment --site /<site> --fragment <KEY>
+ldev resource export-object --object <ERC>   # company-scoped, no --site
 ```
 
 ## 3. Decide Import vs Migration
@@ -74,11 +75,11 @@ ldev resource import-structure --liferay-timeout-seconds 300 --site /<site> --st
 ldev resource import-template --liferay-timeout-seconds 300 --site /<site> --template <KEY>
 ldev resource import-adt --site /<site> --file <path> --widget-type <type>
 ldev resource import-fragment --site /<site> --fragment <KEY>
+ldev resource import-object --object <ERC>
 ```
 
-On Windows, run `/site` arguments from PowerShell argv arrays or set
-`MSYS_NO_PATHCONV=1` in Git Bash. A rewritten value like
-`C:/Program Files/Git/<site>` is shell path conversion, not a Liferay site.
+On Windows, run `/site` arguments from PowerShell argv arrays or set `MSYS_NO_PATHCONV=1`
+in Git Bash. A value like `C:/Program Files/Git/<site>` is shell path conversion, not a site.
 
 For fragments, a read-back/hash mismatch is not a request to update a checksum
 file. It means the runtime content returned after import differs from the local
@@ -89,8 +90,7 @@ flag.
 
 ## 5. Prove Green
 
-- Read back the changed resource with `ldev resource structure/template/adt` or
-  a focused export.
+- Read back with `ldev resource structure/template/adt/object` or a focused export.
 - Run `ldev portal check --json` and `ldev logs diagnose --since 5m --json`.
 - For visible behavior, validate the affected local URL in the browser.
 - For structure authoring changes, prove both existing-content visibility and a

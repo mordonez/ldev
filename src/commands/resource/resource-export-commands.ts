@@ -2,6 +2,7 @@ import type {Command} from 'commander';
 
 import {configure, o, registerResourceWorkflow, requireResourceValue} from './resource.command.js';
 import {LiferayErrors} from '../../features/liferay/errors/index.js';
+import {runLiferayResourceExportObject} from '../../features/liferay/resource/liferay-resource-export-object.js';
 import {runLiferayResourceExportStructure} from '../../features/liferay/resource/liferay-resource-export-structure.js';
 import {runLiferayResourceExportTemplate} from '../../features/liferay/resource/liferay-resource-export-template.js';
 import {
@@ -213,5 +214,20 @@ export function registerResourceExportCommands(resource: Command): void {
         fragment: options.fragment,
       }),
     render: {text: formatLiferayResourceExportFragments},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'export-object',
+    description: 'Export one Liferay Object Definition to a portable JSON file keyed by ERC',
+    configure: (command) =>
+      command
+        .option('--object <object>', 'Object definition ERC, name (Course or C_Course), or id')
+        .option('--output <file>', 'Destination JSON file; defaults to paths.objects/<erc>.json'),
+    run: async (context, options) =>
+      runLiferayResourceExportObject(context.config, {
+        id: requireResourceValue(options.object, 'export-object requires --object'),
+        output: options.output,
+      }),
+    render: {text: (result) => result.outputPath},
   });
 }

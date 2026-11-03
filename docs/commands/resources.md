@@ -5,7 +5,7 @@ description: Minimal reference for exporting, importing, and migrating Liferay r
 
 # Resource Commands
 
-The `ldev resource` namespace treats structures, templates, ADTs and fragments as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
+The `ldev resource` namespace treats structures, templates, ADTs, fragments and Liferay Object Definitions as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
 
 ```bash
 ldev resource --preflight export-structures --all-sites
@@ -19,6 +19,7 @@ ldev resource template --site /global --template MY_TEMPLATE
 ldev resource adts --site /global
 ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
+ldev resource object --object UB_COURSE
 ```
 
 - `structure` — accepts `--structure`
@@ -26,6 +27,7 @@ ldev resource fragments --site /global
 - `adt` — filter by `--adt`, `--id`, `--name`, `--display-style`, `--widget-type`, or explicit `--class-name`
 - `adts` — list all ADTs for a site; add `--include-script` to include template scripts in JSON
 - `fragments` — list fragment collections and entries for a site
+- `object` — `--object` accepts ERC, name (`Course` or `C_Course`) or numeric id; returns fields, relationships, referenced picklists and the portable definition
 
 ## Export
 
@@ -39,6 +41,7 @@ ldev resource export-adt --site /global --adt MY_ADT --widget-type asset-publish
 ldev resource export-adts --all-sites
 ldev resource export-fragment --fragment BASIC_COMPONENT-paragraph --site /global
 ldev resource export-fragments --all-sites
+ldev resource export-object --object UB_COURSE
 ```
 
 Key flags:
@@ -85,6 +88,35 @@ Structure imports additionally accept the migration options:
 For migration-required changes, prefer `migration-pipeline`. `import-structure
 --migration-plan` is the lower-level path used by the pipeline and for focused
 debugging; it validates the plan before applying a breaking transition.
+
+## Liferay Objects
+
+Object Definitions are company-scoped, so object commands take no `--site`. Files
+live under `paths.objects` (default `liferay/resources/objects/<ERC>.json`) and
+are keyed by `externalReferenceCode`.
+
+```bash
+ldev resource export-object --object UB_COURSE
+ldev resource import-object --object UB_COURSE --check-only
+ldev resource import-object --object UB_COURSE
+ldev resource import-object --file liferay/resources/objects/UB_COURSE.json --create-missing
+```
+
+- The exported file is portable: no ids, dates or status, no system fields, no
+  reverse relationships. Object actions, layouts, views and validation rules are
+  not managed by these commands.
+- `--check-only` returns `changes` (`add`/`change`/`remove` per property, field
+  and relationship) without writing.
+- Before writing, the import checks that referenced picklists
+  (`listTypeDefinitionExternalReferenceCode`) and relationship targets
+  (`objectDefinitionExternalReferenceCode2`) exist.
+- Custom fields present in the portal but missing from the file would be
+  deleted with their data; the import refuses unless `--allow-breaking-change`.
+- Relationships are created or updated by name; remote-only relationships are
+  never deleted.
+- `--create-missing` creates the definition and publishes it.
+- After writing, the definition is read back and compared with the file; any
+  difference fails the command.
 
 ## Migration
 

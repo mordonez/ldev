@@ -1,12 +1,18 @@
 # Resource Mutation Gates
 
-Before mutating structures, templates, ADTs, or fragments:
+Before mutating structures, templates, ADTs, fragments, or Object Definitions:
 
 ```bash
 ldev resource import-structure --site /<site> --structure <KEY> --check-only
 ldev resource import-template --site /<site> --template <KEY> --check-only
 ldev resource import-adt --site /<site> --file <path> --widget-type <type> --check-only
+ldev resource import-object --object <ERC> --check-only
 ```
+
+For objects, review `changes` in the check-only output. A `remove` on
+`objectFields[...]` deletes that field and its data: get explicit user approval
+before `--allow-breaking-change`. Missing picklists or relationship targets must
+exist first; do not create them with raw Headless calls.
 
 `import-fragment` has no `--check-only`; validate fragment source files
 manually before importing.
