@@ -3,6 +3,7 @@ import type {Command} from 'commander';
 import {configure, o, registerResourceWorkflow, requireResourceValue} from './resource.command.js';
 import {LiferayErrors} from '../../features/liferay/errors/index.js';
 import {runLiferayResourceExportObject} from '../../features/liferay/resource/liferay-resource-export-object.js';
+import {runLiferayResourceExportPicklist} from '../../features/liferay/resource/liferay-resource-export-picklist.js';
 import {runLiferayResourceExportStructure} from '../../features/liferay/resource/liferay-resource-export-structure.js';
 import {runLiferayResourceExportTemplate} from '../../features/liferay/resource/liferay-resource-export-template.js';
 import {
@@ -226,6 +227,21 @@ export function registerResourceExportCommands(resource: Command): void {
     run: async (context, options) =>
       runLiferayResourceExportObject(context.config, {
         id: requireResourceValue(options.object, 'export-object requires --object'),
+        output: options.output,
+      }),
+    render: {text: (result) => result.outputPath},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'export-picklist',
+    description: 'Export one Liferay picklist and its entries to a portable JSON file keyed by ERC',
+    configure: (command) =>
+      command
+        .option('--picklist <picklist>', 'Picklist ERC, name, or numeric id')
+        .option('--output <file>', 'Destination JSON file; defaults to paths.objects/picklists/<erc>.json'),
+    run: async (context, options) =>
+      runLiferayResourceExportPicklist(context.config, {
+        id: requireResourceValue(options.picklist, 'export-picklist requires --picklist'),
         output: options.output,
       }),
     render: {text: (result) => result.outputPath},

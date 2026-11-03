@@ -10,6 +10,10 @@ import {
   runLiferayResourceGetObject,
 } from '../../features/liferay/resource/liferay-resource-get-object.js';
 import {
+  formatLiferayResourcePicklist,
+  runLiferayResourceGetPicklist,
+} from '../../features/liferay/resource/liferay-resource-get-picklist.js';
+import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
 } from '../../features/liferay/resource/liferay-resource-get-structure.js';
@@ -131,5 +135,16 @@ export function registerResourceReadCommands(resource: Command): void {
         id: requireResourceValue(options.object, 'object requires --object'),
       }),
     render: {text: formatLiferayResourceObject},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'picklist',
+    description: 'Read one Liferay picklist (list type definition) and its entries by ERC, name or numeric id',
+    configure: (command) => command.option('--picklist <picklist>', 'Picklist ERC, name, or numeric id'),
+    run: async (context, options) =>
+      runLiferayResourceGetPicklist(context.config, {
+        id: requireResourceValue(options.picklist, 'picklist requires --picklist'),
+      }),
+    render: {text: formatLiferayResourcePicklist},
   });
 }

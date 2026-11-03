@@ -139,6 +139,9 @@ function createObjectAdminServer(options: {definitions: Definition[]; picklists?
     if (picklist) {
       return picklists.has(decodeURIComponent(picklist[1])) ? json({id: 1}) : json({}, 404);
     }
+    if (pathname === '/o/headless-admin-list-type/v1.0/list-type-definitions/1/list-type-entries') {
+      return json({items: [], lastPage: 1});
+    }
 
     throw new Error(`Unexpected ${method} ${url}`);
   });

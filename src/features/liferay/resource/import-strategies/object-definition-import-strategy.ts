@@ -20,13 +20,13 @@ import {
   getObjectDefinitionByErc,
   isRecord,
   listObjectRelationships,
-  listTypeDefinitionExists,
   matchesRemote,
   normalizeObjectDefinition,
   resolveObjectDefinitionFile,
   textOf,
   type ObjectDefinitionPayload,
 } from '../liferay-resource-object-shared.js';
+import {getPicklistByErc} from '../liferay-resource-picklist-shared.js';
 import type {ImportStrategy, LocalArtifact, RemoteArtifact} from '../import-engine.js';
 import {rethrowGatewayAsResourceError} from './shared.js';
 
@@ -235,13 +235,14 @@ async function validateObjectDefinition(
   );
   const missingPicklists: string[] = [];
   for (const erc of picklists) {
-    if (!(await listTypeDefinitionExists(config, erc, dependencies))) {
+    if (!(await getPicklistByErc(config, erc, dependencies))) {
       missingPicklists.push(erc);
     }
   }
   if (missingPicklists.length > 0) {
     throw LiferayErrors.resourceError(
-      `Object '${localArtifact.id}' references missing picklists: ${missingPicklists.join(', ')}`,
+      `Object '${localArtifact.id}' references missing picklists: ${missingPicklists.join(', ')}. ` +
+        'Import them first with `ldev resource import-picklist --create-missing`.',
       {details: {externalReferenceCode: localArtifact.id, missingPicklists}},
     );
   }

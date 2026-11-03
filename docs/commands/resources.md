@@ -5,7 +5,7 @@ description: Minimal reference for exporting, importing, and migrating Liferay r
 
 # Resource Commands
 
-The `ldev resource` namespace treats structures, templates, ADTs, fragments and Liferay Object Definitions as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
+The `ldev resource` namespace treats structures, templates, ADTs, fragments, Liferay Object Definitions and picklists as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
 
 ```bash
 ldev resource --preflight export-structures --all-sites
@@ -20,6 +20,7 @@ ldev resource adts --site /global
 ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
 ldev resource object --object UB_COURSE
+ldev resource picklist --picklist UB_LEVELS
 ```
 
 - `structure` — accepts `--structure`
@@ -27,6 +28,7 @@ ldev resource object --object UB_COURSE
 - `adt` — filter by `--adt`, `--id`, `--name`, `--display-style`, `--widget-type`, or explicit `--class-name`
 - `adts` — list all ADTs for a site; add `--include-script` to include template scripts in JSON
 - `fragments` — list fragment collections and entries for a site
+- `picklist` — `--picklist` accepts ERC, name or numeric id; returns entry keys and the portable picklist
 - `object` — `--object` accepts ERC, name (`Course` or `C_Course`) or numeric id; returns fields, relationships, referenced picklists and the portable definition
 
 ## Export
@@ -42,6 +44,7 @@ ldev resource export-adts --all-sites
 ldev resource export-fragment --fragment BASIC_COMPONENT-paragraph --site /global
 ldev resource export-fragments --all-sites
 ldev resource export-object --object UB_COURSE
+ldev resource export-picklist --picklist UB_LEVELS
 ```
 
 Key flags:
@@ -117,6 +120,22 @@ ldev resource import-object --file liferay/resources/objects/UB_COURSE.json --cr
 - `--create-missing` creates the definition and publishes it.
 - After writing, the definition is read back and compared with the file; any
   difference fails the command.
+
+### Picklists
+
+Picklists (list type definitions) follow the same rules and live under
+`paths.objects/picklists/<ERC>.json`. Import them before the objects that
+reference them; `import-object` fails when a referenced picklist is missing.
+
+```bash
+ldev resource export-picklist --picklist UB_LEVELS
+ldev resource import-picklist --picklist UB_LEVELS --check-only
+ldev resource import-picklist --picklist UB_LEVELS --create-missing
+```
+
+- Entries are matched by `key`, the value object entries store.
+- Removing an entry from the file would delete it remotely and orphan stored
+  values; the import refuses unless `--allow-breaking-change`.
 
 ## Migration
 
