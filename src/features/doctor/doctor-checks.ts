@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import type {DoctorCheck, DoctorContext} from './doctor-types.js';
 import {
   MIN_RECOMMENDED_MEMORY_BYTES,
@@ -8,10 +6,12 @@ import {
   summarizePortCheck,
   summarizeTool,
 } from './doctor-collectors.js';
+import {buildActivationKeyCheck, buildJdkCheck, buildSearchEngineCheck} from './doctor-runtime-checks.js';
 
 export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
   const {project, repoPaths, capabilities, tools, config, configSources, httpPort, httpPortStatus} = ctx;
   const isBladeWorkspace = project.projectType === 'blade-workspace';
+  const jdkCheck = buildJdkCheck(ctx);
 
   return [
     {
@@ -211,37 +211,7 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
               'Define LIFERAY_CLI_OAUTH2_CLIENT_ID and LIFERAY_CLI_OAUTH2_CLIENT_SECRET in env, .liferay-cli.local.yml, or docker/.env as a legacy fallback.',
             ],
     },
-    {
-      id: 'activation-key',
-      label: 'Activation Key',
-      status: ctx.activationKeyInstalledFile
-        ? 'pass'
-        : ctx.activationKeyFile === null
-          ? 'warn'
-          : ctx.activationKeyExists && ctx.activationKeyValidName
-            ? 'pass'
-            : 'fail',
-      summary: ctx.activationKeyInstalledFile
-        ? `activation key installed at ${ctx.activationKeyInstalledFile}`
-        : ctx.activationKeyFile === null
-          ? 'LDEV_ACTIVATION_KEY_FILE is not configured; DXP users must pass a valid activation key before start'
-          : ctx.activationKeyExists && ctx.activationKeyValidName
-            ? `activation key ready at ${ctx.activationKeyFile}`
-            : ctx.activationKeyExists
-              ? `activation key file name is invalid: ${path.basename(ctx.activationKeyFile)}`
-              : `activation key file does not exist: ${ctx.activationKeyFile}`,
-      details: ctx.activationKeyInstalledFile
-        ? undefined
-        : ctx.activationKeyFile === null
-          ? [
-              'Set `LDEV_ACTIVATION_KEY_FILE` or pass `ldev start --activation-key-file /path/to/activation-key-*.xml` when using DXP.',
-            ]
-          : ctx.activationKeyExists && ctx.activationKeyValidName
-            ? undefined
-            : [
-                'Use a readable `activation-key-*.xml` file and point `LDEV_ACTIVATION_KEY_FILE` to it before running `ldev start`.',
-              ],
-    },
+    buildActivationKeyCheck(ctx),
     {
       id: 'java',
       label: 'Java (legacy)',
@@ -274,5 +244,7 @@ export function buildDoctorChecks(ctx: DoctorContext): DoctorCheck[] {
             'Install with: npm install -g @playwright/cli@latest - required for session-based browser flows and before/after screenshot evidence.',
           ],
     },
+    buildSearchEngineCheck(ctx),
+    ...(jdkCheck ? [jdkCheck] : []),
   ];
 }

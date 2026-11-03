@@ -59,7 +59,36 @@ ldev start --no-wait
 ldev start --timeout 400
 ```
 
-`--activation-key-file` copies a local DXP activation key into `liferay/configs/dockerenv/osgi/modules` before start. Default health timeout is 250s.
+Default health timeout is 250s.
+
+`ldev start` prepares the runtime data directories before `docker compose up`,
+so services that run as a non-root user (Elasticsearch 8, Liferay) never see
+root-owned bind mounts.
+
+### Activation key
+
+Keep the DXP activation key outside the repository. `ldev start` reads its path
+from, in order: `--activation-key-file`, `LDEV_ACTIVATION_KEY_FILE` in the shell,
+or `LDEV_ACTIVATION_KEY_FILE` in `docker/.env`. It installs the key only into the
+generated `liferay/build/docker/configs/dockerenv/osgi/modules/` (rebuilt on every
+start, never versioned); the bundled trial license is removed at pre-startup.
+`ldev doctor` reports whether the key exists, its license type and its expiry.
+
+### DXP 2026 and Elasticsearch
+
+DXP 2026.q1 and later ship only the `elasticsearch8` connector (2025.q4 and
+earlier ship `elasticsearch7`). `ldev project init` and `ldev setup --with
+elasticsearch` derive both sides from `LIFERAY_IMAGE`:
+
+| `LIFERAY_IMAGE` | `ELASTICSEARCH_VERSION` | Connector config |
+| --- | --- | --- |
+| DXP 2025.q4 and earlier | `7.17.26` | `com.liferay.portal.search.elasticsearch7…config` with `operationMode="REMOTE"` |
+| DXP 2026.q1 and later | `8.19.0` | `com.liferay.portal.search.elasticsearch8…config` with `productionModeEnabled=B"true"` |
+
+The `elasticsearch8` connector ignores `operationMode`; without
+`productionModeEnabled=B"true"` Liferay silently starts its sidecar. `ldev doctor`
+fails the `search-engine` check on any mismatch and warns when the host JDK is
+older than 21.
 
 ## `ldev stop`
 

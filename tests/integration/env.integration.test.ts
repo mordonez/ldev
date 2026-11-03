@@ -302,28 +302,44 @@ describe('env integration', () => {
     expect(calls).toEqual(expect.arrayContaining(['compose stop liferay', 'compose up -d --force-recreate liferay']));
   }, 30000);
 
-  test('env start can copy a local activation key into the project before boot', async () => {
+  test('env start installs an out-of-repo activation key into the generated build configs only', async () => {
     const repoRoot = await createEnvRepoFixture();
     const fakeBinDir = await createFakeDockerBin();
     const processEnv = {...process.env, PATH: `${fakeBinDir}:${process.env.PATH ?? ''}`};
     const activationKeySource = path.join(createTempDir('dev-cli-activation-key-'), 'activation-key-sample.xml');
-    const modulesDir = path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'osgi', 'modules');
+    const sourceModulesDir = path.join(repoRoot, 'liferay', 'configs', 'dockerenv', 'osgi', 'modules');
+    const buildModulesDir = path.join(
+      repoRoot,
+      'liferay',
+      'build',
+      'docker',
+      'configs',
+      'dockerenv',
+      'osgi',
+      'modules',
+    );
 
     await fs.ensureDir(path.dirname(activationKeySource));
     await fs.writeFile(activationKeySource, '<xml>license</xml>\n');
-    await fs.ensureDir(modulesDir);
-    await fs.writeFile(path.join(modulesDir, 'activation-key-old.xml'), '<xml>old</xml>\n');
+    await fs.ensureDir(buildModulesDir);
+    await fs.writeFile(path.join(buildModulesDir, 'activation-key-old.xml'), '<xml>old</xml>\n');
+    await fs.appendFile(path.join(repoRoot, 'docker', '.env'), `\nLDEV_ACTIVATION_KEY_FILE="${activationKeySource}"\n`);
 
-    const startResult = await runCli(
-      ['start', '--activation-key-file', activationKeySource, '--format', 'json', '--timeout', '5'],
-      {cwd: repoRoot, env: processEnv},
-    );
+    const startResult = await runCli(['start', '--format', 'json', '--timeout', '5'], {
+      cwd: repoRoot,
+      env: {...processEnv, LDEV_ACTIVATION_KEY_FILE: ''},
+    });
 
     expect(startResult.exitCode).toBe(0);
     const parsed = parseTestJson<EnvStartPayload>(startResult.stdout);
-    expect(parsed.activationKeyFile).toBe(await fs.realpath(path.join(modulesDir, 'activation-key-sample.xml')));
-    expect(await fs.readFile(path.join(modulesDir, 'activation-key-sample.xml'), 'utf8')).toBe('<xml>license</xml>\n');
-    expect(await fs.pathExists(path.join(modulesDir, 'activation-key-old.xml'))).toBe(false);
+    expect(await fs.realpath(parsed.activationKeyFile ?? '')).toBe(
+      await fs.realpath(path.join(buildModulesDir, 'activation-key-sample.xml')),
+    );
+    expect(await fs.readFile(path.join(buildModulesDir, 'activation-key-sample.xml'), 'utf8')).toBe(
+      '<xml>license</xml>\n',
+    );
+    expect(await fs.pathExists(path.join(buildModulesDir, 'activation-key-old.xml'))).toBe(false);
+    expect(await fs.pathExists(path.join(sourceModulesDir, 'activation-key-sample.xml'))).toBe(false);
   }, 30000);
 
   test('env start seeds build/docker/configs/dockerenv from configs/common + configs/local when dockerenv is absent', async () => {

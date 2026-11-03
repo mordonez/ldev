@@ -14,7 +14,13 @@ import {runWorktreeEnv} from '../worktree/worktree-env.js';
 import {ensureActivationKeyPrepared} from './env-activation-key.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 import {waitForServiceHealthy, waitForPortalReady} from './env-health.js';
-import {buildComposeEnv, ensureDoclibVolume, resolveEnvContext, seedBuildDockerConfigs} from './env-files.js';
+import {
+  buildComposeEnv,
+  ensureDoclibVolume,
+  ensureEnvDataLayout,
+  resolveEnvContext,
+  seedBuildDockerConfigs,
+} from './env-files.js';
 import {runEnvStop} from './env-stop.js';
 
 export type {EnvStartResult} from '../../core/runtime/env-types.js';
@@ -44,8 +50,9 @@ export async function runEnvStart(
     throw EnvErrors.capabilityMissing('Docker and docker compose are required for env start.');
   }
 
-  const activationKey = await ensureActivationKeyPrepared(config, options?.activationKeyFile);
+  await ensureEnvDataLayout(context);
   await seedBuildDockerConfigs(context);
+  const activationKey = await ensureActivationKeyPrepared(config, options?.activationKeyFile, context.envValues);
   await restoreBuildDeployFromCache(config);
   await ensureDoclibVolume(context, {processEnv: options?.processEnv});
   const composeEnv = buildComposeEnv(context, {baseEnv: options?.processEnv});
