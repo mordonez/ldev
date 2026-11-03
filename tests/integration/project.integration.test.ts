@@ -26,6 +26,15 @@ const releaseFixtures: LiferayReleaseEntry[] = [
     targetPlatformVersion: '2026.q1.7',
     url: 'https://releases-cdn.liferay.com/dxp/2026.q1.7-lts',
   },
+  {
+    product: 'dxp',
+    productVersion: 'DXP 2026.Q3.9',
+    promoted: true,
+    releaseKey: 'dxp-2026.q3.9',
+    tags: ['recommended', 'supported'],
+    targetPlatformVersion: '2026.q3.9',
+    url: 'https://releases-cdn.liferay.com/dxp/2026.q3.9',
+  },
 ];
 
 describe('project integration', () => {
@@ -264,6 +273,56 @@ describe('project integration', () => {
 
       const dockerEnv = await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8');
       expect(dockerEnv).toContain('LIFERAY_IMAGE=liferay/dxp:test-lts');
+    } finally {
+      restoreGitIdentityEnv();
+    }
+  });
+
+  test('init aligns Elasticsearch 8 and the elasticsearch8 connector with a DXP 2026 release', async () => {
+    setupGitIdentityEnv();
+    try {
+      const repoRoot = await createProjectRepoFixture();
+      const targetDir = createTempDir('dev-cli-project-init-es8-');
+
+      await runProjectInit(
+        {
+          name: 'q3-project',
+          targetDir,
+          printer: silentPrinter,
+          liferayVersion: 'dxp-2026.q3.9',
+          services: ['elasticsearch'],
+        },
+        {
+          assets: resolveProjectAssets(repoRoot),
+          fetchLiferayReleases: () => Promise.resolve(releaseFixtures),
+        },
+      );
+
+      const dockerEnv = await fs.readFile(path.join(targetDir, 'docker', '.env'), 'utf8');
+      expect(dockerEnv).toContain('LIFERAY_IMAGE=liferay/dxp:2026.q3.9');
+      expect(dockerEnv).toContain('ELASTICSEARCH_VERSION=8.19.0');
+
+      for (const configsDir of [
+        path.join(targetDir, 'liferay', 'configs', 'dockerenv', 'osgi', 'configs'),
+        path.join(targetDir, 'docker', 'liferay-configs-full', 'osgi', 'configs'),
+      ]) {
+        const files = await fs.readdir(configsDir);
+        expect(files).toContain(
+          'com.liferay.portal.search.elasticsearch8.configuration.ElasticsearchConfiguration.config',
+        );
+        expect(files).not.toContain(
+          'com.liferay.portal.search.elasticsearch7.configuration.ElasticsearchConfiguration.config',
+        );
+        expect(
+          await fs.readFile(
+            path.join(
+              configsDir,
+              'com.liferay.portal.search.elasticsearch8.configuration.ElasticsearchConfiguration.config',
+            ),
+            'utf8',
+          ),
+        ).toContain('productionModeEnabled=B"true"');
+      }
     } finally {
       restoreGitIdentityEnv();
     }
