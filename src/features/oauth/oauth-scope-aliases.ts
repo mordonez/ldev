@@ -41,6 +41,7 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Headless.Object.everything.read',
     'Liferay.Headless.Object.everything.write',
     'Liferay.Headless.Admin.List.Type.everything.read',
+    'Liferay.Headless.Admin.List.Type.everything.write',
   ],
   'max-test': [
     'Liferay.Headless.Admin.Content.everything.read',
@@ -52,6 +53,7 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Headless.Object.everything.read',
     'Liferay.Headless.Object.everything.write',
     'Liferay.Headless.Admin.List.Type.everything.read',
+    'Liferay.Headless.Admin.List.Type.everything.write',
   ],
 } as const;
 

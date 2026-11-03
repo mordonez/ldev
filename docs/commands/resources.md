@@ -115,8 +115,16 @@ ldev resource import-object --file liferay/resources/objects/UB_COURSE.json --cr
   (`objectDefinitionExternalReferenceCode2`) exist.
 - Custom fields present in the portal but missing from the file would be
   deleted with their data; the import refuses unless `--allow-breaking-change`.
-- Relationships are created or updated by name; remote-only relationships are
-  never deleted.
+- Relationship fields (`r_*`, business type `Relationship`) belong to their
+  relationship and are not part of the file; derived relationship data
+  (`objectField`, `objectDefinitionName2`, ...) is dropped too.
+- Relationships are created or updated by name. The portal's definition update
+  deletes forward relationships missing from its body, so ldev always sends the
+  complete set: relationships that only exist remotely are kept, never deleted.
+- Fields and relationships are matched by `externalReferenceCode` on update;
+  when the file omits it, ldev reuses the remote one of the same name.
+- Headless `*_i18n` maps use BCP 47 keys (`en-US`). Translations for locales the
+  portal does not enable are dropped by the portal, and the read-back reports it.
 - `--create-missing` creates the definition and publishes it.
 - After writing, the definition is read back and compared with the file; any
   difference fails the command.

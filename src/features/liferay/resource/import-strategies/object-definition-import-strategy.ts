@@ -105,8 +105,18 @@ export const objectDefinitionImportStrategy: ImportStrategy<ObjectDefinitionLoca
       dependencies,
     );
     const gateway = createLiferayGateway(config, dependencies?.apiClient, dependencies?.tokenClient);
-    const payload = {...localArtifact.data.definition};
-    delete payload.objectRelationships;
+    const payload = withRemoteFieldErcs(localArtifact.data.definition, remoteArtifact?.data.definition);
+    if (remoteArtifact) {
+      // The PUT deletes forward relationships missing from the body (and the links
+      // stored in them), so it always carries the complete set.
+      payload.objectRelationships = completeRelationships(
+        asRecords(localArtifact.data.definition.objectRelationships),
+        asRecords(remoteArtifact.data.definition.objectRelationships),
+      );
+    } else {
+      // Targets are resolved to ids below, once this definition exists.
+      delete payload.objectRelationships;
+    }
 
     let saved: ObjectDefinitionPayload;
     try {
@@ -140,41 +150,48 @@ export const objectDefinitionImportStrategy: ImportStrategy<ObjectDefinitionLoca
       published = true;
     }
 
-    const remoteRelationships = new Map(
-      asRecords(remoteArtifact?.data.definition.objectRelationships).map((rel) => [String(rel.name), rel]),
+    // The update PUT may already have applied the relationships; reconcile
+    // against a fresh read so nothing is created twice.
+    const initialRelationships = new Map(
+      asRecords(remoteArtifact?.data.definition.objectRelationships).map((rel) => [textOf(rel.name), rel]),
+    );
+    const currentRelationships = new Map(
+      (await listObjectRelationships(config, objectDefinitionId, dependencies)).map((rel) => [textOf(rel.name), rel]),
     );
     const relationshipsCreated: string[] = [];
     const relationshipsUpdated: string[] = [];
 
     for (const relationship of asRecords(localArtifact.data.definition.objectRelationships)) {
-      const name = String(relationship.name);
+      const name = textOf(relationship.name);
+      const initial = initialRelationships.get(name);
+      if (!initial) {
+        relationshipsCreated.push(name);
+      } else if (!matchesRemote(relationship, initial)) {
+        relationshipsUpdated.push(name);
+      }
+
+      const current = currentRelationships.get(name);
+      if (current && matchesRemote(relationship, current)) {
+        continue;
+      }
       const body = {
         ...relationship,
         objectDefinitionId1: objectDefinitionId,
         objectDefinitionId2:
-          relationshipTargets.get(String(relationship.objectDefinitionExternalReferenceCode2)) ?? objectDefinitionId,
+          relationshipTargets.get(textOf(relationship.objectDefinitionExternalReferenceCode2)) ?? objectDefinitionId,
       };
-      const existing = remoteRelationships.get(name);
-
       try {
-        if (existing) {
-          if (matchesRemote(relationship, existing)) {
-            continue;
-          }
-          await gateway.putJson(
-            `${OBJECT_ADMIN_BASE}/object-relationships/${Number(existing.id)}`,
-            body,
-            'object-relationship-update',
-          );
-          relationshipsUpdated.push(name);
-        } else {
-          await gateway.postJson(
-            `${OBJECT_ADMIN_BASE}/object-definitions/${objectDefinitionId}/object-relationships`,
-            body,
-            'object-relationship-create',
-          );
-          relationshipsCreated.push(name);
-        }
+        await (current
+          ? gateway.putJson(
+              `${OBJECT_ADMIN_BASE}/object-relationships/${Number(current.id)}`,
+              body,
+              'object-relationship-update',
+            )
+          : gateway.postJson(
+              `${OBJECT_ADMIN_BASE}/object-definitions/${objectDefinitionId}/object-relationships`,
+              body,
+              'object-relationship-create',
+            ));
       } catch (error) {
         rethrowGatewayAsResourceError(error);
       }
@@ -204,7 +221,7 @@ export const objectDefinitionImportStrategy: ImportStrategy<ObjectDefinitionLoca
  * - referenced picklists must exist;
  * - relationship target definitions must exist (returns ERC -> id for the relationship payloads).
  */
-async function validateObjectDefinition(
+export async function validateObjectDefinition(
   config: AppConfig,
   _site: ResolvedSite,
   localArtifact: LocalArtifact<ObjectDefinitionLocalData>,
@@ -288,6 +305,51 @@ async function findObjectDefinitionByErc(
     ...definition,
     objectRelationships: await listObjectRelationships(config, Number(definition.id), dependencies),
   };
+}
+
+/**
+ * The definition PUT matches fields by externalReferenceCode, not by name: a
+ * field without ERC is treated as new ("Duplicate name"). Reuse the remote ERC
+ * of the field with the same name when the file does not declare one.
+ */
+function withRemoteFieldErcs(
+  local: Record<string, unknown>,
+  remote: ObjectDefinitionPayload | undefined,
+): Record<string, unknown> {
+  const remoteErcByName = new Map(
+    asRecords(remote?.objectFields).map((field) => [textOf(field.name), textOf(field.externalReferenceCode)]),
+  );
+  return {
+    ...local,
+    objectFields: asRecords(local.objectFields).map((field) => {
+      const erc = textOf(field.externalReferenceCode) || remoteErcByName.get(textOf(field.name)) || '';
+      return erc === '' ? field : {...field, externalReferenceCode: erc};
+    }),
+  };
+}
+
+/**
+ * Local relationships (with the remote ERC of the same name, since the PUT
+ * matches by ERC) followed by every forward relationship that only exists
+ * remotely, sent back as it is so the PUT keeps it.
+ */
+function completeRelationships(
+  local: Record<string, unknown>[],
+  remote: Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const forwardRemote = remote.filter((relationship) => relationship.reverse !== true);
+  const remoteByName = new Map(forwardRemote.map((relationship) => [textOf(relationship.name), relationship]));
+  const localNames = new Set(local.map((relationship) => textOf(relationship.name)));
+
+  return [
+    ...local.map((relationship) => {
+      const erc =
+        textOf(relationship.externalReferenceCode) ||
+        textOf(remoteByName.get(textOf(relationship.name))?.externalReferenceCode);
+      return erc === '' ? relationship : {...relationship, externalReferenceCode: erc};
+    }),
+    ...forwardRemote.filter((relationship) => !localNames.has(textOf(relationship.name))),
+  ];
 }
 
 function toRemoteArtifact(definition: ObjectDefinitionPayload): RemoteArtifact<ObjectDefinitionRemoteData> {

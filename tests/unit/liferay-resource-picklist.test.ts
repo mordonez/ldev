@@ -25,6 +25,8 @@ function levels(): {picklist: Picklist; entries: Entry[]} {
       dateCreated: '2026-01-01T00:00:00Z',
       actions: {},
       system: false,
+      creator: {id: 20132, name: 'Test Test'},
+      status: {code: 0, label: 'approved'},
     },
     entries: [
       {id: 2, key: 'master', name: 'Master', name_i18n: {en_US: 'Master'}, externalReferenceCode: 'UB_LEVEL_MASTER'},
@@ -158,15 +160,15 @@ function localLevels(): Record<string, unknown> {
 }
 
 describe('picklist normalization', () => {
-  test('drops ids and audit data and sorts entries by key', () => {
+  test('drops ids, creator and status, uses BCP 47 locale keys and sorts entries by key', () => {
     expect(localLevels()).toEqual({
       externalReferenceCode: 'UB_LEVELS',
       listTypeEntries: [
-        {externalReferenceCode: 'UB_LEVEL_DEGREE', key: 'degree', name: 'Degree', name_i18n: {en_US: 'Degree'}},
-        {externalReferenceCode: 'UB_LEVEL_MASTER', key: 'master', name: 'Master', name_i18n: {en_US: 'Master'}},
+        {externalReferenceCode: 'UB_LEVEL_DEGREE', key: 'degree', name: 'Degree', name_i18n: {'en-US': 'Degree'}},
+        {externalReferenceCode: 'UB_LEVEL_MASTER', key: 'master', name: 'Master', name_i18n: {'en-US': 'Master'}},
       ],
       name: 'Levels',
-      name_i18n: {en_US: 'Levels'},
+      name_i18n: {'en-US': 'Levels'},
     });
   });
 

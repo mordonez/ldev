@@ -20,6 +20,7 @@ import {
   asRecords,
   isRecord,
   matchesRemote,
+  normalizeI18nMap,
   textOf,
   type ObjectDefinitionChange,
 } from './liferay-resource-object-diff.js';
@@ -37,10 +38,12 @@ export type PicklistChange = ObjectDefinitionChange;
 
 const VOLATILE_KEYS = new Set([
   'actions',
+  'creator',
   'dateCreated',
   'dateModified',
   'id',
   'listTypeDefinitionId',
+  'status',
   'system',
   'type',
 ]);
@@ -59,7 +62,9 @@ export function normalizePicklist(picklist: Record<string, unknown>): Record<str
         ? asRecords(picklist[key])
             .map((entry) => stripEntry(entry))
             .sort((a, b) => textOf(a.key).localeCompare(textOf(b.key)))
-        : picklist[key];
+        : key.endsWith('_i18n')
+          ? normalizeI18nMap(picklist[key])
+          : picklist[key];
   }
   return result;
 }
@@ -73,7 +78,7 @@ function stripEntry(entry: Record<string, unknown>): Record<string, unknown> {
     Object.keys(entry)
       .sort()
       .filter((key) => !VOLATILE_KEYS.has(key))
-      .map((key) => [key, entry[key]]),
+      .map((key) => [key, key.endsWith('_i18n') ? normalizeI18nMap(entry[key]) : entry[key]]),
   );
 }
 

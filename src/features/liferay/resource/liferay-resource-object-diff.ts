@@ -11,6 +11,7 @@ import {normalizeScalarString} from '../../../core/utils/text.js';
 /** Keys that are server-generated, read-only or environment-specific ids. */
 const VOLATILE_KEYS = new Set([
   'actions',
+  'creator',
   'dateCreated',
   'dateModified',
   'id',
@@ -28,6 +29,18 @@ const VOLATILE_KEYS = new Set([
   'titleObjectFieldId',
 ]);
 
+/** Relationship data the portal derives from the two definitions; never sent back. */
+const DERIVED_RELATIONSHIP_KEYS = new Set([
+  'objectDefinitionExternalReferenceCode1',
+  'objectDefinitionModifiable2',
+  'objectDefinitionName2',
+  'objectDefinitionScope2',
+  'objectDefinitionSystem2',
+  'objectField',
+  'reverse',
+  'system',
+]);
+
 /** Sub-resources with their own endpoints; out of scope for definition import. */
 const UNMANAGED_KEYS = new Set(['objectActions', 'objectLayouts', 'objectValidationRules', 'objectViews']);
 
@@ -40,8 +53,9 @@ export type ObjectDefinitionChange = {
 
 /**
  * Reduce a remote or local definition to its portable, managed shape: no ids,
- * no system fields, no reverse relationships, and arrays sorted by name so the
- * serialized form is stable across environments.
+ * no system or relationship-owned fields, no reverse relationships or derived
+ * relationship data, and arrays sorted by name so the serialized form is stable
+ * across environments.
  */
 export function normalizeObjectDefinition(definition: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
@@ -53,14 +67,25 @@ export function normalizeObjectDefinition(definition: Record<string, unknown>): 
 
     if (key === 'objectFields' && Array.isArray(value)) {
       result.objectFields = sortByName(
-        value.filter((field) => isRecord(field) && field.system !== true).map((field) => stripVolatile(field)),
+        value
+          // Relationship fields (r_*) are created and owned by their relationship.
+          .filter((field) => isRecord(field) && field.system !== true && field.businessType !== 'Relationship')
+          .map((field) => stripVolatile(field)),
       );
       continue;
     }
 
     if (key === 'objectRelationships' && Array.isArray(value)) {
       result.objectRelationships = sortByName(
-        value.filter((rel) => isRecord(rel) && rel.reverse !== true).map((rel) => stripVolatile(rel)),
+        value
+          .filter((rel) => isRecord(rel) && rel.reverse !== true)
+          .map((rel) =>
+            stripVolatile(
+              Object.fromEntries(
+                Object.entries(rel as Record<string, unknown>).filter(([k]) => !DERIVED_RELATIONSHIP_KEYS.has(k)),
+              ),
+            ),
+          ),
       );
       continue;
     }
@@ -88,10 +113,25 @@ function stripVolatile(value: unknown): unknown {
   const result: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value)) {
     if (!VOLATILE_KEYS.has(key)) {
-      result[key] = stripVolatile(child);
+      result[key] = key.endsWith('_i18n') ? normalizeI18nMap(child) : stripVolatile(child);
     }
   }
   return result;
+}
+
+/**
+ * Headless `*_i18n` maps use BCP 47 keys (`en-US`) on read; accept `en_US` in
+ * files too so hand-written and exported definitions compare equal.
+ */
+export function normalizeI18nMap(value: unknown): unknown {
+  if (!isRecord(value)) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((locale) => [locale.replace('_', '-'), value[locale]]),
+  );
 }
 
 function sortByName<T>(items: T[]): T[] {

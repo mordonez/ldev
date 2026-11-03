@@ -10,7 +10,10 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import type {ResolvedSite} from '../portal/site-resolution.js';
 import type {ImportArtifactResult, ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import {runImportArtifactDetailed} from './import-engine.js';
-import {objectDefinitionImportStrategy} from './import-strategies/object-definition-import-strategy.js';
+import {
+  objectDefinitionImportStrategy,
+  validateObjectDefinition,
+} from './import-strategies/object-definition-import-strategy.js';
 import {diffObjectDefinition, type ObjectDefinitionChange} from './liferay-resource-object-shared.js';
 
 export type LiferayResourceImportObjectResult = ImportArtifactResult & {
@@ -51,6 +54,12 @@ export async function runLiferayResourceImportObject(
     },
     dependencies,
   );
+
+  if (outcome.result.status === 'checked_missing') {
+    // The engine stops before preview for a missing definition; still prove the
+    // create would not fail on missing picklists or relationship targets.
+    await validateObjectDefinition(config, COMPANY_SCOPE, outcome.localArtifact, null, {}, dependencies);
+  }
 
   const local = outcome.localArtifact.data.definition;
   const changes = outcome.initialRemoteArtifact

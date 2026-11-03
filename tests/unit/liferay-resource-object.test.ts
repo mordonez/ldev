@@ -43,6 +43,7 @@ function courseDefinition(): Definition {
         system: false,
       },
       {id: 1, name: 'createDate', businessType: 'Date', system: true},
+      {id: 11, name: 'r_mentor_c_courseId', businessType: 'Relationship', system: false},
     ],
   };
 }
@@ -166,7 +167,17 @@ describe('object definition normalization', () => {
     const normalized = normalizeObjectDefinition({
       ...courseDefinition(),
       objectRelationships: [
-        {id: 3, name: 'courseToTeacher', objectDefinitionId1: 501, objectDefinitionExternalReferenceCode2: 'UB_T'},
+        {
+          id: 3,
+          name: 'courseToTeacher',
+          objectDefinitionId1: 501,
+          objectDefinitionExternalReferenceCode1: 'UB_COURSE',
+          objectDefinitionExternalReferenceCode2: 'UB_T',
+          objectDefinitionName2: 'Teacher',
+          objectField: {name: 'r_courseToTeacher_c_courseId'},
+          reverse: false,
+          system: false,
+        },
         {id: 4, name: 'enrollmentToCourse', reverse: true},
       ],
     });
@@ -289,7 +300,49 @@ describe('liferay resource object', () => {
     expect(server.relationships.get(501)).toEqual([
       expect.objectContaining({name: 'courseToTeacher', objectDefinitionId1: 501, objectDefinitionId2: 600}),
     ]);
-    expect(server.definitions.get('UB_COURSE')).not.toHaveProperty('objectRelationships');
+    // The definition PUT deletes forward relationships missing from its body.
+    expect(server.definitions.get('UB_COURSE')?.objectRelationships).toEqual([
+      expect.objectContaining({name: 'courseToTeacher'}),
+    ]);
+  });
+
+  test('keeps remote-only relationships and remote field ERCs in the update PUT', async () => {
+    const {config, objectsDir} = createFixture();
+    const remote = {
+      ...courseDefinition(),
+      objectFields: [
+        {id: 9, name: 'title', businessType: 'Text', externalReferenceCode: 'ERC-TITLE', system: false},
+        {id: 12, name: 'r_mentor_c_courseId', businessType: 'Relationship', system: false},
+      ],
+    };
+    const server = createObjectAdminServer({definitions: [remote]});
+    server.relationships.set(501, [
+      {id: 7, name: 'courseMentors', externalReferenceCode: 'ERC-MENTORS', type: 'manyToMany', reverse: false},
+      {id: 8, name: 'enrollmentCourse', reverse: true},
+    ]);
+    await writeLocalDefinition(objectsDir, {
+      externalReferenceCode: 'UB_COURSE',
+      name: 'Course',
+      label: {en_US: 'Course offering'},
+      objectFields: [{name: 'title', businessType: 'Text'}],
+    });
+
+    const result = await runLiferayResourceImportObject(config, {key: 'UB_COURSE'}, server.dependencies);
+
+    expect(result.status).toBe('updated');
+    const sent = server.definitions.get('UB_COURSE');
+    expect(sent?.objectFields).toEqual([{name: 'title', businessType: 'Text', externalReferenceCode: 'ERC-TITLE'}]);
+    expect(sent?.objectRelationships).toEqual([expect.objectContaining({name: 'courseMentors', id: 7})]);
+  });
+
+  test('check-only on a missing definition still validates picklists and relationship targets', async () => {
+    const {config, objectsDir} = createFixture();
+    const server = createObjectAdminServer({definitions: []});
+    const file = await writeLocalDefinition(objectsDir, normalizeObjectDefinition(courseDefinition()));
+
+    await expect(
+      runLiferayResourceImportObject(config, {file, createMissing: true, checkOnly: true}, server.dependencies),
+    ).rejects.toThrow(/missing picklists: UB_LEVELS/);
   });
 
   test('creates and publishes a missing definition with --create-missing', async () => {
