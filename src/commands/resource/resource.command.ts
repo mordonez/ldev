@@ -40,6 +40,7 @@ export type ResourceCommandOptionBag = {
   output?: string;
   overwrite?: boolean;
   pretty?: boolean;
+  probe?: boolean;
   runCleanup?: boolean;
   site?: string;
   siteId?: string;
@@ -182,7 +183,7 @@ Export:
   export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments
 
 Import:
-  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts
+  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-redirects
 
 Migration:
   migration-init, migration-pipeline

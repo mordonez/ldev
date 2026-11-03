@@ -27,6 +27,10 @@ import {
   runLiferayResourceImportFragments,
 } from '../../features/liferay/resource/liferay-resource-import-fragments.js';
 import {
+  formatLiferayRedirectsImport,
+  runLiferayRedirectsImport,
+} from '../../features/liferay/redirects/liferay-redirects-import.js';
+import {
   formatLiferayResourceImportStructure,
   runLiferayResourceImportStructure,
 } from '../../features/liferay/resource/liferay-resource-import-structure.js';
@@ -299,5 +303,27 @@ export function registerResourceImportCommands(resource: Command): void {
         continueOnError: Boolean(options.continueOnError),
       }),
     render: {text: formatLiferayResourceImportResult, exitCode: getLiferayResourceImportExitCode},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'import-redirects',
+    description: 'Import or validate a redirect map (JSON or CSV) for one site, keyed by source URL, with read-back',
+    configure: configure(o.checkOnly(), (cmd) =>
+      cmd
+        .requiredOption('--site <site>', 'Site friendly URL or numeric ID')
+        .requiredOption(
+          '--file <file>',
+          'JSON [{sourceURL, destinationURL, permanent?}] or CSV source,destination[,permanent]',
+        )
+        .option('--probe', 'After importing, request every source URL and expect 301/302 to its destination'),
+    ),
+    run: async (context, options) =>
+      runLiferayRedirectsImport(context.config, {
+        site: requireResourceValue(options.site, 'import-redirects requires --site'),
+        file: requireResourceValue(options.file, 'import-redirects requires --file'),
+        checkOnly: Boolean(options.checkOnly),
+        probe: Boolean(options.probe),
+      }),
+    render: {text: formatLiferayRedirectsImport},
   });
 }
