@@ -11,7 +11,7 @@ import {
   resolveFragmentsProjectDir,
   toErrorMessage,
 } from './liferay-resource-import-fragments-local.js';
-import {createFragmentSyncRuntimeState} from './liferay-resource-import-fragments-api.js';
+import {createFragmentSyncRuntimeState} from './liferay-resource-fragments-runtime-cache.js';
 import {deployFragmentsProjectZip} from './liferay-resource-import-fragments-zip.js';
 import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import type {

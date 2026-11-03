@@ -6,8 +6,8 @@ import {
   createFragmentEntry,
   findRuntimeFragment,
   updateFragmentEntry,
-  type FragmentSyncRuntimeState,
 } from '../liferay-resource-import-fragments-api.js';
+import type {FragmentSyncRuntimeState} from '../liferay-resource-fragments-runtime-cache.js';
 import {
   canVerifyFragmentEntryContent,
   normalizeFragmentEntryForHash,

@@ -11,10 +11,12 @@ import {
 import {
   formatLiferayResourceImportResult,
   getLiferayResourceImportExitCode,
+} from '../../features/liferay/resource/liferay-resource-import-shared.js';
+import {
   runLiferayResourceImportAdts,
   runLiferayResourceImportStructures,
   runLiferayResourceImportTemplates,
-} from '../../features/liferay/resource/liferay-resource-import-shared.js';
+} from '../../features/liferay/resource/liferay-resource-import-bulk.js';
 import {
   formatLiferayResourceImportAdt,
   runLiferayResourceImportAdt,

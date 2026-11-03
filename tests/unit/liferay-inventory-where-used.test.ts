@@ -9,14 +9,16 @@ import {
 } from '../../src/core/contracts/inventory.schema.js';
 import {formatLiferayInventoryWhereUsed} from '../../src/features/liferay/inventory/liferay-inventory-where-used-format.js';
 import {
-  buildWhereUsedAdtKeys,
-  collectWhereUsedAdtKeys,
-  collectWhereUsedFragmentKeys,
-  collectWhereUsedTemplateKeys,
   selectWhereUsedSites,
   validateWhereUsedQuery,
   validateWhereUsedScopeOptions,
 } from '../../src/features/liferay/inventory/liferay-inventory-where-used-query.js';
+import {
+  buildWhereUsedAdtKeys,
+  collectWhereUsedAdtKeys,
+  collectWhereUsedFragmentKeys,
+  collectWhereUsedTemplateKeys,
+} from '../../src/features/liferay/inventory/liferay-inventory-where-used-resolve.js';
 import {
   buildPageMatch,
   isSkippableWhereUsedCandidateError,

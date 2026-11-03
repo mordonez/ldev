@@ -7,11 +7,8 @@ import type {
 
 /** Query parameters that define the Liferay Headless operational contract. */
 const PAGINATION_PARAMS = ['page', 'pageSize'];
-
 const FILTER_PARAM = 'filter';
-
 const SORT_PARAM = 'sort';
-
 const SEARCH_PARAM = 'search';
 
 type OpenApiSchemaObject = {
