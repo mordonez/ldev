@@ -115,6 +115,36 @@ ldev portal inventory sites --site /example-site --with-structures --limit 20
 
 Treat `--with-content --sort-by content` as a fast radar. Use `--site`/`--group-id` scoped mode when you need the exact folder and structure counts that drive a prune.
 
+## Batch Engine imports
+
+`ldev portal batch` wraps the Batch Engine (`headless-batch-engine`) import tasks
+that `batch` client extensions and LAR-style promotions rely on.
+
+```bash
+ldev oauth install --scope-profile batch
+ldev portal batch import --file batch/picklists.batch-engine-data.json --check-only
+ldev portal batch import --file batch/picklists.batch-engine-data.json
+ldev portal batch import --file items.json --class-name com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition
+ldev portal batch import --file entries.json --class-name com.liferay.object.rest.dto.v1_0.ObjectEntry --task-item-delegate-name C_Course
+ldev portal batch status --task 104
+```
+
+- `--file` takes a JSON array of items (with `--class-name`) or a
+  `*.batch-engine-data.json` from a batch client extension; its `configuration`
+  supplies the class, delegate and parameters.
+- Defaults: `createStrategy=UPSERT`, `importStrategy=ON_ERROR_FAIL`.
+- The task is polled until `COMPLETED` or `FAILED` (`--timeout`, default 300s;
+  on timeout the error carries the task id for `batch status`).
+- The command fails (`LIFERAY_BATCH_FAILED`) when the task `FAILED`, when any item
+  failed (with `ON_ERROR_CONTINUE` the task still ends `COMPLETED`), or when an
+  item with an `externalReferenceCode` cannot be read back. Batch imports are not
+  transactional: with `ON_ERROR_FAIL` the items before the failing one are
+  already written, and the error lists them.
+- `--check-only` validates the file and reports which items already exist
+  (would be updated) and which are new; it rejects `INSERT` for existing items.
+- Read-back by ERC covers `ObjectDefinition`, `ListTypeDefinition`, `ObjectEntry`
+  (via the object's REST path) and `TaxonomyVocabulary` (with `--site`).
+
 ## Deploy workflows
 
 ### `ldev deploy prepare`
