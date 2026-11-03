@@ -4,13 +4,14 @@ import fs from 'fs-extra';
 
 import {CliError} from '../../core/errors.js';
 import type {AppConfig} from '../../core/config/load-config.js';
-import {upsertEnvFileValues} from '../../core/config/env-file.js';
+import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import type {Printer} from '../../core/output/printer.js';
 import {withProgress} from '../../core/output/printer.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {listDeployArtifacts, resolveDeployCacheDir} from '../deploy/deploy-shared.js';
 import {runDeployAll} from '../deploy/deploy-all.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
+import {resolveSearchEngineProfile, writeElasticsearchConnectorConfig} from '../../core/runtime/search-engine.js';
 import {resolveWorktreeContext} from '../worktree/worktree-paths.js';
 import {runWorktreeEnv} from '../worktree/worktree-env.js';
 
@@ -98,7 +99,13 @@ async function persistComposeProfile(
 
   const envFile = path.join(dockerDir, '.env');
   const current = (await fs.pathExists(envFile)) ? await fs.readFile(envFile, 'utf8') : '';
-  await fs.writeFile(envFile, upsertEnvFileValues(current, {COMPOSE_FILE: composeFileValue}) + '\n');
+  const envValues = readEnvFile(envFile);
+  const searchProfile = resolveSearchEngineProfile(envValues.LIFERAY_IMAGE);
+  const updates: Record<string, string> = {COMPOSE_FILE: composeFileValue};
+  if (withServices.includes('elasticsearch') && !envValues.ELASTICSEARCH_VERSION) {
+    updates.ELASTICSEARCH_VERSION = searchProfile.elasticsearchVersion;
+  }
+  await fs.writeFile(envFile, upsertEnvFileValues(current, updates) + '\n');
 
   if (liferayDir && withServices.includes('elasticsearch')) {
     const src = path.join(dockerDir, 'liferay-configs-full', 'osgi', 'configs');
@@ -106,6 +113,8 @@ async function persistComposeProfile(
     if (await fs.pathExists(src)) {
       await fs.ensureDir(dst);
       await fs.copy(src, dst, {overwrite: true});
+      // liferay-configs-full may carry the connector PID of another DXP generation.
+      await writeElasticsearchConnectorConfig(dst, searchProfile);
     }
   }
 
