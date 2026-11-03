@@ -19,4 +19,10 @@ export const DeployErrors = {
 
   workspaceRootNotFound: (message: string, options?: DomainErrorOptions): CliError =>
     createDomainError(message, DeployErrorCode.WORKSPACE_ROOT_NOT_FOUND, options),
+
+  clientExtensionFailed: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(message, DeployErrorCode.CLIENT_EXTENSION_FAILED, options),
+
+  clientExtensionTimeout: (message: string, options?: DomainErrorOptions): CliError =>
+    createDomainError(message, DeployErrorCode.CLIENT_EXTENSION_TIMEOUT, options),
 };

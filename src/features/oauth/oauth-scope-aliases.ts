@@ -40,7 +40,10 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Object.Admin.REST.everything.write',
     'Liferay.Headless.Object.everything.read',
     'Liferay.Headless.Object.everything.write',
+    'Liferay.Headless.Admin.List.Type.everything.read',
+    'Liferay.Headless.Admin.List.Type.everything.write',
   ],
+  batch: ['Liferay.Headless.Batch.Engine.everything.read', 'Liferay.Headless.Batch.Engine.everything.write'],
   'max-test': [
     'Liferay.Headless.Admin.Content.everything.read',
     'Liferay.Headless.Admin.Content.everything.write',
@@ -50,6 +53,8 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Object.Admin.REST.everything.write',
     'Liferay.Headless.Object.everything.read',
     'Liferay.Headless.Object.everything.write',
+    'Liferay.Headless.Admin.List.Type.everything.read',
+    'Liferay.Headless.Admin.List.Type.everything.write',
   ],
 } as const;
 

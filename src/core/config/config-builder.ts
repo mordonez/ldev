@@ -46,6 +46,7 @@ export function buildAppConfig(options: {
       adts: options.profile['paths.adts'] ?? 'liferay/resources/templates/application_display',
       fragments: options.profile['paths.fragments'] ?? 'liferay/fragments',
       migrations: options.profile['paths.migrations'] ?? 'liferay/resources/journal/migrations',
+      objects: options.profile['paths.objects'] ?? 'liferay/resources/objects',
     },
   });
 }

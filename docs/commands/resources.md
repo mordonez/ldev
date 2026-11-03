@@ -5,7 +5,7 @@ description: Minimal reference for exporting, importing, and migrating Liferay r
 
 # Resource Commands
 
-The `ldev resource` namespace treats structures, templates, ADTs and fragments as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
+The `ldev resource` namespace treats structures, templates, ADTs, fragments, Liferay Object Definitions and picklists as reviewable files. Every subcommand supports `--json`/`--ndjson` and the root accepts `--preflight` to check API surface reachability before running.
 
 ```bash
 ldev resource --preflight export-structures --all-sites
@@ -19,6 +19,8 @@ ldev resource template --site /global --template MY_TEMPLATE
 ldev resource adts --site /global
 ldev resource adt --site /global --display-style ddmTemplate_33994
 ldev resource fragments --site /global
+ldev resource object --object UB_COURSE
+ldev resource picklist --picklist UB_LEVELS
 ```
 
 - `structure` — accepts `--structure`
@@ -26,6 +28,8 @@ ldev resource fragments --site /global
 - `adt` — filter by `--adt`, `--id`, `--name`, `--display-style`, `--widget-type`, or explicit `--class-name`
 - `adts` — list all ADTs for a site; add `--include-script` to include template scripts in JSON
 - `fragments` — list fragment collections and entries for a site
+- `picklist` — `--picklist` accepts ERC, name or numeric id; returns entry keys and the portable picklist
+- `object` — `--object` accepts ERC, name (`Course` or `C_Course`) or numeric id; returns fields, relationships, referenced picklists and the portable definition
 
 ## Export
 
@@ -39,6 +43,8 @@ ldev resource export-adt --site /global --adt MY_ADT --widget-type asset-publish
 ldev resource export-adts --all-sites
 ldev resource export-fragment --fragment BASIC_COMPONENT-paragraph --site /global
 ldev resource export-fragments --all-sites
+ldev resource export-object --object UB_COURSE
+ldev resource export-picklist --picklist UB_LEVELS
 ```
 
 Key flags:
@@ -86,6 +92,89 @@ For migration-required changes, prefer `migration-pipeline`. `import-structure
 --migration-plan` is the lower-level path used by the pipeline and for focused
 debugging; it validates the plan before applying a breaking transition.
 
+## Liferay Objects
+
+Object Definitions are company-scoped, so object commands take no `--site`. Files
+live under `paths.objects` (default `liferay/resources/objects/<ERC>.json`) and
+are keyed by `externalReferenceCode`.
+
+```bash
+ldev resource export-object --object UB_COURSE
+ldev resource import-object --object UB_COURSE --check-only
+ldev resource import-object --object UB_COURSE
+ldev resource import-object --file liferay/resources/objects/UB_COURSE.json --create-missing
+```
+
+- The exported file is portable: no ids, dates or status, no system fields, no
+  reverse relationships. Object actions, layouts, views and validation rules are
+  not managed by these commands.
+- `--check-only` returns `changes` (`add`/`change`/`remove` per property, field
+  and relationship) without writing.
+- Before writing, the import checks that referenced picklists
+  (`listTypeDefinitionExternalReferenceCode`) and relationship targets
+  (`objectDefinitionExternalReferenceCode2`) exist.
+- Custom fields present in the portal but missing from the file would be
+  deleted with their data; the import refuses unless `--allow-breaking-change`.
+- Relationship fields (`r_*`, business type `Relationship`) belong to their
+  relationship and are not part of the file; derived relationship data
+  (`objectField`, `objectDefinitionName2`, ...) is dropped too.
+- Relationships are created or updated by name. The portal's definition update
+  deletes forward relationships missing from its body, so ldev always sends the
+  complete set: relationships that only exist remotely are kept, never deleted.
+- Fields and relationships are matched by `externalReferenceCode` on update;
+  when the file omits it, ldev reuses the remote one of the same name.
+- Headless `*_i18n` maps use BCP 47 keys (`en-US`). Translations for locales the
+  portal does not enable are dropped by the portal, and the read-back reports it.
+- `--create-missing` creates the definition and publishes it.
+- After writing, the definition is read back and compared with the file; any
+  difference fails the command.
+
+### Picklists
+
+Picklists (list type definitions) follow the same rules and live under
+`paths.objects/picklists/<ERC>.json`. Import them before the objects that
+reference them; `import-object` fails when a referenced picklist is missing.
+
+```bash
+ldev resource export-picklist --picklist UB_LEVELS
+ldev resource import-picklist --picklist UB_LEVELS --check-only
+ldev resource import-picklist --picklist UB_LEVELS --create-missing
+```
+
+- Entries are matched by `key`, the value object entries store.
+- Removing an entry from the file would delete it remotely and orphan stored
+  values; the import refuses unless `--allow-breaking-change`.
+
+## Site initializers
+
+`apply-site-initializer` creates a site from a site initializer (a
+`siteInitializer` client extension or a `site-initializer/` folder) by site ERC,
+then reads back what it declared.
+
+```bash
+ldev resource apply-site-initializer --source ub-facultat --check-only
+ldev resource apply-site-initializer --source ub-facultat
+ldev resource apply-site-initializer --source ub-facultat --site-erc FAC_FILOLOGIA --site-name "Facultat de Filologia" --friendly-url-path /filologia
+ldev resource apply-site-initializer --source ub-facultat --site-erc FAC_FILOLOGIA --recreate
+```
+
+- `--site-erc`/`--site-name` default to `siteExternalReferenceCode`/`siteName` in
+  the client extension's `client-extension.yaml`; pass other values to apply the
+  same initializer to N sites.
+- Site initializers are create-only: only creating a site runs them, redeploys
+  and site updates do not re-apply pages, menus or templates. An existing site
+  is refused unless `--recreate`, which **deletes the site and its content** and
+  creates it again.
+- Before touching the portal it lints silent failures: `page-definition.json`
+  without `"type": "Root"` (error), navigation menus using
+  `siteNavigationMenuItems` instead of `menuItems`, `numberOfItems` below
+  `numberOfItemsPerPage`, and `fieldKey: "Title"` (warnings).
+- `--check-only` reports the declared pages, menus and display page templates,
+  the lint, and whether the site would be created, recreated or is blocked.
+- After creating the site it reads back pages (by friendly URL), navigation menus
+  (and their item counts) and display page templates. Display page templates are
+  read through `headless-admin-site`, which needs feature flag `LPD-35443`;
+  without it the result says they could not be verified.
 ## Redirects
 
 `import-redirects` applies a redirect map, such as the 301 map a content

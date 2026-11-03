@@ -90,6 +90,10 @@ export function resolveMigrationsBaseDir(config: AppConfig): string {
   return resolveBasePath(config, config.paths?.migrations ?? LIFERAY_RESOURCE_PATH_DEFAULTS.migrations);
 }
 
+export function resolveObjectsBaseDir(config: AppConfig): string {
+  return resolveBasePath(config, config.paths?.objects ?? LIFERAY_RESOURCE_PATH_DEFAULTS.objects);
+}
+
 type ResolveArtifactFileOptions =
   | {
       type: 'structure';

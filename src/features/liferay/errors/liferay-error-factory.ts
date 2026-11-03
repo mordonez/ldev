@@ -158,6 +158,19 @@ export const LiferayErrors = {
     createLiferayError(message, LiferayErrorCode.PAGE_LAYOUT_ERROR, options),
 
   /**
+   * Batch Engine task finished FAILED or with failed items. Earlier items may
+   * already be written: Batch Engine imports are not transactional.
+   */
+  batchFailed: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.BATCH_FAILED, {...options, sanitize: false}),
+
+  /**
+   * Batch Engine task still running when the wait timed out; poll it again with its id.
+   */
+  batchTimeout: (message: string, options?: LiferayErrorOptions): CliError =>
+    createLiferayError(message, LiferayErrorCode.BATCH_TIMEOUT, options),
+
+  /**
    * Convert a code string to metadata and check if retryable.
    */
   isRetryable: (code: string): boolean => {

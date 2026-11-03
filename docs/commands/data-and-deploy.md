@@ -115,6 +115,36 @@ ldev portal inventory sites --site /example-site --with-structures --limit 20
 
 Treat `--with-content --sort-by content` as a fast radar. Use `--site`/`--group-id` scoped mode when you need the exact folder and structure counts that drive a prune.
 
+## Batch Engine imports
+
+`ldev portal batch` wraps the Batch Engine (`headless-batch-engine`) import tasks
+that `batch` client extensions and LAR-style promotions rely on.
+
+```bash
+ldev oauth install --scope-profile batch
+ldev portal batch import --file batch/picklists.batch-engine-data.json --check-only
+ldev portal batch import --file batch/picklists.batch-engine-data.json
+ldev portal batch import --file items.json --class-name com.liferay.object.admin.rest.dto.v1_0.ObjectDefinition
+ldev portal batch import --file entries.json --class-name com.liferay.object.rest.dto.v1_0.ObjectEntry --task-item-delegate-name C_Course
+ldev portal batch status --task 104
+```
+
+- `--file` takes a JSON array of items (with `--class-name`) or a
+  `*.batch-engine-data.json` from a batch client extension; its `configuration`
+  supplies the class, delegate and parameters.
+- Defaults: `createStrategy=UPSERT`, `importStrategy=ON_ERROR_FAIL`.
+- The task is polled until `COMPLETED` or `FAILED` (`--timeout`, default 300s;
+  on timeout the error carries the task id for `batch status`).
+- The command fails (`LIFERAY_BATCH_FAILED`) when the task `FAILED`, when any item
+  failed (with `ON_ERROR_CONTINUE` the task still ends `COMPLETED`), or when an
+  item with an `externalReferenceCode` cannot be read back. Batch imports are not
+  transactional: with `ON_ERROR_FAIL` the items before the failing one are
+  already written, and the error lists them.
+- `--check-only` validates the file and reports which items already exist
+  (would be updated) and which are new; it rejects `INSERT` for existing items.
+- Read-back by ERC covers `ObjectDefinition`, `ListTypeDefinition`, `ObjectEntry`
+  (via the object's REST path) and `TaxonomyVocabulary` (with `--site`).
+
 ## Deploy workflows
 
 ### `ldev deploy prepare`
@@ -135,6 +165,33 @@ Rebuild and deploy a single module or theme into `build/docker/deploy`.
 ```bash
 ldev deploy module foo-web
 ```
+
+### `ldev deploy client-extension`
+
+Build and deploy one client extension from `liferay/client-extensions/<name>`,
+then wait until Liferay has started it.
+
+```bash
+ldev deploy client-extension ub-picklists-batch
+ldev deploy client-extension ub-theme-css --timeout 300 --json
+ldev deploy status
+```
+
+- On DXP 2026 a client extension zip runs as an OSGi bundle named after the
+  project without separators (`ub-theme-css` → `ubthemecss`). The command waits
+  for its `STARTED` log line and reports the bundle state.
+- For `batch` client extensions it also waits for the outcome of every
+  `batch/*.batch-engine-data.json` and reads the items back by ERC. The bundle
+  stays `Active` even when an import fails, so the command fails
+  (`DEPLOY_CLIENT_EXTENSION_FAILED`) on the batch error or on items missing after
+  the import. Reproduce an item failure with
+  `ldev portal batch import --file <cx>/batch/<file> --check-only`.
+- When Liferay is not running the zip waits in `build/docker/deploy` for the next
+  `ldev start`, and the command says so.
+- `ldev deploy status` lists every workspace client extension with its types and
+  OSGi state (`NOT_DEPLOYED` when Liferay has no such bundle).
+- `ldev logs diagnose` reports failed batch client extensions under
+  `clientExtensionFailures`, with the file and the portal's reason.
 
 ### `ldev deploy all`
 
