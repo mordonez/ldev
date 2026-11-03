@@ -19,13 +19,15 @@ import {
 } from '../../src/features/liferay/inventory/liferay-inventory-where-used-query.js';
 import {
   buildPageMatch,
-  collectDisplayPageCandidatesFromSources,
-  collectWhereUsedPageCandidates,
   isSkippableWhereUsedCandidateError,
   matchPageAgainstResource,
+} from '../../src/features/liferay/inventory/liferay-inventory-where-used-scan.js';
+import {
+  collectDisplayPageCandidatesFromSources,
+  collectWhereUsedPageCandidates,
   resetDisplayPageSourceSupportCache,
   type DisplayPageSource,
-} from '../../src/features/liferay/inventory/liferay-inventory-where-used-scan.js';
+} from '../../src/features/liferay/inventory/liferay-inventory-where-used-candidates.js';
 import {buildPortalAbsoluteUrl} from '../../src/features/liferay/inventory/liferay-inventory-url.js';
 
 const REGULAR_PAGE_BASE: Extract<LiferayInventoryPageResult, {pageType: 'regularPage'}> = {

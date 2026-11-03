@@ -28,10 +28,10 @@ import {
 import {
   matchEvidenceAgainstResource,
   buildPageMatch,
-  collectWhereUsedPageCandidates,
   isSkippableWhereUsedCandidateError,
   extractErrorMessage,
 } from './liferay-inventory-where-used-scan.js';
+import {collectWhereUsedPageCandidates} from './liferay-inventory-where-used-candidates.js';
 
 export {formatLiferayInventoryWhereUsed} from './liferay-inventory-where-used-format.js';
 export type {WhereUsedResourceType} from '../../../core/contracts/inventory.schema.js';

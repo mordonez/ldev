@@ -4,19 +4,19 @@ export {
   type LiferayResourceMigrationInitResult,
 } from './init.js';
 export {
-  formatLiferayResourceMigrationPipeline,
   formatLiferayResourceMigrationRun,
-  runLiferayResourceMigrationPipeline,
   runLiferayResourceMigrationRun,
-  type LiferayResourceMigrationPipelineResult,
   type LiferayResourceMigrationRunResult,
+} from './migration-run.js';
+export {
+  formatLiferayResourceMigrationPipeline,
+  runLiferayResourceMigrationPipeline,
+  type LiferayResourceMigrationPipelineResult,
 } from './pipeline.js';
 export {
   captureMigrationSourceSnapshots,
-  parseMigrationPlan,
   runStructureMigration,
-  type MigrationPlanData,
   type MigrationReasonBreakdown,
-  type MigrationRule,
   type MigrationStats,
 } from './structure-content.js';
+export {parseMigrationPlan, type MigrationPlanData, type MigrationRule} from './structure-content-plan.js';

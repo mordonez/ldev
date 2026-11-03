@@ -2,12 +2,12 @@ import {describe, expect, test} from 'vitest';
 
 import {createLiferayApiClient} from '../../src/core/http/client.js';
 import {isCliError} from '../../src/core/errors.js';
-import {
-  formatLiferayApiDiscover,
-  runLiferayApiDiscover,
-  type ApiDiscoverAppsResult,
-  type ApiDiscoverSpecResult,
-} from '../../src/features/liferay/liferay-api-discover.js';
+import {runLiferayApiDiscover} from '../../src/features/liferay/liferay-api-discover.js';
+import {formatLiferayApiDiscover} from '../../src/features/liferay/liferay-api-discover-format.js';
+import type {
+  ApiDiscoverAppsResult,
+  ApiDiscoverSpecResult,
+} from '../../src/features/liferay/liferay-api-discover-types.js';
 import {
   createStaticTokenClient,
   createTestFetchImpl,
