@@ -87,7 +87,8 @@ Root cause is identified and documented. Route to the fix skill (`developing-lif
 
 - Do not jump straight to rebuild, clean, or restore.
 - Prefer `ldev logs diagnose --json` before raw logs.
-- Do not parse human text when JSON exists.
+- Do not parse human text when JSON exists. On failure, branch on
+  `error.code` and `error.details` (`status`, `path` for Liferay API errors).
 - If the issue depends on production data, reproduce that state locally before
   proposing fixes.
 - If isolation matters, use `isolating-worktrees` instead of ad hoc branch switching.
