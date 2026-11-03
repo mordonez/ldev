@@ -13,6 +13,7 @@ import {detectRepoPaths} from '../../core/config/repo-paths.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
 import {runProcess, type RunProcessResult} from '../../core/platform/process.js';
 import {isWorktree} from '../../core/platform/git.js';
+import {isActivationKeyFileName} from '../../core/runtime/activation-key.js';
 import type {
   DoctorContext,
   DoctorDependencies,
@@ -68,7 +69,10 @@ export async function collectDoctorContext(
   const localProfile = project.values.localProfile;
   const worktree = project.repo.root ? await isWorktreeFn(cwd) : false;
   const totalMemoryBytes = getTotalMemoryBytesFn();
-  const activationKeyFile = resolveActivationKeyFile(project.cwd, env.LDEV_ACTIVATION_KEY_FILE);
+  const activationKeyFile = resolveActivationKeyFile(
+    project.cwd,
+    env.LDEV_ACTIVATION_KEY_FILE ?? unquote(dockerEnv.LDEV_ACTIVATION_KEY_FILE),
+  );
   const activationKeyExists = activationKeyFile ? fileExistsFn(activationKeyFile) : false;
   const activationKeyValidName = activationKeyFile ? isActivationKeyFileName(activationKeyFile) : false;
   const activationKeyInstalledFile =
@@ -228,6 +232,7 @@ export function findInstalledActivationKey(cwd: string): string | null {
   for (const relativeDir of [
     path.join('liferay', 'configs', 'local', 'osgi', 'modules'),
     path.join('liferay', 'configs', 'dockerenv', 'osgi', 'modules'),
+    path.join('liferay', 'build', 'docker', 'configs', 'dockerenv', 'osgi', 'modules'),
   ]) {
     const dir = path.join(cwd, relativeDir);
     let entries: string[];
@@ -298,8 +303,11 @@ export function resolveActivationKeyFile(cwd: string, rawValue: string | undefin
   return path.resolve(cwd, value);
 }
 
-export function isActivationKeyFileName(filePath: string): boolean {
-  return /^activation-key-.*\.xml$/i.test(path.basename(filePath));
+export {isActivationKeyFileName};
+
+function unquote(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && /^(["']).*\1$/.test(trimmed) ? trimmed.slice(1, -1) : trimmed;
 }
 
 export function summarizePortCheck(bindIp: string | null, port: number | null, status: DoctorPortStatus): string {

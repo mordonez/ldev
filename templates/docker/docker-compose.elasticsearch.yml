@@ -3,7 +3,9 @@ services:
     build:
       context: ./elasticsearch
       dockerfile: Dockerfile
-    image: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch:7.17.26
+      args:
+        ELASTICSEARCH_VERSION: ${ELASTICSEARCH_VERSION:-7.17.26}
+    image: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch:${ELASTICSEARCH_VERSION:-7.17.26}
     container_name: ${COMPOSE_PROJECT_NAME:-liferay}-elasticsearch
     restart: unless-stopped
     mem_limit: ${ELASTICSEARCH_MEMORY_LIMIT:-1024m}
