@@ -37,8 +37,10 @@ export type ResourceCommandOptionBag = {
   migrationPhase?: string;
   migrationPlan?: string;
   name?: string;
+  object?: string;
   output?: string;
   overwrite?: boolean;
+  picklist?: string;
   pretty?: boolean;
   runCleanup?: boolean;
   site?: string;
@@ -172,17 +174,17 @@ export function createResourceCommand(): Command {
   return buildResourceCommand({
     description: 'Export, import and migrate content resources',
     helpText: `
-Use this namespace for file-based content workflows for structures, templates, ADTs or fragments.
+Use this namespace for file-based content workflows for structures, templates, ADTs, fragments, Liferay Objects or picklists.
 It is intended for more specialized content workflows rather than first-run onboarding.
 
 Read:
-  structure, template, adts, adt, fragments
+  structure, template, adts, adt, fragments, object, picklist
 
 Export:
-  export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments
+  export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments, export-object, export-picklist
 
 Import:
-  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts
+  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist
 
 Migration:
   migration-init, migration-pipeline

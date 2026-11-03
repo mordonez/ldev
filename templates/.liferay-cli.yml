@@ -6,3 +6,4 @@ paths:
   templates: liferay/resources/journal/templates
   fragments: liferay/fragments
   adts: liferay/resources/templates/application_display
+  objects: liferay/resources/objects

@@ -27,6 +27,14 @@ import {
   runLiferayResourceImportFragments,
 } from '../../features/liferay/resource/liferay-resource-import-fragments.js';
 import {
+  formatLiferayResourceImportObject,
+  runLiferayResourceImportObject,
+} from '../../features/liferay/resource/liferay-resource-import-object.js';
+import {
+  formatLiferayResourceImportPicklist,
+  runLiferayResourceImportPicklist,
+} from '../../features/liferay/resource/liferay-resource-import-picklist.js';
+import {
   formatLiferayResourceImportStructure,
   runLiferayResourceImportStructure,
 } from '../../features/liferay/resource/liferay-resource-import-structure.js';
@@ -299,5 +307,58 @@ export function registerResourceImportCommands(resource: Command): void {
         continueOnError: Boolean(options.continueOnError),
       }),
     render: {text: formatLiferayResourceImportResult, exitCode: getLiferayResourceImportExitCode},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'import-object',
+    description: 'Import or validate a local Liferay Object Definition JSON (fields, relationships) against the portal',
+    configure: configure(o.checkOnly(), (cmd) =>
+      cmd
+        .option('--object <object>', 'Object definition ERC; resolves paths.objects/<erc>.json when --file is omitted')
+        .option('--file <file>', 'Object definition JSON file; its externalReferenceCode is the import key')
+        .option('--create-missing', 'Create the object definition (and publish it) when it does not exist')
+        .option('--allow-breaking-change', 'Allow deleting remote custom fields that are missing from the file'),
+    ),
+    run: async (context, options) => {
+      if (!options.object && !options.file) {
+        requireResourceValue(undefined, 'import-object requires --object or --file');
+      }
+      return runLiferayResourceImportObject(context.config, {
+        key: options.object,
+        file: options.file,
+        checkOnly: Boolean(options.checkOnly),
+        createMissing: Boolean(options.createMissing),
+        allowBreakingChange: Boolean(options.allowBreakingChange),
+      });
+    },
+    render: {text: formatLiferayResourceImportObject},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'import-picklist',
+    description: 'Import or validate a local Liferay picklist JSON (entries keyed by key) against the portal',
+    configure: configure(o.checkOnly(), (cmd) =>
+      cmd
+        .option(
+          '--picklist <picklist>',
+          'Picklist ERC; resolves paths.objects/picklists/<erc>.json when --file is omitted',
+        )
+        .option('--file <file>', 'Picklist JSON file; its externalReferenceCode is the import key')
+        .option('--create-missing', 'Create the picklist when it does not exist')
+        .option('--allow-breaking-change', 'Allow deleting remote entries that are missing from the file'),
+    ),
+    run: async (context, options) => {
+      if (!options.picklist && !options.file) {
+        requireResourceValue(undefined, 'import-picklist requires --picklist or --file');
+      }
+      return runLiferayResourceImportPicklist(context.config, {
+        key: options.picklist,
+        file: options.file,
+        checkOnly: Boolean(options.checkOnly),
+        createMissing: Boolean(options.createMissing),
+        allowBreakingChange: Boolean(options.allowBreakingChange),
+      });
+    },
+    render: {text: formatLiferayResourceImportPicklist},
   });
 }

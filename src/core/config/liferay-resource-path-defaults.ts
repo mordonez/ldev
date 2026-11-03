@@ -4,4 +4,5 @@ export const LIFERAY_RESOURCE_PATH_DEFAULTS = {
   adts: 'liferay/resources/templates/application_display',
   fragments: 'liferay/fragments',
   migrations: 'liferay/resources/journal/migrations',
+  objects: 'liferay/resources/objects',
 } as const;
