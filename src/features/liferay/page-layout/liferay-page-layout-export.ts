@@ -2,13 +2,12 @@ import fs from 'fs-extra';
 import path from 'node:path';
 
 import type {AppConfig} from '../../../core/config/load-config.js';
-import {CliError} from '../../../core/errors.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import {createLiferayApiClient} from '../../../core/http/client.js';
 import {trimLeadingSlash} from '../../../core/utils/text.js';
 import {LiferayErrors} from '../errors/index.js';
-import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway, isGatewayError, type LiferayGateway} from '../liferay-gateway.js';
 import {resolveRegularLayoutPage} from '../inventory/liferay-inventory-page.js';
 import {buildLayoutConfigureUrl} from './liferay-page-admin-urls.js';
 import {fetchHeadlessSitePage, type HeadlessSitePagePayload} from './liferay-site-page-shared.js';
@@ -189,7 +188,7 @@ async function fetchSitePageExperiences(
       `fetch site page experiences ${siteId}/${slug}`,
     );
   } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    if (isGatewayError(error)) {
       return null;
     }
 

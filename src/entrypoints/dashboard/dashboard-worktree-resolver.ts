@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import {loadConfig, type AppConfig} from '../../core/config/load-config.js';
 import {listGitWorktreeDetails} from '../../core/platform/git.js';
+import {WorktreeErrors} from '../../features/worktree/errors/worktree-error-factory.js';
 
 export type DashboardWorktreeRef = {
   branch: string | null;
@@ -33,7 +34,7 @@ async function resolveWorktreePath(cwd: string, worktreeName: string): Promise<s
 async function resolveWorktreeConfig(cwd: string, worktreeName: string): Promise<AppConfig> {
   const worktreePath = await resolveWorktreePath(cwd, worktreeName);
   if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
+    throw WorktreeErrors.notFound(`Worktree '${worktreeName}' not found`);
   }
 
   const config = loadConfig({cwd: worktreePath});
@@ -54,7 +55,7 @@ async function resolveScopedConfig(cwd: string, worktreeName?: string): Promise<
 
   const worktreePath = await resolveWorktreePath(cwd, worktreeName);
   if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
+    throw WorktreeErrors.notFound(`Worktree '${worktreeName}' not found`);
   }
 
   return {

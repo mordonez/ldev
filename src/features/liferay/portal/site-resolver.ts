@@ -1,5 +1,4 @@
-import {CliError} from '../../../core/errors.js';
-import type {LiferayGateway} from '../liferay-gateway.js';
+import {isGatewayStatus, type LiferayGateway} from '../liferay-gateway.js';
 import {LiferayErrors} from '../errors/index.js';
 
 /**
@@ -92,7 +91,7 @@ export class SiteResolutionPipeline {
         }
       } catch (error) {
         // Treat 404/403 as miss (continue to next step)
-        if (isMiss(error)) {
+        if (isGatewayMiss(error)) {
           this.hooks?.onStepFailure?.(name, error instanceof Error ? error : new Error(String(error)));
           continue;
         }
@@ -388,14 +387,6 @@ async function resolveSiteViaJsonws(
   return null;
 }
 
-function isMiss(error: unknown): boolean {
-  return (
-    error instanceof CliError &&
-    error.code === 'LIFERAY_GATEWAY_ERROR' &&
-    (error.message.includes('status=403') || error.message.includes('status=404'))
-  );
-}
-
 function isGatewayMiss(error: unknown): boolean {
-  return isMiss(error);
+  return isGatewayStatus(error, 403, 404);
 }

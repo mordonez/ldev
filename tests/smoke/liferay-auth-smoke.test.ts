@@ -23,11 +23,8 @@ describe('liferay auth smoke', () => {
 
   test('dev-cli liferay --help works', async () => {
     const cli = createCli();
-    cli.exitOverride();
 
-    await expect(cli.parseAsync(['liferay', '--help'], {from: 'user'})).rejects.toThrow(
-      'process.exit unexpectedly called with "0"',
-    );
+    await expect(cli.parseAsync(['liferay', '--help'], {from: 'user'})).rejects.toMatchObject({exitCode: 0});
 
     expect(output.stdout()).toContain('auth');
     expect(output.stdout()).toContain('check');
@@ -35,11 +32,10 @@ describe('liferay auth smoke', () => {
 
   test('dev-cli liferay auth --help works', async () => {
     const cli = createCli();
-    cli.exitOverride();
 
-    await expect(cli.parseAsync(['liferay', 'auth', '--help'], {from: 'user'})).rejects.toThrow(
-      'process.exit unexpectedly called with "0"',
-    );
+    await expect(cli.parseAsync(['liferay', 'auth', '--help'], {from: 'user'})).rejects.toMatchObject({
+      exitCode: 0,
+    });
 
     expect(output.stdout()).toContain('token');
   });
@@ -68,7 +64,6 @@ describe('liferay auth smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'check'], {from: 'user'});
       expect(output.stdout()).toContain('HEALTH_OK');
       expect(output.stdout()).toContain('clientId=client-id');
@@ -91,7 +86,6 @@ describe('liferay auth smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'auth', 'token', '--raw'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);

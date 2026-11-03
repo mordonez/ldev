@@ -5,6 +5,7 @@ import {runDocker} from '../../core/platform/docker.js';
 import {normalizeProcessEnv, resolveSpawnCommand, spawnPipedProcess} from '../../core/platform/process.js';
 import {buildComposeEnv, resolveEnvContext} from '../../core/runtime/env-context.js';
 import {collectEnvStatus} from '../../core/runtime/env-health.js';
+import {WorktreeErrors} from '../../features/worktree/errors/worktree-error-factory.js';
 import {writeDashboardError} from './dashboard-http.js';
 import type {DashboardWorktreeResolver} from './dashboard-worktree-resolver.js';
 
@@ -160,7 +161,7 @@ function mergeDockerLogStreams(stdout: string, stderr: string): string {
 async function resolveWorktreeLogContext(resolver: DashboardWorktreeResolver, worktreeName: string) {
   const worktreePath = await resolver.resolvePath(worktreeName);
   if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
+    throw WorktreeErrors.notFound(`Worktree '${worktreeName}' not found`);
   }
 
   const config = loadConfig({cwd: worktreePath});

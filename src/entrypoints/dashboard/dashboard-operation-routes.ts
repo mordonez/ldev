@@ -12,6 +12,7 @@ import {runEnvStop} from '../../features/env/env-stop.js';
 import {formatOAuthInstall, runOAuthInstall} from '../../features/oauth/oauth-install.js';
 import {runWorktreeClean} from '../../features/worktree/worktree-clean.js';
 import {runWorktreeEnv} from '../../features/worktree/worktree-env.js';
+import {WorktreeErrors} from '../../features/worktree/errors/worktree-error-factory.js';
 import {
   DASHBOARD_WORKTREE_ACTIONS,
   worktreeActionPattern,
@@ -202,7 +203,7 @@ async function runWorktreeDelete(
   const mainRepoRoot = path.resolve(cwd);
   const worktreePath = await resolver.resolvePath(worktreeName);
   if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
+    throw WorktreeErrors.notFound(`Worktree '${worktreeName}' not found`);
   }
 
   if (pathMatches(worktreePath, mainRepoRoot)) {
@@ -219,7 +220,7 @@ async function runWorktreeEnvInit(
 ): Promise<void> {
   const worktreePath = await resolver.resolvePath(worktreeName);
   if (!worktreePath) {
-    throw new Error(`Worktree '${worktreeName}' not found`);
+    throw WorktreeErrors.notFound(`Worktree '${worktreeName}' not found`);
   }
 
   await runWorktreeEnv({cwd: worktreePath, printer});

@@ -8,6 +8,7 @@ import type {CommandGroup} from './command-group.js';
 import {COMMAND_GROUPS} from './command-groups.js';
 import {resolveCommandRoot} from './command-context.js';
 import {buildContextualRootHelp} from './contextual-help.js';
+import {resolveOutputFormatFromArgv} from './errors.js';
 import {parseJsonUnknown} from '../core/utils/json.js';
 
 function isLdevPackageManifest(value: unknown): value is {version: string; bin?: Record<string, string>} {
@@ -37,7 +38,11 @@ function readPackageVersion(): string {
 
 const version = readPackageVersion();
 
-export function createCli(cwd = process.cwd(), groups: CommandGroup[] = COMMAND_GROUPS): Command {
+export function createCli(
+  cwd = process.cwd(),
+  groups: CommandGroup[] = COMMAND_GROUPS,
+  argv: string[] = process.argv,
+): Command {
   const program = new Command();
 
   program
@@ -57,5 +62,22 @@ export function createCli(cwd = process.cwd(), groups: CommandGroup[] = COMMAND_
     group.register(program);
   }
 
+  routeUsageErrorsToCaller(program, resolveOutputFormatFromArgv(argv) !== 'text');
+
   return program;
+}
+
+/**
+ * Make Commander throw instead of exiting so the entry point owns every exit path.
+ * In machine-readable modes Commander's own stderr text is muted: the caller reports the
+ * failure as the standard JSON error envelope instead of usage text an agent cannot parse.
+ */
+function routeUsageErrorsToCaller(command: Command, machineOutput: boolean): void {
+  command.exitOverride();
+  if (machineOutput) {
+    command.configureOutput({writeErr: () => {}, outputError: () => {}});
+  }
+  for (const subcommand of command.commands) {
+    routeUsageErrorsToCaller(subcommand, machineOutput);
+  }
 }

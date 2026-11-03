@@ -25,8 +25,16 @@ export type TokenResponse = {
   expiresIn: number;
 };
 
+export type FetchTokenOptions = {
+  /** Skip the on-disk cache and request a new token (e.g. after the portal rejected the cached one). */
+  forceRefresh?: boolean;
+};
+
 export type OAuthTokenClient = {
-  fetchClientCredentialsToken: (settings: OAuthClientCredentialsConfig) => Promise<TokenResponse>;
+  fetchClientCredentialsToken: (
+    settings: OAuthClientCredentialsConfig,
+    options?: FetchTokenOptions,
+  ) => Promise<TokenResponse>;
 };
 
 export function createOAuthTokenClient(options?: {
@@ -43,14 +51,14 @@ export function createOAuthTokenClient(options?: {
   const now = options?.now ?? Date.now;
 
   return {
-    async fetchClientCredentialsToken(settings) {
+    async fetchClientCredentialsToken(settings, fetchOptions) {
       if (settings.oauth2ClientId.trim() === '' || settings.oauth2ClientSecret.trim() === '') {
         throw new CliError('Missing OAuth2 credentials: set oauth2ClientId and oauth2ClientSecret.', {
           code: 'AUTH_CONFIG_ERROR',
         });
       }
 
-      const cached = await readCachedToken(cacheDir, settings, now);
+      const cached = fetchOptions?.forceRefresh ? null : await readCachedToken(cacheDir, settings, now);
       if (cached) {
         return cached;
       }

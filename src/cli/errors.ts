@@ -1,4 +1,6 @@
-import {CliError, normalizeCliError} from '../core/errors.js';
+import {CommanderError} from 'commander';
+
+import {CliError, normalizeCliError as normalizeCoreError} from '../core/errors.js';
 import {outputFormatSchema, type OutputFormat} from '../core/output/formats.js';
 
 export type CliErrorPayload = {
@@ -64,4 +66,21 @@ export function toCliSuccessPayload<T = unknown>(data: T): CliSuccessPayload<T> 
   };
 }
 
-export {CliError, normalizeCliError};
+/** Exit code for invalid invocations (unknown command or option, missing argument). */
+export const USAGE_ERROR_EXIT_CODE = 2;
+
+/**
+ * Normalize anything thrown during a CLI run into a CliError.
+ * Commander usage failures become `CLI_USAGE_ERROR` with exit code 2; help and version keep exit code 0.
+ */
+export function normalizeCliError(error: unknown): CliError {
+  if (error instanceof CommanderError) {
+    return new CliError(error.message.replace(/^error:\s*/i, ''), {
+      code: 'CLI_USAGE_ERROR',
+      exitCode: error.exitCode === 0 ? 0 : USAGE_ERROR_EXIT_CODE,
+    });
+  }
+  return normalizeCoreError(error);
+}
+
+export {CliError};

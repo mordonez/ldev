@@ -1,6 +1,13 @@
+import {CommanderError} from 'commander';
 import {describe, expect, test} from 'vitest';
 
-import {CliError, resolveOutputFormatFromArgv, toCliErrorPayload, toCliSuccessPayload} from '../../src/cli/errors.js';
+import {
+  CliError,
+  normalizeCliError,
+  resolveOutputFormatFromArgv,
+  toCliErrorPayload,
+  toCliSuccessPayload,
+} from '../../src/cli/errors.js';
 
 describe('resolveOutputFormatFromArgv', () => {
   test('returns "json" when --json flag is present', () => {
@@ -135,5 +142,25 @@ describe('toCliSuccessPayload', () => {
       ok: true,
       data: null,
     });
+  });
+});
+
+describe('normalizeCliError', () => {
+  test('maps Commander usage errors to CLI_USAGE_ERROR with exit code 2', () => {
+    const error = normalizeCliError(
+      new CommanderError(1, 'commander.unknownOption', "error: unknown option '--bogus'"),
+    );
+
+    expect(error.code).toBe('CLI_USAGE_ERROR');
+    expect(error.exitCode).toBe(2);
+    expect(error.message).toBe("unknown option '--bogus'");
+  });
+
+  test('keeps exit code 0 for help and version', () => {
+    expect(normalizeCliError(new CommanderError(0, 'commander.helpDisplayed', '(outputHelp)')).exitCode).toBe(0);
+  });
+
+  test('wraps unknown errors as CLI_ERROR', () => {
+    expect(normalizeCliError(new Error('boom'))).toMatchObject({code: 'CLI_ERROR', exitCode: 1, message: 'boom'});
   });
 });

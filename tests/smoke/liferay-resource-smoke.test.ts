@@ -100,7 +100,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'structure', '--site', '/global', '--structure', 'BASIC-WEB-CONTENT'], {
         from: 'user',
       });
@@ -157,7 +156,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'template', '--site', '/global', '--template', 'NEWS_TEMPLATE'], {
         from: 'user',
       });
@@ -206,7 +204,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         [
           'resource',
@@ -275,7 +272,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['resource', 'export-template', '--site', '/global', '--template', 'NEWS_TEMPLATE', '--output', outputPath],
         {from: 'user'},
@@ -335,7 +331,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['resource', 'export-template', '--site', '/global', '--template', 'NEWS_TEMPLATE', '--output', outputPath],
         {from: 'user'},
@@ -390,7 +385,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'export-structures', '--site', '/global', '--format', 'json'], {
         from: 'user',
       });
@@ -443,7 +437,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'export-templates', '--site', '/global', '--format', 'json'], {
         from: 'user',
       });
@@ -494,7 +487,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'export-templates', '--site', '/global', '--format', 'json'], {
         from: 'user',
       });
@@ -561,7 +553,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         ['resource', 'adts', '--site', '/global', '--widget-type', 'search-results', '--format', 'json'],
         {from: 'user'},
@@ -633,7 +624,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(
         [
           'resource',
@@ -700,7 +690,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'fragments', '--site', '/global', '--format', 'json'], {
         from: 'user',
       });
@@ -780,7 +769,6 @@ describe('liferay resource smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['resource', 'import-fragments', '--site', '/global', '--format', 'json'], {
         from: 'user',
       });

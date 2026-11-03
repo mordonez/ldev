@@ -1,6 +1,5 @@
-import {CliError} from '../../../core/errors.js';
 import {normalizeScalarString, trimLeadingSlash} from '../../../core/utils/text.js';
-import type {LiferayGateway} from '../liferay-gateway.js';
+import {isGatewayError, type LiferayGateway} from '../liferay-gateway.js';
 
 export type HeadlessSitePageActions = {
   [key: string]: unknown;
@@ -229,7 +228,7 @@ async function fetchHeadlessSitePageWithQuery(
     );
     return toHeadlessSitePagePayload(raw);
   } catch (error) {
-    if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+    if (isGatewayError(error)) {
       return null;
     }
 

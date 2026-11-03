@@ -1,14 +1,10 @@
-import {CliError} from '../../../../core/errors.js';
 import {LiferayErrors} from '../../errors/index.js';
+import {isGatewayError} from '../../liferay-gateway.js';
 
-export function isGatewayStatus(error: unknown, status: number): boolean {
-  return (
-    error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR' && error.message.includes(`status=${status}`)
-  );
-}
+export {isGatewayStatus} from '../../liferay-gateway.js';
 
 export function rethrowGatewayAsResourceError(error: unknown): never {
-  if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+  if (isGatewayError(error)) {
     throw LiferayErrors.resourceError(error.message);
   }
 

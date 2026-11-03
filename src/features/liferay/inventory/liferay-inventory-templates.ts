@@ -1,8 +1,7 @@
 import type {AppConfig} from '../../../core/config/load-config.js';
 import type {HttpApiClient} from '../../../core/http/client.js';
 import type {OAuthTokenClient} from '../../../core/http/auth.js';
-import {isCliError} from '../../../core/errors.js';
-import {fetchPagedItems} from './liferay-inventory-shared.js';
+import {fetchPagedItems, isInventoryHttpError} from './liferay-inventory-shared.js';
 import {resolveSite} from '../portal/site-resolution.js';
 import {listDdmTemplates, resolveResourceSite} from '../portal/template-queries.js';
 import {getOperationPolicy} from '../portal/capabilities.js';
@@ -69,11 +68,7 @@ export async function runLiferayInventoryTemplates(
 }
 
 function isSkippableHeadlessTemplateError(error: unknown): boolean {
-  if (!isCliError(error) || error.code !== 'LIFERAY_INVENTORY_ERROR') {
-    return false;
-  }
-
-  return error.message.includes('status=400') && error.message.includes('/content-templates');
+  return isInventoryHttpError(error, 400, '/content-templates');
 }
 
 function normalizeContentTemplate(row: ContentTemplate): LiferayInventoryTemplate {

@@ -85,7 +85,6 @@ describe('liferay page-layout smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'page-layout', 'export', '--url', '/web/guest/home'], {from: 'user'});
     } finally {
       process.chdir(originalCwd);
@@ -150,7 +149,6 @@ describe('liferay page-layout smoke', () => {
     process.chdir(repoRoot);
     try {
       const cli = createCli();
-      cli.exitOverride();
       await cli.parseAsync(['liferay', 'page-layout', 'export', '--url', '/web/guest/home', '--output', outputPath], {
         from: 'user',
       });

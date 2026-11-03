@@ -2,8 +2,10 @@ import fs from 'node:fs';
 import type http from 'node:http';
 import path from 'node:path';
 
+import {isCliError} from '../../core/errors.js';
+
 function isMissingResourceError(err: unknown): boolean {
-  return err instanceof Error && err.message.includes('not found');
+  return isCliError(err) && err.code.endsWith('_NOT_FOUND');
 }
 
 export function writeJson(res: http.ServerResponse, status: number, payload: unknown): void {

@@ -85,7 +85,7 @@ export async function runEnvStart(
 
   if (signal?.aborted) {
     await rollbackStartedEnvironment();
-    throw new Error('Environment start was canceled.');
+    throw EnvErrors.startCanceled('Environment start was canceled.');
   }
 
   if (waitForHealth) {

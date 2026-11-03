@@ -23,9 +23,9 @@ This caused recurring bugs: token cache misses, inconsistent 401 handling, missi
 
 `LiferayGateway` (`src/features/liferay/liferay-gateway.ts`) is a class that:
 
-1. **Centralises authentication.** Obtains an OAuth access token via `OAuthTokenClient`, caches it for the process lifetime, and retries once on 401 with a fresh token.
+1. **Centralises authentication.** Obtains an OAuth access token via `OAuthTokenClient`, caches it until shortly before the `expires_in` the portal reported, and on 401 retries once with a token requested with `forceRefresh` (bypassing the token client's on-disk cache, which may still hold the rejected token).
 2. **Types every response.** All methods are generic (`getJson<T>`, `postJson<T>`, `postForm<T>`, `putJson<T>`, `deleteJson<T>`, `getRaw<T>`). Callers declare what they expect; the gateway parses and returns it.
-3. **Surfaces errors as `CliError`.** HTTP errors (non-2xx, network errors, parse failures) are converted to `CliError` with a meaningful code and message before they leave the gateway. Callers never handle raw fetch rejections.
+3. **Surfaces errors as `CliError`.** Non-2xx responses become `LIFERAY_GATEWAY_ERROR` with `details: {status, path}` and a message that appends the portal's own explanation (Headless `title`/`detail`, JSONWS `exception`). Callers branch with `isGatewayStatus(error, 404)` / `getGatewayStatus(error)` from the gateway module — never by matching message text.
 4. **Accepts dependencies via constructor injection.** `LiferayGateway(config: AppConfig, httpClient: HttpApiClient, tokenClient: OAuthTokenClient)` — testable without HTTP mocking.
 
 ### What the gateway is NOT
@@ -70,7 +70,7 @@ Liferay exposes OpenAPI specs. Generate a typed client.
 
 ### Positive
 
-- All 401 retry and token-caching logic lives in one 150-line file.
+- All 401 retry, token-caching and error-classification logic lives in one file.
 - Feature modules are simpler: they call `gateway.getJson<SomeType>(url)` and handle the domain result, not the HTTP error.
 - Integration tests can use a `FakeHttpApiClient` to simulate any Liferay response without network.
 

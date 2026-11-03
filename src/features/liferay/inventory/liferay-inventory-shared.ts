@@ -1,9 +1,9 @@
-import {CliError} from '../../../core/errors.js';
 import type {AppConfig} from '../../../core/config/load-config.js';
+import {isCliError} from '../../../core/errors.js';
 import {createOAuthTokenClient, type OAuthTokenClient} from '../../../core/http/auth.js';
 import {createLiferayApiClient, type HttpResponse, type HttpApiClient} from '../../../core/http/client.js';
 import {expectJsonSuccess as expectJsonSuccessShared} from '../liferay-http-shared.js';
-import {createLiferayGateway, type LiferayGateway} from '../liferay-gateway.js';
+import {createLiferayGateway, isGatewayError, isGatewayStatus, type LiferayGateway} from '../liferay-gateway.js';
 import {LookupCache} from '../lookup-cache.js';
 import {LiferayErrors} from '../errors/index.js';
 import {type HeadlessPage} from '../portal/site-resolver.js';
@@ -66,14 +66,14 @@ export async function fetchPagedItems<T>(
       page += 1;
     } catch (error) {
       // Handle gateway errors: convert to inventory-specific error code
-      if (error instanceof CliError && error.code === 'LIFERAY_GATEWAY_ERROR') {
+      if (isGatewayError(error)) {
         // Check for 403 (permission) errors and provide scoped guidance
-        if (error.message.includes('status=403')) {
+        if (isGatewayStatus(error, 403)) {
           throw LiferayErrors.inventoryError(
             `403 Forbidden on ${basePath} (check the bootstrap OAuth2 scopes for Data Engine/Headless Delivery).`,
           );
         }
-        throw LiferayErrors.inventoryError(error.message);
+        throw LiferayErrors.inventoryError(error.message, {details: error.details as Record<string, unknown>});
       }
       throw error;
     }
@@ -120,4 +120,16 @@ export function createInventoryGateway(
 
   const tokenClient = dependencies?.tokenClient ?? createOAuthTokenClient();
   return createLiferayGateway(config, apiClient, tokenClient);
+}
+
+/**
+ * True for an inventory error wrapping a gateway failure with the given status on a path containing `pathFragment`.
+ * Lets callers skip optional endpoints some Liferay versions reject without matching message text.
+ */
+export function isInventoryHttpError(error: unknown, status: number, pathFragment: string): boolean {
+  if (!isCliError(error) || error.code !== 'LIFERAY_INVENTORY_ERROR') {
+    return false;
+  }
+  const details = error.details as {status?: unknown; path?: unknown} | undefined;
+  return details?.status === status && typeof details.path === 'string' && details.path.includes(pathFragment);
 }
