@@ -8,9 +8,9 @@
 #   2. Removing any trial licenses from osgi/modules/
 #   3. Deploying our activation key via /opt/liferay/deploy/
 #
-# Place your activation key in:
-#   liferay/configs/dockerenv/osgi/modules/activation-key-*.xml
-# (gitignored - never commit the key)
+# Keep the key outside the repository and point LDEV_ACTIVATION_KEY_FILE
+# (shell env or docker/.env) at it; `ldev start` installs it into the
+# generated liferay/build/docker/configs/dockerenv/osgi/modules/.
 #
 # Runs in the Pre-Startup phase (right before Tomcat starts).
 # See: https://learn.liferay.com/dxp/self-hosted-installation-and-upgrades/using-liferay-docker-images/licensing-dxp-in-docker
@@ -42,5 +42,5 @@ for key in "$MODULES_DIR"/activation-key-*.xml; do
 done
 
 if [ "$DEPLOYED" -eq 0 ]; then
-	echo "[activation-key] WARNING: No activation key found in osgi/modules/. Place your key in liferay/configs/dockerenv/osgi/modules/activation-key-*.xml"
+	echo "[activation-key] WARNING: No activation key found in osgi/modules/. Set LDEV_ACTIVATION_KEY_FILE to an activation-key-*.xml outside the repo"
 fi

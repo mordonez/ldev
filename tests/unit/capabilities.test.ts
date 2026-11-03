@@ -232,16 +232,22 @@ describe('capabilities', () => {
     expect(report.checks.find((check) => check.id === 'docker-daemon')?.status).toBe('fail');
 
     const text = formatDoctor(report);
-    expect(text).toContain('point `LDEV_ACTIVATION_KEY_FILE` to it before running `ldev start`');
+    expect(text).toContain(
+      'Point `LDEV_ACTIVATION_KEY_FILE` to a readable `activation-key-*.xml` outside the repository.',
+    );
     expect(text).toContain('host port localhost:8080 is already in use');
     expect(text).toContain('below the recommended 8 GB');
   });
 
-  test('accepts an activation key already installed in liferay configs', async () => {
+  test('warns about an activation key kept inside the repository', async () => {
     const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ldev-doctor-activation-'));
     const modulesDir = path.join(repoRoot, 'liferay', 'configs', 'local', 'osgi', 'modules');
     fs.mkdirSync(modulesDir, {recursive: true});
-    fs.writeFileSync(path.join(modulesDir, 'activation-key-dxpdevelopment.xml'), '<activation-key />');
+    fs.writeFileSync(
+      path.join(modulesDir, 'activation-key-dxpdevelopment.xml'),
+      '<license><license-type>developer</license-type><product-version>7.4</product-version>' +
+        '<expiration-date>Sunday, August 17, 2121 10:56:59 PM GMT</expiration-date></license>',
+    );
 
     const report = await runDoctor(repoRoot, {
       env: {},
@@ -288,8 +294,10 @@ describe('capabilities', () => {
     });
 
     const check = report.checks.find((item) => item.id === 'activation-key');
-    expect(check?.status).toBe('pass');
+    expect(check?.status).toBe('warn');
     expect(check?.summary).toContain('activation-key-dxpdevelopment.xml');
+    expect(check?.summary).toContain('inside the repository');
+    expect(check?.summary).toContain('expires 2121-08-17');
   });
 
   test('treats docker as optional for blade-workspace diagnostics', async () => {
