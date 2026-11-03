@@ -49,7 +49,11 @@ ldev logs diagnose --since 5m --json
 Use the runtime proof contract in
 [references/theme-deploy-runtime-proof.md](references/theme-deploy-runtime-proof.md).
 
-- Journal structures, Journal templates, ADTs, or fragments:
+- Client extension: `ldev deploy client-extension <name> --json`. A batch CX bundle
+  stays `Active` when its import fails; trust the command's batch read-back.
+
+- Journal structures, templates, ADTs, fragments, Objects, picklists, site
+  initializers, redirects, or style books:
 
 ```text
 Use portal-resource-workflow.
@@ -65,6 +69,7 @@ substitute for deploying or importing into the running portal.
 After the smallest action, collect evidence matched to the changed surface:
 
 - modules: `ldev osgi status`, `ldev osgi diag`, and fresh logs
+- client extensions: `ldev logs diagnose --since 5m --json` (`clientExtensionFailures`)
 - theme: browser-visible page check and fresh logs
 - portal resources: `portal-resource-workflow` read-back and browser proof
 - portal availability: `ldev portal check --json`

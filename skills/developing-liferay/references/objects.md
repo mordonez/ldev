@@ -207,9 +207,12 @@ See `workflow.md` for inspection and approval flows.
 
 **Batch CX defines Object → headless OAuth → custom element CX writes entries**
 
-1. A batch Client Extension (`.client-extension-config.json` with `type: batch`)
-   defines the Object schema declaratively — it is deployed and applied
-   automatically on `ldev start`.
+1. A batch client extension (`client-extension.yaml` with `type: batch` and
+   `batch/*.batch-engine-data.json`) defines picklists and Object schemas. It is
+   applied when deployed: `ldev deploy client-extension <name>` waits for the
+   batch outcome and reads the items back by ERC. Single definitions can also be
+   kept as files: `ldev resource export-object` / `import-object --check-only`
+   and `export-picklist` / `import-picklist`.
 2. The portal generates the headless API for the Object.
 3. A custom element Client Extension (React/Vue) uses
    `Liferay.Util.fetch` inside the portal — or a Bearer token obtained via
@@ -224,5 +227,7 @@ This pattern avoids traditional OSGi modules for custom data modeling entirely.
 | `404` on `/o/c/<plural>/v1.0/` | Object definition is not `published`, or the plural label does not match the URL segment |
 | Entry saved but does not appear in API response | Workflow is active — entry is `PENDING`; approve it or remove the workflow |
 | `400` on create | Required field missing, validation failed, or `indexedLanguageId` set on a non-text field |
-| `403` on API call | OAuth2 token lacks `Liferay.Object.Admin.everything` or the equivalent read/write scope |
+| `403` on API call | Token lacks `Liferay.Object.Admin.REST.everything.read/write` (`ldev oauth install --scope-profile objects`); custom object entries also need that object's own scope |
 | Relationship field missing from response | Add `nestedFields=<relationshipName>` to the query |
+| Relationships vanish after updating a definition | The definition PUT deletes forward relationships missing from its body; use `ldev resource import-object`, which always sends the full set |
+| Batch client extension "deployed" but data missing | The bundle stays `Active` when the import fails; check `ldev deploy client-extension <name>` or `ldev logs diagnose` (`clientExtensionFailures`) |

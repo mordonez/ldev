@@ -1,12 +1,12 @@
 ---
 name: portal-resource-workflow
-description: 'Changes Liferay portal resources through the canonical ldev file-backed workflow. Use when editing Journal structures, Journal templates, ADTs, fragments, or Liferay Object Definitions.'
+description: 'Changes Liferay portal resources through the canonical ldev file-backed workflow. Use when editing Journal structures, Journal templates, ADTs, fragments, Liferay Objects, picklists, batch data, site initializers, redirects, or style books.'
 ---
 
 # Portal Resource Workflow
 
-Owns the canonical file-backed workflow for structures, templates, ADTs,
-fragments, and Liferay Object Definitions. Deploy commands do not apply these resources.
+Owns the canonical file-backed workflow for portal resources. Deploy commands do not apply them.
+Objects, picklists, batch, site initializers, redirects, style books: [references/client-extension-first-resources.md](references/client-extension-first-resources.md).
 
 ## 1. Resolve Origin
 
