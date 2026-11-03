@@ -55,6 +55,7 @@ export type ResourceCommandOptionBag = {
   skipValidation?: boolean;
   stage?: string;
   structure?: string | string[];
+  styleBook?: string;
   template?: string | string[];
   templates?: boolean;
   transport?: 'auto' | 'jsonws' | 'deploy-zip';
@@ -184,13 +185,13 @@ Use this namespace for file-based content workflows for structures, templates, A
 It is intended for more specialized content workflows rather than first-run onboarding.
 
 Read:
-  structure, template, adts, adt, fragments, object, picklist
+  structure, template, adts, adt, fragments, object, picklist, style-book
 
 Export:
-  export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments, export-object, export-picklist
+  export-structure, export-template, export-structures, export-templates, export-adt, export-adts, export-fragment, export-fragments, export-object, export-picklist, export-style-book
 
 Import:
-  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist, import-redirects
+  import-structure, import-template, import-adt, import-fragment, import-fragments, import-structures, import-templates, import-adts, import-object, import-picklist, import-redirects, import-style-book
 
 Sites:
   apply-site-initializer

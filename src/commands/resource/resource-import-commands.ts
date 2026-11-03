@@ -43,6 +43,10 @@ import {
   runLiferayRedirectsImport,
 } from '../../features/liferay/redirects/liferay-redirects-import.js';
 import {
+  formatLiferayStyleBookImport,
+  runLiferayResourceImportStyleBook,
+} from '../../features/liferay/resource/liferay-resource-style-book.js';
+import {
   formatLiferayResourceImportStructure,
   runLiferayResourceImportStructure,
 } from '../../features/liferay/resource/liferay-resource-import-structure.js';
@@ -416,5 +420,26 @@ export function registerResourceImportCommands(resource: Command): void {
         probe: Boolean(options.probe),
       }),
     render: {text: formatLiferayRedirectsImport},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'import-style-book',
+    description: 'Import or validate a local Style Book JSON (frontend tokens) by ERC, with read-back',
+    configure: configure(o.checkOnly(), (cmd) =>
+      cmd
+        .option('--style-book <erc>', 'Style book ERC; resolves liferay/resources/style-books/<site>/<erc>.json')
+        .option('--file <file>', 'Style book JSON file')
+        .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
+        .option('--create-missing', 'Create the style book when it does not exist'),
+    ),
+    run: async (context, options) =>
+      runLiferayResourceImportStyleBook(context.config, {
+        site: options.site,
+        key: options.styleBook,
+        file: options.file,
+        checkOnly: Boolean(options.checkOnly),
+        createMissing: Boolean(options.createMissing),
+      }),
+    render: {text: formatLiferayStyleBookImport},
   });
 }

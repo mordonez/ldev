@@ -10,6 +10,7 @@ import {LiferayErrors} from '../errors/index.js';
 import {createLiferayGateway} from '../liferay-gateway.js';
 import {resolveSiteToken} from '../portal/artifact-paths.js';
 import type {ResourceDependencies} from './liferay-resource-artifact-shared.js';
+import {listFragmentCollections, listFragments} from './liferay-resource-shared.js';
 import type {
   LiferayResourceImportFragmentItemResult,
   LiferayResourceImportFragmentsSingleResult,
@@ -36,10 +37,14 @@ export async function deployFragmentsProjectZip(
     throw LiferayErrors.resourceError('deploy-zip fragment import requires a project with docker/.');
   }
 
-  const zipPath = await createAutoDeployFragmentsZip(config, options, dependencies);
+  const groupKey = (await resolveGroupKey(config, options.groupId, dependencies)) ?? options.groupKey;
+  const zipPath = await createAutoDeployFragmentsZip(config, {...options, groupKey}, dependencies);
   await copyZipToLiferayDeploy(config, zipPath);
 
-  const fragmentResults = toZipFragmentResults(options.project.collections);
+  // The autodeploy is asynchronous and fails only in the portal log (e.g. an
+  // unknown groupKey), so the result is what the portal shows afterwards.
+  const fragmentResults = await waitForZipFragments(config, options, dependencies);
+  const errors = fragmentResults.filter((result) => result.status === 'error').length;
 
   return {
     mode: 'auto-deploy-zip-import',
@@ -48,10 +53,10 @@ export async function deployFragmentsProjectZip(
     projectDir: options.projectDir,
     zipPath,
     summary: {
-      importedFragments: fragmentResults.length,
+      importedFragments: fragmentResults.length - errors,
       fragmentResults: fragmentResults.length,
       pageTemplateResults: 0,
-      errors: 0,
+      errors,
     },
     fragmentResults,
     pageTemplateResults: [],
@@ -188,12 +193,62 @@ function shellQuote(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-function toZipFragmentResults(collections: LocalFragmentCollection[]): LiferayResourceImportFragmentItemResult[] {
-  return collections.flatMap((collection) =>
-    collection.fragments.map((fragment) => ({
-      collection: collection.slug,
-      fragment: fragment.slug,
-      status: 'imported' as const,
-    })),
+/**
+ * The deploy descriptor needs the group's real key. It is not always the site
+ * name: on DXP 2026 the global site's groupKey is the companyId, not "Global".
+ */
+async function resolveGroupKey(
+  config: AppConfig,
+  groupId: number,
+  dependencies?: ResourceDependencies,
+): Promise<string | null> {
+  const gateway = createLiferayGateway(
+    config,
+    dependencies?.apiClient ?? createLiferayApiClient(),
+    dependencies?.tokenClient,
   );
+  const response = await gateway.getRaw<{groupKey?: string}>(`/api/jsonws/group/get-group?groupId=${groupId}`);
+  const groupKey = response.ok ? (response.data?.groupKey?.trim() ?? '') : '';
+  return groupKey === '' ? null : groupKey;
+}
+
+/** Poll until every local fragment exists in its collection (by name), or report the missing ones as errors. */
+async function waitForZipFragments(
+  config: AppConfig,
+  options: FragmentZipDeployOptions,
+  dependencies?: ResourceDependencies & {sleep?: (ms: number) => Promise<void>; timeoutMs?: number},
+): Promise<LiferayResourceImportFragmentItemResult[]> {
+  const sleep = dependencies?.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const deadline = Date.now() + (dependencies?.timeoutMs ?? 90_000);
+  const expected = options.project.collections.flatMap((collection) =>
+    collection.fragments.map((fragment) => ({collection, fragment})),
+  );
+
+  for (;;) {
+    const present = new Set<string>();
+    for (const remote of await listFragmentCollections(config, options.groupId, dependencies)) {
+      const local = options.project.collections.find(
+        (collection) => collection.name === remote.name || collection.slug === remote.fragmentCollectionKey,
+      );
+      if (local && remote.fragmentCollectionId) {
+        for (const entry of await listFragments(config, remote.fragmentCollectionId, dependencies)) {
+          present.add(`${local.slug}/${entry.name ?? ''}`);
+        }
+      }
+    }
+    const missing = expected.filter(({collection, fragment}) => !present.has(`${collection.slug}/${fragment.name}`));
+    if (missing.length === 0 || Date.now() >= deadline) {
+      return expected.map(({collection, fragment}) =>
+        missing.some((item) => item.fragment === fragment)
+          ? {
+              collection: collection.slug,
+              fragment: fragment.slug,
+              status: 'error' as const,
+              error: `not in ${options.siteFriendlyUrl} after the zip deploy; check \`ldev logs diagnose --since 5m\` (FragmentFileInstaller)`,
+            }
+          : {collection: collection.slug, fragment: fragment.slug, status: 'imported' as const},
+      );
+    }
+    await sleep(3000);
+  }
 }

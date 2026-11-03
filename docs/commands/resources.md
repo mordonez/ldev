@@ -145,6 +145,37 @@ ldev resource import-picklist --picklist UB_LEVELS --create-missing
 - Removing an entry from the file would delete it remotely and orphan stored
   values; the import refuses unless `--allow-breaking-change`.
 
+## Company-level design resources
+
+Company-wide design resources live in the global site (`/global`), which is the
+default `--site` for style books.
+
+```bash
+ldev resource style-book --style-book UB_BRAND
+ldev resource export-style-book --style-book UB_BRAND
+ldev resource import-style-book --style-book UB_BRAND --check-only
+ldev resource import-style-book --style-book UB_BRAND
+ldev resource import-style-book --file liferay/resources/style-books/global/UB_CAMPUS.json --create-missing
+ldev resource import-fragments --site /global
+```
+
+- Style books are files under `liferay/resources/style-books/<site>/<ERC>.json`
+  with `externalReferenceCode`, `name`, `styleBookEntryKey`, `themeId` (for
+  example `classic_WAR_classictheme`) and `frontendTokensValues`.
+- `--check-only` reports `add`/`change`/`remove` per token; after writing, the
+  style book is read back and compared token by token. Style book names are
+  unique per site; the portal rejects a duplicate on create.
+- They go through JSONWS `stylebook.stylebookentry`: on DXP 2026.q3 the
+  `headless-admin-site` style-book, page and display-page-template endpoints
+  answer `UnsupportedOperationException` unless feature flag `LPD-35443` is
+  enabled, and that flag is not supported in production.
+- Fragment imports into `/global` fall back to an auto-deploy zip. On DXP 2026 the
+  global site's group key is the company id rather than `Global`; ldev reads the
+  real key and waits until the fragments appear in the site, reporting the ones
+  that do not as errors instead of assuming success.
+- Display page templates at company level have no API that works without
+  `LPD-35443`; ship them in a site initializer for now.
+
 ## Site initializers
 
 `apply-site-initializer` creates a site from a site initializer (a

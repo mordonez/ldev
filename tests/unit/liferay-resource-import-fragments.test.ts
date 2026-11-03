@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import JSZip from 'jszip';
 import path from 'node:path';
 import {describe, expect, test} from 'vitest';
 
@@ -10,6 +11,8 @@ import {
 import {createFakeDockerBin, readFakeDockerCalls} from '../../src/testing/fake-docker.js';
 import {createStaticTokenClient, createTestFetchImpl, toTestRequestBody} from '../../src/testing/cli-test-helpers.js';
 import {createTempDir} from '../../src/testing/temp-repo.js';
+
+const FRAGMENT_NAME = 'Hero Banner';
 
 const TOKEN_CLIENT = createStaticTokenClient();
 
@@ -146,19 +149,31 @@ describe('liferay resource fragments-import', () => {
     const originalPath = process.env.PATH;
     process.env.PATH = `${fakeDockerBin}${path.delimiter}${originalPath ?? ''}`;
 
+    let collectionLookups = 0;
     const apiClient = createLiferayApiClient({
       fetchImpl: createTestFetchImpl((url) => {
         if (url.includes('/by-friendly-url-path/global')) {
           return new Response('{"id":20121,"friendlyUrlPath":"/global","name":"Global"}', {status: 200});
         }
         if (url.includes('/api/jsonws/group/get-group?groupId=20121')) {
-          return new Response('{"companyId":10157}', {status: 200});
+          // DXP 2026: the global site's groupKey is the companyId, not "Global".
+          return new Response('{"companyId":10157,"groupKey":"10157"}', {status: 200});
         }
         if (url.includes('/api/jsonws/company/get-company-by-id?companyId=10157')) {
           return new Response('{"webId":"liferay.com"}', {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/get-fragment-collections?groupId=20121')) {
-          return new Response('[]', {status: 200});
+          // Empty before the zip deploy; the autodeploy creates the collection.
+          collectionLookups += 1;
+          return new Response(
+            collectionLookups === 1
+              ? '[]'
+              : '[{"fragmentCollectionId":7,"fragmentCollectionKey":"marketing","name":"Marketing"}]',
+            {status: 200},
+          );
+        }
+        if (url.includes('/api/jsonws/fragment.fragmententry/get-fragment-entries?fragmentCollectionId=7')) {
+          return new Response(`[{"fragmentEntryId":9,"name":"${FRAGMENT_NAME}"}]`, {status: 200});
         }
         if (url.includes('/api/jsonws/fragment.fragmentcollection/add-fragment-collection')) {
           return new Response(
@@ -186,6 +201,10 @@ describe('liferay resource fragments-import', () => {
       expect(result.summary.errors).toBe(0);
       expect(result.zipPath).toBeTruthy();
       expect(await fs.pathExists(result.zipPath!)).toBe(true);
+      const zip = await JSZip.loadAsync(await fs.readFile(result.zipPath!));
+      expect(JSON.parse((await zip.file('liferay-deploy-fragments.json')?.async('string')) ?? '{}')).toMatchObject({
+        groupKey: '10157',
+      });
 
       const dockerCalls = await readFakeDockerCalls(fakeDockerBin);
       expect(dockerCalls.some((call) => call.includes('compose ps -q liferay'))).toBe(true);

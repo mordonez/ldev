@@ -4,6 +4,7 @@ import {configure, o, registerResourceWorkflow, requireResourceValue} from './re
 import {LiferayErrors} from '../../features/liferay/errors/index.js';
 import {runLiferayResourceExportObject} from '../../features/liferay/resource/liferay-resource-export-object.js';
 import {runLiferayResourceExportPicklist} from '../../features/liferay/resource/liferay-resource-export-picklist.js';
+import {runLiferayResourceExportStyleBook} from '../../features/liferay/resource/liferay-resource-style-book.js';
 import {runLiferayResourceExportStructure} from '../../features/liferay/resource/liferay-resource-export-structure.js';
 import {runLiferayResourceExportTemplate} from '../../features/liferay/resource/liferay-resource-export-template.js';
 import {
@@ -242,6 +243,23 @@ export function registerResourceExportCommands(resource: Command): void {
     run: async (context, options) =>
       runLiferayResourceExportPicklist(context.config, {
         id: requireResourceValue(options.picklist, 'export-picklist requires --picklist'),
+        output: options.output,
+      }),
+    render: {text: (result) => result.outputPath},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'export-style-book',
+    description: 'Export one Style Book to liferay/resources/style-books/<site>/<erc>.json',
+    configure: (command) =>
+      command
+        .option('--style-book <styleBook>', 'Style book ERC, key or name')
+        .option('--site <site>', 'Site friendly URL or numeric ID', '/global')
+        .option('--output <file>', 'Destination JSON file'),
+    run: async (context, options) =>
+      runLiferayResourceExportStyleBook(context.config, {
+        site: options.site,
+        id: requireResourceValue(options.styleBook, 'export-style-book requires --style-book'),
         output: options.output,
       }),
     render: {text: (result) => result.outputPath},
