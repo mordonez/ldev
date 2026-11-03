@@ -88,6 +88,7 @@ describe('formatEnvLogsDiagnose', () => {
       ok: true,
       service: 'liferay',
       since: '10m',
+      clientExtensionFailures: [],
       warnings: 3,
       linesAnalyzed: 200,
       exceptions: [
@@ -119,6 +120,7 @@ describe('formatEnvLogsDiagnose', () => {
       ok: true,
       service: null,
       since: null,
+      clientExtensionFailures: [],
       warnings: 0,
       linesAnalyzed: 0,
       exceptions: [],

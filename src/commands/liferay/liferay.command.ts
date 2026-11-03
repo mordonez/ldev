@@ -3,6 +3,7 @@ import {Command} from 'commander';
 import {createReindexCommand} from '../reindex/reindex.command.js';
 import {createApiCommands} from './api.command.js';
 import {createAuthCommands} from './auth.command.js';
+import {createBatchCommand} from './batch.command.js';
 import {createContentCommand} from './content.command.js';
 import {createLiferayConfigCommand} from './config.command.js';
 import {createInventoryCommands} from './inventory.command.js';
@@ -67,6 +68,7 @@ Main groups:
   createInventoryCommands(command);
   createApiCommands(command);
   command.addCommand(createContentCommand().helpGroup('Content management:'));
+  command.addCommand(createBatchCommand().helpGroup('Content management:'));
   createLiferayAuditCommands(command);
   createPageLayoutCommands(command);
   command.addCommand(createLiferaySearchCommand().helpGroup('Portal diagnostics:'));

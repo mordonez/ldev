@@ -41,6 +41,10 @@ export enum LiferayErrorCode {
   // Theme/Page errors
   THEME_ERROR = 'LIFERAY_THEME_ERROR',
   PAGE_LAYOUT_ERROR = 'LIFERAY_PAGE_LAYOUT_ERROR',
+
+  // Batch Engine errors
+  BATCH_FAILED = 'LIFERAY_BATCH_FAILED',
+  BATCH_TIMEOUT = 'LIFERAY_BATCH_TIMEOUT',
 }
 
 /**
@@ -80,6 +84,9 @@ export const errorCodeMetadata: Record<
 
   [LiferayErrorCode.THEME_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
   [LiferayErrorCode.PAGE_LAYOUT_ERROR]: {severity: 'error', retryable: false, logFullMessage: false},
+
+  [LiferayErrorCode.BATCH_FAILED]: {severity: 'error', retryable: false, logFullMessage: true},
+  [LiferayErrorCode.BATCH_TIMEOUT]: {severity: 'warning', retryable: true, logFullMessage: false},
 };
 
 /**

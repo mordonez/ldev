@@ -8,6 +8,7 @@ ldev resource import-template --site /<site> --template <KEY> --check-only
 ldev resource import-adt --site /<site> --file <path> --widget-type <type> --check-only
 ldev resource import-picklist --picklist <ERC> --check-only
 ldev resource import-object --object <ERC> --check-only
+ldev portal batch import --file <batch-engine-data.json> --check-only
 ldev resource apply-site-initializer --source <cx> --site-erc <ERC> --check-only
 ```
 

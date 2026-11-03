@@ -7,6 +7,7 @@ export {
   runDeployStep,
   runGradleTask,
   resolveHeadCommit,
+  resolveHeadCommitOrUnborn,
   writePrepareCommit,
   readPrepareCommit,
   currentArtifactCommit,
