@@ -14,6 +14,10 @@ import {
   runLiferayResourceGetPicklist,
 } from '../../features/liferay/resource/liferay-resource-get-picklist.js';
 import {
+  formatLiferayStyleBook,
+  runLiferayResourceGetStyleBook,
+} from '../../features/liferay/resource/liferay-resource-style-book.js';
+import {
   formatLiferayResourceStructure,
   runLiferayResourceGetStructure,
 } from '../../features/liferay/resource/liferay-resource-get-structure.js';
@@ -146,5 +150,20 @@ export function registerResourceReadCommands(resource: Command): void {
         id: requireResourceValue(options.picklist, 'picklist requires --picklist'),
       }),
     render: {text: formatLiferayResourcePicklist},
+  });
+
+  registerResourceWorkflow(resource, {
+    name: 'style-book',
+    description: 'Read one Style Book (frontend tokens) by ERC, key or name; company-wide ones live in /global',
+    configure: (command) =>
+      command
+        .option('--style-book <styleBook>', 'Style book ERC, key or name')
+        .option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
+    run: async (context, options) =>
+      runLiferayResourceGetStyleBook(context.config, {
+        site: options.site,
+        id: requireResourceValue(options.styleBook, 'style-book requires --style-book'),
+      }),
+    render: {text: formatLiferayStyleBook},
   });
 }
