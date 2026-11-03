@@ -65,6 +65,12 @@ export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key.xml
 export REPO_ROOT=/path/to/project
 ```
 
+`LDEV_ACTIVATION_KEY_FILE` can also live in `docker/.env`. Keep the key itself
+outside the repository; see [`ldev start`](/commands/runtime#activation-key).
+
+`docker/.env` also sets `ELASTICSEARCH_VERSION`, which must match `LIFERAY_IMAGE`
+(`7.17.26` up to DXP 2025.q4, `8.19.0` from DXP 2026.q1).
+
 ## Remote execution with connection overrides
 
 When you run `ldev` from automation hosts, CI jobs, or jumpboxes, you can override Liferay connection values per command instead of changing project files.

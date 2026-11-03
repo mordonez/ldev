@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import fs from 'fs-extra';
 
-import {upsertEnvFileValues} from '../../core/config/env-file.js';
+import {readEnvFile, upsertEnvFileValues} from '../../core/config/env-file.js';
 import {
   gitAddPaths,
   gitCommit,
@@ -11,6 +11,7 @@ import {
   isGitRepository,
 } from '../../core/platform/git.js';
 import type {Printer} from '../../core/output/printer.js';
+import {resolveSearchEngineProfile, writeElasticsearchConnectorConfig} from '../../core/runtime/search-engine.js';
 import {
   copyProjectScaffoldFiles,
   ensureDockerScaffold,
@@ -216,6 +217,35 @@ async function configureGeneratedProjectFiles(
     liferayRelease,
   );
   await updateLiferayGradleProperties(path.join(targetDir, 'liferay', 'gradle.properties'), liferayRelease);
+  await configureSearchEngine(targetDir, services);
+}
+
+/**
+ * Align the Elasticsearch server version and the Liferay connector PID with the
+ * effective LIFERAY_IMAGE (DXP 2026+ only ships the elasticsearch8 connector).
+ */
+async function configureSearchEngine(targetDir: string, services: DockerService[]): Promise<void> {
+  const dockerEnvFile = path.join(targetDir, 'docker', '.env');
+  if (!(await fs.pathExists(dockerEnvFile))) {
+    return;
+  }
+
+  const currentContent = await fs.readFile(dockerEnvFile, 'utf8');
+  const profile = resolveSearchEngineProfile(readEnvFile(dockerEnvFile).LIFERAY_IMAGE);
+  await fs.writeFile(
+    dockerEnvFile,
+    `${upsertEnvFileValues(currentContent, {ELASTICSEARCH_VERSION: profile.elasticsearchVersion})}\n`,
+  );
+
+  if (!services.includes('elasticsearch')) {
+    return;
+  }
+  for (const configsDir of [
+    path.join(targetDir, 'liferay', 'configs', 'dockerenv', 'osgi', 'configs'),
+    path.join(targetDir, 'docker', 'liferay-configs-full', 'osgi', 'configs'),
+  ]) {
+    await writeElasticsearchConnectorConfig(configsDir, profile);
+  }
 }
 
 async function updateDockerEnv(
