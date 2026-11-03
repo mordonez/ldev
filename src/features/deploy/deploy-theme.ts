@@ -7,7 +7,7 @@ import {
   ensureGradleWrapper,
   hotDeployArtifactsToRunningLiferay,
   resolveDeployContext,
-  resolveHeadCommit,
+  resolveHeadCommitOrUnborn,
   runDeployStep,
   runGradleTask,
   syncArtifactsToBuildDeploy,
@@ -46,7 +46,7 @@ export async function runDeployTheme(
 
   const artifactsCopiedToBuild = await syncArtifactsToBuildDeploy(context, artifacts);
   const hotDeploy = await hotDeployArtifactsToRunningLiferay(config, artifacts);
-  const targetCommit = await resolveHeadCommit(context.repoRoot);
+  const targetCommit = await resolveHeadCommitOrUnborn(context.repoRoot);
   const cache = await syncArtifactsToDeployCache(config, context, artifacts);
 
   return {

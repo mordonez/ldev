@@ -1,5 +1,6 @@
 import type {AppConfig} from '../../core/config/load-config.js';
 import {detectCapabilities} from '../../core/platform/capabilities.js';
+import {parseClientExtensionLogEvents, type ClientExtensionLogEvent} from '../../core/runtime/client-extensions.js';
 import {runDockerComposeOrThrow} from '../../core/platform/docker.js';
 import {EnvErrors} from './errors/env-error-factory.js';
 
@@ -21,6 +22,8 @@ export type EnvLogsDiagnoseResult = {
   warnings: number;
   linesAnalyzed: number;
   exceptions: DiagnosedException[];
+  /** Client extension failures: batch files that did not import, batch units that failed. */
+  clientExtensionFailures: ClientExtensionLogEvent[];
 };
 
 export type EnvLogsDiagnoseOptions = {
@@ -153,6 +156,9 @@ export function parseLogDiagnosis(
     warnings,
     linesAnalyzed: lines.filter((line) => line.trim() !== '').length,
     exceptions,
+    clientExtensionFailures: parseClientExtensionLogEvents(content).filter(
+      (event) => event.kind === 'batch-failed' || event.kind === 'error',
+    ),
   };
 }
 
@@ -166,6 +172,12 @@ export function formatEnvLogsDiagnose(result: EnvLogsDiagnoseResult): string {
     `exceptions=${result.exceptions.length}`,
   ];
 
+  for (const failure of result.clientExtensionFailures) {
+    lines.push(
+      `clientExtension=${failure.bundle} ${failure.kind}${failure.file ? ` file=${failure.file}` : ''} message=${failure.message}`,
+    );
+  }
+
   for (const exception of result.exceptions) {
     lines.push(
       `${exception.class} count=${exception.count} firstSeen=${exception.firstSeen ?? 'n/a'} causes=${exception.suggestedCauses.join('; ') || 'unknown'}`,
@@ -175,7 +187,15 @@ export function formatEnvLogsDiagnose(result: EnvLogsDiagnoseResult): string {
   return lines.join('\n');
 }
 
+// Fully qualified bare names (`java.lang.Exception: ...`), which the pattern above skips.
+const QUALIFIED_BARE_EXCEPTION_PATTERN = /\b(?:[a-z_$][\w$]*\.)+(?:Exception|Error)\b/;
+
 function extractExceptionClass(line: string): string | null {
+  const qualifiedBare = QUALIFIED_BARE_EXCEPTION_PATTERN.exec(line)?.[0];
+  if (qualifiedBare && !EXCEPTION_CLASS_PATTERN.test(line.slice(0, line.indexOf(qualifiedBare)))) {
+    return qualifiedBare;
+  }
+
   const matcher = line.match(EXCEPTION_CLASS_PATTERN);
   const candidate = matcher?.[0]?.trim();
   if (!candidate) {
@@ -215,6 +235,11 @@ function suggestCauses(exceptionClass: string, stackTrace: string): string[] {
   }
   if (lowerTrace.includes('permission') || lowerTrace.includes('principal')) {
     causes.add('Check permissions, technical user, and OAuth2 scope');
+  }
+  if (lowerTrace.includes('batch engine file') || lowerTrace.includes('batch engine units')) {
+    causes.add(
+      'A batch client extension item failed to import; reproduce it with `ldev portal batch import --file <client-extension>/batch/<file> --check-only`',
+    );
   }
   if (causes.size === 0) {
     causes.add('Review the stack trace and the latest deploy related to this module');

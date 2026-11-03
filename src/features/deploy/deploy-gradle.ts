@@ -73,6 +73,25 @@ export async function resolveHeadCommit(repoRoot: string): Promise<string> {
   return result.stdout.trim();
 }
 
+/** Marker for a repository without commits yet (fresh `ldev project init`). */
+export const UNBORN_HEAD = 'unborn';
+
+/**
+ * Like resolveHeadCommit, but a repository without commits yields UNBORN_HEAD
+ * instead of an error. For reporting after a deploy already happened; callers
+ * that must skip work on a fresh repository keep using resolveHeadCommit.
+ */
+export async function resolveHeadCommitOrUnborn(repoRoot: string): Promise<string> {
+  try {
+    return await resolveHeadCommit(repoRoot);
+  } catch (error) {
+    if (error instanceof CliError && /ambiguous argument 'HEAD'|unknown revision/.test(error.message)) {
+      return UNBORN_HEAD;
+    }
+    throw error;
+  }
+}
+
 export async function writePrepareCommit(context: DeployContext, commit: string): Promise<void> {
   await fs.ensureDir(context.buildDir);
   await fs.writeFile(path.join(context.buildDir, '.prepare-commit'), `${commit}\n`);
