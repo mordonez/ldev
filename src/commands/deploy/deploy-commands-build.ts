@@ -1,6 +1,10 @@
 import type {Command} from 'commander';
 
 import {
+  formatDeployClientExtension,
+  runDeployClientExtension,
+} from '../../features/client-extension/client-extension-deploy.js';
+import {
   addOutputFormatOption,
   createFormattedAction,
   createFormattedArgumentAction,
@@ -54,6 +58,24 @@ export function registerDeployBuildCommands(command: Command): void {
           printer: context.printer,
         }),
       {text: formatDeployModule},
+    ),
+  );
+
+  addOutputFormatOption(
+    command
+      .command('client-extension')
+      .description('Build and deploy one client extension, wait until Liferay starts it and verify batch imports')
+      .argument('<name>', 'Folder name under liferay/client-extensions')
+      .option('--timeout <seconds>', 'Seconds to wait for Liferay to start the client extension', '180'),
+  ).action(
+    createFormattedArgumentAction(
+      async (context, name: string, options: {timeout?: string}) =>
+        runDeployClientExtension(context.config, {
+          name,
+          timeoutSeconds: Number(options.timeout ?? 180),
+          printer: context.printer,
+        }),
+      {text: formatDeployClientExtension},
     ),
   );
 

@@ -166,6 +166,33 @@ Rebuild and deploy a single module or theme into `build/docker/deploy`.
 ldev deploy module foo-web
 ```
 
+### `ldev deploy client-extension`
+
+Build and deploy one client extension from `liferay/client-extensions/<name>`,
+then wait until Liferay has started it.
+
+```bash
+ldev deploy client-extension ub-picklists-batch
+ldev deploy client-extension ub-theme-css --timeout 300 --json
+ldev deploy status
+```
+
+- On DXP 2026 a client extension zip runs as an OSGi bundle named after the
+  project without separators (`ub-theme-css` → `ubthemecss`). The command waits
+  for its `STARTED` log line and reports the bundle state.
+- For `batch` client extensions it also waits for the outcome of every
+  `batch/*.batch-engine-data.json` and reads the items back by ERC. The bundle
+  stays `Active` even when an import fails, so the command fails
+  (`DEPLOY_CLIENT_EXTENSION_FAILED`) on the batch error or on items missing after
+  the import. Reproduce an item failure with
+  `ldev portal batch import --file <cx>/batch/<file> --check-only`.
+- When Liferay is not running the zip waits in `build/docker/deploy` for the next
+  `ldev start`, and the command says so.
+- `ldev deploy status` lists every workspace client extension with its types and
+  OSGi state (`NOT_DEPLOYED` when Liferay has no such bundle).
+- `ldev logs diagnose` reports failed batch client extensions under
+  `clientExtensionFailures`, with the file and the portal's reason.
+
 ### `ldev deploy all`
 
 Rebuild and deploy every module in the repo.

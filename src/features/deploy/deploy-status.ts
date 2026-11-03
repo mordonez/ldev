@@ -3,7 +3,11 @@ import path from 'node:path';
 import fs from 'fs-extra';
 
 import type {AppConfig} from '../../core/config/load-config.js';
-import {runDockerCompose} from '../../core/platform/docker.js';
+import {
+  listWorkspaceClientExtensions,
+  readBundleStates,
+  type BundleState,
+} from '../../core/runtime/client-extensions.js';
 
 import {resolveDeployContext, resolveDeployCacheDir} from './deploy-shared.js';
 
@@ -15,6 +19,15 @@ export type DeployStatusModule = {
   deployedAt: string | null;
 };
 
+export type DeployStatusClientExtension = {
+  name: string;
+  types: string[];
+  bundle: string;
+  /** OSGi state (Active, Resolved, ...) or NOT_DEPLOYED when Liferay has no such bundle. */
+  state: string;
+  bundleId: number | null;
+};
+
 export type DeployStatusResult = {
   ok: true;
   buildDeployDir: string;
@@ -22,6 +35,7 @@ export type DeployStatusResult = {
   lastDeployCommit: string | null;
   lastDeployAt: string | null;
   modules: DeployStatusModule[];
+  clientExtensions: DeployStatusClientExtension[];
 };
 
 export async function runDeployStatus(
@@ -30,11 +44,15 @@ export async function runDeployStatus(
 ): Promise<DeployStatusResult> {
   const context = resolveDeployContext(config);
   const cacheDir = resolveDeployCacheDir(config);
-  const [buildModules, cacheModules, activeBundles] = await Promise.all([
+  const [buildModules, cacheModules, bundleStates, workspaceClientExtensions] = await Promise.all([
     listArtifactModules(context.buildDeployDir, 'build'),
     listArtifactModules(cacheDir, 'cache'),
-    listActiveBundles(context.dockerDir, options?.processEnv),
+    readBundleStates(config, options?.processEnv),
+    listWorkspaceClientExtensions(context.liferayDir),
   ]);
+  const activeBundles = new Set(
+    [...bundleStates.values()].filter((bundle) => bundle.state === 'Active').map((bundle) => bundle.symbolicName),
+  );
 
   const merged = new Map<string, DeployStatusModule>();
   for (const module of [...cacheModules, ...buildModules]) {
@@ -58,6 +76,16 @@ export async function runDeployStatus(
     lastDeployCommit,
     lastDeployAt,
     modules: [...merged.values()].sort((left, right) => left.name.localeCompare(right.name)),
+    clientExtensions: workspaceClientExtensions.map((cx) => {
+      const bundle: BundleState | undefined = bundleStates.get(cx.bundleSymbolicName);
+      return {
+        name: cx.project,
+        types: cx.entries.map((entry) => entry.type),
+        bundle: cx.bundleSymbolicName,
+        state: bundle?.state ?? 'NOT_DEPLOYED',
+        bundleId: bundle?.id ?? null,
+      };
+    }),
   };
 }
 
@@ -68,6 +96,8 @@ export function formatDeployStatus(result: DeployStatusResult): string {
     `Last deploy commit: ${result.lastDeployCommit ?? 'n/a'}`,
     `Modules: ${result.modules.length}`,
     ...result.modules.map((module) => `- ${module.name} ${module.state} (${module.source})`),
+    `Client extensions: ${result.clientExtensions.length}`,
+    ...result.clientExtensions.map((cx) => `- ${cx.name} ${cx.state} (${cx.types.join(', ') || 'unknown type'})`),
   ].join('\n');
 }
 
@@ -96,33 +126,6 @@ async function listArtifactModules(directory: string, source: 'build' | 'cache')
   }
 
   return modules;
-}
-
-async function listActiveBundles(dockerDir: string, processEnv?: NodeJS.ProcessEnv): Promise<Set<string>> {
-  const result = await runDockerCompose(
-    dockerDir,
-    ['exec', '-T', 'liferay', 'sh', '-lc', 'echo "lb -s" | telnet localhost 11311 || true'],
-    {env: processEnv, reject: false},
-  );
-  if (!result.ok) {
-    return new Set();
-  }
-
-  const bundles = new Set<string>();
-  for (const line of result.stdout.split(/\r?\n/)) {
-    const normalized = line.trim();
-    if (normalized === '') {
-      continue;
-    }
-
-    const parts = normalized.split('|').map((item) => item.trim());
-    const candidate = parts[parts.length - 1];
-    if (candidate) {
-      bundles.add(candidate);
-    }
-  }
-
-  return bundles;
 }
 
 function stripExtension(value: string): string {
