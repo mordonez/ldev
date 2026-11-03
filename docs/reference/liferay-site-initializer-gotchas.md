@@ -226,6 +226,23 @@ promoting/documenting more prominently; it deserves to be step one for any
 "the page doesn't look right" investigation, before touching source files
 at all.
 
+## 8. Two more silent failures (DXP 2026.q3.9)
+
+- The zip uploaded to `POST /o/headless-admin-site/v1.0/sites/site-initializer`
+  must contain the `site-initializer/` folder at its root. Zipping its contents
+  instead creates the site with no pages and no warning
+  (`Invoking addOrUpdateLayouts took 0 ms`).
+- `site-navigation-menus.json` items go under `menuItems` (as in the bundled
+  `com.liferay.commerce.site.initializer`), not `siteNavigationMenuItems`. With
+  the wrong key the menu is created empty, again without a warning.
+- `headless-admin-site` `site-pages` and `display-page-templates` answer 400
+  unless feature flag `LPD-35443` is enabled; `headless-delivery`
+  `sites/{id}/site-pages` and `navigation-menus` work without it.
+
+`ldev resource apply-site-initializer` now covers sections 1, 2, 3 (partly), 5
+and 8: it builds the zip correctly, lints before touching the portal, refuses
+to re-apply to an existing site without `--recreate`, and reads the result back.
+
 ## Suggested `ldev` follow-ups, roughly in priority order
 
 1. `ldev resource lint-page-definition` — catches sections 2, 3, 5 (missing

@@ -9,13 +9,15 @@ ldev resource import-adt --site /<site> --file <path> --widget-type <type> --che
 ldev resource import-picklist --picklist <ERC> --check-only
 ldev resource import-object --object <ERC> --check-only
 ldev portal batch import --file <batch-engine-data.json> --check-only
+ldev resource apply-site-initializer --source <cx> --site-erc <ERC> --check-only
 ```
 
 For objects and picklists, review `changes` in the check-only output. A `remove`
 on `objectFields[...]` or `listTypeEntries[...]` deletes that field or entry and
 orphans stored data: get explicit user approval before `--allow-breaking-change`.
 Import picklists and relationship targets before the objects that use them; do
-not create them with raw Headless calls.
+not create them with raw Headless calls. `apply-site-initializer --recreate`
+deletes the site and its content: only with explicit user approval.
 
 `import-fragment` has no `--check-only`; validate fragment source files
 manually before importing.
