@@ -67,6 +67,20 @@ export LDEV_ACTIVATION_KEY_FILE=/path/to/activation-key-dxp-*.xml
 ldev start
 ```
 
+### Search returns nothing on DXP 2026 / Liferay started its sidecar
+
+```text
+[FAIL] Search engine: search engine is misconfigured for liferay/dxp:2026.q3.9 (expects elasticsearch8, Elasticsearch 8.19.0)
+```
+
+**Fix**: regenerate the connector config and server version from `LIFERAY_IMAGE`,
+then recreate the containers.
+
+```bash
+ldev setup --with elasticsearch
+ldev env recreate
+```
+
 ### Portal not starting (timeout)
 
 ```text
