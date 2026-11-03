@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.11.0](https://github.com/mordonez/ldev/compare/ldev-v0.10.0...ldev-v0.11.0) (2026-11-03)
+
+
+### Features
+
+* **deploy:** deploy client extensions and report their runtime state ([#189](https://github.com/mordonez/ldev/issues/189)) ([61ca857](https://github.com/mordonez/ldev/commit/61ca857cadfbcb291a33208537c092db095ff1a5))
+* **portal:** add batch import with executeStatus polling and read-back ([#188](https://github.com/mordonez/ldev/issues/188)) ([4664c91](https://github.com/mordonez/ldev/commit/4664c91561fef399b1d56ae5e4630d337d43730e))
+* **portal:** inventory objects, picklists, vocabularies, spaces and client extensions ([#192](https://github.com/mordonez/ldev/issues/192)) ([5e90aac](https://github.com/mordonez/ldev/commit/5e90aace009d8be84b48cfcb6328238f5cb6ca3a))
+* **redirects:** inventory and import redirect maps with check-only, read-back and probe ([#191](https://github.com/mordonez/ldev/issues/191)) ([484f1f0](https://github.com/mordonez/ldev/commit/484f1f058f27bf65ae4922f8e60143be63b5cf92))
+* **resource:** apply site initializers by site ERC with lint and read-back ([#190](https://github.com/mordonez/ldev/issues/190)) ([efb4780](https://github.com/mordonez/ldev/commit/efb478049d56937e416d0129bc28efe92135d010))
+* **resource:** company-level style books and verified fragment imports into /global ([#193](https://github.com/mordonez/ldev/issues/193)) ([db9442f](https://github.com/mordonez/ldev/commit/db9442f375006f797d8290b4d6afaa36d55e947d))
+* **resource:** Liferay Objects and picklists file-backed workflow ([#186](https://github.com/mordonez/ldev/issues/186)) ([d9e5462](https://github.com/mordonez/ldev/commit/d9e546225c5b95b12140cbc0f17351e270401c3a))
+* **runtime:** support DXP 2026.q3 images and keep the activation key out of the tree ([#187](https://github.com/mordonez/ldev/issues/187)) ([0056f3b](https://github.com/mordonez/ldev/commit/0056f3b265000ac90db703b44a4da9da926d78dc))
+
+
+### Bug Fixes
+
+* **deps:** bump zod to 4.6.7 for GHSA-mrhx-c7xc-m3w5 ([#182](https://github.com/mordonez/ldev/issues/182)) ([d418af5](https://github.com/mordonez/ldev/commit/d418af5914457b0d5fc8ea37bd4e13b8319afa5f))
+* harden Liferay gateway auth/errors and CLI error contract ([#181](https://github.com/mordonez/ldev/issues/181)) ([94caa3a](https://github.com/mordonez/ldev/commit/94caa3a335fe359c7052fb273d6f8dcfd5c8e08c))
+
 ## [0.10.0](https://github.com/mordonez/ldev/compare/ldev-v0.9.2...ldev-v0.10.0) (2026-09-04)
 
 
