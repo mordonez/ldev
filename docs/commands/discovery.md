@@ -146,6 +146,28 @@ List web content templates for a site.
 ldev portal inventory templates --site /global --json
 ```
 
+## `ldev portal inventory objects|picklists|vocabularies|spaces|client-extensions`
+
+Inventories for client-extension-first projects, keyed by external reference
+code. All default to JSON.
+
+```bash
+ldev oauth install --scope-profile objects --scope-profile content-model
+ldev portal inventory objects        # fields, forward relationships, referenced picklists
+ldev portal inventory picklists      # entry keys
+ldev portal inventory vocabularies   # /global by default; --site for site vocabularies
+ldev portal inventory spaces         # asset libraries
+ldev portal inventory client-extensions  # workspace CXs with types and OSGi state
+```
+
+- `objects` lists custom fields only (no system or relationship-owned `r_*`
+  fields) and forward relationships with their target ERC, matching what
+  `ldev resource export-object` writes.
+- `client-extensions` reads `liferay/client-extensions/*/client-extension.yaml`
+  and, when Liferay runs, the bundle state (`NOT_DEPLOYED` otherwise).
+- `vocabularies` and `spaces` need the `content-model` scope profile
+  (`Liferay.Headless.Admin.Taxonomy` and `Liferay.Headless.Asset.Library` read).
+
 ## `ldev portal inventory redirects`
 
 List the redirect entries of one site: source URL, destination, 301/302 and

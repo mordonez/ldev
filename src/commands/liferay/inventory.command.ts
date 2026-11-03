@@ -34,6 +34,18 @@ import {
   runLiferayInventoryTemplates,
 } from '../../features/liferay/inventory/liferay-inventory-templates.js';
 import {
+  formatInventoryClientExtensions,
+  formatInventoryObjects,
+  formatInventoryPicklists,
+  formatInventorySpaces,
+  formatInventoryVocabularies,
+  runLiferayInventoryClientExtensions,
+  runLiferayInventoryObjects,
+  runLiferayInventoryPicklists,
+  runLiferayInventorySpaces,
+  runLiferayInventoryVocabularies,
+} from '../../features/liferay/inventory/liferay-inventory-resource-types.js';
+import {
   formatLiferayInventoryRedirects,
   runLiferayInventoryRedirects,
 } from '../../features/liferay/redirects/liferay-inventory-redirects.js';
@@ -336,6 +348,54 @@ Notes:
           pageSize: Number.parseInt(options.pageSize, 10) || 200,
         }),
       {text: formatLiferayInventoryTemplates},
+    ),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('objects')
+      .description('List Object Definitions by ERC with fields, relationships and referenced picklists'),
+    'json',
+  ).action(
+    createFormattedAction(async (context) => runLiferayInventoryObjects(context.config), {
+      text: formatInventoryObjects,
+    }),
+  );
+
+  addOutputFormatOption(
+    inventory.command('picklists').description('List picklists (list type definitions) by ERC with their entry keys'),
+    'json',
+  ).action(
+    createFormattedAction(async (context) => runLiferayInventoryPicklists(context.config), {
+      text: formatInventoryPicklists,
+    }),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('client-extensions')
+      .description('List workspace client extensions with their types and OSGi state'),
+    'json',
+  ).action(
+    createFormattedAction(async (context) => runLiferayInventoryClientExtensions(context.config), {
+      text: formatInventoryClientExtensions,
+    }),
+  );
+
+  addOutputFormatOption(inventory.command('spaces').description('List asset libraries (spaces) by ERC'), 'json').action(
+    createFormattedAction(async (context) => runLiferayInventorySpaces(context.config), {text: formatInventorySpaces}),
+  );
+
+  addOutputFormatOption(
+    inventory
+      .command('vocabularies')
+      .description('List taxonomy vocabularies by ERC; company-wide ones live in /global')
+      .option('--site <site>', 'Site friendly URL or numeric ID', '/global'),
+    'json',
+  ).action(
+    createFormattedAction(
+      async (context, options: {site: string}) => runLiferayInventoryVocabularies(context.config, {site: options.site}),
+      {text: formatInventoryVocabularies},
     ),
   );
 

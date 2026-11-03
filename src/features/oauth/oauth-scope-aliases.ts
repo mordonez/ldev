@@ -43,6 +43,10 @@ export const OAUTH_SCOPE_PROFILES = {
     'Liferay.Headless.Admin.List.Type.everything.read',
     'Liferay.Headless.Admin.List.Type.everything.write',
   ],
+  'content-model': [
+    'Liferay.Headless.Admin.Taxonomy.everything.read',
+    'Liferay.Headless.Asset.Library.everything.read',
+  ],
   batch: ['Liferay.Headless.Batch.Engine.everything.read', 'Liferay.Headless.Batch.Engine.everything.write'],
   'max-test': [
     'Liferay.Headless.Admin.Content.everything.read',
