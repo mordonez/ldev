@@ -5,8 +5,8 @@ import {
   createFragmentCollection,
   findRuntimeCollection,
   updateFragmentCollection,
-  type FragmentSyncRuntimeState,
 } from '../liferay-resource-import-fragments-api.js';
+import type {FragmentSyncRuntimeState} from '../liferay-resource-fragments-runtime-cache.js';
 import {normalizeFragmentCollectionForHash} from '../liferay-resource-import-fragments-hash.js';
 import type {LocalFragmentCollection} from '../liferay-resource-import-fragments-types.js';
 import {sha256, type ResourceDependencies} from '../liferay-resource-artifact-shared.js';

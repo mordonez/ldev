@@ -41,7 +41,7 @@ vi.mock('../../src/features/liferay/resource/liferay-resource-import-structure.j
 }));
 
 const {runLiferayResourceImportAdts, runLiferayResourceImportTemplates, runLiferayResourceImportStructures} =
-  await import('../../src/features/liferay/resource/liferay-resource-import-shared.js');
+  await import('../../src/features/liferay/resource/liferay-resource-import-bulk.js');
 
 const CONFIG = {
   cwd: '/tmp/repo',

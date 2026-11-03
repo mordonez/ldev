@@ -17,7 +17,6 @@ import {resolveInventoryPageRequest, runLiferayInventoryPage} from './liferay-in
 import {createInventoryGateway} from './liferay-inventory-shared.js';
 import {runLiferayInventorySitesIncludingGlobal, type LiferayInventorySite} from './liferay-inventory-sites.js';
 import {
-  resolveWhereUsedQuery,
   validateWhereUsedQuery,
   validateWhereUsedScopeOptions,
   selectWhereUsedSites,
@@ -25,13 +24,14 @@ import {
   type WhereUsedSiteSelectionInput,
   type WhereUsedSiteSelection,
 } from './liferay-inventory-where-used-query.js';
+import {resolveWhereUsedQuery} from './liferay-inventory-where-used-resolve.js';
 import {
   matchEvidenceAgainstResource,
   buildPageMatch,
-  collectWhereUsedPageCandidates,
   isSkippableWhereUsedCandidateError,
   extractErrorMessage,
 } from './liferay-inventory-where-used-scan.js';
+import {collectWhereUsedPageCandidates} from './liferay-inventory-where-used-candidates.js';
 
 export {formatLiferayInventoryWhereUsed} from './liferay-inventory-where-used-format.js';
 export type {WhereUsedResourceType} from '../../../core/contracts/inventory.schema.js';

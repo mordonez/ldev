@@ -1,11 +1,9 @@
 import {Command} from 'commander';
 
 import {addOutputFormatOption, createFormattedArgumentAction} from '../../cli/command-helpers.js';
-import {
-  formatLiferayApiDiscover,
-  runLiferayApiDiscover,
-  type ApiDiscoverResult,
-} from '../../features/liferay/liferay-api-discover.js';
+import {runLiferayApiDiscover} from '../../features/liferay/liferay-api-discover.js';
+import {formatLiferayApiDiscover} from '../../features/liferay/liferay-api-discover-format.js';
+import type {ApiDiscoverResult} from '../../features/liferay/liferay-api-discover-types.js';
 
 type ApiDiscoverCommandOptions = {
   path?: string;

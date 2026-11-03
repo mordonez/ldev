@@ -64,7 +64,13 @@ deploy. First load the routed skill, then mutate only inside the locked root.
 - Use the resource mutation gates in
   [references/resource-mutation-gates.md](references/resource-mutation-gates.md).
 - Resolve IDs, keys, site names, and URLs through `ldev portal inventory`.
-- Diagnose failed commands before retrying.
+- Diagnose failed commands before retrying. With `--json`, failures arrive on
+  stderr as `{"ok": false, "error": {"code", "message", "details"}}`: branch on
+  `error.code`, never on message text. Exit code 2 / `CLI_USAGE_ERROR` means a
+  wrong invocation (check `--help`), not a portal problem. For
+  `LIFERAY_GATEWAY_ERROR`, read `details.status`/`details.path` and the portal
+  message at the end of `message`: 401/403 -> OAuth scopes (`ldev doctor --portal`),
+  404 -> wrong key/site (re-resolve via inventory), 5xx -> logs diagnose.
 - Do not claim Green until the original Red scenario no longer reproduces.
 
 ## Handoff

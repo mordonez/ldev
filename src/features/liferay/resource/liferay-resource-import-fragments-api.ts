@@ -3,24 +3,19 @@ import type {AppConfig} from '../../../core/config/load-config.js';
 import {listFragmentCollections, listFragments} from './liferay-resource-shared.js';
 import {postFormCandidates, type ResourceDependencies} from './liferay-resource-artifact-shared.js';
 import type {LocalFragment, LocalFragmentCollection} from './liferay-resource-import-fragments-types.js';
-import {sanitizeFileToken} from './liferay-resource-import-fragments-local.js';
 import {
   toFragmentCollectionPayload,
   toFragmentEntryPayload,
   type FragmentCollectionPayload,
   type FragmentEntryPayload,
 } from './liferay-resource-payloads.js';
-
-export type FragmentSyncRuntimeState = {
-  collectionsByKey?: Map<string, FragmentCollectionPayload>;
-  fragmentsByCollectionId: Map<number, Map<string, FragmentEntryPayload>>;
-};
-
-export function createFragmentSyncRuntimeState(): FragmentSyncRuntimeState {
-  return {
-    fragmentsByCollectionId: new Map(),
-  };
-}
+import {
+  cacheFragmentInRuntimeState,
+  cacheRuntimeCollection,
+  cacheRuntimeFragment,
+  ensureCollectionRuntimeCache,
+  type FragmentSyncRuntimeState,
+} from './liferay-resource-fragments-runtime-cache.js';
 
 export async function listRuntimeCollectionsByKey(
   config: AppConfig,
@@ -279,61 +274,6 @@ export async function updateFragmentEntry(
   });
   cacheFragmentInRuntimeState(runtimeState, fragmentCollectionId, payload);
   return payload;
-}
-
-function cacheRuntimeCollection(
-  byKey: Map<string, FragmentCollectionPayload> | undefined,
-  collection: FragmentCollectionPayload,
-): void {
-  if (!byKey) {
-    return;
-  }
-
-  const key = String(collection.fragmentCollectionKey ?? '').trim();
-  const name = String(collection.name ?? '').trim();
-  if (key !== '') {
-    byKey.set(key.toLowerCase(), collection);
-  }
-  if (name !== '') {
-    byKey.set(sanitizeFileToken(name).toLowerCase(), collection);
-  }
-}
-
-function ensureCollectionRuntimeCache(
-  runtimeState: FragmentSyncRuntimeState | undefined,
-): Map<string, FragmentCollectionPayload> | undefined {
-  if (!runtimeState) {
-    return undefined;
-  }
-
-  runtimeState.collectionsByKey ??= new Map<string, FragmentCollectionPayload>();
-  return runtimeState.collectionsByKey;
-}
-
-function cacheFragmentInRuntimeState(
-  runtimeState: FragmentSyncRuntimeState | undefined,
-  fragmentCollectionId: number,
-  fragment: FragmentEntryPayload,
-): void {
-  if (!runtimeState) {
-    return;
-  }
-
-  const byKey =
-    runtimeState.fragmentsByCollectionId.get(fragmentCollectionId) ?? new Map<string, FragmentEntryPayload>();
-  cacheRuntimeFragment(byKey, fragment);
-  runtimeState.fragmentsByCollectionId.set(fragmentCollectionId, byKey);
-}
-
-function cacheRuntimeFragment(byKey: Map<string, FragmentEntryPayload>, fragment: FragmentEntryPayload): void {
-  const runtimeKey = String(fragment.fragmentEntryKey ?? '').trim();
-  const runtimeName = String(fragment.name ?? '').trim();
-  if (runtimeKey !== '') {
-    byKey.set(runtimeKey.toLowerCase(), fragment);
-  }
-  if (runtimeName !== '') {
-    byKey.set(sanitizeFileToken(runtimeName).toLowerCase(), fragment);
-  }
 }
 
 function fragmentEntryBaseForm(
